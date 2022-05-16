@@ -193,24 +193,6 @@ func (m Pools) Set(pool Pool) Pools {
 	return m
 }
 
-// AssetReimbursementForRuneWithdrawal returns the equivalent amount of asset for a given
-// amount of rune, taking slip into account. When this amount is added to the pool,
-// the constant product of depths rule is preserved.
-func (m Pool) AssetReimbursementForRuneWithdrawal(amt cosmos.Uint) cosmos.Uint {
-	if m.BalanceRune.IsZero() || m.BalanceAsset.IsZero() {
-		return cosmos.ZeroUint()
-	}
-	denom := common.SafeSub(m.BalanceRune, amt)
-	if denom.IsZero() {
-		// With slip, as the amount approaches the entire rune balance of the pool
-		// the equivalent rune value approaches infinity. Return 0 in the limiting
-		// case.
-		return cosmos.ZeroUint()
-	}
-	assetAmt := common.GetShare(m.BalanceAsset, denom, amt)
-	return cosmos.RoundToDecimal(assetAmt, m.Decimals)
-}
-
 // RuneDisbursementForAssetAdd returns the equivalent amount of rune for a
 // given amount of asset added to the pool, taking slip into account. When this
 // amount is withdrawn from the pool, the constant product of depths rule is
