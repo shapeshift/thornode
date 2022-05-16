@@ -143,7 +143,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "156774"},
+                    {"pool_deduct": "156770"},
                 ],
             ),
             Event(
@@ -176,7 +176,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "156766"},
+                    {"pool_deduct": "156762"},
                 ],
             ),
             Event(
@@ -230,7 +230,7 @@ class TestThorchainState(unittest.TestCase):
         expected_events += [
             Event(
                 "fee",
-                [{"tx_id": "TODO"}, {"coins": f"156758 {RUNE}"}, {"pool_deduct": "0"}],
+                [{"tx_id": "TODO"}, {"coins": f"156753 {RUNE}"}, {"pool_deduct": "0"}],
             ),
             Event(
                 "refund",
@@ -317,7 +317,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "55548 BNB.LOK-3C0"},
-                    {"pool_deduct": "80729"},
+                    {"pool_deduct": "80728"},
                 ],
             ),
             Event(
@@ -732,14 +732,14 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "37500000"},
+                    {"pool_deduct": "37471896"},
                 ],
             ),
             Event(
                 "fee",
                 [
                     {"tx_id": "TODO"},
-                    {"coins": "37443792 BNB.RUNE-67C"},
+                    {"coins": "37443813 BNB.RUNE-67C"},
                     {"pool_deduct": "0"},
                 ],
             ),
@@ -768,7 +768,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "37443792"},
+                    {"pool_deduct": "37443813"},
                 ],
             ),
             Event(
@@ -1022,14 +1022,14 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "37500000"},
+                    {"pool_deduct": "37471896"},
                 ],
             ),
             Event(
                 "fee",
                 [
                     {"tx_id": "TODO"},
-                    {"coins": "37443792 BNB.RUNE-67C"},
+                    {"coins": "37443813 BNB.RUNE-67C"},
                     {"pool_deduct": "0"},
                 ],
             ),
@@ -1056,7 +1056,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"asset": "BNB.BNB"},
                     {"asset_amt": "75000"},
-                    {"rune_amt": "24962528"},
+                    {"rune_amt": "24962542"},
                     {"transaction_count": "2"},
                 ],
             ),
@@ -1180,7 +1180,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"asset": "BNB.BNB"},
                     {"asset_amt": "75000"},
-                    {"rune_amt": "24975020"},
+                    {"rune_amt": "24962542"},
                     {"transaction_count": "2"},
                 ],
             ),
@@ -1247,14 +1247,14 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "37500000"},
+                    {"pool_deduct": "37471896"},
                 ],
             ),
             Event(
                 "fee",
                 [
                     {"tx_id": "TODO"},
-                    {"coins": "37443792 BNB.RUNE-67C"},
+                    {"coins": "37443813 BNB.RUNE-67C"},
                     {"pool_deduct": "0"},
                 ],
             ),
@@ -1287,7 +1287,7 @@ class TestThorchainState(unittest.TestCase):
                 [
                     {"tx_id": "TODO"},
                     {"coins": "112500 BNB.BNB"},
-                    {"pool_deduct": "37443792"},
+                    {"pool_deduct": "37443813"},
                 ],
             ),
             Event(
