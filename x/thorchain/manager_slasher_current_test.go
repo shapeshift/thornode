@@ -559,7 +559,7 @@ func (s *SlashingV89Suite) TestSlashVault(c *C) {
 	c.Assert(err, IsNil)
 	nodeTemp, err := mgr.Keeper().GetNodeAccountByPubKey(ctx, vault.PubKey)
 	c.Assert(err, IsNil)
-	expectedBond := cosmos.NewUint(99848484849)
+	expectedBond := cosmos.NewUint(99850000000)
 	c.Assert(nodeTemp.Bond.Equal(expectedBond), Equals, true, Commentf("%d", nodeTemp.Bond.Uint64()))
 
 	asgardAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, AsgardName)
@@ -573,10 +573,10 @@ func (s *SlashingV89Suite) TestSlashVault(c *C) {
 	// ensure pool's change is in sync with asgard's change
 	c.Assert(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, poolAfterSlash.Sub(poolBeforeSlash).Uint64(), Commentf("%d", "pool/asgard rune mismatch"))
 
-	c.Assert(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, uint64(101010101), Commentf("%d", asgardAfterSlash.Sub(asgardBeforeSlash).Uint64()))
-	c.Assert(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, uint64(101010101), Commentf("%d", asgardAfterSlash.Sub(asgardBeforeSlash).Uint64()))
-	c.Assert(bondBeforeSlash.Sub(bondAfterSlash).Uint64(), Equals, uint64(151515151), Commentf("%d", bondBeforeSlash.Sub(bondAfterSlash).Uint64()))
-	c.Assert(reserveAfterSlash.Sub(reserveBeforeSlash).Uint64(), Equals, uint64(50505050), Commentf("%d", reserveAfterSlash.Sub(reserveBeforeSlash).Uint64()))
+	c.Check(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, uint64(100000000), Commentf("%d", asgardAfterSlash.Sub(asgardBeforeSlash).Uint64()))
+	c.Check(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, uint64(100000000), Commentf("%d", asgardAfterSlash.Sub(asgardBeforeSlash).Uint64()))
+	c.Check(bondBeforeSlash.Sub(bondAfterSlash).Uint64(), Equals, uint64(150000000), Commentf("%d", bondBeforeSlash.Sub(bondAfterSlash).Uint64()))
+	c.Check(reserveAfterSlash.Sub(reserveBeforeSlash).Uint64(), Equals, uint64(50000000), Commentf("%d", reserveAfterSlash.Sub(reserveBeforeSlash).Uint64()))
 
 	// add one more node , slash asgard
 	node1 := GetRandomValidatorNode(NodeActive)
@@ -610,8 +610,8 @@ func (s *SlashingV89Suite) TestSlashVault(c *C) {
 	nodeBondAfterSlash := nodeAfterSlash.Bond
 	node1BondAfterSlash := node1AfterSlash.Bond
 
-	c.Assert(nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64(), Equals, uint64(77245041), Commentf("%d", nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64()))
-	c.Assert(node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64(), Equals, uint64(77362257), Commentf("%d", node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64()))
+	c.Check(nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64(), Equals, uint64(76457722), Commentf("%d", nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64()))
+	c.Check(node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64(), Equals, uint64(76572581), Commentf("%d", node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64()))
 
 	val, err := mgr.Keeper().GetMimir(ctx, mimirStopFundYggdrasil)
 	c.Assert(err, IsNil)
@@ -635,18 +635,18 @@ func (s *SlashingV89Suite) TestAdjustPoolForSlashedAsset(c *C) {
 
 	// runeValue should be value of full coin amount in rune
 	coin := common.NewCoin(common.BTCAsset, cosmos.NewUint(100*common.One))
-	expRuneValue := pool.RuneReimbursementForAssetWithdrawal(coin.Amount)
+	expRuneValue := pool.AssetValueInRune(coin.Amount)
 	runeValue := slasher.adjustPoolForSlashedAsset(ctx, coin, mgr)
 	poolAfter, err := mgr.Keeper().GetPool(ctx, pool.Asset)
 	c.Assert(err, IsNil)
-	c.Assert(runeValue.Uint64(), Equals, expRuneValue.Uint64())
+	c.Assert(runeValue.Uint64(), Equals, expRuneValue.Uint64(), Commentf("%d", runeValue.Uint64()))
 	c.Assert(poolAfter.BalanceRune.Uint64(), Equals, pool.BalanceRune.Add(runeValue).Uint64())
 	c.Assert(poolAfter.BalanceAsset.Uint64(), Equals, pool.BalanceAsset.Sub(coin.Amount).Uint64())
 
 	// when coin is more than pool balance, full pool balance should be used
 	pool.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
-	expRuneValue = pool.RuneReimbursementForAssetWithdrawal(pool.BalanceAsset)
+	expRuneValue = pool.AssetValueInRune(pool.BalanceAsset)
 	runeValue = slasher.adjustPoolForSlashedAsset(ctx, coin, mgr)
 	poolAfter, err = mgr.Keeper().GetPool(ctx, pool.Asset)
 	c.Assert(err, IsNil)
@@ -704,7 +704,7 @@ func (s *SlashingV89Suite) TestNetworkShouldNotSlashMorethanVaultAmount(c *C) {
 	c.Assert(err, IsNil)
 	nodeTemp, err := mgr.Keeper().GetNodeAccountByPubKey(ctx, vault.PubKey)
 	c.Assert(err, IsNil)
-	expectedBond := cosmos.NewUint(99924623116)
+	expectedBond := cosmos.NewUint(99925000000)
 	c.Assert(nodeTemp.Bond.Equal(expectedBond), Equals, true, Commentf("%d", nodeTemp.Bond.Uint64()))
 
 	asgardAfterSlash := mgr.Keeper().GetRuneBalanceOfModule(ctx, AsgardName)
@@ -718,9 +718,9 @@ func (s *SlashingV89Suite) TestNetworkShouldNotSlashMorethanVaultAmount(c *C) {
 	// ensure pool's change is in sync with asgard's change
 	c.Assert(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, poolAfterSlash.Sub(poolBeforeSlash).Uint64(), Commentf("%d", "pool/asgard rune mismatch"))
 
-	c.Assert(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, uint64(50251256), Commentf("%d", asgardAfterSlash.Sub(asgardBeforeSlash).Uint64()))
-	c.Assert(bondBeforeSlash.Sub(bondAfterSlash).Uint64(), Equals, uint64(75376884), Commentf("%d", bondBeforeSlash.Sub(bondAfterSlash).Uint64()))
-	c.Assert(reserveAfterSlash.Sub(reserveBeforeSlash).Uint64(), Equals, uint64(25125628), Commentf("%d", reserveAfterSlash.Sub(reserveBeforeSlash).Uint64()))
+	c.Check(asgardAfterSlash.Sub(asgardBeforeSlash).Uint64(), Equals, uint64(50000000), Commentf("%d", asgardAfterSlash.Sub(asgardBeforeSlash).Uint64()))
+	c.Check(bondBeforeSlash.Sub(bondAfterSlash).Uint64(), Equals, uint64(75000000), Commentf("%d", bondBeforeSlash.Sub(bondAfterSlash).Uint64()))
+	c.Check(reserveAfterSlash.Sub(reserveBeforeSlash).Uint64(), Equals, uint64(25000000), Commentf("%d", reserveAfterSlash.Sub(reserveBeforeSlash).Uint64()))
 
 	// add one more node , slash asgard
 	node1 := GetRandomValidatorNode(NodeActive)
@@ -754,8 +754,8 @@ func (s *SlashingV89Suite) TestNetworkShouldNotSlashMorethanVaultAmount(c *C) {
 	nodeBondAfterSlash := nodeAfterSlash.Bond
 	node1BondAfterSlash := node1AfterSlash.Bond
 
-	c.Assert(nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64(), Equals, uint64(38054780), Commentf("%d", nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64()))
-	c.Assert(node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64(), Equals, uint64(38083487), Commentf("%d", node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64()))
+	c.Check(nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64(), Equals, uint64(37862675), Commentf("%d", nodeBondBeforeSlash.Sub(nodeBondAfterSlash).Uint64()))
+	c.Check(node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64(), Equals, uint64(37891094), Commentf("%d", node1BondBeforeSlash.Sub(node1BondAfterSlash).Uint64()))
 
 	val, err := mgr.Keeper().GetMimir(ctx, mimirStopFundYggdrasil)
 	c.Assert(err, IsNil)
