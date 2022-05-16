@@ -53,3 +53,37 @@ func (s *KeeperTxInSuite) TestTxInVoter(c *C) {
 	c.Check(iter1, NotNil)
 	iter1.Close()
 }
+
+func (s *KeeperTxInSuite) TestObservedLink(c *C) {
+	ctx, k := setupKeeperForTest(c)
+
+	inhash := GetRandomTxHash()
+	outhash1 := GetRandomTxHash()
+	outhash2 := GetRandomTxHash()
+	outhash3 := GetRandomTxHash()
+
+	// empty hashes
+	hashes := k.GetObservedLink(ctx, inhash)
+	c.Assert(hashes, HasLen, 0)
+
+	// single hash
+	k.SetObservedLink(ctx, inhash, outhash1)
+	hashes = k.GetObservedLink(ctx, inhash)
+	c.Assert(hashes, HasLen, 1)
+	c.Check(hashes[0].Equals(outhash1), Equals, true, Commentf("%s/%s", hashes[0], outhash1))
+
+	// dedup works
+	k.SetObservedLink(ctx, inhash, outhash1)
+	hashes = k.GetObservedLink(ctx, inhash)
+	c.Assert(hashes, HasLen, 1)
+	c.Check(hashes[0].Equals(outhash1), Equals, true)
+
+	// dedup works
+	k.SetObservedLink(ctx, inhash, outhash2)
+	k.SetObservedLink(ctx, inhash, outhash3)
+	hashes = k.GetObservedLink(ctx, inhash)
+	c.Assert(hashes, HasLen, 3)
+	c.Check(hashes[0].Equals(outhash1), Equals, true)
+	c.Check(hashes[1].Equals(outhash2), Equals, true)
+	c.Check(hashes[2].Equals(outhash3), Equals, true)
+}

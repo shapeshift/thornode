@@ -765,3 +765,37 @@ func (s *SlashingV89Suite) TestNetworkShouldNotSlashMorethanVaultAmount(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(val, Equals, int64(18), Commentf("%d", val))
 }
+
+func (s *SlashingV89Suite) TestNeedsNewVault(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	inhash := GetRandomTxHash()
+	outhash := GetRandomTxHash()
+	sig1 := GetRandomBech32Addr()
+	sig2 := GetRandomBech32Addr()
+	sig3 := GetRandomBech32Addr()
+	pk := GetRandomPubKey()
+	tx := GetRandomTx()
+	tx.ID = outhash
+	obs := NewObservedTx(tx, 0, pk, 0)
+	obs.ObservedPubKey = pk
+	obs.Signers = []string{sig1.String(), sig2.String(), sig3.String()}
+
+	voter := NewObservedTxVoter(outhash, []ObservedTx{obs})
+	mgr.Keeper().SetObservedTxOutVoter(ctx, voter)
+
+	mgr.Keeper().SetObservedLink(ctx, inhash, outhash)
+	slasher := newSlasherV89(mgr.Keeper(), mgr.EventMgr())
+
+	c.Check(slasher.needsNewVault(ctx, mgr, 10, 300, 1, inhash, pk), Equals, false)
+	ctx = ctx.WithBlockHeight(600)
+	c.Check(slasher.needsNewVault(ctx, mgr, 10, 300, 1, inhash, pk), Equals, false)
+	ctx = ctx.WithBlockHeight(900)
+	c.Check(slasher.needsNewVault(ctx, mgr, 10, 300, 1, inhash, pk), Equals, false)
+	ctx = ctx.WithBlockHeight(1600)
+	c.Check(slasher.needsNewVault(ctx, mgr, 10, 300, 1, inhash, pk), Equals, true)
+
+	// test that more than 1/3rd will always return false
+	ctx = ctx.WithBlockHeight(999999999)
+	c.Check(slasher.needsNewVault(ctx, mgr, 9, 300, 1, inhash, pk), Equals, false)
+}

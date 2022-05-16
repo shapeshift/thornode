@@ -3,6 +3,7 @@ package thorchain
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
@@ -73,7 +74,17 @@ func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut) (
 	return nil, errBadVersion
 }
 
-func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress) (ObservedTxVoter, bool) {
+func (h ObservedTxOutHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress) (ObservedTxVoter, bool) {
+	version := h.mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.89.0")):
+		return h.preflightV89(ctx, voter, nas, tx, signer)
+	default:
+		return h.preflightV1(ctx, voter, nas, tx, signer)
+	}
+}
+
+func (h ObservedTxOutHandler) preflightV89(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress) (ObservedTxVoter, bool) {
 	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
 	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)
 	ok := false
@@ -90,6 +101,13 @@ func (h ObservedTxOutHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVo
 	if !voter.Add(tx, signer) {
 		// when the signer already sign it
 		return voter, ok
+	}
+	parts := strings.Split(tx.Tx.Memo, ":")
+	if len(parts) > 1 {
+		inhash, err := common.NewTxID(parts[len(parts)-1])
+		if err == nil {
+			h.mgr.Keeper().SetObservedLink(ctx, inhash, tx.Tx.ID)
+		}
 	}
 	if voter.HasFinalised(nas) {
 		if voter.FinalisedHeight == 0 {
@@ -141,7 +159,7 @@ func (h ObservedTxOutHandler) handleV89(ctx cosmos.Context, msg MsgObservedTxOut
 		}
 
 		// check whether the tx has consensus
-		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer)
+		voter, ok := h.preflight(ctx, voter, activeNodeAccounts, tx, msg.Signer)
 		if !ok {
 			if voter.FinalisedHeight == common.BlockHeight(ctx) {
 				// we've already process the transaction, but we should still
