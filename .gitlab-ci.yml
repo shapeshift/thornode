@@ -30,8 +30,6 @@ stages:
 unit-tests:
   stage: test
   cache: {}
-  tags:
-    - thorchain
   except:
     - schedules
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
@@ -45,7 +43,7 @@ unit-tests:
     when: always
     reports:
       junit: report.xml
-      coverage_report: 
+      coverage_report:
         coverage_format: cobertura
         path: coverage.xml
     paths:
@@ -54,8 +52,6 @@ unit-tests:
 lint:
   cache: []
   stage: test
-  tags:
-    - thorchain
   except:
     - schedules
     - testnet
@@ -73,8 +69,6 @@ lint:
 build-thornode:
   stage: build
   image: docker:20.10.12
-  tags:
-    - thorchain
   only:
     - master # build mocknet image
     - develop # build mocknet image multichain
@@ -105,8 +99,6 @@ smoke-test:
   stage: smoke-test
   cache: {}
   image: docker/compose:alpine-1.29.2
-  tags:
-    - thorchain
   services:
     - docker:20.10.12-dind
   artifacts:
@@ -148,8 +140,6 @@ smoke-test:
 
 gosec-sast:
   stage: test
-  tags:
-    - thorchain
   rules:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_BRANCH
@@ -157,8 +147,6 @@ gosec-sast:
 
 secret_detection:
   stage: test
-  tags:
-    - thorchain
   rules:
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_BRANCH
