@@ -90,12 +90,12 @@ lint-erc20s:
 lint: lint-pre lint-handlers lint-managers lint-erc20s
 	@go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 ifdef CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-	trunk check --no-progress --monitor=false --upstream origin/$(CI_MERGE_REQUEST_TARGET_BRANCH_NAME)
+	./scripts/trunk check --no-progress --monitor=false --upstream origin/$(CI_MERGE_REQUEST_TARGET_BRANCH_NAME)
 else
 ifdef CI_PROJECT_ID
-	trunk check --no-progress --monitor=false --upstream origin/develop
+	./scripts/trunk check --no-progress --monitor=false --upstream origin/develop
 else
-	trunk check --no-fix --upstream origin/develop
+	./scripts/trunk check --no-fix --upstream origin/develop
 endif
 endif
 

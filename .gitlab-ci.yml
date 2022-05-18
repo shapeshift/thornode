@@ -62,7 +62,7 @@ lint:
     - chaosnet-multichain
   before_script:
     - git fetch origin develop $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-    - trunk check download
+    - ./scripts/trunk check download
   script:
     - make lint
 
