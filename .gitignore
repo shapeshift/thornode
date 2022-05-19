@@ -11,6 +11,7 @@ vendor
 .vendor-new
 observe
 *balances.json
+*.pb.go
 
 # IDE
 .idea/
