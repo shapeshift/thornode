@@ -28,7 +28,7 @@ BINARIES=./cmd/thornode ./cmd/bifrost ./tools/generate
 all: lint install
 
 protob:
-	@sh scripts/protocgen.sh
+	@./scripts/protocgen.sh
 
 build: protob
 	go build ${BUILD_FLAGS} ${BINARIES}
