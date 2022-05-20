@@ -18,7 +18,7 @@ interface iROUTER {
 
 // Sushi Interface
 interface iSWAPROUTER {
-    function swapExactTokensForETH(
+    function swapExactTokensForAVAX(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -26,7 +26,7 @@ interface iSWAPROUTER {
         uint256 deadline
     ) external;
 
-    function swapExactETHForTokens(
+    function swapExactAVAXForTokens(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
@@ -42,8 +42,8 @@ contract AvaxAggregator {
     uint256 private constant _ENTERED = 2;
     uint256 private _status;
 
-    address private ETH = address(0);
-    address public WETH;
+    address private AVAX = address(0);
+    address public WAVAX;
     iSWAPROUTER public swapRouter;
 
     modifier nonReentrant() {
@@ -53,9 +53,9 @@ contract AvaxAggregator {
         _status = _NOT_ENTERED;
     }
 
-    constructor(address _weth, address _swapRouter) {
+    constructor(address _wavax, address _swapRouter) {
         _status = _NOT_ENTERED;
-        WETH = _weth;
+        WAVAX = _wavax;
         swapRouter = iSWAPROUTER(_swapRouter);
     }
 
@@ -82,9 +82,9 @@ contract AvaxAggregator {
 
         address[] memory path = new address[](2);
         path[0] = token;
-        path[1] = WETH;
+        path[1] = WAVAX;
 
-        swapRouter.swapExactTokensForETH(
+        swapRouter.swapExactTokensForAVAX(
             safeAmount,
             amountOutMin,
             path,
@@ -94,7 +94,7 @@ contract AvaxAggregator {
         safeAmount = address(this).balance;
         iROUTER(tcRouter).depositWithExpiry{value: safeAmount}(
             payable(tcVault),
-            ETH,
+            AVAX,
             safeAmount,
             tcMemo,
             deadline
@@ -109,9 +109,9 @@ contract AvaxAggregator {
         uint256 amountOutMin
     ) public payable nonReentrant {
         address[] memory path = new address[](2);
-        path[0] = WETH;
+        path[0] = WAVAX;
         path[1] = token;
-        swapRouter.swapExactETHForTokens{value: msg.value}(
+        swapRouter.swapExactAVAXForTokens{value: msg.value}(
             amountOutMin,
             path,
             to,
