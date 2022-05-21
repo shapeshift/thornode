@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
 # Delete any existing protobuf generated files.
 find . -name "*.pb.go" -delete
 
 go install github.com/regen-network/cosmos-proto/protoc-gen-gocosmos
-go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc
 
 # shellcheck disable=SC2038
 find proto/ -path -prune -o -name '*.proto' -printf '%h\n' | sort | uniq |
