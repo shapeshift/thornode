@@ -328,7 +328,7 @@ class ThorchainState:
         for asset, gas in gas_coins.items():
             pool = self.get_pool(gas.asset)
             # figure out how much rune is an equal amount to gas.amount
-            rune_amt = pool.get_rune_reimbursement_for_asset_withdrawal(gas.amount)
+            rune_amt = pool.get_asset_in_rune(gas.amount)
             self.reserve -= rune_amt  # take rune from the reserve
 
             pool.add(rune_amt, 0)  # replenish gas costs with rune
@@ -1592,17 +1592,6 @@ class Pool(Jsonable):
             return 0
 
         return get_share(self.rune_balance, self.asset_balance, val)
-
-    def get_rune_reimbursement_for_asset_withdrawal(self, val):
-        """
-        Get equivalent amount of rune for a given amount of asset withdrawn
-        from the pool, taking slip into account. When this amount is added
-        to the pool, the constant product of depths rule is preserved.
-        """
-        if self.is_zero():
-            return 0
-
-        return get_share(self.rune_balance, self.asset_balance - val, val)
 
     def get_rune_in_asset(self, val):
         """

@@ -97,6 +97,13 @@ def main():
         help="Trigger an Ethereum chain reorg",
     )
 
+    parser.add_argument(
+        "--bootstrap-only",
+        default=False,
+        type=bool,
+        help="Only perform liquidity adds to seed the mocknet",
+    )
+
     args = parser.parse_args()
 
     txn_list = "data/smoke_test_transactions.json"
@@ -123,6 +130,7 @@ def main():
         args.no_verify,
         args.bitcoin_reorg,
         args.ethereum_reorg,
+        args.bootstrap_only,
     )
     try:
         smoker.run()
@@ -151,6 +159,7 @@ class Smoker:
         no_verify=False,
         bitcoin_reorg=False,
         ethereum_reorg=False,
+        bootstrap_only=False,
     ):
         self.binance = Binance()
         self.terra = Terra()
@@ -213,9 +222,10 @@ class Smoker:
 
         self.generate_balances = gen_balances
         self.fast_fail = fast_fail
-        self.no_verify = no_verify
+        self.no_verify = no_verify or bootstrap_only
         self.bitcoin_reorg = bitcoin_reorg
         self.ethereum_reorg = ethereum_reorg
+        self.bootstrap_only = bootstrap_only
         self.thorchain_client.events = []
         self.exit = 0
 
@@ -563,6 +573,19 @@ class Smoker:
     def run(self):
         for i, txn in enumerate(self.txns):
             txn = Transaction.from_data(txn)
+
+            # only process adds from provider one if running in bootstrap only mode
+            if (
+                self.bootstrap_only
+                and not (txn.memo == "SEED" and txn.to_address == "PROVIDER-1")
+                and not (
+                    txn.from_address == "PROVIDER-1"
+                    and txn.memo.startswith("ADD")
+                    and txn.to_address == "VAULT"
+                    and (txn.chain != "THOR" or txn.coins[0].asset == "THOR.RUNE")
+                )
+            ):
+                continue
 
             if self.bitcoin_reorg:
                 # get block hash from bitcoin we are going to invalidate later
