@@ -528,6 +528,13 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 			return nil, fmt.Errorf("fail to get total effective bond: %w", err)
 		}
 
+		// Note that unlike actual BondRewardRune distribution in manager_validator_current.go ,
+		// this estimate treats lastChurnHeight as the block_height of the first (oldest) Asgard vault,
+		// rather than the active_block_height of the youngest active node.
+		// As an example, note from the below URLs that these are 5293728 and 5293733 respectively in block 5336942.
+		// https://thornode.ninerealms.com/thorchain/vaults/asgard?height=5336942
+		// https://thornode.ninerealms.com/thorchain/nodes?height=5336942
+		// (Nodes .cxmy and .uy3a .)
 		lastChurnHeight := vaults[0].BlockHeight
 
 		reward, err := getNodeCurrentRewards(ctx, mgr, nodeAcc, lastChurnHeight, network.BondRewardRune, totalEffectiveBond, bondHardCap)
@@ -591,7 +598,7 @@ func getNodeCurrentRewards(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount, l
 		return cosmos.ZeroUint(), fmt.Errorf("fail to get node slash points: %w", err)
 	}
 
-	// Find number of blocks they have been an active node
+	// Find number of blocks since the last churn (the last bond reward payout)
 	totalActiveBlocks := common.BlockHeight(ctx) - lastChurnHeight
 
 	// find number of blocks they were well behaved (ie active - slash points)
@@ -600,12 +607,13 @@ func getNodeCurrentRewards(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount, l
 		earnedBlocks = 0
 	}
 
-	naBond := nodeAcc.Bond
-	if naBond.GT(bondHardCap) {
-		naBond = bondHardCap
+	naEffectiveBond := nodeAcc.Bond
+	if naEffectiveBond.GT(bondHardCap) {
+		naEffectiveBond = bondHardCap
 	}
 
-	reward := common.GetShare(naBond, totalEffectiveBond, totalBondReward)
+	// reward = totalBondReward * (naEffectiveBond / totalEffectiveBond) * (unslashed blocks since last churn / blocks since last churn)
+	reward := common.GetShare(naEffectiveBond, totalEffectiveBond, totalBondReward)
 	reward = common.GetShare(cosmos.NewUint(uint64(earnedBlocks)), cosmos.NewUint(uint64(totalActiveBlocks)), reward)
 	return reward, nil
 }

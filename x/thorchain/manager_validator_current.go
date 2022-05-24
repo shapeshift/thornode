@@ -212,6 +212,7 @@ func (vm *validatorMgrV87) EndBlock(ctx cosmos.Context, mgr Manager) []abci.Vali
 		ctx.Logger().Error("fail to get all active nodes", "error", err)
 		return nil
 	}
+
 	// when ragnarok is in progress, just process ragnarok
 	if vm.k.RagnarokInProgress(ctx) {
 		// process ragnarok
@@ -254,12 +255,13 @@ func (vm *validatorMgrV87) EndBlock(ctx cosmos.Context, mgr Manager) []abci.Vali
 		}
 	}
 
-	// no change
+	// If there's been a churn (the nodes have changed), continue; if there hasn't, end the function.
 	if len(newNodes) == 0 && len(removedNodes) == 0 {
 		return nil
 	}
 
 	// payout all active node accounts their rewards
+	// This including nodes churning out, and takes place before changing the activity status below.
 	if err := vm.ragnarokBondReward(ctx, mgr); err != nil {
 		ctx.Logger().Error("fail to pay node bond rewards", "error", err)
 	}
@@ -455,8 +457,7 @@ func (vm *validatorMgrV87) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 	if na.ActiveBlockHeight == 0 || na.Bond.IsZero() {
 		return nil
 	}
-	// The node account seems to have become a non active node account.
-	// Therefore, lets give them their bond rewards.
+
 	network, err := vm.k.GetNetwork(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get network: %w", err)
@@ -467,7 +468,7 @@ func (vm *validatorMgrV87) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 		return fmt.Errorf("fail to get node slash points: %w", err)
 	}
 
-	// Find number of blocks they have been an active node
+	// Find number of blocks since the last churn (the last bond reward payout)
 	totalActiveBlocks := common.BlockHeight(ctx) - lastChurnHeight
 
 	// find number of blocks they were well behaved (ie active - slash points)
@@ -476,12 +477,13 @@ func (vm *validatorMgrV87) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 		earnedBlocks = 0
 	}
 
-	naBond := na.Bond
-	if naBond.GT(bondHardCap) {
-		naBond = bondHardCap
+	naEffectiveBond := na.Bond
+	if naEffectiveBond.GT(bondHardCap) {
+		naEffectiveBond = bondHardCap
 	}
 
-	reward := common.GetShare(naBond, totalEffectiveBond, totalBondReward)
+	// reward = totalBondReward * (naEffectiveBond / totalEffectiveBond) * (unslashed blocks since last churn / blocks since last churn)
+	reward := common.GetShare(naEffectiveBond, totalEffectiveBond, totalBondReward)
 	reward = common.GetShare(cosmos.NewUint(uint64(earnedBlocks)), cosmos.NewUint(uint64(totalActiveBlocks)), reward)
 
 	// Add to their bond the amount rewarded
@@ -634,6 +636,13 @@ func (vm *validatorMgrV87) ragnarokBondReward(ctx cosmos.Context, mgr Manager) e
 		return fmt.Errorf("fail to get all active node account: %w", err)
 	}
 
+	// Note that unlike estimated CurrentAward distribution in querier.go ,
+	// this estimate treats lastChurnHeight as the active_block_height of the youngest active node,
+	// rather than the block_height of the first (oldest) Asgard vault.
+	// As an example, note from the below URLs that these 5293733 and 5293728 respectively in block 5336942.
+	// https://thornode.ninerealms.com/thorchain/nodes?height=5336942
+	// (Nodes .cxmy and .uy3a .)
+	// https://thornode.ninerealms.com/thorchain/vaults/asgard?height=5336942
 	lastChurnHeight := int64(0)
 	for _, node := range active {
 		if node.ActiveBlockHeight > lastChurnHeight {
