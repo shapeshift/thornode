@@ -2,8 +2,10 @@ package thorchain
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -162,6 +164,11 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	ctx.Logger().Debug("Begin Block", "height", req.Header.Height)
 	version := am.mgr.Keeper().GetLowestActiveVersion(ctx)
+
+	localVer := semver.MustParse(constants.SWVersion.String())
+	if version.Major > localVer.Major || version.Minor > localVer.Minor {
+		panic(fmt.Sprintf("Unsupported Version: update your binary (your version: %s, network consensus version: %s)", constants.SWVersion.String(), version.String()))
+	}
 
 	// Does a kvstore migration
 	smgr := newStoreMgr(am.mgr)
