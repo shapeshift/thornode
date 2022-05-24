@@ -51,4 +51,4 @@ None
 
 ### Proposed
 
-None
+- [001 - ThorChat](./adr-001-thorchat.md)
