@@ -21,8 +21,6 @@ interface iROUTER {
 
 // THORChain_Router is managed by THORChain Vaults
 contract AvaxRouter {
-    address public RUNE;
-
     struct Coin {
         address asset;
         uint256 amount;
@@ -87,8 +85,7 @@ contract AvaxRouter {
         _status = _NOT_ENTERED;
     }
 
-    constructor(address rune) {
-        RUNE = rune;
+    constructor() {
         _status = _NOT_ENTERED;
     }
 

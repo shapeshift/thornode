@@ -11,6 +11,7 @@
     "compile": "hardhat compile",
     "console": "hardhat console",
     "coverage": "hardhat coverage",
+    "deploy": "yarn hardhat run scripts/deploy.ts",
     "lint": "yarn prettier && yarn lint:ts && yarn lint:solidity",
     "lint:ts": "yarn eslint '**/*.{js,ts}'",
     "lint:solidity": "yarn solhint src/**/*.sol",
