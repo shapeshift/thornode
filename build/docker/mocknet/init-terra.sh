@@ -3,12 +3,12 @@
 rm /root/.terra/config/*
 cd /root/.terra/config || exit
 
-wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/app.toml
-wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/client.toml
-wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/config.toml
-wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/genesis.json
-wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/node_key.json
-wget https://raw.githubusercontent.com/terra-money/LocalTerra/main/config/priv_validator_key.json
+wget https://raw.githubusercontent.com/terra-money/LocalTerra/v0.5.17/config/app.toml
+wget https://raw.githubusercontent.com/terra-money/LocalTerra/v0.5.17/config/client.toml
+wget https://raw.githubusercontent.com/terra-money/LocalTerra/v0.5.17/config/config.toml
+wget https://raw.githubusercontent.com/terra-money/LocalTerra/v0.5.17/config/genesis.json
+wget https://raw.githubusercontent.com/terra-money/LocalTerra/v0.5.17/config/node_key.json
+wget https://raw.githubusercontent.com/terra-money/LocalTerra/v0.5.17/config/priv_validator_key.json
 
 if [ -n "$TERRA_BLOCK_TIME" ]; then
   sed -E -i "/timeout_(propose|prevote|precommit|commit)/s/[0-9]+m?s/$TERRA_BLOCK_TIME/" /root/.terra/config/config.toml
