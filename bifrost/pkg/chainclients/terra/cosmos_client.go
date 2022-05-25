@@ -187,7 +187,7 @@ func (c *CosmosClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue 
 	c.tssKeyManager.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.wg.Add(1)
-	go runners.SolvencyCheckRunner(c.GetChain(), c, c.thorchainBridge, c.stopchan, c.wg)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, c.thorchainBridge, c.stopchan, c.wg, constants.ThorchainBlockTime)
 }
 
 // Stop Cosmos chain client
@@ -553,6 +553,9 @@ func (c *CosmosClient) ReportSolvency(blockHeight int64) error {
 		acct, err := c.GetAccount(asgard.PubKey, big.NewInt(0))
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get account balance")
+			continue
+		}
+		if runners.IsVaultSolvent(acct, asgard, c.cosmosScanner.lastFee) && c.IsBlockScannerHealthy() {
 			continue
 		}
 		select {
