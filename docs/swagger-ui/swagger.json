@@ -3,7 +3,7 @@
   "info": {
     "title": "THORChain API",
     "version": "",
-    "description": "This documentation outlines the API for THORChain.\n\nNOTE: This document is a **work in progress**."
+    "description": "This documentation outlines the API for THORChain.\n\nAdd `?height={blockheight}` to the end of a query to return data for a specific block height (only works from current height to hardfork height).\n\nNOTE: This document is a **work in progress**."
   },
   "paths": {
     "/thorchain/ping": {
@@ -1422,7 +1422,8 @@
               "application/json": {
                 "swap": 0,
                 "outbound": 0,
-                "internal": 0
+                "internal": 0,
+                "scheduled_outbound_value": "0"
               }
             },
             "schema": {
@@ -1434,11 +1435,15 @@
                 },
                 "outbound": {
                   "type": "number",
-                  "description": "number of outbound tx in the queue for customer"
+                  "description": "number of signed outbound tx in the queue for customer"
                 },
                 "internal": {
                   "type": "number",
                   "description": "number of internal tx in the queue. internal tx include migration,yggdrasil+"
+                },
+                "scheduled_outbound_value": {
+                  "type": "string",
+                  "description": "estimated RUNE value of scheduled outbounds"
                 }
               }
             }
@@ -1446,7 +1451,51 @@
         },
         "summary": "Get outbound queue",
         "operationId": "Get outbound queue",
-        "description": "Retrieve the outbound queue information from THORChain",
+        "description": "Retrieve the outbound queue information from THORChain, as well as estimated RUNE value of scheduled outbounds",
+        "tags": ["Queue"],
+        "parameters": [],
+        "produces": ["application/json"]
+      }
+    },
+    "/thorchain/queue/scheduled": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {},
+            "examples": {
+              "application/json": [
+                {
+                  "chain": "TERRA",
+                  "to_address": "terra1ljvh535tjk95hscf66yqx2gnzrczlmzehmvt27",
+                  "vault_pub_key": "thorpub1addwnpepq2a8acdlryjfex4c32np3j2xynhqugr73ecwnrdkr4lphl0gfj5nc2h6c7g",
+                  "coin": {
+                    "asset": "TERRA.UST",
+                    "amount": "1801677465300"
+                  },
+                  "memo": "OUT:2D730FA2A3643039A28EF66E86CB9A9C9AAD0C7EF584E653231C3477553DA3A6",
+                  "max_gas": [
+                    {
+                      "asset": "TERRA.LUNA",
+                      "amount": "380100",
+                      "decimals": 6
+                    }
+                  ],
+                  "gas_rate": 364900,
+                  "in_hash": "2D730FA2A3643039A28EF66E86CB9A9C9AAD0C7EF584E653231C3477553DA3A6",
+                  "height": 5412084
+                }
+              ]
+            },
+            "schema": {
+              "type": "array",
+              "items": {}
+            }
+          }
+        },
+        "summary": "Get scheduled outbound queue details",
+        "operationId": "Get scheduled outbound queue details",
+        "description": "Get the list of scheduled tx out items in the queue",
         "tags": ["Queue"],
         "parameters": [],
         "produces": ["application/json"]
@@ -1461,22 +1510,23 @@
             "examples": {
               "application/json": [
                 {
-                  "chain": "ETH",
-                  "to_address": "0xf42d7db7fde6060349d61ad29636df23cf03e4b1",
-                  "vault_pub_key": "tthorpub1addwnpepqtg7cdttvvy5wvchvwaytsklst483gmrf7cv42qkq392aa29h6cyv4p83ug",
+                  "chain": "TERRA",
+                  "to_address": "terra1ljvh535tjk95hscf66yqx2gnzrczlmzehmvt27",
+                  "vault_pub_key": "thorpub1addwnpepq2a8acdlryjfex4c32np3j2xynhqugr73ecwnrdkr4lphl0gfj5nc2h6c7g",
                   "coin": {
-                    "asset": "ETH.ETH",
-                    "amount": "158037"
+                    "asset": "TERRA.UST",
+                    "amount": "1801677465300"
                   },
-                  "memo": "MIGRATE:14701",
+                  "memo": "OUT:2D730FA2A3643039A28EF66E86CB9A9C9AAD0C7EF584E653231C3477553DA3A6",
                   "max_gas": [
                     {
-                      "asset": "ETH.ETH",
-                      "amount": "120000"
+                      "asset": "TERRA.LUNA",
+                      "amount": "380100",
+                      "decimals": 6
                     }
                   ],
-                  "gas_rate": 1,
-                  "in_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+                  "gas_rate": 364900,
+                  "in_hash": "2D730FA2A3643039A28EF66E86CB9A9C9AAD0C7EF584E653231C3477553DA3A6"
                 }
               ]
             },
@@ -1486,8 +1536,8 @@
             }
           }
         },
-        "summary": "Get outbound queue detail",
-        "operationId": "Get outbound queue detail",
+        "summary": "Get outbound queue details",
+        "operationId": "Get outbound queue details",
         "description": "Get the list of tx out items in the queue",
         "tags": ["Queue"],
         "parameters": [],
@@ -1601,7 +1651,7 @@
                   "properties": {
                     "height": {
                       "type": "string",
-                      "description": "block height"
+                      "description": "block height, being the block(/s) in which a tx out item is scheduled to be signed and moved from the scheduled outbound queue to the outbound queue"
                     },
                     "tx_array": {
                       "type": "array",
@@ -1626,7 +1676,7 @@
           {
             "name": "height",
             "in": "path",
-            "description": "block height",
+            "description": "block height, being the first block a tx out item appears in the signed-but-unobserved outbound queue",
             "required": true,
             "x-example": "1024",
             "type": "string"

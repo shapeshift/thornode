@@ -983,10 +983,41 @@ Retrieve the outbound queue information from THORChain
             {
                 "swap": 0,
                 "outbound": 0,
-                "internal": 0
+                "internal": 0,
+                "scheduled_outbound_value": "0"
             }
 
-### Get outbound queue detail [GET /thorchain/queue/outbound]
+### Get scheduled outbound queue details [GET /thorchain/queue/scheduled]
+Get the list of scheduled tx out items in the queue
+
++ Response 200 (application/json)
+    + Attributes (array[TxOutItem])
+    + Body
+
+            [
+                {
+                    "chain": "TERRA",
+                    "to_address": "terra1ljvh535tjk95hscf66yqx2gnzrczlmzehmvt27",
+                    "vault_pub_key": "thorpub1addwnpepq2a8acdlryjfex4c32np3j2xynhqugr73ecwnrdkr4lphl0gfj5nc2h6c7g",
+                    "coin": {
+                        "asset": "TERRA.UST",
+                        "amount": "1801677465300"
+                    },
+                    "memo": "OUT:2D730FA2A3643039A28EF66E86CB9A9C9AAD0C7EF584E653231C3477553DA3A6",
+                    "max_gas": [
+                        {
+                            "asset": "TERRA.LUNA",
+                            "amount": "380100",
+                            "decimals": 6
+                        }
+                    ],
+                    "gas_rate": 364900,
+                    "in_hash": "2D730FA2A3643039A28EF66E86CB9A9C9AAD0C7EF584E653231C3477553DA3A6",
+                    "height": 5412084
+                }
+            ]
+
+### Get outbound queue details [GET /thorchain/queue/outbound]
 Get the list of tx out items in the queue
 
 + Response 200 (application/json)
@@ -995,22 +1026,23 @@ Get the list of tx out items in the queue
 
             [
                 {
-                    "chain": "ETH",
-                    "to_address": "0xf42d7db7fde6060349d61ad29636df23cf03e4b1",
-                    "vault_pub_key": "tthorpub1addwnpepqtg7cdttvvy5wvchvwaytsklst483gmrf7cv42qkq392aa29h6cyv4p83ug",
+                    "chain": "TERRA",
+                    "to_address": "terra1ljvh535tjk95hscf66yqx2gnzrczlmzehmvt27",
+                    "vault_pub_key": "thorpub1addwnpepq2a8acdlryjfex4c32np3j2xynhqugr73ecwnrdkr4lphl0gfj5nc2h6c7g",
                     "coin": {
-                        "asset": "ETH.ETH",
-                        "amount": "158037"
+                        "asset": "TERRA.UST",
+                        "amount": "1801677465300"
                     },
-                    "memo": "MIGRATE:14701",
+                    "memo": "OUT:2D730FA2A3643039A28EF66E86CB9A9C9AAD0C7EF584E653231C3477553DA3A6",
                     "max_gas": [
                         {
-                            "asset": "ETH.ETH",
-                            "amount": "120000"
+                            "asset": "TERRA.LUNA",
+                            "amount": "380100",
+                            "decimals": 6
                         }
                     ],
-                    "gas_rate": 1,
-                    "in_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+                    "gas_rate": 364900,
+                    "in_hash": "2D730FA2A3643039A28EF66E86CB9A9C9AAD0C7EF584E653231C3477553DA3A6"
                 }
             ]
 
@@ -1051,7 +1083,7 @@ Retrieve Keygen block from THORChain
 
 + Attributes
     + keysign
-        + height (string) - block height
+        + height (string) - block height, being the block(/s) in which a tx out item is scheduled to be signed and moved from the scheduled outbound queue to the outbound queue
         + tx_array (array[TxOutItem]) - list of tx out items
     + signature (string) - base64 encoded signature of keysign
 
