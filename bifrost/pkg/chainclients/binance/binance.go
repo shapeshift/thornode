@@ -143,7 +143,8 @@ func (b *Binance) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan 
 	b.tssKeyManager.Start()
 	b.blockScanner.Start(globalTxsQueue)
 	b.wg.Add(1)
-	go runners.SolvencyCheckRunner(b.GetChain(), b, b.thorchainBridge, b.stopchan, b.wg)
+	// Binance has 300ms block time , which is way faster than THORChain block time , thus , discover block height in solvency runner should be more aggressive
+	go runners.SolvencyCheckRunner(b.GetChain(), b, b.thorchainBridge, b.stopchan, b.wg, b.GetConfig().BlockScanner.BlockHeightDiscoverBackoff)
 }
 
 // Stop Binance chain client
@@ -599,6 +600,10 @@ func (b *Binance) ReportSolvency(bnbBlockHeight int64) error {
 		acct, err := b.GetAccount(asgard.PubKey, nil)
 		if err != nil {
 			b.logger.Err(err).Msgf("fail to get account balance")
+			continue
+		}
+		if runners.IsVaultSolvent(acct, asgard, cosmos.NewUint(3*uint64(b.bnbScanner.singleFee))) && b.IsBlockScannerHealthy() {
+			// when vault is solvent , don't need to report solvency
 			continue
 		}
 		select {

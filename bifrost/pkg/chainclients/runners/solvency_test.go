@@ -11,12 +11,16 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
+	. "gopkg.in/check.v1"
+
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
-	. "gopkg.in/check.v1"
+	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 func TestPackage(t *testing.T) { TestingT(t) }
@@ -99,7 +103,7 @@ func (s *SolvencyTestSuite) TestSolvencyCheck(c *C) {
 	// Happy path, shouldn't check solvency if nothing halted (chain clients will report solvency)
 	s.sp.ResetChecks()
 	wg.Add(1)
-	go SolvencyCheckRunner(common.BNBChain, s.sp, bridge, stopchan, wg)
+	go SolvencyCheckRunner(common.BNBChain, s.sp, bridge, stopchan, wg, constants.ThorchainBlockTime)
 	time.Sleep(time.Second * 6)
 
 	c.Assert(s.sp.ShouldReportSolvencyRan, Equals, false)
@@ -109,7 +113,7 @@ func (s *SolvencyTestSuite) TestSolvencyCheck(c *C) {
 	mimirMap["HaltBNBChain"] = 1
 	s.sp.ResetChecks()
 	wg.Add(1)
-	go SolvencyCheckRunner(common.BNBChain, s.sp, bridge, stopchan, wg)
+	go SolvencyCheckRunner(common.BNBChain, s.sp, bridge, stopchan, wg, constants.ThorchainBlockTime)
 	time.Sleep(time.Second * 6)
 
 	c.Assert(s.sp.ShouldReportSolvencyRan, Equals, false)
@@ -119,7 +123,7 @@ func (s *SolvencyTestSuite) TestSolvencyCheck(c *C) {
 	mimirMap["HaltBNBChain"] = 10
 	s.sp.ResetChecks()
 	wg.Add(1)
-	go SolvencyCheckRunner(common.BNBChain, s.sp, bridge, stopchan, wg)
+	go SolvencyCheckRunner(common.BNBChain, s.sp, bridge, stopchan, wg, constants.ThorchainBlockTime)
 	time.Sleep(time.Second * 6)
 
 	c.Assert(s.sp.ShouldReportSolvencyRan, Equals, true)
@@ -130,7 +134,7 @@ func (s *SolvencyTestSuite) TestSolvencyCheck(c *C) {
 	mimirMap["SolvencyHaltBNBChain"] = 1
 	s.sp.ResetChecks()
 	wg.Add(1)
-	go SolvencyCheckRunner(common.BNBChain, s.sp, bridge, stopchan, wg)
+	go SolvencyCheckRunner(common.BNBChain, s.sp, bridge, stopchan, wg, constants.ThorchainBlockTime)
 	time.Sleep(time.Second * 6)
 
 	c.Assert(s.sp.ShouldReportSolvencyRan, Equals, true)
@@ -160,4 +164,34 @@ func (d *DummySolvencyCheckProvider) ShouldReportSolvency(height int64) bool {
 func (d *DummySolvencyCheckProvider) ReportSolvency(height int64) error {
 	d.ReportSolvencyRun = true
 	return nil
+}
+
+func (s *SolvencyTestSuite) TestIsVaultSolvent(c *C) {
+	vault := types.Vault{
+		BlockHeight: 1,
+		PubKey:      types.GetRandomPubKey(),
+		Coins: common.NewCoins(
+			common.NewCoin(common.ETHAsset, cosmos.NewUint(102400000000)),
+		),
+		Type:   types.VaultType_AsgardVault,
+		Status: types.VaultStatus_ActiveVault,
+	}
+	acct := common.Account{
+		Sequence:      0,
+		AccountNumber: 0,
+		Coins:         common.NewCoins(common.NewCoin(common.ETHAsset, cosmos.NewUint(102400000000))),
+	}
+	c.Assert(IsVaultSolvent(acct, vault, cosmos.NewUint(0)), Equals, true)
+	acct = common.Account{
+		Sequence:      0,
+		AccountNumber: 0,
+		Coins:         common.NewCoins(common.NewCoin(common.ETHAsset, cosmos.NewUint(102305000000))),
+	}
+	c.Assert(IsVaultSolvent(acct, vault, cosmos.NewUint(80000*120)), Equals, true)
+	acct = common.Account{
+		Sequence:      0,
+		AccountNumber: 0,
+		Coins:         common.NewCoins(common.NewCoin(common.ETHAsset, cosmos.NewUint(102205000000))),
+	}
+	c.Assert(IsVaultSolvent(acct, vault, cosmos.NewUint(80000*120)), Equals, false)
 }

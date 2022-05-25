@@ -22532,8 +22532,8 @@
     "name": "felixyanezb",
     "address": "thor1xtuzshqu0ppczgvcre75ugj7nr3rn5pg22ywz6"
   },
-  { 
-    "name": "dao", 
+  {
+    "name": "dao",
     "address": "thor1frcu83xzhhc998qq9mjwmt7anp3ys6dwpp2jtt"
   },
   {
@@ -35400,9 +35400,10 @@
     "name": "coinblockgreece",
     "address": "thor1yxav6mhpjs5frd7m2n86mw3dx7jktnach2sa0u"
   },
-  { 
-    "name": "_ca0", 
-    "address": "thor1vcmeqdwu02ulczj8yx0hvq6r7ujksjcl62en23" },
+  {
+    "name": "_ca0",
+    "address": "thor1vcmeqdwu02ulczj8yx0hvq6r7ujksjcl62en23"
+  },
   {
     "name": "cryton_capital",
     "address": "thor1ke2y6nf6t4g4mkm7j62yujcwuqg8duktenw29n"
@@ -36431,7 +36432,7 @@
     "name": "anthpakpmtlakyx",
     "address": "thor1r2pl7mmvlrfrpplpfnqdrx0cszuhv49e9e4cp0"
   },
-    {
+  {
     "name": "ss",
     "address": "thor1kue5wlk5nkf8l7c5vg5cj5r7dmc0zyfmst4rqs"
   },
