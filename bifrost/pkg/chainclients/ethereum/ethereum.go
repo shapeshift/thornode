@@ -196,7 +196,7 @@ func (c *Client) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan s
 	c.wg.Add(1)
 	go c.unstuck()
 	c.wg.Add(1)
-	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg, constants.ThorchainBlockTime)
 }
 
 // Stop ETH client
@@ -857,6 +857,11 @@ func (c *Client) ReportSolvency(ethBlockHeight int64) error {
 		acct, err := c.GetAccount(asgard.PubKey, new(big.Int).SetInt64(ethBlockHeight))
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get account balance")
+			continue
+		}
+		if runners.IsVaultSolvent(acct, asgard, cosmos.NewUint(3*MaxContractGas*c.ethScanner.lastReportedGasPrice)) && c.IsBlockScannerHealthy() {
+			// when vault is solvent , don't need to report solvency
+			// when block scanner is not healthy , usually that means the chain is halted , in that scenario , we continue to report solvency
 			continue
 		}
 		select {

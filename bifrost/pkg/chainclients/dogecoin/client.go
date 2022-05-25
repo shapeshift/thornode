@@ -182,7 +182,7 @@ func (c *Client) Start(globalTxsQueue chan types.TxIn, globalErrataQueue chan ty
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
 	c.wg.Add(1)
-	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg)
+	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg, constants.ThorchainBlockTime)
 }
 
 // Stop stops the block scanner
@@ -1221,6 +1221,10 @@ func (c *Client) ReportSolvency(dogeBlockHeight int64) error {
 		acct, err := c.GetAccount(asgard.PubKey, nil)
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to get account balance")
+			continue
+		}
+		if runners.IsVaultSolvent(acct, asgard, cosmos.NewUint(3*EstimateAverageTxSize*uint64(c.lastFeeRate))) && c.IsBlockScannerHealthy() {
+			// when vault is solvent , don't need to report solvency
 			continue
 		}
 		select {
