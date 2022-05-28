@@ -314,13 +314,15 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	constAccessor constants.ConstantValues,
 ) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.79.0")) {
+	if version.GTE(semver.MustParse("1.90.0")) {
+		return h.addLiquidityV90(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
+	} else if version.GTE(semver.MustParse("0.79.0")) {
 		return h.addLiquidityV79(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	}
 	return errBadVersion
 }
 
-func (h AddLiquidityHandler) addLiquidityV79(ctx cosmos.Context,
+func (h AddLiquidityHandler) addLiquidityV90(ctx cosmos.Context,
 	asset common.Asset,
 	addRuneAmount, addAssetAmount cosmos.Uint,
 	runeAddr, assetAddr common.Address,
@@ -337,9 +339,8 @@ func (h AddLiquidityHandler) addLiquidityV79(ctx cosmos.Context,
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
 	}
-	ver := h.mgr.Keeper().GetLowestActiveVersion(ctx)
 	synthSupply := h.mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
-	originalUnits := pool.CalcUnits(ver, synthSupply)
+	originalUnits := pool.CalcUnits(h.mgr.GetVersion(), synthSupply)
 
 	// if THORNode have no balance, set the default pool status
 	if originalUnits.IsZero() {

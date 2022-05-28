@@ -297,9 +297,9 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 	case TxRefund:
 		return ParseRefundMemo(parts)
 	case TxBond:
-		return ParseBondMemo(keeper.Version(), parts)
+		return ParseBondMemo(keeper.GetVersion(), parts)
 	case TxUnbond:
-		return ParseUnbondMemo(keeper.Version(), parts)
+		return ParseUnbondMemo(keeper.GetVersion(), parts)
 	case TxYggdrasilFund:
 		return ParseYggdrasilFundMemo(parts)
 	case TxYggdrasilReturn:
