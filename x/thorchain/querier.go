@@ -404,8 +404,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		GasRate cosmos.Uint    `json:"gas_rate,omitempty"`
 	}
 	var resp []address
-	version := mgr.Keeper().GetLowestActiveVersion(ctx)
-	constAccessor := constants.GetConstantValues(version)
+	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 
 	// select vault that is most secure
@@ -573,11 +572,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 }
 
 func getNodePreflightResult(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount) (QueryNodeAccountPreflightCheck, error) {
-	version := mgr.Keeper().GetLowestActiveVersion(ctx)
-	constAccessor := constants.GetConstantValues(version)
-	if constAccessor == nil {
-		return QueryNodeAccountPreflightCheck{}, fmt.Errorf("constants for version(%s) is not available", version)
-	}
+	constAccessor := mgr.GetConstants()
 	preflightResult := QueryNodeAccountPreflightCheck{}
 	status, err := mgr.ValidatorMgr().NodeAccountPreflightCheck(ctx, nodeAcc, constAccessor)
 	preflightResult.Status = status
@@ -815,9 +810,8 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	if pool.IsEmpty() {
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
-	ver := mgr.Keeper().GetLowestActiveVersion(ctx)
 	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
-	pool.CalcUnits(ver, synthSupply)
+	pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
 	p := struct {
 		BalanceRune         cosmos.Uint  `json:"balance_rune"`
@@ -879,9 +873,8 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 			continue
 		}
 
-		ver := mgr.Keeper().GetLowestActiveVersion(ctx)
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
-		pool.CalcUnits(ver, synthSupply)
+		pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
 		p := pp{
 			BalanceRune:         pool.BalanceRune,
@@ -1113,8 +1106,7 @@ func queryKeysign(ctx cosmos.Context, kbs cosmos.KeybaseStore, path []string, re
 
 // queryOutQueue - iterates over txout, counting how many transactions are waiting to be sent
 func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	version := mgr.Keeper().GetLowestActiveVersion(ctx)
-	constAccessor := constants.GetConstantValues(version)
+	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
 	query := QueryQueue{
@@ -1232,8 +1224,7 @@ func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQu
 }
 
 func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	ver := mgr.Keeper().GetLowestActiveVersion(ctx)
-	constAccessor := constants.GetConstantValues(ver)
+	constAccessor := mgr.GetConstants()
 	res, err := json.MarshalIndent(constAccessor, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal constant values to json", "error", err)
@@ -1244,7 +1235,7 @@ func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuer
 
 func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	ver := QueryVersion{
-		Current: mgr.Keeper().GetLowestActiveVersion(ctx),
+		Current: mgr.GetVersion(),
 		Next:    mgr.Keeper().GetMinJoinVersion(ctx),
 	}
 	res, err := json.MarshalIndent(ver, "", "	")
@@ -1466,8 +1457,7 @@ func queryScheduledOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 }
 
 func queryPendingOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
-	version := mgr.Keeper().GetLowestActiveVersion(ctx)
-	constAccessor := constants.GetConstantValues(version)
+	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
 	var result []TxOutItem

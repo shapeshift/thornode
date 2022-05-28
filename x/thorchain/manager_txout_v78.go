@@ -528,7 +528,7 @@ func (tos *TxOutStorageV78) addToBlockOut(ctx cosmos.Context, mgr Manager, item 
 func (tos *TxOutStorageV78) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (int64, error) {
 	// non-outbound transactions are skipped. This is so this code does not
 	// affect internal transactions (ie consolidation and migrate txs)
-	memo, _ := ParseMemo(tos.keeper.Version(), toi.Memo) // ignore err
+	memo, _ := ParseMemo(tos.keeper.GetVersion(), toi.Memo) // ignore err
 	if !memo.IsType(TxRefund) && !memo.IsType(TxOutbound) {
 		return common.BlockHeight(ctx), nil
 	}
