@@ -3,6 +3,7 @@ package thorchain
 import (
 	"fmt"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
@@ -26,7 +27,11 @@ func newStoreMgr(mgr *Mgrs) *StoreMgr {
 
 // Iterator implement StoreManager interface decide whether it need to upgrade store
 func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
-	version := smgr.mgr.Keeper().GetLowestActiveVersion(ctx)
+	version := smgr.mgr.GetVersion()
+
+	if version.LT(semver.MustParse("1.90.0")) {
+		version = smgr.mgr.Keeper().GetLowestActiveVersion(ctx) // TODO remove me on fork
+	}
 
 	if version.Major > constants.SWVersion.Major || version.Minor > constants.SWVersion.Minor {
 		return fmt.Errorf("out of date software: have %s, network running %s", constants.SWVersion, version)

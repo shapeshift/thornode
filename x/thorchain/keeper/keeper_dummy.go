@@ -27,7 +27,7 @@ func (k KVStoreDummy) Logger(ctx cosmos.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", ModuleName))
 }
 
-func (k KVStoreDummy) Version() semver.Version { return semver.MustParse("1.0.0") }
+func (k KVStoreDummy) GetVersion() semver.Version { return semver.MustParse("9999999.0.0") }
 func (k KVStoreDummy) GetKey(_ cosmos.Context, prefix kvTypes.DbPrefix, key string) string {
 	return fmt.Sprintf("%s/1/%s", prefix, key)
 }
