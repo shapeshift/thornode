@@ -97,8 +97,8 @@ func (k KVStore) Cdc() codec.BinaryCodec {
 	return k.cdc
 }
 
-// Version return the current version
-func (k KVStore) Version() semver.Version {
+// GetVersion return the current version
+func (k KVStore) GetVersion() semver.Version {
 	return k.version
 }
 
