@@ -19,4 +19,5 @@ tqdm==4.45.0
 websocket-client==0.57.0
 bech32==1.2.0
 terra-sdk==2.0.4
+terra-proto==1.0.1
 durationpy==0.5
