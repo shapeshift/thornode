@@ -132,7 +132,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	switch {
-	case version.GTE(semver.MustParse("0.90.0")):
+	case version.GTE(semver.MustParse("1.90.0")):
 		return h.handleV90(ctx, msg)
 	case version.GTE(semver.MustParse("0.81.0")):
 		return h.handleV81(ctx, msg)
