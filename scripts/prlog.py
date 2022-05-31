@@ -11,7 +11,7 @@ if len(sys.argv) == 1:
 gl = gitlab.Gitlab()
 tn = gl.projects.get(13422983)  # thornode project id
 
-mrs = tn.mergerequests.list(milestone=sys.argv[1], state="closed", all=True)
+mrs = tn.mergerequests.list(milestone=sys.argv[1], state="merged", all=True)
 
 for idx, m in enumerate(mrs):
     print(f"{idx+1}) {m.title} PR: {m.web_url}")
