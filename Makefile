@@ -92,9 +92,7 @@ lint: lint-pre lint-handlers lint-managers lint-erc20s
 ifdef CI_MERGE_REQUEST_TARGET_BRANCH_NAME
 	./scripts/trunk check --no-progress --monitor=false --upstream origin/$(CI_MERGE_REQUEST_TARGET_BRANCH_NAME)
 else
-ifdef CI_PROJECT_ID
-	./scripts/trunk check --no-progress --monitor=false --upstream origin/develop
-else
+ifndef CI_PROJECT_ID
 	./scripts/trunk check --no-fix --upstream origin/develop
 endif
 endif

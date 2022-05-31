@@ -35,8 +35,9 @@ func (TxOutTestSuite) TestTxOutItemHash(c *C) {
 	c.Check(item.Hash(), Equals, "5037BD52845B23EEA538248622F0F9625536192A066FDCED91494171BD1EF43D")
 
 	item = TxOutItem{
-		Chain:       "BNB",
-		ToAddress:   "tbnb1yxfyeda8pnlxlmx0z3cwx74w9xevspwdpzdxpj",
+		Chain:     "BNB",
+		ToAddress: "tbnb1yxfyeda8pnlxlmx0z3cwx74w9xevspwdpzdxpj",
+		// trunk-ignore(gitleaks/generic-api-key)
 		VaultPubKey: "thorpub1addwnpepqv7kdf473gc4jyls7hlx4rg",
 		Memo:        "REFUND:9999A5A08D8FCF942E1AAAA01AB1E521B699BA3A009FA0591C011DC1FFDC5E68",
 		InHash:      "9999A5A08D8FCF942E1AAAA01AB1E521B699BA3A009FA0591C011DC1FFDC5E68",
