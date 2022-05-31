@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-readonly TRUNK_LAUNCHER_VERSION="1.1.0"  # warning: this line is auto-updated
+readonly TRUNK_LAUNCHER_VERSION="1.1.1"  # warning: this line is auto-updated
 
 readonly SUCCESS_MARK="\033[0;32m✔\033[0m"
 readonly FAIL_MARK="\033[0;31m✘\033[0m"
@@ -77,7 +77,8 @@ TRUNK_TMPDIR="${TMPDIR}/trunk-$(set -e; id -u)/launcher_logs"
 readonly TRUNK_TMPDIR
 mkdir -p "${TRUNK_TMPDIR}"
 
-# For the `mv $TOOL_TMPDIR/trunk $TOOL_DIR` to be atomic (i.e. just inode renames), the source and destination filesystems need to be the same
+# For the `mv $TOOL_TMPDIR/trunk $TOOL_DIR` to be atomic (i.e. just inode renames),
+# the source and destination filesystems need to be the same
 TOOL_TMPDIR=$(mktemp -d "${CLI_DIR}/tmp.XXXXXXXXXX")
 readonly TOOL_TMPDIR
 
@@ -316,12 +317,7 @@ download_cli() {
 
   rm -f "${DOWNLOAD_TAR_GZ}"
   mkdir -p "${TOOL_DIR}"
-  readonly OLD_TOOL_DIR="${CLI_DIR}/${version}"
-  # Create a backwards compatability link for old versions of trunk that want to write their
-  # crashpad_handlers to that dir.
-  if [[ ! -e ${OLD_TOOL_DIR} ]]; then
-    ln -sf "${TOOL_PART}" "${OLD_TOOL_DIR}"
-  fi
+
   mv -n "${TMP_INSTALL_DIR}/trunk" "${TOOL_DIR}/"
   rm -rf "${TMP_INSTALL_DIR}"
 }
@@ -348,10 +344,13 @@ else
   version_sha256=$(set -e; lawk "/${PLATFORM_UNDERSCORE}:/"'{print $2}' "${LATEST_FILE}")
 fi
 
+readonly OLD_TOOL_DIR="${CLI_DIR}/${version}"
 readonly TOOL_PART="${version}-${PLATFORM}"
 readonly TOOL_DIR="${CLI_DIR}/${TOOL_PART}"
 
-if [[ ! -d ${TOOL_DIR} ]]; then
+if [[ ! -x "${TOOL_DIR}/trunk" ]]; then
+  rm -rf "${TOOL_DIR}"
+
   if [[ -n ${LATEST_FILE:-} ]]; then
     read -rp "Would you like to download and run the latest version of trunk? (Y/n) " yn
     case "${yn}" in
@@ -375,6 +374,20 @@ if [[ ! -d ${TOOL_DIR} ]]; then
   echo
 fi
 
+# Create a backwards compatability link for old versions of trunk that want to write their
+# crashpad_handlers to that dir.
+if [[ ! -L ${OLD_TOOL_DIR} ]]; then
+  rm -rf "${OLD_TOOL_DIR}"
+  ln -s "${TOOL_PART}" "${OLD_TOOL_DIR}"
+fi
+
+# blow away and download TOOL if the binary doesn't exist
+
+if [[ -n ${LATEST_FILE:-} ]]; then
+  # If we downloaded the latest trunk version, i.e. because there was no trunk.yaml
+  mv -n "${LATEST_FILE}" "${TOOL_DIR}/version"
+fi
+
 if [[ ${TRUNK_LAUNCHER_QUIET} != false ]]; then
   exec 1>&3 3>&- 2>&4 4>&-
 fi
@@ -384,10 +397,6 @@ fi
 #   CLI invocation                                                            #
 #                                                                             #
 ###############################################################################
-
-if [[ -n ${LATEST_FILE:-} ]]; then
-  mv -n "${LATEST_FILE}" "${TOOL_DIR}/version"
-fi
 
 # NOTE: exec will overwrite the process image, so trap will not catch the exit signal.
 # Therefore, run cleanup manually here.
