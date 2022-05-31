@@ -10,14 +10,13 @@ import (
 // THORChain error code start at 99
 const (
 	// CodeBadVersion error code for bad version
-	CodeInternalError         uint32 = 99
-	CodeTxFail                uint32 = 100
-	CodeBadVersion            uint32 = 101
-	CodeInvalidMessage        uint32 = 102
-	CodeConstantsNotAvailable uint32 = 103
-	CodeInvalidVault          uint32 = 104
-	CodeInvalidMemo           uint32 = 105
-	CodeInvalidPoolStatus     uint32 = 107
+	CodeInternalError     uint32 = 99
+	CodeTxFail            uint32 = 100
+	CodeBadVersion        uint32 = 101
+	CodeInvalidMessage    uint32 = 102
+	CodeInvalidVault      uint32 = 104
+	CodeInvalidMemo       uint32 = 105
+	CodeInvalidPoolStatus uint32 = 107
 
 	CodeSwapFail                 uint32 = 108
 	CodeSwapFailNotEnoughFee     uint32 = 110
@@ -46,7 +45,6 @@ var (
 	errInvalidVersion               = fmt.Errorf("bad version")
 	errBadVersion                   = se.Register(DefaultCodespace, CodeBadVersion, errInvalidVersion.Error())
 	errInvalidMessage               = se.Register(DefaultCodespace, CodeInvalidMessage, "invalid message")
-	errConstNotAvailable            = se.Register(DefaultCodespace, CodeConstantsNotAvailable, "constant values not available")
 	errInvalidMemo                  = se.Register(DefaultCodespace, CodeInvalidMemo, "invalid memo")
 	errFailSaveEvent                = se.Register(DefaultCodespace, CodeFailSaveEvent, "fail to save add events")
 	errAddLiquidityFailValidation   = se.Register(DefaultCodespace, CodeAddLiquidityFailValidation, "fail to validate add liquidity")
