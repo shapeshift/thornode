@@ -47,12 +47,14 @@ go.sum: go.mod
 
 test-coverage:
 	@go test ${TEST_BUILD_FLAGS} -v -coverprofile=coverage.txt -covermode count ${TEST_DIR}
+	sed -i '/\.pb\.go:/d' coverage.txt
 
 coverage-report: test-coverage
 	@go tool cover -html=coverage.txt
 
 test-coverage-sum:
 	@go run gotest.tools/gotestsum --junitfile report.xml --format testname -- ${TEST_BUILD_FLAGS} -v -coverprofile=coverage.txt -covermode count ${TEST_DIR}
+	sed -i '/\.pb\.go:/d' coverage.txt
 	@GOFLAGS='${TEST_BUILD_FLAGS}' go run github.com/boumenot/gocover-cobertura < coverage.txt > coverage.xml
 	@go tool cover -func=coverage.txt
 	@go tool cover -html=coverage.txt -o coverage.html
@@ -70,24 +72,10 @@ test-watch: clear
 	@gow -c test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 format:
-	@git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -w
+	@git ls-files '*.go' | grep -v -e '^docs/' | xargs gofumpt -w
 
-lint-pre: protob
-	@./scripts/check-build-env.sh
-	@git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -d
-	@test -z "$(shell git ls-files '*.go' | grep -v -e 'pb.go$$' -e '^docs/' | xargs gofumpt -l)"
-	@go mod verify
-
-lint-handlers:
-	@./scripts/lint-handlers.bash
-
-lint-managers:
-	@./scripts/lint-managers.bash
-
-lint-erc20s:
-	@./scripts/lint-erc20s.bash
-
-lint: lint-pre lint-handlers lint-managers lint-erc20s
+lint: protob
+	@./scripts/lint.sh
 	@go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 ifdef CI_MERGE_REQUEST_TARGET_BRANCH_NAME
 	./scripts/trunk check --no-progress --monitor=false --upstream origin/$(CI_MERGE_REQUEST_TARGET_BRANCH_NAME)
