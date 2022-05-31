@@ -1169,7 +1169,7 @@ func (c *Client) ReportSolvency(bchBlockHeight int64) error {
 			continue
 		}
 
-		if runners.IsVaultSolvent(acct, asgard, cosmos.NewUint(3*EstimateAverageTxSize*uint64(c.lastFeeRate))) && c.IsBlockScannerHealthy() {
+		if runners.IsVaultSolvent(acct, asgard, cosmos.NewUint(3*EstimateAverageTxSize*c.lastFeeRate)) && c.IsBlockScannerHealthy() {
 			// when vault is solvent , don't need to report solvency
 			continue
 		}
