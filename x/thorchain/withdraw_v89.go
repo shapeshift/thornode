@@ -9,9 +9,9 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-// withdrawV91 all the asset
+// withdrawV89 all the asset
 // it returns runeAmt,assetAmount,protectionRuneAmt,units, lastWithdraw,err
-func withdrawV91(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+func withdrawV89(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if err := validateWithdrawV1(ctx, mgr.Keeper(), msg); err != nil {
 		ctx.Logger().Error("msg withdraw fail validation", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
@@ -88,7 +88,7 @@ func withdrawV91(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 			lastAddHeight = pool.StatusSince
 		}
 		protectionBasisPoints := calcImpLossProtectionAmtV1(ctx, lastAddHeight, fullProtectionLine)
-		implProtectionRuneAmount, depositValue, redeemValue := calcImpLossV91(lp, msg.BasisPoints, protectionBasisPoints, pool)
+		implProtectionRuneAmount, depositValue, redeemValue := calcImpLossV89(lp, msg.BasisPoints, protectionBasisPoints, pool)
 		ctx.Logger().Info("imp loss calculation", "deposit value", depositValue, "redeem value", redeemValue, "protection", implProtectionRuneAmount)
 		if !implProtectionRuneAmount.IsZero() {
 			protectionRuneAmount = implProtectionRuneAmount
@@ -103,7 +103,7 @@ func withdrawV91(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 		}
 	}
 
-	withdrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV91(pool.GetPoolUnits(), poolRune, poolAsset, originalLiquidityProviderUnits, extraUnits, msg.BasisPoints, assetToWithdraw)
+	withdrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV89(pool.GetPoolUnits(), poolRune, poolAsset, originalLiquidityProviderUnits, extraUnits, msg.BasisPoints, assetToWithdraw)
 	if err != nil {
 		ctx.Logger().Error("fail to withdraw", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawFail
@@ -189,7 +189,7 @@ func withdrawV91(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 	return withdrawRune, withDrawAsset, protectionRuneAmount, common.SafeSub(originalLiquidityProviderUnits, unitAfter), gasAsset, nil
 }
 
-func calculateWithdrawV91(poolUnits, poolRune, poolAsset, lpUnits, extraUnits, withdrawBasisPoints cosmos.Uint, withdrawalAsset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+func calculateWithdrawV89(poolUnits, poolRune, poolAsset, lpUnits, extraUnits, withdrawBasisPoints cosmos.Uint, withdrawalAsset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if poolUnits.IsZero() {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("poolUnits can't be zero")
 	}
@@ -220,8 +220,8 @@ func calculateWithdrawV91(poolUnits, poolRune, poolAsset, lpUnits, extraUnits, w
 	return cosmos.ZeroUint(), calcAsymWithdrawalV1(unitsToClaim, poolUnits, poolAsset), unitAfter, nil
 }
 
-// calcImpLossV91 if there needs to add some imp loss protection, in rune
-func calcImpLossV91(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, protectionBasisPoints int64, pool Pool) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+// calcImpLossV89 if there needs to add some imp loss protection, in rune
+func calcImpLossV89(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, protectionBasisPoints int64, pool Pool) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
 	/*
 		A0 = assetDepositValue; R0 = runeDepositValue;
 
@@ -236,9 +236,7 @@ func calcImpLossV91(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, prote
 	poolUnits := pool.GetPoolUnits()
 	A1 := common.GetSafeShare(lp.Units, poolUnits, pool.BalanceAsset)
 	R1 := common.GetSafeShare(lp.Units, poolUnits, pool.BalanceRune)
-	if A1.IsZero() {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint()
-	}
+
 	depositValue := A0.Mul(R1).Quo(A1).Add(R0)
 	redeemValue := R1.Add(R1)
 	coverage := common.SafeSub(depositValue, redeemValue)
@@ -249,4 +247,18 @@ func calcImpLossV91(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, prote
 	// taking protection basis points, calculate how much of the coverage the user actually receives
 	result := coverage.MulUint64(uint64(protectionBasisPoints)).QuoUint64(10000)
 	return result, depositValue, redeemValue
+}
+
+func assetToWithdrawV89(msg MsgWithdrawLiquidity, lp LiquidityProvider, pauseAsym int64) common.Asset {
+	if lp.RuneAddress.IsEmpty() {
+		return msg.Asset
+	}
+	if lp.AssetAddress.IsEmpty() {
+		return common.RuneAsset()
+	}
+	if pauseAsym > 0 {
+		return common.EmptyAsset
+	}
+
+	return msg.WithdrawalAsset
 }
