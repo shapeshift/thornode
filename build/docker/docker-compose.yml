@@ -403,7 +403,7 @@ services:
     profiles:
       - mocknet
       - mocknet-cluster
-    image: ethereum/client-go:v1.10.16
+    image: ethereum/client-go:v1.10.18
     restart: unless-stopped
     environment:
       ETH_BLOCK_TIME: ${ETH_BLOCK_TIME:-5}
