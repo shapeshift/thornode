@@ -9,6 +9,8 @@ import (
 func withdraw(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	version := mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.91.0")):
+		return withdrawV91(ctx, msg, mgr)
 	case version.GTE(semver.MustParse("1.89.0")):
 		return withdrawV89(ctx, msg, mgr)
 	case version.GTE(semver.MustParse("1.84.0")):
