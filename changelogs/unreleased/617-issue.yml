@@ -1,5 +1,0 @@
----
-title: Block Reward being incorrectly calculated when over bond cambot
-merge_request: 1227
-author: cambot
-type: fixed
