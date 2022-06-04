@@ -157,10 +157,6 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 // if the transaction is broadcast by ourselves, then we should be able to spend the UTXO even it is still in mempool
 // as such we could daisy chain the outbound transaction
 func (c *Client) isSelfTransaction(txID string) bool {
-	// this is the tx that had been stucked in mempool on chaosnet, temporary add this one , so we can spend it
-	if strings.EqualFold(txID, "a20d2131518c2af6e2e5078476d2572567e3bd079ee295cefb7cef8716cf6961") {
-		return true
-	}
 	bms, err := c.blockMetaAccessor.GetBlockMetas()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get block metas")
