@@ -20,6 +20,7 @@ import (
 	"github.com/ltcsuite/ltcutil"
 	txscript "gitlab.com/thorchain/bifrost/ltcd-txscript"
 
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
@@ -62,7 +63,7 @@ func (c *Client) getGasCoin(tx stypes.TxOutItem, vSize int64) common.Coin {
 	gasRate := tx.GasRate
 	// if the gas rate is zero , then try to get from last transaction fee
 	if gasRate == 0 {
-		fee, vBytes, err := c.blockMetaAccessor.GetTransactionFee()
+		fee, vBytes, err := c.temporalStorage.GetTransactionFee()
 		if err != nil {
 			c.logger.Error().Err(err).Msg("fail to get previous transaction fee from local storage")
 			return common.NewCoin(common.LTCAsset, cosmos.NewUint(uint64(vSize*gasRate)))
@@ -159,7 +160,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 // if the transaction is broadcast by ourselves, then we should be able to spend the UTXO even it is still in mempool
 // as such we could daisy chain the outbound transaction
 func (c *Client) isSelfTransaction(txID string) bool {
-	bms, err := c.blockMetaAccessor.GetBlockMetas()
+	bms, err := c.temporalStorage.GetBlockMetas()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get block metas")
 		return false
@@ -347,7 +348,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		}
 	}
 	gasAmt := ltcutil.Amount(gasAmtSats)
-	if err := c.blockMetaAccessor.UpsertTransactionFee(gasAmt.ToBTC(), int32(totalSize)); err != nil {
+	if err := c.temporalStorage.UpsertTransactionFee(gasAmt.ToBTC(), int32(totalSize)); err != nil {
 		c.logger.Err(err).Msg("fail to save gas info to UTXO storage")
 	}
 
@@ -456,15 +457,15 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 	if err != nil {
 		return "", fmt.Errorf("fail to get block height: %w", err)
 	}
-	bm, err := c.blockMetaAccessor.GetBlockMeta(height)
+	bm, err := c.temporalStorage.GetBlockMeta(height)
 	if err != nil {
 		c.logger.Err(err).Msgf("fail to get blockmeta for heigth: %d", height)
 	}
 	if bm == nil {
-		bm = NewBlockMeta("", height, "")
+		bm = utxo.NewBlockMeta("", height, "")
 	}
 	defer func() {
-		if err := c.blockMetaAccessor.SaveBlockMeta(height, bm); err != nil {
+		if err := c.temporalStorage.SaveBlockMeta(height, bm); err != nil {
 			c.logger.Err(err).Msg("fail to save block metadata")
 		}
 	}()
