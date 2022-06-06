@@ -20,6 +20,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/cmd"
@@ -673,10 +674,10 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 			},
 		},
 	}
-	blockMeta := NewBlockMeta("000000001ab8a8484eb89f04b87d90eb88e2cbb2829e84eb36b966dcb28af90b", 1, "00000000ffa57c95f4f226f751114e9b24fdf8dbe2dbc02a860da9320bebd63e")
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	blockMeta := utxo.NewBlockMeta("000000001ab8a8484eb89f04b87d90eb88e2cbb2829e84eb36b966dcb28af90b", 1, "00000000ffa57c95f4f226f751114e9b24fdf8dbe2dbc02a860da9320bebd63e")
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	s.client.OnObservedTxIn(txIn.TxArray[0], 1)
-	blockMeta, err := s.client.blockMetaAccessor.GetBlockMeta(1)
+	blockMeta, err := s.client.temporalStorage.GetBlockMeta(1)
 	c.Assert(err, IsNil)
 	c.Assert(blockMeta, NotNil)
 
@@ -697,10 +698,10 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 			},
 		},
 	}
-	blockMeta = NewBlockMeta("000000001ab8a8484eb89f04b87d90eb88e2cbb2829e84eb36b966dcb28af90b", 2, "00000000ffa57c95f4f226f751114e9b24fdf8dbe2dbc02a860da9320bebd63e")
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	blockMeta = utxo.NewBlockMeta("000000001ab8a8484eb89f04b87d90eb88e2cbb2829e84eb36b966dcb28af90b", 2, "00000000ffa57c95f4f226f751114e9b24fdf8dbe2dbc02a860da9320bebd63e")
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	s.client.OnObservedTxIn(txIn.TxArray[0], 2)
-	blockMeta, err = s.client.blockMetaAccessor.GetBlockMeta(2)
+	blockMeta, err = s.client.temporalStorage.GetBlockMeta(2)
 	c.Assert(err, IsNil)
 	c.Assert(blockMeta, NotNil)
 
@@ -732,13 +733,13 @@ func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {
 			},
 		},
 	}
-	blockMeta = NewBlockMeta("000000001ab8a8484eb89f04b87d90eb88e2cbb2829e84eb36b966dcb28af90b", 3, "00000000ffa57c95f4f226f751114e9b24fdf8dbe2dbc02a860da9320bebd63e")
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	blockMeta = utxo.NewBlockMeta("000000001ab8a8484eb89f04b87d90eb88e2cbb2829e84eb36b966dcb28af90b", 3, "00000000ffa57c95f4f226f751114e9b24fdf8dbe2dbc02a860da9320bebd63e")
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	for _, item := range txIn.TxArray {
 		s.client.OnObservedTxIn(item, 3)
 	}
 
-	blockMeta, err = s.client.blockMetaAccessor.GetBlockMeta(3)
+	blockMeta, err = s.client.temporalStorage.GetBlockMeta(3)
 	c.Assert(err, IsNil)
 	c.Assert(blockMeta, NotNil)
 }
@@ -756,17 +757,17 @@ func (s *BitcoinCashSuite) TestProcessReOrg(c *C) {
 
 	// add one UTXO which will trigger the re-org process next
 	previousHeight := result.Height - 1
-	blockMeta := NewBlockMeta(ttypes.GetRandomTxHash().String(), previousHeight, ttypes.GetRandomTxHash().String())
+	blockMeta := utxo.NewBlockMeta(ttypes.GetRandomTxHash().String(), previousHeight, ttypes.GetRandomTxHash().String())
 	hash := "27de3e1865c098cd4fded71bae1e8236fd27ce5dce6e524a9ac5cd1a17b5c241"
 	blockMeta.AddCustomerTransaction(hash)
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(previousHeight, blockMeta), IsNil)
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(previousHeight, blockMeta), IsNil)
 	s.client.globalErrataQueue = make(chan types.ErrataBlock, 1)
 	reOrgedTxs, err = s.client.processReorg(&result)
 	c.Assert(err, IsNil)
 	c.Assert(reOrgedTxs, NotNil)
 	// make sure there is errata block in the queue
 	c.Assert(s.client.globalErrataQueue, HasLen, 1)
-	blockMeta, err = s.client.blockMetaAccessor.GetBlockMeta(previousHeight)
+	blockMeta, err = s.client.temporalStorage.GetBlockMeta(previousHeight)
 	c.Assert(err, IsNil)
 	c.Assert(blockMeta, NotNil)
 }
