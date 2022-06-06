@@ -27,6 +27,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
@@ -63,7 +64,7 @@ type Client struct {
 	chain                   common.Chain
 	privateKey              *btcec.PrivateKey
 	blockScanner            *blockscanner.BlockScanner
-	blockMetaAccessor       BlockMetaAccessor
+	temporalStorage         *utxo.TemporalStorage
 	ksWrapper               *KeySignWrapper
 	bridge                  *thorclient.ThorchainBridge
 	globalErrataQueue       chan<- types.ErrataBlock
@@ -157,11 +158,10 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server 
 		return c, fmt.Errorf("fail to create block scanner: %w", err)
 	}
 
-	dbAccessor, err := NewLevelDBBlockMetaAccessor(storage.GetInternalDb())
+	c.temporalStorage, err = utxo.NewTemporalStorage(storage.GetInternalDb())
 	if err != nil {
-		return c, fmt.Errorf("fail to create utxo accessor: %w", err)
+		return c, fmt.Errorf("fail to create temporal storage: %w", err)
 	}
-	c.blockMetaAccessor = dbAccessor
 
 	if err := c.registerAddressInWalletAsWatch(c.nodePubKey); err != nil {
 		return nil, fmt.Errorf("fail to register (%s): %w", c.nodePubKey, err)
@@ -336,15 +336,15 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 		c.logger.Error().Err(err).Str("txID", txIn.Tx).Msg("fail to add spendable utxo to storage")
 		return
 	}
-	blockMeta, err := c.blockMetaAccessor.GetBlockMeta(blockHeight)
+	blockMeta, err := c.temporalStorage.GetBlockMeta(blockHeight)
 	if err != nil {
 		c.logger.Err(err).Msgf("fail to get block meta on block height(%d)", blockHeight)
 		return
 	}
 	if blockMeta == nil {
-		blockMeta = NewBlockMeta("", blockHeight, "")
+		blockMeta = utxo.NewBlockMeta("", blockHeight, "")
 	}
-	if _, err := c.blockMetaAccessor.TryAddToObservedTxCache(txIn.Tx); err != nil {
+	if _, err := c.temporalStorage.TrackObservedTx(txIn.Tx); err != nil {
 		c.logger.Err(err).Msgf("fail to add hash (%s) to observed tx cache", txIn.Tx)
 	}
 	if c.isAsgardAddress(txIn.Sender) {
@@ -354,7 +354,7 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 		// add the transaction to block meta
 		blockMeta.AddCustomerTransaction(hash.String())
 	}
-	if err := c.blockMetaAccessor.SaveBlockMeta(blockHeight, blockMeta); err != nil {
+	if err := c.temporalStorage.SaveBlockMeta(blockHeight, blockMeta); err != nil {
 		c.logger.Err(err).Msgf("fail to save block meta to storage,block height(%d)", blockHeight)
 	}
 	// update the signer cache
@@ -376,7 +376,7 @@ func (c *Client) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
 
 func (c *Client) processReorg(block *btcjson.GetBlockVerboseTxResult) ([]types.TxIn, error) {
 	previousHeight := block.Height - 1
-	prevBlockMeta, err := c.blockMetaAccessor.GetBlockMeta(previousHeight)
+	prevBlockMeta, err := c.temporalStorage.GetBlockMeta(previousHeight)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get block meta of height(%d) : %w", previousHeight, err)
 	}
@@ -422,7 +422,7 @@ func (c *Client) processReorg(block *btcjson.GetBlockVerboseTxResult) ([]types.T
 // if the tx still exist , then it is all good, if a transaction previous we detected , however doesn't exist anymore , that means
 // the transaction had been removed from chain,  chain client should report to thorchain
 func (c *Client) reConfirmTx() ([]int64, error) {
-	blockMetas, err := c.blockMetaAccessor.GetBlockMetas()
+	blockMetas, err := c.temporalStorage.GetBlockMetas()
 	if err != nil {
 		return nil, fmt.Errorf("fail to get block metas from local storage: %w", err)
 	}
@@ -462,7 +462,7 @@ func (c *Client) reConfirmTx() ([]int64, error) {
 		}
 		blockMeta.PreviousHash = r.PreviousHash
 		blockMeta.BlockHash = r.Hash
-		if err := c.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta); err != nil {
+		if err := c.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta); err != nil {
 			c.logger.Err(err).Msgf("fail to save block meta of height: %d ", blockMeta.Height)
 		}
 	}
@@ -488,13 +488,13 @@ func (c *Client) confirmTx(txHash *chainhash.Hash) bool {
 }
 
 func (c *Client) removeFromMemPoolCache(hash string) {
-	if err := c.blockMetaAccessor.RemoveFromMemPoolCache(hash); err != nil {
+	if err := c.temporalStorage.UntrackMempoolTx(hash); err != nil {
 		c.logger.Err(err).Msgf("fail to remove %s from mempool cache", hash)
 	}
 }
 
 func (c *Client) tryAddToMemPoolCache(hash string) bool {
-	exist, err := c.blockMetaAccessor.TryAddToMemPoolCache(hash)
+	exist, err := c.temporalStorage.TrackMempoolTx(hash)
 	if err != nil {
 		c.logger.Err(err).Msgf("fail to add mempool hash to key value store")
 	}
@@ -607,24 +607,24 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		}
 	}
 
-	blockMeta, err := c.blockMetaAccessor.GetBlockMeta(block.Height)
+	blockMeta, err := c.temporalStorage.GetBlockMeta(block.Height)
 	if err != nil {
 		return txIn, fmt.Errorf("fail to get block meta from storage: %w", err)
 	}
 	if blockMeta == nil {
-		blockMeta = NewBlockMeta(block.PreviousHash, block.Height, block.Hash)
+		blockMeta = utxo.NewBlockMeta(block.PreviousHash, block.Height, block.Hash)
 	} else {
 		blockMeta.PreviousHash = block.PreviousHash
 		blockMeta.BlockHash = block.Hash
 	}
 
-	if err := c.blockMetaAccessor.SaveBlockMeta(block.Height, blockMeta); err != nil {
+	if err := c.temporalStorage.SaveBlockMeta(block.Height, blockMeta); err != nil {
 		return txIn, fmt.Errorf("fail to save block meta into storage: %w", err)
 	}
 	pruneHeight := height - BlockCacheSize
 	if pruneHeight > 0 {
 		defer func() {
-			if err := c.blockMetaAccessor.PruneBlockMeta(pruneHeight, c.canDeleteBlock); err != nil {
+			if err := c.temporalStorage.PruneBlockMeta(pruneHeight, c.canDeleteBlock); err != nil {
 				c.logger.Err(err).Msgf("fail to prune block meta, height(%d)", pruneHeight)
 			}
 		}()
@@ -696,7 +696,7 @@ func (c *Client) ShouldReportSolvency(height int64) bool {
 	return height-c.lastSolvencyCheckHeight > 1
 }
 
-func (c *Client) canDeleteBlock(blockMeta *BlockMeta) bool {
+func (c *Client) canDeleteBlock(blockMeta *utxo.BlockMeta) bool {
 	if blockMeta == nil {
 		return true
 	}
@@ -883,13 +883,13 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 		if txInItem.Coins[0].Amount.LTE(cosmos.NewUint(minSpendableUTXOAmountSats)) {
 			continue
 		}
-		exist, err := c.blockMetaAccessor.TryAddToObservedTxCache(txInItem.Tx)
+		exist, err := c.temporalStorage.TrackObservedTx(txInItem.Tx)
 		if err != nil {
 			c.logger.Err(err).Msgf("fail to determinate whether hash(%s) had been observed before", txInItem.Tx)
 		}
 		if !exist {
 			c.logger.Info().Msgf("tx: %s had been report before, ignore", txInItem.Tx)
-			if err := c.blockMetaAccessor.RemoveObservedTxCache(txInItem.Tx); err != nil {
+			if err := c.temporalStorage.UntrackObservedTx(txInItem.Tx); err != nil {
 				c.logger.Err(err).Msgf("fail to remove observed tx from cache: %s", txInItem.Tx)
 			}
 			continue

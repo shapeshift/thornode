@@ -27,6 +27,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
@@ -42,6 +43,7 @@ type LitecoinSignerSuite struct {
 	bridge *thorclient.ThorchainBridge
 	cfg    config.ChainConfiguration
 	m      *metrics.Metrics
+	db     *leveldb.DB
 	keys   *thorclient.Keys
 }
 
@@ -136,18 +138,15 @@ func (s *LitecoinSignerSuite) SetUpTest(c *C) {
 	storage := storage.NewMemStorage()
 	db, err := leveldb.Open(storage, nil)
 	c.Assert(err, IsNil)
-	accessor, err := NewLevelDBBlockMetaAccessor(db)
-	c.Assert(err, IsNil)
-	s.client.blockMetaAccessor = accessor
+	s.client.temporalStorage, err = utxo.NewTemporalStorage(db)
+	s.db = db
 	c.Assert(err, IsNil)
 	c.Assert(s.client, NotNil)
 }
 
 func (s *LitecoinSignerSuite) TearDownTest(c *C) {
 	s.server.Close()
-	acc, ok := s.client.blockMetaAccessor.(*LevelDBBlockMetaAccessor)
-	c.Assert(ok, Equals, true)
-	c.Assert(acc.db.Close(), IsNil)
+	c.Assert(s.db.Close(), IsNil)
 }
 
 func (s *LitecoinSignerSuite) TestGetLTCPrivateKey(c *C) {
@@ -232,11 +231,11 @@ func (s *LitecoinSignerSuite) TestSignTxHappyPathWithPrivateKey(c *C) {
 	}
 	txHash := "256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34"
 	c.Assert(err, IsNil)
-	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
+	blockMeta := utxo.NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
 	blockMeta.AddCustomerTransaction(txHash)
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
 	c.Assert(err, IsNil)
 	pkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), priKeyBuf)
@@ -271,11 +270,11 @@ func (s *LitecoinSignerSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
 	}
 	txHash := "256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34"
 	c.Assert(err, IsNil)
-	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
+	blockMeta := utxo.NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
 	blockMeta.AddCustomerTransaction(txHash)
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
 	c.Assert(err, IsNil)
 	pkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), priKeyBuf)
@@ -291,7 +290,7 @@ func (s *LitecoinSignerSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
 
-	c.Assert(s.client.blockMetaAccessor.UpsertTransactionFee(0.001, 10), IsNil)
+	c.Assert(s.client.temporalStorage.UpsertTransactionFee(0.001, 10), IsNil)
 	buf, err = s.client.SignTx(txOutItem, 1)
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
@@ -320,11 +319,11 @@ func (s *LitecoinSignerSuite) TestSignTxWithTSS(c *C) {
 	txHash := "66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"
 	c.Assert(err, IsNil)
 	// utxo := NewUnspentTransactionOutput(*txHash, 0, 0.00018, 100, txOutItem.VaultPubKey)
-	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
+	blockMeta := utxo.NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
 	blockMeta.AddCustomerTransaction(txHash)
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	buf, err := s.client.SignTx(txOutItem, 1)
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
@@ -355,10 +354,10 @@ func (s *LitecoinSignerSuite) TestBroadcastTx(c *C) {
 
 func (s *LitecoinSignerSuite) TestIsSelfTransaction(c *C) {
 	c.Check(s.client.isSelfTransaction("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"), Equals, false)
-	bm := NewBlockMeta("", 1024, "")
+	bm := utxo.NewBlockMeta("", 1024, "")
 	hash := "66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"
 	bm.AddSelfTransaction(hash)
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(1024, bm), IsNil)
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(1024, bm), IsNil)
 	c.Check(s.client.isSelfTransaction("66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"), Equals, true)
 }
 
@@ -393,11 +392,11 @@ func (s *LitecoinSignerSuite) TestSignAddressPubKeyShouldFail(c *C) {
 		OutHash: "",
 	}
 	txHash := "256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34"
-	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
+	blockMeta := utxo.NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
 	blockMeta.AddCustomerTransaction(txHash)
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
 	c.Assert(err, IsNil)
 	pkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), priKeyBuf)
@@ -430,11 +429,11 @@ func (s *LitecoinSignerSuite) TestToAddressCanNotRoundTripShouldBlock(c *C) {
 		OutHash: "",
 	}
 	txHash := "256222fb25a9950479bb26049a2c00e75b89abbb7f0cf646c623b93e942c4c34"
-	blockMeta := NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
+	blockMeta := utxo.NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
 		100,
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
 	blockMeta.AddCustomerTransaction(txHash)
-	c.Assert(s.client.blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 	priKeyBuf, err := hex.DecodeString("b404c5ec58116b5f0fe13464a92e46626fc5db130e418cbce98df86ffe9317c5")
 	c.Assert(err, IsNil)
 	pkey, _ := btcec.PrivKeyFromBytes(btcec.S256(), priKeyBuf)

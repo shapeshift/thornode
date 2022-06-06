@@ -1,4 +1,4 @@
-package bitcoin
+package utxo
 
 import (
 	"fmt"
@@ -10,43 +10,43 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
-type BitcoinBlockMetaAccessorTestSuite struct{}
+type BitcoinTemporalStorageTestSuite struct{}
 
 var _ = Suite(
-	&BitcoinBlockMetaAccessorTestSuite{},
+	&BitcoinTemporalStorageTestSuite{},
 )
 
-func (s *BitcoinBlockMetaAccessorTestSuite) TestNewBlockMetaAccessor(c *C) {
+func (s *BitcoinTemporalStorageTestSuite) TestNewTemporalStorage(c *C) {
 	memStorage := storage.NewMemStorage()
 	db, err := leveldb.Open(memStorage, nil)
 	c.Assert(err, IsNil)
-	dbBlockMetaAccessor, err := NewLevelDBBlockMetaAccessor(db)
+	dbTemporalStorage, err := NewTemporalStorage(db)
 	c.Assert(err, IsNil)
-	c.Assert(dbBlockMetaAccessor, NotNil)
+	c.Assert(dbTemporalStorage, NotNil)
 	c.Assert(db.Close(), IsNil)
 }
 
-func (s *BitcoinBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
+func (s *BitcoinTemporalStorageTestSuite) TestTemporalStorage(c *C) {
 	memStorage := storage.NewMemStorage()
 	db, err := leveldb.Open(memStorage, nil)
 	c.Assert(err, IsNil)
-	blockMetaAccessor, err := NewLevelDBBlockMetaAccessor(db)
+	store, err := NewTemporalStorage(db)
 	c.Assert(err, IsNil)
-	c.Assert(blockMetaAccessor, NotNil)
+	c.Assert(store, NotNil)
 
 	blockMeta := NewBlockMeta("00000000000000d9cba4b81d1f8fb5cecd54e4ec3104763ba937aa7692a86dc5",
 		1722479,
 		"00000000000000ca7a4633264b9989355e9709f9e9da19506b0f636cc435dc8f")
-	c.Assert(blockMetaAccessor.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
+	c.Assert(store.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
 
-	key := blockMetaAccessor.getBlockMetaKey(blockMeta.Height)
+	key := store.getBlockMetaKey(blockMeta.Height)
 	c.Assert(key, Equals, fmt.Sprintf(PrefixBlockMeta+"%d", blockMeta.Height))
 
-	bm, err := blockMetaAccessor.GetBlockMeta(blockMeta.Height)
+	bm, err := store.GetBlockMeta(blockMeta.Height)
 	c.Assert(err, IsNil)
 	c.Assert(bm, NotNil)
 
-	nbm, err := blockMetaAccessor.GetBlockMeta(1024)
+	nbm, err := store.GetBlockMeta(1024)
 	c.Assert(err, IsNil)
 	c.Assert(nbm, IsNil)
 	hash := thorchain.GetRandomTxHash()
@@ -55,25 +55,25 @@ func (s *BitcoinBlockMetaAccessorTestSuite) TestBlockMetaAccessor(c *C) {
 		if i == 0 {
 			bm.AddSelfTransaction(hash.String())
 		}
-		c.Assert(blockMetaAccessor.SaveBlockMeta(bm.Height, bm), IsNil)
+		c.Assert(store.SaveBlockMeta(bm.Height, bm), IsNil)
 	}
-	blockMetas, err := blockMetaAccessor.GetBlockMetas()
+	blockMetas, err := store.GetBlockMetas()
 	c.Assert(err, IsNil)
 	c.Assert(blockMetas, HasLen, 1025)
-	c.Assert(blockMetaAccessor.PruneBlockMeta(1000, func(meta *BlockMeta) bool {
-		return !meta.TransactionHashExist(hash.String())
+	c.Assert(store.PruneBlockMeta(1000, func(meta *BlockMeta) bool {
+		return !meta.TransactionHashExists(hash.String())
 	}), IsNil)
-	allBlockMetas, err := blockMetaAccessor.GetBlockMetas()
+	allBlockMetas, err := store.GetBlockMetas()
 	c.Assert(err, IsNil)
 	c.Assert(allBlockMetas, HasLen, 26)
 
-	fee, vSize, err := blockMetaAccessor.GetTransactionFee()
+	fee, vSize, err := store.GetTransactionFee()
 	c.Assert(err, NotNil)
 	c.Assert(fee, Equals, 0.0)
 	c.Assert(vSize, Equals, int32(0))
 	// upsert transaction fee
-	c.Assert(blockMetaAccessor.UpsertTransactionFee(1.0, 1), IsNil)
-	fee, vSize, err = blockMetaAccessor.GetTransactionFee()
+	c.Assert(store.UpsertTransactionFee(1.0, 1), IsNil)
+	fee, vSize, err = store.GetTransactionFee()
 	c.Assert(err, IsNil)
 	c.Assert(fee, Equals, 1.0)
 	c.Assert(vSize, Equals, int32(1))
