@@ -99,6 +99,15 @@ export default {
     wallet3: {
       default: 3,
     },
+    asgard1: {
+      default: 3,
+    },
+    asgard2: {
+      default: 3,
+    },
+    asgard3: {
+      default: 3,
+    },
   },
   contractSizer: {
     alphaSort: true,
