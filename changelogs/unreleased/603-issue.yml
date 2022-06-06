@@ -1,5 +1,0 @@
----
-title: Update go-tss to use first in first serve mode, make TSS more resiliant
-merge_request: 1202
-author:
-type: performance
