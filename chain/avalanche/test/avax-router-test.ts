@@ -1,12 +1,14 @@
 import { deployments, ethers, getNamedAccounts } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import { BigNumber, Signer } from "ethers";
+import { hexDataSlice } from "ethers/lib/utils";
 
 
 describe("AvaxRouter", function () {
     let accounts: SignerWithAddress[];
     let avaxRouter: any
-
+    const AVAX = ethers.constants.AddressZero
 
     beforeEach(async () => {
         accounts = await ethers.getSigners();
@@ -25,9 +27,32 @@ describe("AvaxRouter", function () {
     });
 
     describe("User Deposit Assets", function () {
-        it("Should Deposit Ether To Asgard1", async function () {
+        it("Should Deposit AVAX To Asgard1", async function () {
+            const { wallet1, asgard1 } = await getNamedAccounts();
+            const amount = ethers.utils.parseEther("1000")
+            const wallet1Signer = accounts.find(
+                (account) => account.address === wallet1
+            );
+            const routerAdmin = avaxRouter.connect(wallet1Signer);
+
+            let startBal = BigNumber.from(await ethers.provider.getBalance(asgard1))
+            let tx = await routerAdmin.deposit(asgard1, AVAX, amount,
+                'SWAP:THOR.RUNE', { value: amount });
+            const receipt = await tx.wait()
+            console.log('receipt', receipt)
+            console.log('topics', receipt.logs[0].topics)
+      
+            expect(receipt.events[0].event).to.equal('Deposit')
+            expect(tx.value).to.equal(amount)
+            expect(receipt.events[0].args.asset).to.equal(AVAX)
+            expect(receipt.events[0].args.memo).to.equal("SWAP:THOR.RUNE")
+
+            let endBal = BigNumber.from(await ethers.provider.getBalance(asgard1))
+            let changeBal = BigNumber.from(endBal).sub(startBal)
+            expect(changeBal).to.equal(amount);
+
         });
-        it("Should revert Deposit Ether To Asgard1", async function () {
+        it("Should revert Deposit AVAX To Asgard1", async function () {
 
         });
         it("Should Deposit RUNE to Asgard1", async function () {
