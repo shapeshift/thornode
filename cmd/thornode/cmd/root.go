@@ -104,7 +104,7 @@ func addModuleInitFlags(startCmd *cobra.Command) {
 		filterModules := serverCtx.Viper.GetString("filter-modules")
 		if zw, ok := serverCtx.Logger.(server.ZeroLogWrapper); ok {
 			serverCtx.Logger = app.ThornodeLogWrapper{
-				Logger:         zw.Logger,
+				Logger:         zw.Logger.With().CallerWithSkipFrameCount(3).Logger(),
 				ExcludeModules: strings.Split(filterModules, ","),
 			}
 			return server.SetCmdServerContext(startCmd, serverCtx)
