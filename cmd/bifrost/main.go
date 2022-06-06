@@ -235,7 +235,7 @@ func initLog(level string, pretty bool) {
 		out = zerolog.ConsoleWriter{Out: os.Stdout}
 	}
 	zerolog.SetGlobalLevel(l)
-	log.Logger = log.Output(out).With().Str("service", serverIdentity).Logger()
+	log.Logger = log.Output(out).With().Caller().Str("service", serverIdentity).Logger()
 
 	logLevel := golog.LevelInfo
 	switch l {
