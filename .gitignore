@@ -12,6 +12,7 @@ vendor
 observe
 *balances.json
 *.pb.go
+openapi/openapi.json
 
 # IDE
 .idea/
