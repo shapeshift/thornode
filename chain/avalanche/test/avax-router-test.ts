@@ -1,8 +1,7 @@
 import { deployments, ethers, getNamedAccounts } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { BigNumber, Signer } from "ethers";
-import { hexDataSlice } from "ethers/lib/utils";
+import { BigNumber } from "ethers";
 
 
 describe("AvaxRouter", function () {
@@ -27,21 +26,19 @@ describe("AvaxRouter", function () {
     });
 
     describe("User Deposit Assets", function () {
-        it("Should Deposit AVAX To Asgard1", async function () {
+        it("Should Deposit AVAX To Asgard", async function () {
             const { wallet1, asgard1 } = await getNamedAccounts();
             const amount = ethers.utils.parseEther("1000")
             const wallet1Signer = accounts.find(
                 (account) => account.address === wallet1
             );
-            const routerAdmin = avaxRouter.connect(wallet1Signer);
+            const routerWallet1 = avaxRouter.connect(wallet1Signer);
 
             let startBal = BigNumber.from(await ethers.provider.getBalance(asgard1))
-            let tx = await routerAdmin.deposit(asgard1, AVAX, amount,
+            let tx = await routerWallet1.deposit(asgard1, AVAX, amount,
                 'SWAP:THOR.RUNE', { value: amount });
             const receipt = await tx.wait()
-            console.log('receipt', receipt)
-            console.log('topics', receipt.logs[0].topics)
-      
+
             expect(receipt.events[0].event).to.equal('Deposit')
             expect(tx.value).to.equal(amount)
             expect(receipt.events[0].args.asset).to.equal(AVAX)
@@ -52,7 +49,16 @@ describe("AvaxRouter", function () {
             expect(changeBal).to.equal(amount);
 
         });
-        it("Should revert Deposit AVAX To Asgard1", async function () {
+        it("Should revert expired Deposit AVAX To Asgard1", async function () {
+            const { wallet1, asgard1 } = await getNamedAccounts();
+            const amount = ethers.utils.parseEther("1000")
+            const wallet1Signer = accounts.find(
+                (account) => account.address === wallet1
+            );
+            const routerWallet1 = avaxRouter.connect(wallet1Signer);
+
+            await expect(routerWallet1.depositWithExpiry(asgard1, AVAX, amount, "SWITCH:THOR.RUNE",
+                BigNumber.from(0), { value: amount })).to.be.revertedWith("THORChain_Router: expired") //, "THORChain_Router: expired");
 
         });
         it("Should Deposit RUNE to Asgard1", async function () {
