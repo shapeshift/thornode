@@ -126,6 +126,14 @@ func (k KVStoreDummy) GetRagnarokWithdrawPosition(ctx cosmos.Context) (RagnarokW
 }
 func (k KVStoreDummy) SetRagnarokWithdrawPosition(_tx cosmos.Context, _ RagnarokWithdrawPosition) {}
 
+// SetPoolRagnarokStart set pool ragnarok start block height
+func (k KVStoreDummy) SetPoolRagnarokStart(ctx cosmos.Context, asset common.Asset) {}
+
+// GetPoolRagnarokStart get pool ragnarok start block height
+func (k KVStoreDummy) GetPoolRagnarokStart(ctx cosmos.Context, asset common.Asset) (int64, error) {
+	return 0, kaboom
+}
+
 func (k KVStoreDummy) GetPoolBalances(_ cosmos.Context, _, _ common.Asset) (cosmos.Uint, cosmos.Uint) {
 	return cosmos.ZeroUint(), cosmos.ZeroUint()
 }
