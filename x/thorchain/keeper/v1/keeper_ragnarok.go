@@ -3,6 +3,7 @@ package keeperv1
 import (
 	"fmt"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
@@ -88,4 +89,16 @@ func (k KVStore) GetRagnarokWithdrawPosition(ctx cosmos.Context) (RagnarokWithdr
 // SetRagnarokWithdrawPosition set ragnarok withdraw position
 func (k KVStore) SetRagnarokWithdrawPosition(ctx cosmos.Context, position RagnarokWithdrawPosition) {
 	k.setRagnarokWithdrawPosition(ctx, k.GetKey(ctx, prefixRagnarokPosition, ""), position)
+}
+
+// SetPoolRagnarokStart set pool ragnarok start block height
+func (k KVStore) SetPoolRagnarokStart(ctx cosmos.Context, asset common.Asset) {
+	k.setInt64(ctx, k.GetKey(ctx, prefixRagnarokPoolHeight, asset.String()), common.BlockHeight(ctx))
+}
+
+// GetPoolRagnarokStart get pool ragnarok start block height
+func (k KVStore) GetPoolRagnarokStart(ctx cosmos.Context, asset common.Asset) (int64, error) {
+	record := int64(0)
+	_, err := k.getInt64(ctx, k.GetKey(ctx, prefixRagnarokPoolHeight, asset.String()), &record)
+	return record, err
 }

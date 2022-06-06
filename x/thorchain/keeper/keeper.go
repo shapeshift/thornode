@@ -209,6 +209,8 @@ type KeeperRagnarok interface {
 	SetRagnarokPending(_ cosmos.Context, _ int64)
 	GetRagnarokWithdrawPosition(ctx cosmos.Context) (RagnarokWithdrawPosition, error)
 	SetRagnarokWithdrawPosition(ctx cosmos.Context, position RagnarokWithdrawPosition)
+	SetPoolRagnarokStart(ctx cosmos.Context, asset common.Asset)
+	GetPoolRagnarokStart(ctx cosmos.Context, asset common.Asset) (int64, error)
 }
 
 type KeeperErrataTx interface {
