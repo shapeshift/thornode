@@ -1,4 +1,4 @@
-package bitcoincash
+package utxo
 
 import (
 	. "gopkg.in/check.v1"
@@ -6,9 +6,7 @@ import (
 
 type BlockMetaTestSuite struct{}
 
-var _ = Suite(
-	&BlockMetaTestSuite{},
-)
+var _ = Suite(&BlockMetaTestSuite{})
 
 func (b *BlockMetaTestSuite) TestBlockMeta(c *C) {
 	blockMeta := NewBlockMeta("00000000000000d9cba4b81d1f8fb5cecd54e4ec3104763ba937aa7692a86dc5",
@@ -27,5 +25,5 @@ func (b *BlockMetaTestSuite) TestBlockMeta(c *C) {
 	c.Assert(blockMeta.SelfTransactions, HasLen, 1)
 	blockMeta.AddCustomerTransaction(txID)
 	c.Assert(blockMeta.CustomerTransactions, HasLen, 0)
-	c.Assert(blockMeta.TransactionHashExist(txID), Equals, true)
+	c.Assert(blockMeta.TransactionHashExists(txID), Equals, true)
 }
