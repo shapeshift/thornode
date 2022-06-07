@@ -59,7 +59,7 @@ func (s *SwapperV81) validateMessage(tx common.Tx, target common.Asset, destinat
 	return nil
 }
 
-func (s *SwapperV81) swap(ctx cosmos.Context,
+func (s *SwapperV81) Swap(ctx cosmos.Context,
 	keeper keeper.Keeper,
 	tx common.Tx,
 	target common.Asset,
