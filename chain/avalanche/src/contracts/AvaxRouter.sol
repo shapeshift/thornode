@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import "hardhat/console.sol";
+
 // ARC-20 Interface
 interface iARC20 {
     function balanceOf(address) external view returns (uint256);
@@ -259,7 +261,12 @@ contract AvaxRouter {
                 _amount
             )
         );
-        require(success && (data.length == 0 || abi.decode(data, (bool))));
+        console.log("success", success);
+        // console.log("data", data);
+        require(
+            success && (data.length == 0 || abi.decode(data, (bool))),
+            "Failed To TransferFrom"
+        );
         return (iARC20(_asset).balanceOf(address(this)) - _startBal);
     }
 
