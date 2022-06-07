@@ -5,11 +5,37 @@ import (
 	"fmt"
 
 	"github.com/armon/go-metrics"
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
+
+type Swapper interface {
+	Swap(ctx cosmos.Context,
+		keeper keeper.Keeper,
+		tx common.Tx,
+		target common.Asset,
+		destination common.Address,
+		swapTarget cosmos.Uint,
+		transactionFee cosmos.Uint,
+		synthVirtualDepthMult int64,
+		mgr Manager,
+	) (cosmos.Uint, []*EventSwap, error)
+}
+
+// GetSwapper return an implementation of Swapper
+func GetSwapper(version semver.Version) (Swapper, error) {
+	switch {
+	case version.GTE(semver.MustParse("1.90.0")):
+		return newSwapperV90(), nil
+	case version.GTE(semver.MustParse("0.81.0")):
+		return newSwapperV81(), nil
+	default:
+		return nil, errInvalidVersion
+	}
+}
 
 type SwapperV90 struct {
 	pools       Pools // caches pool state changes
@@ -59,7 +85,7 @@ func (s *SwapperV90) validateMessage(tx common.Tx, target common.Asset, destinat
 	return nil
 }
 
-func (s *SwapperV90) swap(ctx cosmos.Context,
+func (s *SwapperV90) Swap(ctx cosmos.Context,
 	keeper keeper.Keeper,
 	tx common.Tx,
 	target common.Asset,
