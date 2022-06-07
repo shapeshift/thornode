@@ -182,9 +182,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		"",
 	)
 	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
-	result, err = handler.Run(ctx, msg)
-	c.Assert(err.Error(), Equals, errors.New("BNB.BNB pool doesn't exist").Error())
-	c.Assert(result, IsNil)
+
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
 	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
@@ -232,11 +230,14 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 0)
+
+	c.Assert(keeper.SetPool(ctx, pool), IsNil) // reset the pool
 	_, err = handler.Run(ctx, msgSwapFromTxIn.(*MsgSwap))
 	c.Assert(err, IsNil)
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
+
 	result, err = handler.Run(ctx, msgSwapFromTxIn)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
