@@ -118,8 +118,12 @@ describe("AvaxRouter", function () {
                 BigNumber.from(0))).to.be.revertedWith("THORChain_Router: expired")
         })
         it("Should revert when AVAX sent during ARC20 Deposit", async function () {
-        })
-        it("Should Deposit USDT to Asgard1", async function () {
+            const { asgard1 } = await getNamedAccounts();
+            const amount = ethers.utils.parseEther("1000")
+
+            await expect(avaxRouter.deposit(asgard1, usdceToken.address, amount,
+                'SWAP:THOR.RUNE', { value: amount })).to.be.revertedWith("unexpected avax")
+
         })
 
     });
