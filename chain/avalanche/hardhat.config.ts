@@ -100,13 +100,16 @@ export default {
       default: 3,
     },
     asgard1: {
-      default: 3,
+      default: 4,
     },
     asgard2: {
-      default: 3,
+      default: 5,
     },
     asgard3: {
-      default: 3,
+      default: 6,
+    },
+    yggdrasil: {
+      default: 7,
     },
   },
   contractSizer: {
