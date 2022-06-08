@@ -32,6 +32,8 @@ import (
 
 	"gitlab.com/thorchain/thornode/app"
 	"gitlab.com/thorchain/thornode/app/params"
+
+	"gitlab.com/thorchain/thornode/x/thorchain/client/cli"
 )
 
 // NewRootCmd creates a new root command for simd. It is called once in the
@@ -86,6 +88,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		rpc.StatusCommand(),
 		queryCommand(),
 		txCommand(),
+		cli.GetUtilCmd(),
 		keys.Commands(app.DefaultNodeHome(appName)),
 	)
 }
