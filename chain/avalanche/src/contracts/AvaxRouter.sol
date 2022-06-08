@@ -274,9 +274,6 @@ contract AvaxRouter {
         address _asset,
         uint256 _amount
     ) internal {
-        console.log(_vaultAllowance[msg.sender][_asset]);
-        console.log(msg.sender);
-        console.log(_asset);
         _vaultAllowance[msg.sender][_asset] -= _amount;
         _vaultAllowance[_newVault][_asset] += _amount;
     }
