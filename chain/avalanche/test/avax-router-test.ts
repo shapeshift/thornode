@@ -131,7 +131,7 @@ describe("AvaxRouter", function () {
     });
     describe("Fund Yggdrasil, Yggdrasil Transfer Out", function () {
 
-        it("Should fund yggdrasil AVAX", async function () {
+        it("Should fund yggdrasil with AVAX", async function () {
             const { asgard1, yggdrasil } = await getNamedAccounts();
             const amount400 = ethers.utils.parseEther("400")
             const amount300 = ethers.utils.parseEther("300")
@@ -157,7 +157,7 @@ describe("AvaxRouter", function () {
             expect(changeBal).to.equal(amount400);
         });
 
-        it("Should fund yggdrasil tokens", async function () {
+        it("Should fund yggdrasil with tokens", async function () {
             const { wallet1, asgard1, yggdrasil } = await getNamedAccounts();
             const amount = "10000000000"
 
@@ -298,15 +298,15 @@ describe("AvaxRouter", function () {
 
 
     describe("Yggdrasil Returns Funds, Asgard Churns, Old Vaults can't spend", function () {
-        it.skip("Ygg returns", async function () {
-            const { asgard1, yggdrasil } = await getNamedAccounts();
+        it("Ygg returns", async function () {
+            const { wallet1, asgard1, yggdrasil } = await getNamedAccounts();
 
-            let ethBal = ethers.utils.parseEther("20")
-            const tokenAmount = "20000000000"
+            let avaxBal = ethers.utils.parseEther("20")
+            const tokenAmount = "200000000"
 
             let coins = {
                 asset: usdceToken.address,
-                amount: "20000000000"
+                amount: "200000000"
             }
 
             const yggdrasilSigner = accounts.find(
@@ -314,10 +314,35 @@ describe("AvaxRouter", function () {
             );
             const avaxRouterYggdrasil = avaxRouter.connect(yggdrasilSigner as Signer);
 
-            let tx = await avaxRouterYggdrasil.returnVaultAssets(avaxRouter.address, asgard1, [coins], 'yggdrasil-:1234', { from: yggdrasil, value: ethBal })
+            const wallet1Signer = accounts.find(
+                (account) => account.address === wallet1
+            );
+            const avaxRouterWallet1 = avaxRouter.connect(wallet1Signer as Signer);
+
+            const asgard1Signer = accounts.find(
+                (account) => account.address === asgard1
+            );
+            const avaxRouterAsgard1= avaxRouter.connect(asgard1Signer as Signer);
+
+            const usdceWallet1 = usdceToken.connect(wallet1Signer as Signer);
+            await usdceWallet1.approve(avaxRouter.address, tokenAmount);
+
+            let tx = await avaxRouterWallet1.deposit(asgard1, usdceToken.address, tokenAmount,
+                'SWAP:THOR.RUNE');
+            
+            // approve usdce transfer
+            const usdceTokenAsgard1 = usdceToken.connect(asgard1Signer as Signer);
+            await usdceTokenAsgard1.approve(avaxRouter.address, tokenAmount);
+
+            expect(await usdceToken.balanceOf(avaxRouter.address)).to.equal(tokenAmount);
+            expect(await avaxRouterWallet1.vaultAllowance(asgard1, usdceToken.address)).to.equal(tokenAmount);
+
+            tx = await avaxRouterAsgard1.transferAllowance(avaxRouter.address, yggdrasil, usdceToken.address, tokenAmount, 'yggdrasil+:1234')
+
+            tx = await avaxRouterYggdrasil.returnVaultAssets(avaxRouter.address, asgard1, [coins], 'yggdrasil-:1234', { from: yggdrasil, value: avaxBal })
             const receipt = await tx.wait()
             expect(receipt.events?.[0]?.event).to.equal('VaultTransfer')
-            expect(receipt.events?.[0]?.args?.coins[0].asset).to.equal(usdceToken.address)
+            expect(receipt.events?.[0]?.args?.coins[0].asset.toLowerCase()).to.equal(usdceToken.address)
             expect(receipt.events?.[0]?.args?.coins[0].amount).to.equal(tokenAmount)
             expect(receipt.events?.[0]?.args?.memo).to.equal('yggdrasil-:1234')
 
@@ -325,19 +350,35 @@ describe("AvaxRouter", function () {
             expect((await avaxRouter.vaultAllowance(yggdrasil, usdceToken.address))).to.equal('0');
             expect((await avaxRouter.vaultAllowance(asgard1, usdceToken.address))).to.equal(tokenAmount);
         });
-        it.skip("Asgard Churns", async function () {
-            const { asgard1, asgard2, yggdrasil } = await getNamedAccounts();
+        it("Asgard Churns", async function () {
+            const { wallet1, asgard1, asgard2 } = await getNamedAccounts();
+            const amount = "10000000000"
+
+            const wallet1Signer = accounts.find(
+                (account) => account.address === wallet1
+            );
+            const avaxRouterWallet1 = avaxRouter.connect(wallet1Signer as Signer);
+
             const asgard1Signer = accounts.find(
                 (account) => account.address === asgard1
             );
-            const avaxRouterAsgard1 = avaxRouter.connect(asgard1Signer as Signer);
+            const avaxRouterAsgard1= avaxRouter.connect(asgard1Signer as Signer);
 
-            const amount = ethers.utils.parseEther("10000")
-            let tx = await avaxRouterAsgard1.transferAllowance(avaxRouter.address, asgard2, usdceToken.address, amount, 'migrate:1234')
+            const usdceWallet1 = usdceToken.connect(wallet1Signer as Signer);
+            await usdceWallet1.approve(avaxRouter.address, amount);
+
+            let tx = await avaxRouterWallet1.deposit(asgard1, usdceToken.address, amount,
+                'SWAP:THOR.RUNE');
+
+            // approve usdce transfer
+            const usdceTokenAsgard1 = usdceToken.connect(asgard1Signer as Signer);
+            await usdceTokenAsgard1.approve(avaxRouter.address, amount);
+            
+            tx = await avaxRouterAsgard1.transferAllowance(avaxRouter.address, asgard2, usdceToken.address, amount, 'migrate:1234')
             const receipt = await tx.wait()
 
             expect(receipt.events?.[0]?.event).to.equal('TransferAllowance')
-            expect(receipt.events?.[0]?.args?.asset).to.equal(usdceToken.address)
+            expect(receipt.events?.[0]?.args?.asset.toLowerCase()).to.equal(usdceToken.address)
             expect((receipt.events?.[0]?.args?.amount)).to.equal(amount)
 
             expect((await usdceToken.balanceOf(avaxRouter.address))).to.equal(amount);
@@ -377,62 +418,71 @@ describe("AvaxRouter", function () {
 
 
     describe("Upgrade contract", function () {
-        it.skip("should return vault assets to new router", async function () {
-            const { yggdrasil, asgard1, asgard3, wallet1, wallet2 } = await getNamedAccounts();
-            const amount5k = ethers.utils.parseEther("5000")
+        it("should return vault assets to new router", async function () {
+            const { yggdrasil, asgard1, asgard3, wallet1 } = await getNamedAccounts();
+            const amount5kUsdce = "5000000000"
             const amount1 = ethers.utils.parseEther("1")
 
             const wallet1Signer = accounts.find(
                 (account) => account.address === wallet1
             );
-            const wallet2Signer = accounts.find(
-                (account) => account.address === wallet2
-            );
             const yggdrasilSigner = accounts.find(
                 (account) => account.address === yggdrasil
             );
+            const asgard1Signer = accounts.find(
+                (account) => account.address === asgard1
+            );
             const avaxRouterYggdrasil = avaxRouter.connect(yggdrasilSigner as Signer);
-            const avaxRouterWallet2 = avaxRouter.connect(wallet2Signer as Signer);
+            const avaxRouterAsgard1 = avaxRouter.connect(asgard1Signer as Signer);
             const avaxRouterWallet1 = avaxRouter.connect(wallet1Signer as Signer);
 
             // approve usdce transfer
             const usdceTokenWallet1 = usdceToken.connect(wallet1Signer as Signer);
-            await usdceTokenWallet1.approve(avaxRouterWallet1.address, amount5k);
-            await avaxRouterWallet1.deposit(asgard1, usdceToken.address, "5000000000", 'SEED');
+            await usdceTokenWallet1.approve(avaxRouter.address, amount5kUsdce);
+
+            await avaxRouterWallet1.deposit(asgard1, usdceToken.address, amount5kUsdce, 'SEED');
             // await ROUTER1.deposit(yggdrasil, usdt.address, _50k, 'SEED', { from: USER1 });
             // await avaxRouterWallet2.deposit(yggdrasil, AVAX, '0', 'SEED AVAX', { value: amount1 });
-            let ethBal = '1000000000000'
+            let avaxBal = ethers.utils.parseEther("20")
 
             // migrate _50k from asgard1 to asgard3 , to new avaxRouter2 contract 
             let coin1 = {
                 asset: usdceToken.address,
-                amount: amount1
+                amount: amount5kUsdce
             }
             // let coin2 = {
             //     asset: usdt.address,
             //     amount: amount1
             // }
 
-            let tx = await avaxRouterYggdrasil.returnVaultAssets(avaxRouter2.address, asgard3, [coin1], 'yggdrasil-:1234', { value: ethBal })
+            const usdceTokenAsgard1 = usdceToken.connect(asgard1Signer as Signer);
+            await usdceTokenAsgard1.approve(avaxRouter.address, amount5kUsdce);
+            let tx = await avaxRouterAsgard1.transferAllowance(avaxRouter.address, yggdrasil, usdceToken.address, amount5kUsdce, 'yggdrasil+:1234')
+
+            tx = await avaxRouterYggdrasil.returnVaultAssets(avaxRouter2.address, asgard3, [coin1], 'yggdrasil-:1234', { value: avaxBal })
             const receipt = await tx.wait()
 
-            expect(receipt.events?.[0]?.event).to.equal('Deposit');
-            expect(receipt.events?.[0]?.args?.to).to.equal(asgard3);
-            expect(receipt.events?.[0]?.args?.asset).to.equal(usdceToken.address);
-            expect(receipt.events?.[0]?.args?.memo).to.equal('yggdrasil-:1234');
-            expect((receipt.events?.[0]?.args?.amount)).to.equal(amount5k);
+            receipt?.events?.find(event => {
+                if (event.logIndex === 3) {
+                    expect(event?.event).to.equal('Deposit');
+                    expect(event?.args?.to).to.equal(asgard3);
+                    expect(event?.args?.asset.toLowerCase()).to.equal(usdceToken.address);
+                    expect(event?.args?.memo).to.equal('yggdrasil-:1234');
+                    expect((event?.args?.amount)).to.equal(amount5kUsdce);
+                }
+            })
 
             // make sure the token had been transfer to asgardex3 and avaxRouter2
-            expect((await usdceToken.balanceOf(avaxRouter2.address))).to.equal(amount5k);
-            expect((await avaxRouter2.vaultAllowance(asgard3, usdceToken.address))).to.equal(amount5k);
+            expect((await usdceToken.balanceOf(avaxRouter2.address))).to.equal(amount5kUsdce);
+            expect((await avaxRouter2.vaultAllowance(asgard3, usdceToken.address))).to.equal(amount5kUsdce);
             expect((await avaxRouter.vaultAllowance(asgard1, usdceToken.address))).to.equal('0');
 
         });
 
-        it.skip("should transfer all token and allowance to new contract", async function () {
-            const { yggdrasil, asgard1, asgard3, wallet1, wallet2 } = await getNamedAccounts();
+        it("should transfer all token and allowance to new contract", async function () {
+            const { asgard1, asgard3, wallet1, wallet2 } = await getNamedAccounts();
             const amount10k = ethers.utils.parseEther("10000")
-            const amount5k = ethers.utils.parseEther("5000")
+            const amount5kUsdce = "5000000000"
             const amount2k = ethers.utils.parseEther("2000")
             const amount1 = ethers.utils.parseEther("1")
 
@@ -450,7 +500,11 @@ describe("AvaxRouter", function () {
             const avaxRouterWallet2 = avaxRouter.connect(wallet2Signer as Signer);
 
             let asgard1StartBalance = BigNumber.from(await ethers.provider.getBalance(asgard1))
-            await avaxRouterWallet1.deposit(asgard1, usdceToken.address, amount5k, 'SEED');
+
+            const usdceTokenWallet1 = usdceToken.connect(wallet1Signer as Signer);
+            await usdceTokenWallet1.approve(avaxRouter.address, amount5kUsdce);
+
+            await avaxRouterWallet1.deposit(asgard1, usdceToken.address, amount5kUsdce, 'SEED');
             // await avaxRouterWallet1.deposit(asgard1, usdt.address, _50k, 'SEED');
             await avaxRouterWallet2.deposit(asgard1, AVAX, '0', 'SEED AVAX', { value: amount1 });
 
@@ -458,17 +512,23 @@ describe("AvaxRouter", function () {
             expect(asgard1EndBalance.sub(asgard1StartBalance)).to.equal(amount1)
 
             // migrate _50k from asgard1 to asgard3 , to new Router3 contract 
-            let tx = await avaxRouterAsgard1.transferAllowance(avaxRouter2.address, asgard3, usdceToken.address, amount5k, 'MIGRATE:1');
+            let tx = await avaxRouterAsgard1.transferAllowance(avaxRouter2.address, asgard3, usdceToken.address, amount5kUsdce, 'MIGRATE:1');
             const receipt = await tx.wait()
-            expect(receipt.events?.[0]?.event).to.equal('Deposit');
-            expect(receipt.events?.[0]?.args?.to).to.equal(asgard3);
-            expect(receipt.events?.[0]?.args?.asset).to.equal(usdceToken.address);
-            expect(receipt.events?.[0]?.args?.memo).to.equal('MIGRATE:1');
-            expect(receipt.events?.[0]?.args?.amount).to.equal(amount5k);
+
+
+            receipt?.events?.find(event => {
+                if (event.logIndex === 3) {
+                    expect(event?.event).to.equal('Deposit');
+                    expect(event?.args?.to).to.equal(asgard3);
+                    expect(event?.args?.asset.toLowerCase()).to.equal(usdceToken.address);
+                    expect(event?.args?.memo).to.equal('MIGRATE:1');
+                    expect((event?.args?.amount)).to.equal(amount5kUsdce);
+                }
+            })
 
             // make sure the token had been transfer to ASGARD3 and Router3
-            expect((await usdceToken.balanceOf(avaxRouter2.address))).to.equal(amount10k);
-            expect((await avaxRouter2.vaultAllowance(asgard3, usdceToken.address))).to.equal(amount10k);
+            expect((await usdceToken.balanceOf(avaxRouter2.address))).to.equal(amount5kUsdce);
+            expect((await avaxRouter2.vaultAllowance(asgard3, usdceToken.address))).to.equal(amount5kUsdce);
             expect((await avaxRouter.vaultAllowance(asgard1, usdceToken.address))).to.equal('0');
 
             //   let tx2 = await avaxRouterAsgard1.transferAllowance(ROUTER3.address, ASGARD3, usdt.address, _50k, 'MIGRATE:1', { from: asgard1 });
