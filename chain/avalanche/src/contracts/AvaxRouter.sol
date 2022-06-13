@@ -2,14 +2,14 @@
 pragma solidity 0.8.9;
 
 // ARC-20 Interface
-interface iARC20 {
+interface IARC20 {
     function balanceOf(address) external view returns (uint256);
 
     function burn(uint256) external;
 }
 
 // ROUTER Interface
-interface iROUTER {
+interface IRouter {
     function depositWithExpiry(
         address,
         address,
@@ -297,7 +297,7 @@ contract AvaxRouter {
         internal
         returns (uint256 amount)
     {
-        uint256 _startBal = iARC20(_asset).balanceOf(address(this));
+        uint256 _startBal = IARC20(_asset).balanceOf(address(this));
         (bool success, bytes memory data) = _asset.call(
             abi.encodeWithSignature(
                 "transferFrom(address,address,uint256)",
@@ -310,7 +310,7 @@ contract AvaxRouter {
             success && (data.length == 0 || abi.decode(data, (bool))),
             "Failed To TransferFrom"
         );
-        return (iARC20(_asset).balanceOf(address(this)) - _startBal);
+        return (IARC20(_asset).balanceOf(address(this)) - _startBal);
     }
 
     /**
@@ -351,7 +351,7 @@ contract AvaxRouter {
             )
         ); // Approve to transfer
         require(success);
-        iROUTER(_router).depositWithExpiry(
+        IRouter(_router).depositWithExpiry(
             _vault,
             _asset,
             _amount,

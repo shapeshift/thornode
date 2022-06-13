@@ -24,7 +24,7 @@ describe("PangolinRouter", function () {
       expect(ethers.utils.isAddress(pangolin.address)).eq(true);
       expect(pangolin.address).to.not.eq(ethers.constants.AddressZero);
     });
-    it.skip("Has AVAX", async () => { });
+    it.skip("Has AVAX", async () => {});
   });
 
   describe("swap", function () {
@@ -41,7 +41,6 @@ describe("PangolinRouter", function () {
       const currentTime = (await ethers.provider.getBlock(currentBlock))
         .timestamp;
 
-
       await pangolinWallet1.swapExactAVAXForTokens(
         amountOutMin,
         [WAVAX_ADDRESS, USDCE_ADDRESS],
@@ -52,7 +51,7 @@ describe("PangolinRouter", function () {
 
       const usdceContract = await ethers.getContractAt("IERC20", USDCE_ADDRESS);
       const balanceOfUsdce = await usdceContract.balanceOf(wallet1);
-      expect(balanceOfUsdce).not.eq(0)
+      expect(balanceOfUsdce).not.eq(0);
     });
   });
 });
