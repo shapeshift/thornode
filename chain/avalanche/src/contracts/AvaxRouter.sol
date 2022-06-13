@@ -89,7 +89,14 @@ contract AvaxRouter {
         _status = _NOT_ENTERED;
     }
 
-    // Deposit with Expiry (preferred)
+    /**
+     * @notice Calls deposit with an experation
+     * @param vault address - vault address for router
+     * @param asset address - ARC20 asset or zero address for AVAX
+     * @param amount uint - amount to deposit
+     * @param memo string - tx memo
+     * @param expiration string - timestamp for expiration
+     */
     function depositWithExpiry(
         address payable vault,
         address asset,
@@ -101,7 +108,13 @@ contract AvaxRouter {
         deposit(vault, asset, amount, memo);
     }
 
-    // Deposit an asset with a memo. Avax is forwarded, ARC-20 stays in ROUTER
+    /**
+     * @notice Deposit an asset with a memo. Avax is forwarded, ARC-20 stays in ROUTER
+     * @param vault address - vault address for router
+     * @param asset address - ARC20 asset or zero address for AVAX
+     * @param amount uint - amount to deposit
+     * @param memo string - transaction memo
+     */
     function deposit(
         address payable vault,
         address asset,
@@ -124,7 +137,14 @@ contract AvaxRouter {
 
     //############################## ALLOWANCE TRANSFERS ##############################
 
-    // Use for "moving" assets between vaults (asgard<>ygg), as well "churning" to a new Asgard
+    /**
+     * @notice Use for "moving" assets between vaults (asgard<>ygg), as well "churning" to a new Asgard
+     * @param router address - current vault address for router
+     * @param newVault address - new vault address for router
+     * @param asset address - ARC20 asset or zero address for AVAX
+     * @param amount uint - allowance amount to transfer
+     * @param memo string - transaction memo
+     */
     function transferAllowance(
         address router,
         address newVault,
@@ -142,8 +162,14 @@ contract AvaxRouter {
 
     //############################## ASSET TRANSFERS ##############################
 
-    // Any vault calls to transfer any asset to any recipient.
-    // Note: Contract recipients of AVAX are only given 2300 Gas to complete execution.
+    /**
+     * @notice All vault calls to transfer any asset to any recipient go through here.
+     * @dev Note: Contract recipients of AVAX are only given 2300 Gas to complete execution.
+     * @param to address - current vault address for router
+     * @param asset address - ARC20 asset or zero address for AVAX
+     * @param amount uint - allowance amount to transfer
+     * @param memo string - transaction memo
+     */
     function transferOut(
         address payable to,
         address asset,
@@ -168,11 +194,17 @@ contract AvaxRouter {
         emit TransferOut(msg.sender, to, asset, safeAmount, memo);
     }
 
-    // Any vault calls to transferAndCall on a target contract that conforms with "swapOut(address,address,uint256)"
-    // Example Memo: "~1b3:AVAX.0xFinalToken:0xTo:"
-    // Target is fuzzy-matched to the last three digits of whitelisted aggregators
-    // FinalToken, To, amountOutMin come from originating memo
-    // Memo passed in here is the "OUT:HASH" type
+    /**
+     * @notice Any vault calls to transferAndCall on a target contract that conforms with "swapOut(address,address,uint256)"
+     * @dev Example Memo: "~1b3:AVAX.0xFinalToken:0xTo:
+     * @dev Target is fuzzy-matched to the last three digits of whitelisted aggregators
+     * @dev FinalToken, To, amountOutMin come from originating memo
+     * @param target address - current vault address for router
+     * @param finalToken address - ARC20 asset or zero address for AVAX
+     * @param to address - address to send swapped assets to
+     * @param amountOutMin uint - allowance amount to transfer
+     * @param memo string - transaction memo of type "OUT:HASH"
+     */
     function transferOutAndCall(
         address payable target,
         address finalToken,
@@ -208,7 +240,13 @@ contract AvaxRouter {
 
     //############################## VAULT MANAGEMENT ##############################
 
-    // A vault can call to "return" all assets to an asgard, including AVAX.
+    /**
+     * @notice  A vault can call to "return" all assets to an asgard, including AVAX.
+     * @param router address - current vault address for router
+     * @param asgard address - current address for asgard
+     * @param coins Coin[] - ARC20/AVAX in vault - { asset: address, amount: uint }
+     * @param memo string - transaction memo
+     */
     function returnVaultAssets(
         address router,
         address payable asgard,
@@ -237,6 +275,11 @@ contract AvaxRouter {
 
     //############################## HELPERS ##############################
 
+    /**
+     * @notice Checks allowance of vault.
+     * @param vault address - current vault address for router
+     * @param token address - token to check allowance
+     */
     function vaultAllowance(address vault, address token)
         public
         view
@@ -245,7 +288,11 @@ contract AvaxRouter {
         return _vaultAllowance[vault][token];
     }
 
-    // Safe transferFrom in case asset charges transfer fees
+    /**
+     * @notice Safe transferFrom in case asset charges transfer fees
+     * @param _asset address - asset that will transferFrom
+     * @param _amount uint - amount to transfer
+     */
     function safeTransferFrom(address _asset, uint256 _amount)
         internal
         returns (uint256 amount)
@@ -266,7 +313,12 @@ contract AvaxRouter {
         return (iARC20(_asset).balanceOf(address(this)) - _startBal);
     }
 
-    // Decrements and Increments Allowances between two vaults
+    /**
+     * @notice Decrements and Increments Allowances between two vaults
+     * @param _newVault address - new vault to receive the allowance
+     * @param _asset address - asset that has the allowance
+     * @param _amount uint - amount of allowance to transfer
+     */
     function _adjustAllowances(
         address _newVault,
         address _asset,
@@ -276,7 +328,13 @@ contract AvaxRouter {
         _vaultAllowance[_newVault][_asset] += _amount;
     }
 
-    // Adjust allowance and forwards funds to new router, credits allowance to desired vault
+    /**
+     * @notice Adjusts allowance and forwards funds to new router, credits allowance to desired vault
+     * @param _router address - current router address
+     * @param _vault address - vault to deposit to
+     * @param _asset address - ARC20 asset or zero address for AVAX
+     * @param _amount uint - amount to transfer
+     */
     function _routerDeposit(
         address _router,
         address _vault,
