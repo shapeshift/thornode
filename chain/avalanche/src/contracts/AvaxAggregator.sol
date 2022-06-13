@@ -4,9 +4,8 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-
 // ROUTER Interface
-interface iROUTER {
+interface IRouter {
     function depositWithExpiry(
         address payable vault,
         address asset,
@@ -17,7 +16,7 @@ interface iROUTER {
 }
 
 // Sushi Interface
-interface iSWAPROUTER {
+interface ISwapRouter {
     function swapExactTokensForAVAX(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -44,7 +43,7 @@ contract AvaxAggregator {
 
     address private AVAX = address(0);
     address public WAVAX;
-    iSWAPROUTER public swapRouter;
+    ISwapRouter public swapRouter;
 
     modifier nonReentrant() {
         require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
@@ -56,7 +55,7 @@ contract AvaxAggregator {
     constructor(address _wavax, address _swapRouter) {
         _status = _NOT_ENTERED;
         WAVAX = _wavax;
-        swapRouter = iSWAPROUTER(_swapRouter);
+        swapRouter = ISwapRouter(_swapRouter);
     }
 
     receive() external payable {}
@@ -92,7 +91,7 @@ contract AvaxAggregator {
             deadline
         );
         safeAmount = address(this).balance;
-        iROUTER(tcRouter).depositWithExpiry{value: safeAmount}(
+        IRouter(tcRouter).depositWithExpiry{value: safeAmount}(
             payable(tcVault),
             AVAX,
             safeAmount,
