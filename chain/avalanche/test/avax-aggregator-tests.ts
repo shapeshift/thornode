@@ -2,10 +2,10 @@ import { ethers, getNamedAccounts } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { Signer } from "ethers";
-import { pangolinRouterAbi } from "../src/abis/pangolinRouterAbi";
+import { pangolinRouterAbi } from "./abis/pangolinRouterAbi";
 import { USDCE_ADDRESS, WAVAX_ADDRESS } from "./constants";
 
-describe("PangolinRouter", function () {
+describe("AvaxAggregator", function () {
   let accounts: SignerWithAddress[];
   let pangolin: any; // TODO: fix
   const pangolinRouter = "0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106";
