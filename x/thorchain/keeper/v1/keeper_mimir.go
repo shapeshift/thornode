@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/blang/semver"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -12,17 +14,20 @@ const KRAKEN string = "ReleaseTheKraken"
 
 // GetMimir get a mimir value from key value store
 func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
-	nodeMimirs, err := k.GetNodeMimirs(ctx, key)
-	if err != nil {
-		return -1, err
-	}
-
-	activeNodes, err := k.ListActiveValidators(ctx)
-	if err != nil {
-		return -1, err
-	}
-	if i, ok := nodeMimirs.HasSuperMajority(key, activeNodes.GetNodeAddresses()); ok {
-		return i, nil
+	if k.version.LT(semver.MustParse("1.92.0")) {
+		// Once node mimir reach super majority  , admin mimir will be set automatically to lock in the vote
+		// thus , there is no need to check node mimir everytime
+		nodeMimirs, err := k.GetNodeMimirs(ctx, key)
+		if err != nil {
+			return -1, err
+		}
+		activeNodes, err := k.ListActiveValidators(ctx)
+		if err != nil {
+			return -1, err
+		}
+		if i, ok := nodeMimirs.HasSuperMajority(key, activeNodes.GetNodeAddresses()); ok {
+			return i, nil
+		}
 	}
 
 	// if we have the kraken, mimir is no more, ignore him
@@ -31,7 +36,7 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 	}
 
 	record := int64(-1)
-	_, err = k.getInt64(ctx, k.GetKey(ctx, prefixMimir, key), &record)
+	_, err := k.getInt64(ctx, k.GetKey(ctx, prefixMimir, key), &record)
 	return record, err
 }
 
@@ -54,7 +59,6 @@ func (k KVStore) SetMimir(ctx cosmos.Context, key string, value int64) {
 // GetNodeMimirs get node mimirs value from key value store
 func (k KVStore) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, error) {
 	key = strings.ToUpper(key)
-
 	record := NodeMimirs{}
 	store := ctx.KVStore(k.storeKey)
 	if !store.Has([]byte(k.GetKey(ctx, prefixNodeMimir, key))) {
@@ -70,7 +74,6 @@ func (k KVStore) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, erro
 // SetNodeMimir save a mimir value to key value store for a specific node
 func (k KVStore) SetNodeMimir(ctx cosmos.Context, key string, value int64, acc cosmos.AccAddress) error {
 	key = strings.ToUpper(key)
-
 	kvkey := k.GetKey(ctx, prefixNodeMimir, key)
 	record, err := k.GetNodeMimirs(ctx, key)
 	if err != nil {
