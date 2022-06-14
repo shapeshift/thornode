@@ -349,6 +349,10 @@ func (k KVStoreDummy) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID, _ i
 }
 func (k KVStoreDummy) GetMimir(_ cosmos.Context, key string) (int64, error) { return 0, kaboom }
 func (k KVStoreDummy) SetMimir(_ cosmos.Context, key string, value int64)   {}
+func (k KVStoreDummy) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, error) {
+	return NodeMimirs{}, kaboom
+}
+
 func (k KVStoreDummy) SetNodeMimir(_ cosmos.Context, key string, value int64, acc cosmos.AccAddress) error {
 	return kaboom
 }
