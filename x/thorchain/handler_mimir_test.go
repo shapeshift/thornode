@@ -31,11 +31,9 @@ func (s *HandlerMimirSuite) TestValidate(c *C) {
 	c.Assert(err, NotNil)
 }
 
-func (s *HandlerMimirSuite) TestHandle(c *C) {
+func (s *HandlerMimirSuite) TestMimirHandle(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
-
 	handler := NewMimirHandler(NewDummyMgrWithKeeper(keeper))
-
 	addr, err := cosmos.AccAddressFromBech32(ADMINS[0])
 	c.Assert(err, IsNil)
 	msg := NewMsgMimir("foo", 55, addr)
@@ -72,4 +70,61 @@ func (s *HandlerMimirSuite) TestHandle(c *C) {
 	val, err = keeper.GetMimir(ctx, "hello")
 	c.Assert(err, IsNil)
 	c.Assert(val, Equals, int64(-1))
+
+	// node set mimir
+	FundModule(c, ctx, keeper, BondName, 100*common.One)
+	ver := "1.92.0"
+	na1 := GetRandomValidatorNode(NodeActive)
+	na1.Version = ver
+	na2 := GetRandomValidatorNode(NodeActive)
+	na2.Version = ver
+	na3 := GetRandomValidatorNode(NodeActive)
+	na3.Version = ver
+	c.Assert(keeper.SetNodeAccount(ctx, na1), IsNil)
+	c.Assert(keeper.SetNodeAccount(ctx, na2), IsNil)
+	c.Assert(keeper.SetNodeAccount(ctx, na3), IsNil)
+
+	// first node set mimir , no consensus
+	result, err = handler.Run(ctx, NewMsgMimir("node-mimir", 1, na1.NodeAddress))
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+	mvalue, err := keeper.GetMimir(ctx, "node-mimir")
+	c.Assert(err, IsNil)
+	c.Assert(mvalue, Equals, int64(-1))
+
+	// second node set mimir, reach consensus
+	result, err = handler.Run(ctx, NewMsgMimir("node-mimir", 1, na2.NodeAddress))
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+
+	mvalue, err = keeper.GetMimir(ctx, "node-mimir")
+	c.Assert(err, IsNil)
+	c.Assert(mvalue, Equals, int64(1))
+
+	// third node set mimir, reach consensus
+	result, err = handler.Run(ctx, NewMsgMimir("node-mimir", 1, na3.NodeAddress))
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+
+	mvalue, err = keeper.GetMimir(ctx, "node-mimir")
+	c.Assert(err, IsNil)
+	c.Assert(mvalue, Equals, int64(1))
+
+	// third node vote mimir to a different value, it should not change the admin mimir value
+	result, err = handler.Run(ctx, NewMsgMimir("node-mimir", 0, na3.NodeAddress))
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+
+	mvalue, err = keeper.GetMimir(ctx, "node-mimir")
+	c.Assert(err, IsNil)
+	c.Assert(mvalue, Equals, int64(1))
+
+	// second node vote mimir to a different value , it should update admin mimir
+	result, err = handler.Run(ctx, NewMsgMimir("node-mimir", 0, na2.NodeAddress))
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+
+	mvalue, err = keeper.GetMimir(ctx, "node-mimir")
+	c.Assert(err, IsNil)
+	c.Assert(mvalue, Equals, int64(0))
 }
