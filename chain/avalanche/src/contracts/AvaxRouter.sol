@@ -8,7 +8,7 @@ interface IARC20 {
     function burn(uint256) external;
 }
 
-// ROUTER Interface
+// Router Interface
 interface IRouter {
     function depositWithExpiry(
         address,
@@ -135,8 +135,6 @@ contract AvaxRouter {
         emit Deposit(vault, asset, safeAmount, memo);
     }
 
-    //############################## ALLOWANCE TRANSFERS ##############################
-
     /**
      * @notice Use for "moving" assets between vaults (asgard<>ygg), as well "churning" to a new Asgard
      * @param router address - current vault address for router
@@ -159,8 +157,6 @@ contract AvaxRouter {
             _routerDeposit(router, newVault, asset, amount, memo);
         }
     }
-
-    //############################## ASSET TRANSFERS ##############################
 
     /**
      * @notice All vault calls to transfer any asset to any recipient go through here.
@@ -238,8 +234,6 @@ contract AvaxRouter {
         );
     }
 
-    //############################## VAULT MANAGEMENT ##############################
-
     /**
      * @notice  A vault can call to "return" all assets to an asgard, including AVAX.
      * @param router address - current vault address for router
@@ -272,8 +266,6 @@ contract AvaxRouter {
         bool success = asgard.send(msg.value);
         require(success);
     }
-
-    //############################## HELPERS ##############################
 
     /**
      * @notice Checks allowance of vault.
