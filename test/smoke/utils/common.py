@@ -175,6 +175,12 @@ class Asset(str, Jsonable):
         """
         return self.get_chain() == "TERRA"
 
+    def is_gaia(self):
+        """
+        Is this asset gaia chain?
+        """
+        return self.get_chain() == "GAIA"
+
     def is_ust(self):
         """
         Is this asset terra ust?
@@ -314,6 +320,10 @@ class Coin(Jsonable):
         amount = int(self.amount / 100)
         if self.asset.is_terra() and self.asset.get_symbol() == "UST":
             return f"{amount}uusd"
+        return f"{amount}u{self.asset.get_symbol().lower()}"
+
+    def to_cosmos_gaia(self):
+        amount = int(self.amount / 100)
         return f"{amount}u{self.asset.get_symbol().lower()}"
 
     def to_cosmos_str(self):
