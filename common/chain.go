@@ -22,6 +22,7 @@ var (
 	DOGEChain  = Chain("DOGE")
 	THORChain  = Chain("THOR")
 	TERRAChain = Chain("TERRA")
+	GAIAChain  = Chain("GAIA")
 
 	SigningAlgoSecp256k1 = SigningAlgo("secp256k1")
 	SigningAlgoEd25519   = SigningAlgo("ed25519")
@@ -110,17 +111,19 @@ func (c Chain) GetGasAsset() Asset {
 		return ETHAsset
 	case TERRAChain:
 		return LUNAAsset
+	case GAIAChain:
+		return ATOMAsset
 	default:
 		return EmptyAsset
 	}
 }
 
 // GetGasAssetDecimal for the gas asset of given chain , what kind of precision it is using
-// TERRA is using 1E6, all other gas asset so far using 1E8
+// TERRA and GAIA are using 1E6, all other gas asset so far using 1E8
 // THORChain is using 1E8, if an external chain's gas asset is larger than 1E8, just return cosmos.DefaultCoinDecimals
 func (c Chain) GetGasAssetDecimal() int64 {
 	switch c {
-	case TERRAChain:
+	case TERRAChain, GAIAChain:
 		return 6
 	default:
 		return cosmos.DefaultCoinDecimals
@@ -144,6 +147,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return btypes.TestNetwork.Bech32Prefixes()
 		case TERRAChain:
 			return "terra"
+		case GAIAChain:
+			return "cosmos"
 		case ETHChain:
 			return "0x"
 		case THORChain:
@@ -162,6 +167,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return btypes.TestNetwork.Bech32Prefixes()
 		case TERRAChain:
 			return "terra"
+		case GAIAChain:
+			return "cosmos"
 		case ETHChain:
 			return "0x"
 		case THORChain:
@@ -180,6 +187,8 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return btypes.ProdNetwork.Bech32Prefixes()
 		case TERRAChain:
 			return "terra"
+		case GAIAChain:
+			return "cosmos"
 		case ETHChain:
 			return "0x"
 		case THORChain:
