@@ -129,6 +129,7 @@ services:
       LTC_HOST: ${LTC_HOST:-litecoin:38443}
       ETH_HOST: ${ETH_HOST:-http://ethereum:8545}
       TERRA_HOST: ${TERRA_HOST:-http://terra:26657}
+      GAIA_HOST: ${GAIA_HOST:-http://gaia:26657}
       THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
       BLOCK_SCANNER_BACKOFF: ${BLOCK_SCANNER_BACKOFF:-5s}
       PEER: ${PEER:-}
@@ -335,6 +336,25 @@ services:
     image: registry.gitlab.com/thorchain/bepswap/mock-binance
     ports:
       - 26660:26660
+
+  # ------------------------------ gaia ------------------------------
+
+  gaia:
+    profiles:
+      - mocknet
+    image: registry.gitlab.com/thorchain/devops/node-launcher:gaia-daemon-7.0.2
+    volumes:
+      - "./mocknet:/mocknet"
+      - "./mocknet/gaia/genesis.json:/root/.gaia/config/genesis.json"
+      - "./mocknet/gaia/node_key.json:/root/.gaia/config/node_key.json"
+      - "./mocknet/gaia/priv_validator_key.json:/root/.gaia/config/priv_validator_key.json"
+    environment:
+      BLOCK_TIME: ${BLOCK_TIME:-1s}
+    ports:
+      - "23357:26657"
+      - "9091:9090"
+      - "21317:1317"
+    command: /mocknet/init-gaia.sh
 
   # ------------------------------ terra ------------------------------
 
