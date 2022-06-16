@@ -86,7 +86,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 	}
 	chainNetwork := GetCurrentChainNetwork()
 	switch chain {
-	case BNBChain, TERRAChain:
+	case BNBChain, TERRAChain, GAIAChain:
 		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, string(pubKey))
 		if err != nil {
 			return NoAddress, err

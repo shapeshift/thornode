@@ -228,6 +228,10 @@ func (addr Address) IsChain(chain Chain) bool {
 		// Note: Terra does not use a special prefix for testnet
 		prefix, _, _ := bech32.Decode(addr.String())
 		return prefix == "terra"
+	case GAIAChain:
+		// Note: Gaia does not use a special prefix for testnet
+		prefix, _, _ := bech32.Decode(addr.String())
+		return prefix == "cosmos"
 	case THORChain:
 		prefix, _, _ := bech32.Decode(addr.String())
 		return prefix == "thor" || prefix == "tthor" || prefix == "sthor"
