@@ -120,13 +120,15 @@ func (h TssHandler) validateSigner(ctx cosmos.Context, signer cosmos.AccAddress)
 func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.73.0")) {
+	if version.GTE(semver.MustParse("1.92.0")) {
+		return h.handleV92(ctx, msg)
+	} else if version.GTE(semver.MustParse("0.73.0")) {
 		return h.handleV73(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h TssHandler) handleV73(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
+func (h TssHandler) handleV92(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", h.mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
@@ -211,19 +213,6 @@ func (h TssHandler) handleV73(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 			if err != nil {
 				return nil, fmt.Errorf("fail to get init vaults: %w", err)
 			}
-			if len(initVaults) == len(keygenBlock.Keygens) {
-				for _, v := range initVaults {
-					v.UpdateStatus(ActiveVault, common.BlockHeight(ctx))
-					if err := h.mgr.Keeper().SetVault(ctx, v); err != nil {
-						return nil, fmt.Errorf("fail to save vault: %w", err)
-					}
-					if err := h.mgr.NetworkMgr().RotateVault(ctx, v); err != nil {
-						return nil, fmt.Errorf("fail to rotate vault: %w", err)
-					}
-				}
-			} else {
-				ctx.Logger().Info("not enough keygen yet", "expecting", len(keygenBlock.Keygens), "current", len(initVaults))
-			}
 
 			metric, err := h.mgr.Keeper().GetTssKeygenMetric(ctx, msg.PoolPubKey)
 			if err != nil {
@@ -238,11 +227,24 @@ func (h TssHandler) handleV73(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 					ctx.Logger().Error("fail to emit tss metric event", "error", err)
 				}
 			}
+
+			if len(initVaults) == len(keygenBlock.Keygens) {
+				for _, v := range initVaults {
+					v.UpdateStatus(ActiveVault, common.BlockHeight(ctx))
+					if err := h.mgr.Keeper().SetVault(ctx, v); err != nil {
+						return nil, fmt.Errorf("fail to save vault: %w", err)
+					}
+					if err := h.mgr.NetworkMgr().RotateVault(ctx, v); err != nil {
+						return nil, fmt.Errorf("fail to rotate vault: %w", err)
+					}
+				}
+			} else {
+				ctx.Logger().Info("not enough keygen yet", "expecting", len(keygenBlock.Keygens), "current", len(initVaults))
+			}
 		} else {
 			// if a node fail to join the keygen, thus hold off the network
 			// from churning then it will be slashed accordingly
 			slashPoints := h.mgr.GetConstants().GetInt64Value(constants.FailKeygenSlashPoints)
-			totalSlash := cosmos.ZeroUint()
 			for _, node := range msg.Blame.BlameNodes {
 				nodePubKey, err := common.NewPubKey(node.Pubkey)
 				if err != nil {
@@ -273,20 +275,19 @@ func (h TssHandler) handleV73(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 						ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
 					}
 
-					// take out bond from the node account and add it to vault bond reward RUNE
-					// thus good behaviour node will get reward
-					reserveVault, err := h.mgr.Keeper().GetNetwork(ctx)
+					network, err := h.mgr.Keeper().GetNetwork(ctx)
 					if err != nil {
-						return nil, fmt.Errorf("fail to get reserve vault: %w", err)
+						return nil, fmt.Errorf("fail to get network: %w", err)
 					}
 
-					slashBond := reserveVault.CalcNodeRewards(cosmos.NewUint(uint64(slashPoints)))
+					slashBond := network.CalcNodeRewards(cosmos.NewUint(uint64(slashPoints)))
 					if slashBond.GT(na.Bond) {
 						slashBond = na.Bond
 					}
 					ctx.Logger().Info("fail keygen , slash bond", "address", na.NodeAddress, "amount", slashBond.String())
+					// take out bond from the node account and add it to the Reserve
+					// thus good behaviour nodes and liquidity providers will get reward
 					na.Bond = common.SafeSub(na.Bond, slashBond)
-					totalSlash = totalSlash.Add(slashBond)
 					coin := common.NewCoin(common.RuneNative, slashBond)
 					if !coin.Amount.IsZero() {
 						if err := h.mgr.Keeper().SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
@@ -301,21 +302,19 @@ func (h TssHandler) handleV73(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 								telemetry.NewLabel("reason", "failed_keygen"),
 							},
 						)
+					}
 
+					tx := common.Tx{}
+					tx.ID = common.BlankTxID
+					tx.FromAddress = na.BondAddress
+					bondEvent := NewEventBond(slashBond, BondCost, tx)
+					if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
+						return nil, fmt.Errorf("fail to emit bond event: %w", err)
 					}
 				}
 				if err := h.mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
 					return nil, fmt.Errorf("fail to save node account: %w", err)
 				}
-
-				tx := common.Tx{}
-				tx.ID = common.BlankTxID
-				tx.FromAddress = na.BondAddress
-				bondEvent := NewEventBond(totalSlash, BondCost, tx)
-				if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
-					return nil, fmt.Errorf("fail to emit bond event: %w", err)
-				}
-
 			}
 
 		}
