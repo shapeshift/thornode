@@ -5,6 +5,7 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/gaia"
 
 	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
@@ -90,6 +91,13 @@ func LoadChains(thorKeys *thorclient.Keys,
 				continue
 			}
 			chains[common.TERRAChain] = terra
+		case common.GAIAChain:
+			gaia, err := gaia.NewCosmosClient(thorKeys, chain, server, thorchainBridge, m)
+			if err != nil {
+				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				continue
+			}
+			chains[common.GAIAChain] = gaia
 		}
 	}
 

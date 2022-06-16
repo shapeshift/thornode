@@ -14,6 +14,8 @@ var (
 	EmptyAsset = Asset{Chain: EmptyChain, Symbol: "", Ticker: "", Synth: false}
 	// LUNAAsset LUNA
 	LUNAAsset = Asset{Chain: TERRAChain, Symbol: "LUNA", Ticker: "LUNA", Synth: false}
+	// ATOMAsset ATOM
+	ATOMAsset = Asset{Chain: GAIAChain, Symbol: "ATOM", Ticker: "ATOM", Synth: false}
 	// BNBAsset BNB
 	BNBAsset = Asset{Chain: BNBChain, Symbol: "BNB", Ticker: "BNB", Synth: false}
 	// BTCAsset BTC
