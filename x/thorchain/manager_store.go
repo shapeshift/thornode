@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
+
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
@@ -68,6 +70,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV87(ctx, smgr.mgr)
 	case 88:
 		migrateStoreV88(ctx, smgr.mgr)
+	case 92:
+		migrateStoreV92(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -123,6 +127,37 @@ func migrateStoreV87(ctx cosmos.Context, mgr *Mgrs) {
 		if err := mgr.Keeper().SetBondProviders(ctx, bp); err != nil {
 			ctx.Logger().Error("fail to save bond provider", "error", err)
 			return
+		}
+	}
+}
+
+func migrateStoreV92(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v92", "error", err)
+		}
+	}()
+	vaults, err := mgr.Keeper().GetAsgardVaults(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to get asgard vaults", "error", err)
+		return
+	}
+	ustAsset, err := common.NewAsset("TERRA.UST")
+	if err != nil {
+		ctx.Logger().Error("fail to parse UST asset", "error", err)
+		return
+	}
+	for _, v := range vaults {
+		if v.Status == InactiveVault || v.Status == InitVault {
+			continue
+		}
+		coinsToSubtract := common.NewCoins(v.GetCoin(common.LUNAAsset), v.GetCoin(ustAsset))
+		if coinsToSubtract.IsEmpty() {
+			continue
+		}
+		v.SubFunds(coinsToSubtract)
+		if err := mgr.Keeper().SetVault(ctx, v); err != nil {
+			ctx.Logger().Error("fail to save vault", "error", err)
 		}
 	}
 }
