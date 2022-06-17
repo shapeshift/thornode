@@ -107,6 +107,13 @@ if [ "$VALIDATOR" = "true" ]; then
     TERRA_PROGRESS=$(calc_progress "$TERRA_SYNC_HEIGHT" "$TERRA_HEIGHT")
   fi
 
+  # calculate Gaia chain sync progress
+  if [ -n "$GAIA_DAEMON_SERVICE_PORT_RPC" ]; then
+    GAIA_HEIGHT=$(curl -sL --fail -m 10 https://api.cosmos.network/blocks/latest | jq -e -r ".block.header.height")
+    GAIA_SYNC_HEIGHT=$(curl -sL --fail -m 10 gaia-daemon:"$GAIA_DAEMON_SERVICE_PORT_RPC"/status | jq -r ".result.sync_info.latest_block_height")
+    GAIA_PROGRESS=$(calc_progress "$GAIA_SYNC_HEIGHT" "$GAIA_HEIGHT")
+  fi
+
 fi
 
 # calculate THOR chain sync progress
@@ -167,6 +174,8 @@ DOGE_HEIGHT=${DOGE_HEIGHT:=0}
 DOGE_SYNC_HEIGHT=${DOGE_SYNC_HEIGHT:=0}
 TERRA_HEIGHT=${TERRA_HEIGHT:=0}
 TERRA_SYNC_HEIGHT=${TERRA_SYNC_HEIGHT:=0}
+GAIA_HEIGHT=${GAIA_HEIGHT:=0}
+GAIA_SYNC_HEIGHT=${GAIA_SYNC_HEIGHT:=0}
 
 echo
 printf "%-10s %-10s %-14s %-10s\n" CHAIN SYNC BEHIND TIP
@@ -181,5 +190,8 @@ if [ "$VALIDATOR" = "true" ] && [ -n "$DOGECOIN_DAEMON_SERVICE_PORT_RPC" ]; then
 fi
 if [ "$VALIDATOR" = "true" ] && [ -n "$TERRA_DAEMON_SERVICE_PORT_RPC" ]; then
   printf "%-10s %-10s %-14s %-10s\n" TERRA "$TERRA_PROGRESS" "$(format_int $((TERRA_SYNC_HEIGHT - TERRA_HEIGHT)))" "$(format_int "$TERRA_HEIGHT")"
+fi
+if [ "$VALIDATOR" = "true" ] && [ -n "$GAIA_DAEMON_SERVICE_PORT_RPC" ]; then
+  printf "%-10s %-10s %-14s %-10s\n" GAIA "$GAIA_PROGRESS" "$(format_int $((GAIA_SYNC_HEIGHT - GAIA_HEIGHT)))" "$(format_int "$GAIA_HEIGHT")"
 fi
 exit 0
