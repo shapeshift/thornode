@@ -128,3 +128,42 @@ func (s *StoreManagerTestSuite) TestRemoveTransactions(c *C) {
 		c.Assert(txAfter.IsDone(len(voterAfter.Actions)), Equals, true)
 	}
 }
+
+func (s *StoreManagerTestSuite) TestMigrateStoreV92(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	storeMgr := newStoreMgr(mgr)
+	ustAsset, err := common.NewAsset("TERRA.UST")
+	c.Assert(err, IsNil)
+	vault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), []string{
+		common.ETHChain.String(),
+		common.TERRAChain.String(),
+	}, nil)
+
+	vault.Coins = common.NewCoins(common.NewCoin(common.LUNAAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(ustAsset, cosmos.NewUint(1*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One)))
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
+
+	vault1 := NewVault(1024, RetiringVault, AsgardVault, GetRandomPubKey(), []string{
+		common.ETHChain.String(),
+		common.TERRAChain.String(),
+	}, nil)
+
+	vault1.Coins = common.NewCoins(common.NewCoin(common.LUNAAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(ustAsset, cosmos.NewUint(1*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One)))
+	c.Assert(mgr.Keeper().SetVault(ctx, vault1), IsNil)
+
+	c.Assert(storeMgr.migrate(ctx, 92), IsNil)
+	vaultAfter, err := mgr.Keeper().GetVault(ctx, vault.PubKey)
+	c.Assert(err, IsNil)
+	c.Assert(vaultAfter.HasAsset(common.LUNAAsset), Equals, false)
+	c.Assert(vaultAfter.HasAsset(ustAsset), Equals, false)
+	c.Assert(vaultAfter.HasAsset(common.BTCAsset), Equals, true)
+
+	vaultAfter1, err := mgr.Keeper().GetVault(ctx, vault1.PubKey)
+	c.Assert(err, IsNil)
+	c.Assert(vaultAfter1.HasAsset(common.LUNAAsset), Equals, false)
+	c.Assert(vaultAfter1.HasAsset(ustAsset), Equals, false)
+	c.Assert(vaultAfter1.HasAsset(common.BTCAsset), Equals, true)
+}
