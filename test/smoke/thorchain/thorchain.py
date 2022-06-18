@@ -20,7 +20,6 @@ from chains.aliases import get_alias, get_alias_address, get_aliases
 from chains.bitcoin import Bitcoin
 from chains.litecoin import Litecoin
 from chains.dogecoin import Dogecoin
-from chains.terra import Terra
 from chains.gaia import Gaia
 from chains.bitcoin_cash import BitcoinCash
 from chains.ethereum import Ethereum
@@ -212,13 +211,11 @@ class ThorchainState:
         self.bch_estimate_size = 269
         self.ltc_estimate_size = 188
         self.doge_estimate_size = 269
-        self.terra_estimate_size = 1
         self.gaia_estimate_size = 1
         self.btc_tx_rate = 0
         self.bch_tx_rate = 0
         self.ltc_tx_rate = 0
         self.doge_tx_rate = 0
-        self.terra_tx_rate = 0
         self.gaia_tx_rate = 0
 
     def set_btc_tx_rate(self, tx_rate):
@@ -244,12 +241,6 @@ class ThorchainState:
         Set median DOGE tx rate , used to calculate gas
         """
         self.doge_tx_rate = tx_rate
-
-    def set_terra_tx_rate(self, tx_rate):
-        """
-        Set median TERRA tx rate , used to calculate gas
-        """
-        self.terra_tx_rate = tx_rate
 
     def set_gaia_tx_rate(self, tx_rate):
         """
@@ -368,8 +359,6 @@ class ThorchainState:
             return Litecoin.coin
         if chain == "DOGE":
             return Dogecoin.coin
-        if chain == "TERRA":
-            return Terra.coin
         if chain == "GAIA":
             return Gaia.coin
         if chain == "ETH":
@@ -395,9 +384,6 @@ class ThorchainState:
             amount = int(self.ltc_tx_rate * 3 / 2) * self.ltc_estimate_size
         if chain == "DOGE":
             amount = int(self.doge_tx_rate * 3 / 2) * self.doge_estimate_size
-        if chain == "TERRA":
-            amount = int(self.terra_tx_rate * 3 / 2) * self.terra_estimate_size
-            amount = int(amount / 100) * 100  # round TERRA to 6 digits max
         if chain == "GAIA":
             amount = int(self.gaia_tx_rate * 3 / 2) * self.gaia_estimate_size
             amount = int(amount / 100) * 100  # round GAIA to 6 digits max
@@ -416,14 +402,14 @@ class ThorchainState:
         if pool.asset_balance == 0 or pool.rune_balance == 0:
             return self.rune_fee
         chain_fee = chain_fee * 3
-        if chain in {"TERRA", "GAIA"}:
+        if chain == "GAIA":
             chain_fee = int(chain_fee / 100) * 100
         return pool.get_asset_in_rune(chain_fee)
 
     def get_asset_fee(self, chain):
         if chain in self.network_fees:
             asset_fee = self.network_fees[chain] * 3
-            if chain in {"TERRA", "GAIA"}:
+            if chain == "GAIA":
                 asset_fee = int(asset_fee / 100) * 100
             return asset_fee
         gas_asset = self.get_gas_asset(chain)
@@ -527,26 +513,6 @@ class ThorchainState:
                             gap = int(asset_fee / 2) - self.doge_estimate_size * int(
                                 self.doge_tx_rate * 3 / 2
                             )
-                            if gap > 0:
-                                coin.amount += gap
-                            else:
-                                tx.gas = tx.max_gas
-
-                        if coin.asset.is_terra() and not asset_fee == 0:
-                            asset_fee = int(asset_fee / 100) * 100
-                            if coin.asset.is_luna():
-                                tx.max_gas = [Coin(coin.asset, int(asset_fee / 2))]
-                            else:
-                                fee_in_gas_asset = self.get_asset_fee(tx.chain)
-                                tx.max_gas = [
-                                    Coin(Terra.coin, int(fee_in_gas_asset / 2))
-                                ]
-
-                            tx.max_gas[0].amount = int(tx.max_gas[0].amount / 100) * 100
-                            gap = int(asset_fee / 2) - self.terra_estimate_size * int(
-                                self.terra_tx_rate * 3 / 2
-                            )
-                            gap = int(gap / 100) * 100
                             if gap > 0:
                                 coin.amount += gap
                             else:
@@ -1153,18 +1119,6 @@ class ThorchainState:
                 outbound_asset_amt -= int(estimate_gas_asset)
                 pool.asset_balance += dynamic_fee
                 asset_amt -= dynamic_fee
-            elif pool.asset.is_luna():
-                # the last withdraw tx , it need to spend everything
-                # left enough gas asset otherwise it will get into negative
-                emit_asset -= dynamic_fee
-                estimate_gas_asset = (
-                    int(self.terra_tx_rate * 3 / 2) * self.terra_estimate_size
-                )
-                estimate_gas_asset = int(estimate_gas_asset / 100) * 100
-                gas = Coin(gas.asset, estimate_gas_asset)
-                outbound_asset_amt -= int(estimate_gas_asset)
-                pool.asset_balance += dynamic_fee
-                asset_amt = outbound_asset_amt
             elif pool.asset.is_gaia():
                 # the last withdraw tx , it need to spend everything
                 # left enough gas asset otherwise it will get into negative
@@ -1488,15 +1442,12 @@ class ThorchainState:
 
         x = coin.amount
         emit = self._calc_asset_emission(X, x, Y)
-        # decimals to 6 if TERRA or GAIA chain
-        if asset.chain in {Terra.chain, Gaia.chain}:
+        # decimals to 6 if GAIA chain
+        if asset.chain == Gaia.chain:
             emit = int(emit / 100) * 100
 
         # calculate the liquidity fee (in rune)
         liquidity_fee = self._calc_liquidity_fee(X, x, Y)
-        # decimals to 6 if TERRA chain
-        # if asset.chain == Terra.chain:
-        #     liquidity_fee = int(liquidity_fee / 100) * 100
 
         liquidity_fee_in_rune = liquidity_fee
         if coin.is_rune():
@@ -1538,7 +1489,7 @@ class ThorchainState:
         :returns: (int) liquidity fee
 
         """
-        return int(float((x**2) * Y) / float((x + X) ** 2))
+        return int(float((x ** 2) * Y) / float((x + X) ** 2))
 
     def _calc_swap_slip(self, X, x):
         """
@@ -1642,7 +1593,7 @@ class Pool(Jsonable):
             return 0
 
         amount = get_share(self.asset_balance, self.rune_balance, val)
-        if self.asset.chain in {Terra.chain, Gaia.chain}:
+        if self.asset.chain == Gaia.chain:
             amount = int(amount / 100) * 100
         return amount
 
@@ -1790,8 +1741,8 @@ class Pool(Jsonable):
         units, rune_amt, asset_amt = self._calc_withdraw_units(
             lp.units, withdraw_basis_points
         )
-        # decimals to 6 if TERRA or GAIA chain
-        if self.asset.chain in {Terra.chain, Gaia.chain}:
+        # decimals to 6 if GAIA chain
+        if self.asset.chain == Gaia.chain:
             asset_amt = int(asset_amt / 100) * 100
         lp.units -= units
         lp.rune_deposit_value -= get_share(units, self.lp_units, self.rune_balance)

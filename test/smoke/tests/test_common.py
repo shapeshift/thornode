@@ -255,7 +255,8 @@ class TestTransaction(unittest.TestCase):
             "MEMO",
         )
         self.assertEqual(
-            repr(txn), "<Tx       USER => VAULT      [MEMO] [<Coin 0.00000100 BNB.BNB>]>"
+            repr(txn),
+            "<Tx       USER => VAULT      [MEMO] [<Coin 0.00000100 BNB.BNB>]>",
         )
         txn.coins = [Coin("BNB.BNB", 1000000000), Coin(RUNE, 1000000000)]
         self.assertEqual(
