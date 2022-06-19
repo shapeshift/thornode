@@ -213,7 +213,7 @@
         "type": "pending_liquidity",
         "attributes": [
             {
-                "pool": "TERRA.LUNA"
+                "pool": "GAIA.ATOM"
             },
             {
                 "type": "add"
@@ -249,7 +249,7 @@
         "type": "pool",
         "attributes": [
             {
-                "pool": "TERRA.LUNA"
+                "pool": "GAIA.ATOM"
             },
             {
                 "pool_status": "Available"
@@ -261,7 +261,7 @@
         "type": "add_liquidity",
         "attributes": [
             {
-                "pool": "TERRA.LUNA"
+                "pool": "GAIA.ATOM"
             },
             {
                 "liquidity_provider_units": "1000000000"
@@ -279,94 +279,7 @@
                 "asset_address": "PROVIDER-1"
             },
             {
-                "TERRA_txid": "TODO"
-            },
-            {
-                "THOR_txid": "TODO"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "rewards",
-        "attributes": [
-            {
-                "bond_reward": "0"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "pending_liquidity",
-        "attributes": [
-            {
-                "pool": "TERRA.UST"
-            },
-            {
-                "type": "add"
-            },
-            {
-                "rune_address": "PROVIDER-1"
-            },
-            {
-                "rune_amount": "10000000000"
-            },
-            {
-                "asset_amount": "0"
-            },
-            {
-                "asset_address": "PROVIDER-1"
-            },
-            {
-                "THOR_txid": "TODO"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "rewards",
-        "attributes": [
-            {
-                "bond_reward": "0"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "pool",
-        "attributes": [
-            {
-                "pool": "TERRA.UST"
-            },
-            {
-                "pool_status": "Available"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "add_liquidity",
-        "attributes": [
-            {
-                "pool": "TERRA.UST"
-            },
-            {
-                "liquidity_provider_units": "10000000000"
-            },
-            {
-                "rune_address": "PROVIDER-1"
-            },
-            {
-                "rune_amount": "10000000000"
-            },
-            {
-                "asset_amount": "100000000000"
-            },
-            {
-                "asset_address": "PROVIDER-1"
-            },
-            {
-                "TERRA_txid": "TODO"
+                "GAIA_txid": "TODO"
             },
             {
                 "THOR_txid": "TODO"
@@ -432,7 +345,7 @@
         "type": "rewards",
         "attributes": [
             {
-                "bond_reward": "1"
+                "bond_reward": "0"
             }
         ],
         "height": null
@@ -2961,7 +2874,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "60000 TERRA.LUNA"
+                "coins": "60000 GAIA.ATOM"
             },
             {
                 "pool_deduct": "4422"
@@ -2991,7 +2904,7 @@
                 "coin": "9066439043 THOR.RUNE"
             },
             {
-                "memo": "SWAP:TERRA.LUNA:USER-1"
+                "memo": "SWAP:GAIA.ATOM:USER-1"
             }
         ],
         "height": null
@@ -3033,7 +2946,7 @@
                 "coin": "100000000 BNB.BNB"
             },
             {
-                "memo": "SWAP:TERRA.LUNA:USER-1"
+                "memo": "SWAP:GAIA.ATOM:USER-1"
             }
         ],
         "height": null
@@ -3042,7 +2955,7 @@
         "type": "swap",
         "attributes": [
             {
-                "pool": "TERRA.LUNA"
+                "pool": "GAIA.ATOM"
             },
             {
                 "swap_target": "0"
@@ -3057,7 +2970,7 @@
                 "liquidity_fee_in_rune": "811188445"
             },
             {
-                "emit_asset": "13420734000 TERRA.LUNA"
+                "emit_asset": "13420734000 GAIA.ATOM"
             },
             {
                 "id": "TODO"
@@ -3075,7 +2988,7 @@
                 "coin": "9066439043 THOR.RUNE"
             },
             {
-                "memo": "SWAP:TERRA.LUNA:USER-1"
+                "memo": "SWAP:GAIA.ATOM:USER-1"
             }
         ],
         "height": null
@@ -3084,7 +2997,7 @@
         "type": "gas",
         "attributes": [
             {
-                "asset": "TERRA.LUNA"
+                "asset": "GAIA.ATOM"
             },
             {
                 "asset_amt": "0"
@@ -3117,7 +3030,7 @@
         "type": "swap",
         "attributes": [
             {
-                "pool": "TERRA.LUNA"
+                "pool": "GAIA.ATOM"
             },
             {
                 "swap_target": "0"
@@ -3138,7 +3051,7 @@
                 "id": "TODO"
             },
             {
-                "chain": "TERRA"
+                "chain": "GAIA"
             },
             {
                 "from": "USER-1"
@@ -3147,154 +3060,10 @@
                 "to": "VAULT"
             },
             {
-                "coin": "10000000000 TERRA.LUNA"
+                "coin": "10000000000 GAIA.ATOM"
             },
             {
                 "memo": "SWAP:THOR.RUNE:USER-1"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "25300 TERRA.UST"
-            },
-            {
-                "pool_deduct": "3032"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "outbound",
-        "attributes": [
-            {
-                "in_tx_id": "TODO"
-            },
-            {
-                "id": "0000000000000000000000000000000000000000000000000000000000000000"
-            },
-            {
-                "chain": "THOR"
-            },
-            {
-                "from": "USER-1"
-            },
-            {
-                "to": "VAULT"
-            },
-            {
-                "coin": "995892300 THOR.RUNE"
-            },
-            {
-                "memo": "SWAP:TERRA.UST:USER-1"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "swap",
-        "attributes": [
-            {
-                "pool": "TERRA.LUNA"
-            },
-            {
-                "swap_target": "0"
-            },
-            {
-                "swap_slip": "1201"
-            },
-            {
-                "liquidity_fee": "135884415"
-            },
-            {
-                "liquidity_fee_in_rune": "135884415"
-            },
-            {
-                "emit_asset": "995892300 THOR.RUNE"
-            },
-            {
-                "id": "TODO"
-            },
-            {
-                "chain": "TERRA"
-            },
-            {
-                "from": "USER-1"
-            },
-            {
-                "to": "VAULT"
-            },
-            {
-                "coin": "20000000000 TERRA.LUNA"
-            },
-            {
-                "memo": "SWAP:TERRA.UST:USER-1"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "swap",
-        "attributes": [
-            {
-                "pool": "TERRA.UST"
-            },
-            {
-                "swap_target": "0"
-            },
-            {
-                "swap_slip": "906"
-            },
-            {
-                "liquidity_fee": "820283156"
-            },
-            {
-                "liquidity_fee_in_rune": "82028316"
-            },
-            {
-                "emit_asset": "8236665300 TERRA.UST"
-            },
-            {
-                "id": "TODO"
-            },
-            {
-                "chain": "TERRA"
-            },
-            {
-                "from": "USER-1"
-            },
-            {
-                "to": "VAULT"
-            },
-            {
-                "coin": "995892300 THOR.RUNE"
-            },
-            {
-                "memo": "SWAP:TERRA.UST:USER-1"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "gas",
-        "attributes": [
-            {
-                "asset": "TERRA.LUNA"
-            },
-            {
-                "asset_amt": "0"
-            },
-            {
-                "rune_amt": "0"
-            },
-            {
-                "transaction_count": "1"
             }
         ],
         "height": null
@@ -4629,7 +4398,7 @@
         "type": "withdraw",
         "attributes": [
             {
-                "pool": "TERRA.LUNA"
+                "pool": "GAIA.ATOM"
             },
             {
                 "liquidity_provider_units": "100000000"
@@ -4641,10 +4410,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "16657932600"
+                "emit_asset": "14657932600"
             },
             {
-                "emit_rune": "843063782"
+                "emit_rune": "942653012"
             },
             {
                 "imp_loss_protection": "0"
@@ -4665,7 +4434,7 @@
                 "coin": "1 THOR.RUNE"
             },
             {
-                "memo": "WITHDRAW:TERRA.LUNA:1000"
+                "memo": "WITHDRAW:GAIA.ATOM:1000"
             }
         ],
         "height": null
@@ -4677,10 +4446,10 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "60000 TERRA.LUNA"
+                "coins": "60000 GAIA.ATOM"
             },
             {
-                "pool_deduct": "3037"
+                "pool_deduct": "3859"
             }
         ],
         "height": null
@@ -4704,100 +4473,7 @@
         "type": "gas",
         "attributes": [
             {
-                "asset": "TERRA.LUNA"
-            },
-            {
-                "asset_amt": "0"
-            },
-            {
-                "rune_amt": "0"
-            },
-            {
-                "transaction_count": "1"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "withdraw",
-        "attributes": [
-            {
-                "pool": "TERRA.UST"
-            },
-            {
-                "liquidity_provider_units": "1000000000"
-            },
-            {
-                "basis_points": "1000"
-            },
-            {
-                "asymmetry": "0.000000000000000000"
-            },
-            {
-                "emit_asset": "9176336000"
-            },
-            {
-                "emit_rune": "1099588927"
-            },
-            {
-                "imp_loss_protection": "0"
-            },
-            {
-                "id": "TODO"
-            },
-            {
-                "chain": "THOR"
-            },
-            {
-                "from": "PROVIDER-1"
-            },
-            {
-                "to": "VAULT"
-            },
-            {
-                "coin": "1 THOR.RUNE"
-            },
-            {
-                "memo": "WITHDRAW:TERRA.UST:1000"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "25300 TERRA.UST"
-            },
-            {
-                "pool_deduct": "3032"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "gas",
-        "attributes": [
-            {
-                "asset": "TERRA.LUNA"
+                "asset": "GAIA.ATOM"
             },
             {
                 "asset_amt": "0"
@@ -6258,96 +5934,6 @@
         "height": null
     },
     {
-        "type": "pool",
-        "attributes": [
-            {
-                "pool": "TERRA.UST"
-            },
-            {
-                "pool_status": "Staged"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "withdraw",
-        "attributes": [
-            {
-                "pool": "TERRA.UST"
-            },
-            {
-                "liquidity_provider_units": "9000000000"
-            },
-            {
-                "basis_points": "10000"
-            },
-            {
-                "asymmetry": "0.000000000000000000"
-            },
-            {
-                "emit_asset": "82587049300"
-            },
-            {
-                "emit_rune": "9896297309"
-            },
-            {
-                "imp_loss_protection": "0"
-            },
-            {
-                "id": "TODO"
-            },
-            {
-                "chain": "THOR"
-            },
-            {
-                "from": "PROVIDER-1"
-            },
-            {
-                "to": "VAULT"
-            },
-            {
-                "coin": "1 THOR.RUNE"
-            },
-            {
-                "memo": "WITHDRAW:TERRA.UST"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "fee",
-        "attributes": [
-            {
-                "tx_id": "TODO"
-            },
-            {
-                "coins": "2000000 THOR.RUNE"
-            },
-            {
-                "pool_deduct": "0"
-            }
-        ],
-        "height": null
-    },
-    {
-        "type": "gas",
-        "attributes": [
-            {
-                "asset": "TERRA.LUNA"
-            },
-            {
-                "asset_amt": "0"
-            },
-            {
-                "rune_amt": "0"
-            },
-            {
-                "transaction_count": "1"
-            }
-        ],
-        "height": null
-    },
-    {
         "type": "withdraw",
         "attributes": [
             {
@@ -6534,7 +6120,7 @@
         "type": "pool",
         "attributes": [
             {
-                "pool": "TERRA.LUNA"
+                "pool": "GAIA.ATOM"
             },
             {
                 "pool_status": "Staged"
@@ -6546,7 +6132,7 @@
         "type": "withdraw",
         "attributes": [
             {
-                "pool": "TERRA.LUNA"
+                "pool": "GAIA.ATOM"
             },
             {
                 "liquidity_provider_units": "900000000"
@@ -6558,10 +6144,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "149921453400"
+                "emit_asset": "131921453400"
             },
             {
-                "emit_rune": "7587571002"
+                "emit_rune": "8483873250"
             },
             {
                 "imp_loss_protection": "0"
@@ -6582,7 +6168,7 @@
                 "coin": "1 THOR.RUNE"
             },
             {
-                "memo": "WITHDRAW:TERRA.LUNA"
+                "memo": "WITHDRAW:GAIA.ATOM"
             }
         ],
         "height": null
@@ -6606,7 +6192,7 @@
         "type": "gas",
         "attributes": [
             {
-                "asset": "TERRA.LUNA"
+                "asset": "GAIA.ATOM"
             },
             {
                 "asset_amt": "0"

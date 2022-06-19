@@ -9,7 +9,7 @@ from tenacity import retry, stop_after_delay, wait_fixed
 
 from utils.segwit_addr import decode_address
 from chains.binance import Binance, MockBinance
-from chains.terra import Terra, MockTerra
+from chains.gaia import Gaia, MockGaia
 from chains.bitcoin import Bitcoin, MockBitcoin
 from chains.litecoin import Litecoin, MockLitecoin
 from chains.bitcoin_cash import BitcoinCash, MockBitcoinCash
@@ -38,9 +38,9 @@ def main():
         help="Mock binance server",
     )
     parser.add_argument(
-        "--terra",
-        default="http://localhost:11317",
-        help="Local terra server",
+        "--gaia",
+        default="http://localhost:21317",
+        help="Local gaia server",
     )
     parser.add_argument(
         "--bitcoin",
@@ -116,7 +116,7 @@ def main():
 
     smoker = Smoker(
         args.binance,
-        args.terra,
+        args.gaia,
         args.bitcoin,
         args.bitcoin_cash,
         args.litecoin,
@@ -145,7 +145,7 @@ class Smoker:
     def __init__(
         self,
         bnb,
-        terra_url,
+        gaia_url,
         btc,
         bch,
         ltc,
@@ -162,7 +162,7 @@ class Smoker:
         bootstrap_only=False,
     ):
         self.binance = Binance()
-        self.terra = Terra()
+        self.gaia = Gaia()
         self.bitcoin = Bitcoin()
         self.bitcoin_cash = BitcoinCash()
         self.litecoin = Litecoin()
@@ -216,9 +216,9 @@ class Smoker:
         self.mock_binance = MockBinance(bnb)
         self.mock_binance.set_vault_address_by_pubkey(raw_pubkey)
 
-        # setup terra
-        self.mock_terra = MockTerra(terra_url)
-        self.mock_terra.set_vault_address_by_pubkey(raw_pubkey)
+        # setup gaia
+        self.mock_gaia = MockGaia(gaia_url)
+        self.mock_gaia.set_vault_address_by_pubkey(raw_pubkey)
 
         self.generate_balances = gen_balances
         self.fast_fail = fast_fail
@@ -387,8 +387,8 @@ class Smoker:
             return self.mock_dogecoin.transfer(txn)
         if txn.chain == Ethereum.chain:
             return self.mock_ethereum.transfer(txn)
-        if txn.chain == Terra.chain:
-            return self.mock_terra.transfer(txn)
+        if txn.chain == Gaia.chain:
+            return self.mock_gaia.transfer(txn)
         if txn.chain == MockThorchain.chain:
             return self.mock_thorchain.transfer(txn)
 
@@ -398,8 +398,8 @@ class Smoker:
         """
         if txn.chain == Binance.chain:
             return self.binance.transfer(txn)
-        if txn.chain == Terra.chain:
-            return self.terra.transfer(txn)
+        if txn.chain == Gaia.chain:
+            return self.gaia.transfer(txn)
         if txn.chain == Bitcoin.chain:
             return self.bitcoin.transfer(txn)
         if txn.chain == BitcoinCash.chain:
@@ -423,7 +423,7 @@ class Smoker:
         bch = self.mock_bitcoin_cash.block_stats
         ltc = self.mock_litecoin.block_stats
         doge = self.mock_dogecoin.block_stats
-        terra = self.mock_terra.block_stats
+        gaia = self.mock_gaia.block_stats
         fees = {
             "BNB": self.mock_binance.singleton_gas,
             "ETH": self.mock_ethereum.gas_price * self.mock_ethereum.default_gas,
@@ -431,14 +431,14 @@ class Smoker:
             "LTC": ltc["tx_size"] * ltc["tx_rate"],
             "BCH": bch["tx_size"] * bch["tx_rate"],
             "DOGE": doge["tx_size"] * doge["tx_rate"],
-            "TERRA": terra["tx_size"] * terra["tx_rate"],
+            "GAIA": gaia["tx_size"] * gaia["tx_rate"],
         }
         self.thorchain_state.set_network_fees(fees)
         self.thorchain_state.set_btc_tx_rate(btc["tx_rate"])
         self.thorchain_state.set_bch_tx_rate(bch["tx_rate"])
         self.thorchain_state.set_ltc_tx_rate(ltc["tx_rate"])
         self.thorchain_state.set_doge_tx_rate(doge["tx_rate"])
-        self.thorchain_state.set_terra_tx_rate(terra["tx_rate"])
+        self.thorchain_state.set_gaia_tx_rate(gaia["tx_rate"])
 
     def sim_trigger_tx(self, txn):
         # process transaction in thorchain
@@ -631,7 +631,7 @@ class Smoker:
             self.check_pools()
 
             self.check_binance()
-            self.check_cosmos(self.terra, self.mock_terra)
+            self.check_cosmos(self.gaia, self.mock_gaia)
             self.check_chain(self.bitcoin, self.mock_bitcoin, self.bitcoin_reorg)
             self.check_chain(self.litecoin, self.mock_litecoin, self.bitcoin_reorg)
             self.check_chain(self.dogecoin, self.mock_dogecoin, self.bitcoin_reorg)

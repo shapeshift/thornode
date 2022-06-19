@@ -7,11 +7,11 @@ aliases_bch = {
     "VAULT": "",
 }
 
-aliases_terra = {
-    "MASTER": "terra1x46rqay4d3cssq8gxxvqz8xt6nwlz4td20k38v",
-    "CONTRIB": "terra1dcegyrekltswvyy0xy69ydgxn9x8x32zdtapd8",
-    "USER-1": "terra1jwjtwdk4u3vcewta7795jddgfzefnlmtvdyr7h",
-    "PROVIDER-1": "terra17yewqe9knrrk525hhq2ay7ep5fkp69ue77dyvt",
+aliases_gaia = {
+    "MASTER": "cosmos1cyyzpxplxdzkeea7kwsydadg87357qnalx9dqz",
+    "CONTRIB": "cosmos1phaxpevm5wecex2jyaqty2a4v02qj7qmhq3xz0",
+    "USER-1": "cosmos1z63f3mzwv3g75az80xwmhrawdqcjpaek5l7xc0",
+    "PROVIDER-1": "cosmos1wz78qmrkplrdhy37tw0tnvn0tkm5pqd6qafpcy",
     "PROVIDER-2": "",
     "VAULT": "",
 }
@@ -81,8 +81,8 @@ def get_aliases():
 def get_address_prefix(chain):
     if chain == "BNB":
         return "tbnb"
-    if chain == "TERRA":
-        return "terra"
+    if chain == "GAIA":
+        return "gaia"
     if chain == "BTC":
         return "tbc"
     if chain == "LTC":
@@ -97,8 +97,8 @@ def get_alias_address(chain, alias):
         return
     if chain == "BNB":
         return aliases_bnb[alias]
-    if chain == "TERRA":
-        return aliases_terra[alias]
+    if chain == "GAIA":
+        return aliases_gaia[alias]
     if chain == "BTC":
         return aliases_btc[alias]
     if chain == "BCH":
@@ -117,8 +117,8 @@ def get_alias_address(chain, alias):
 def get_alias(chain, addr):
     if chain == "BNB":
         aliases = aliases_bnb
-    if chain == "TERRA":
-        aliases = aliases_terra
+    if chain == "GAIA":
+        aliases = aliases_gaia
     if chain == "BTC":
         aliases = aliases_btc
     if chain == "LTC":

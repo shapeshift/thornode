@@ -119,52 +119,26 @@
         "gas": null
     },
     {
-        "chain": "TERRA",
+        "chain": "GAIA",
         "from_address": "MASTER",
         "to_address": "USER-1",
         "memo": "SEED",
         "coins": [
             {
-                "asset": "TERRA.LUNA",
+                "asset": "GAIA.ATOM",
                 "amount": 50000000000000
             }
         ],
         "gas": null
     },
     {
-        "chain": "TERRA",
+        "chain": "GAIA",
         "from_address": "MASTER",
         "to_address": "PROVIDER-1",
         "memo": "SEED",
         "coins": [
             {
-                "asset": "TERRA.LUNA",
-                "amount": 50000000000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "TERRA",
-        "from_address": "MASTER",
-        "to_address": "USER-1",
-        "memo": "SEED",
-        "coins": [
-            {
-                "asset": "TERRA.UST",
-                "amount": 50000000000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "TERRA",
-        "from_address": "MASTER",
-        "to_address": "PROVIDER-1",
-        "memo": "SEED",
-        "coins": [
-            {
-                "asset": "TERRA.UST",
+                "asset": "GAIA.ATOM",
                 "amount": 50000000000000
             }
         ],
@@ -382,7 +356,7 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "ADD:TERRA.LUNA:PROVIDER-1",
+        "memo": "ADD:GAIA.ATOM:PROVIDER-1",
         "coins": [
             {
                 "asset": "THOR.RUNE",
@@ -392,40 +366,14 @@
         "gas": null
     },
     {
-        "chain": "TERRA",
+        "chain": "GAIA",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "ADD:TERRA.LUNA:PROVIDER-1",
+        "memo": "ADD:GAIA.ATOM:PROVIDER-1",
         "coins": [
             {
-                "asset": "TERRA.LUNA",
+                "asset": "GAIA.ATOM",
                 "amount": 150000000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
-        "memo": "ADD:TERRA.UST:PROVIDER-1",
-        "coins": [
-            {
-                "asset": "THOR.RUNE",
-                "amount": 10000000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "TERRA",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
-        "memo": "ADD:TERRA.UST:PROVIDER-1",
-        "coins": [
-            {
-                "asset": "TERRA.UST",
-                "amount": 100000000000
             }
         ],
         "gas": null
@@ -1006,7 +954,7 @@
         "chain": "BNB",
         "from_address": "USER-1",
         "to_address": "VAULT",
-        "memo": "SWAP:TERRA.LUNA:USER-1",
+        "memo": "SWAP:GAIA.ATOM:USER-1",
         "coins": [
             {
                 "asset": "BNB.BNB",
@@ -1016,27 +964,14 @@
         "gas": null
     },
     {
-        "chain": "TERRA",
+        "chain": "GAIA",
         "from_address": "USER-1",
         "to_address": "VAULT",
         "memo": "SWAP:THOR.RUNE:USER-1",
         "coins": [
             {
-                "asset": "TERRA.LUNA",
+                "asset": "GAIA.ATOM",
                 "amount": 10000000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "TERRA",
-        "from_address": "USER-1",
-        "to_address": "VAULT",
-        "memo": "SWAP:TERRA.UST:USER-1",
-        "coins": [
-            {
-                "asset": "TERRA.LUNA",
-                "amount": 20000000000
             }
         ],
         "gas": null
@@ -1257,20 +1192,7 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "WITHDRAW:TERRA.LUNA:1000",
-        "coins": [
-            {
-                "asset": "THOR.RUNE",
-                "amount": 1
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
-        "memo": "WITHDRAW:TERRA.UST:1000",
+        "memo": "WITHDRAW:GAIA.ATOM:1000",
         "coins": [
             {
                 "asset": "THOR.RUNE",
@@ -1504,19 +1426,6 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "WITHDRAW:TERRA.UST",
-        "coins": [
-            {
-                "asset": "THOR.RUNE",
-                "amount": 1
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
         "memo": "WITHDRAW:BTC.BTC",
         "coins": [
             {
@@ -1543,7 +1452,7 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "WITHDRAW:TERRA.LUNA",
+        "memo": "WITHDRAW:GAIA.ATOM",
         "coins": [
             {
                 "asset": "THOR.RUNE",

@@ -4,23 +4,80 @@ import asyncio
 import threading
 import durationpy
 
+import ecdsa
+
+from terra_sdk.core import AccAddress, AccPubKey
 from terra_sdk.client.lcd import LCDClient
-from terra_sdk.key.mnemonic import MnemonicKey
+from terra_sdk.key.mnemonic import MnemonicKey as TerraMnemonicKey
 from terra_sdk.core.fee import Fee
+from terra_sdk.core.bech32 import get_bech
 from terra_sdk.core.bank import MsgSend
 from terra_sdk.client.lcd.api.tx import CreateTxOptions
 
 from utils.segwit_addr import address_from_public_key
 from utils.common import Coin, HttpClient, get_rune_asset, Asset
-from chains.aliases import aliases_terra, get_aliases, get_alias_address
+from chains.aliases import aliases_gaia, get_aliases, get_alias_address
 from chains.chain import GenericChain
 
 RUNE = get_rune_asset()
 
 
-class MockTerra(HttpClient):
+# wallet helper functions
+# Thanks to https://github.com/hukkinj1/cosmospy
+def generate_wallet():
+    privkey = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1).to_string().hex()
+    pubkey = privkey_to_pubkey(privkey)
+    address = address_from_public_key(pubkey)
+    return {"private_key": privkey, "public_key": pubkey, "address": address}
+
+
+def privkey_to_pubkey(privkey):
+    privkey_obj = ecdsa.SigningKey.from_string(
+        bytes.fromhex(privkey), curve=ecdsa.SECP256k1
+    )
+    pubkey_obj = privkey_obj.get_verifying_key()
+    return pubkey_obj.to_string("compressed").hex()
+
+
+def privkey_to_address(privkey):
+    pubkey = privkey_to_pubkey(privkey)
+    return address_from_public_key(pubkey)
+
+
+# override mnemonickey class from Terra to get a thor address
+class MnemonicKey(TerraMnemonicKey):
+    @property
+    def acc_address(self) -> AccAddress:
+        """Thorchain Bech32 account address.
+        Default derivation via :data:`public_key` is provided.
+
+        Raises:
+            ValueError: if Key was not initialized with proper public key
+
+        Returns:
+            AccAddress: account address
+        """
+        if not self.raw_address:
+            raise ValueError("could not compute acc_address: missing raw_address")
+        return AccAddress(get_bech("cosmos", self.raw_address.hex()))
+
+    @property
+    def acc_pubkey(self) -> AccPubKey:
+        """Thorchain Bech32 account pubkey.
+        Default derivation via :data:`public_key` is provided.
+        Raises:
+            ValueError: if Key was not initialized with proper public key
+        Returns:
+            AccPubKey: account pubkey
+        """
+        if not self.raw_pubkey:
+            raise ValueError("could not compute acc_pubkey: missing raw_pubkey")
+        return AccPubKey(get_bech("cosmospub", self.raw_pubkey.hex()))
+
+
+class MockGaia(HttpClient):
     """
-    An client implementation for a regtest bitcoin server
+    An client implementation for a mock gaia server.
     """
 
     mnemonic = {
@@ -48,6 +105,7 @@ class MockTerra(HttpClient):
     def __init__(self, base_url):
         self.base_url = base_url
         self.lcd_client = LCDClient(base_url, "localterra")
+        self.lcd_client.chain_id = "localgaia"
         threading.Thread(target=self.scan_blocks, daemon=True).start()
         self.init_wallets()
         self.broadcast_fee_txs()
@@ -58,7 +116,7 @@ class MockTerra(HttpClient):
         """
         self.wallets = {}
         for alias in self.mnemonic:
-            mk = MnemonicKey(mnemonic=self.mnemonic[alias])
+            mk = MnemonicKey(mnemonic=self.mnemonic[alias], coin_type=118)
             self.wallets[alias] = self.lcd_client.wallet(mk)
 
     def broadcast_fee_txs(self):
@@ -72,14 +130,14 @@ class MockTerra(HttpClient):
                 CreateTxOptions(
                     msgs=[
                         MsgSend(
-                            get_alias_address(Terra.chain, "CONTRIB"),
-                            get_alias_address(Terra.chain, "MASTER"),
-                            "10000uluna",  # send 0.01 luna
+                            get_alias_address(Gaia.chain, "CONTRIB"),
+                            get_alias_address(Gaia.chain, "MASTER"),
+                            "10000uatom",  # send 0.01 atom
                         )
                     ],
                     sequence=sequence,
                     memo="fee generation",
-                    fee=Fee(200000, "20000uluna"),  # fee 0.02 luna
+                    fee=Fee(200000, "20000uatom"),  # fee 0.02 atom
                 )
             )
             self.lcd_client.tx.broadcast_sync(tx)
@@ -88,6 +146,7 @@ class MockTerra(HttpClient):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         lcd_client = LCDClient(self.base_url, "localterra")
+        self.lcd_client.chain_id = "localgaia"
         height = int(lcd_client.tendermint.block_info()["block"]["header"]["height"])
         fee_cache = []
         while True:
@@ -99,7 +158,7 @@ class MockTerra(HttpClient):
                     if len(fee.amount) != 1:
                         continue
                     fee_coin = fee.amount[0]
-                    if fee_coin.denom != "uluna":
+                    if fee_coin.denom != "uatom":
                         continue
                     gas = fee.gas_limit
                     amount = int(fee_coin.amount) * 100 * self.gas_price_factor
@@ -125,7 +184,7 @@ class MockTerra(HttpClient):
                 time.sleep(backoff)
 
     @classmethod
-    def get_address_from_pubkey(cls, pubkey, prefix="terra"):
+    def get_address_from_pubkey(cls, pubkey, prefix="cosmos"):
         """
         Get bnb testnet address for a public key
 
@@ -148,11 +207,9 @@ class MockTerra(HttpClient):
         result = []
         for coin in coins.to_list():
             symbol = coin.denom[1:].upper()
-            if symbol == "USD":
-                symbol = "UST"
-            if symbol != "UST" and symbol != "LUNA":
+            if symbol != "ATOM":
                 continue
-            asset = f"{Terra.chain}.{symbol}"
+            asset = f"{Gaia.chain}.{symbol}"
             result.append(Coin(asset, coin.amount * 100))
         return result
 
@@ -172,11 +229,11 @@ class MockTerra(HttpClient):
         """
         Set the vault bnb address
         """
-        aliases_terra["VAULT"] = addr
+        aliases_gaia["VAULT"] = addr
 
     def transfer(self, txn):
         """
-        Make a transaction/transfer on local Terra
+        Make a transaction/transfer on local Gaia
         """
         if not isinstance(txn.coins, list):
             txn.coins = [txn.coins]
@@ -207,27 +264,27 @@ class MockTerra(HttpClient):
             CreateTxOptions(
                 msgs=[
                     MsgSend(
-                        txn.from_address, txn.to_address, txn.coins[0].to_cosmos_terra()
+                        txn.from_address, txn.to_address, txn.coins[0].to_cosmos_gaia()
                     )
                 ],
                 memo=txn.memo,
-                fee=Fee(200000, "20000uluna"),  # gas 0.2uluna fee 0.02uluna,
+                fee=Fee(200000, "20000uatom"),
             )
         )
 
         result = self.lcd_client.tx.broadcast(tx)
         txn.id = result.txhash
-        txn.gas = [Coin("TERRA.LUNA", self.default_gas)]
+        txn.gas = [Coin("GAIA.ATOM", self.default_gas)]
 
 
-class Terra(GenericChain):
+class Gaia(GenericChain):
     """
-    A local simple implementation of Terra chain
+    A local simple implementation of Gaia chain
     """
 
-    name = "Terra"
-    chain = "TERRA"
-    coin = Asset("TERRA.LUNA")
+    name = "Gaia"
+    chain = "GAIA"
+    coin = Asset("GAIA.ATOM")
     rune_fee = 2000000
 
     @classmethod
