@@ -227,6 +227,9 @@ func (b *ThorchainBridge) GetErrataMsg(txID common.TxID, chain common.Chain) sdk
 
 // GetSolvencyMsg create MsgSolvency from the given parameters
 func (b *ThorchainBridge) GetSolvencyMsg(height int64, chain common.Chain, pubKey common.PubKey, coins common.Coins) sdk.Msg {
+	// To prevent different MsgSolvency ID incompatibility between nodes with different coin-observation histories,
+	// only report coins for which the amounts are not currently 0.
+	coins = coins.NoneEmpty()
 	msg, err := stypes.NewMsgSolvency(chain, pubKey, coins, height, b.keys.GetSignerInfo().GetAddress())
 	if err != nil {
 		b.logger.Err(err).Msg("fail to create MsgSolvency")
