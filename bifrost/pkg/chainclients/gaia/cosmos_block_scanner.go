@@ -116,7 +116,7 @@ func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
 	btypes.RegisterInterfaces(registry)
 	cdc := codec.NewProtoCodec(registry)
 
-	grpcConn, err := getGRPCConn(cfg.RPCHost)
+	grpcConn, err := getGRPCConn(cfg.CosmosGRPCHost, cfg.CosmosGRPCTLS)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("fail to create grpc connection")
 	}
