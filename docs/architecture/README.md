@@ -37,9 +37,7 @@ None
 
 ### Accepted
 
-Example:
-
-None
+- [002 - Remove Yggdrasil Vaults](./adr-002-removeyggvaults.md)
 
 ### Deprecated
 
@@ -51,5 +49,8 @@ None
 
 ### Proposed
 
-- [001 - ThorChat](./adr-001-thorchat.md)
-- [002 - Remove Yggdrasil Vaults](./adr-002-removeyggvaults.md)
+None
+
+### On Pause
+
+- [001 - ThorChat](./adr-001-thorchat.md) _by request of author_
