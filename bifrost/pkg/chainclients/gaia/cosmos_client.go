@@ -109,7 +109,7 @@ func NewCosmosClient(
 		pubkey:  pk,
 	}
 
-	grpcConn, err := getGRPCConn(cfg.RPCHost)
+	grpcConn, err := getGRPCConn(cfg.CosmosGRPCHost, cfg.CosmosGRPCTLS)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create grpc connection,err: %w", err)
 	}
