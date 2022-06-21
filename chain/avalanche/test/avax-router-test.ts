@@ -26,7 +26,7 @@ describe("AvaxRouter", function () {
     usdceToken = new ethers.Contract(USDCE_ADDRESS, ERC20.abi, accounts[0]);
 
     // Transfer UCDCE to wallet1
-    const transferAmount = "150000000000"; // 6 dec
+    const usdceAmount = "150000000000"; // 6 dec
 
     await network.provider.request({
       method: "hardhat_impersonateAccount",
@@ -35,10 +35,13 @@ describe("AvaxRouter", function () {
 
     const whaleSigner = await ethers.getSigner(USDCE_WHALE);
     const usdceWhale = usdceToken.connect(whaleSigner);
-    await usdceWhale.transfer(wallet1, transferAmount);
-    await usdceWhale.transfer(wallet2, transferAmount);
-    const usdceBalance = await usdceWhale.balanceOf(wallet1);
-    expect(usdceBalance).eq(transferAmount);
+    await usdceWhale.transfer(wallet1, usdceAmount);
+    await usdceWhale.transfer(wallet2, usdceAmount);
+
+    let usdceBalance = await usdceWhale.balanceOf(wallet1);
+    expect(usdceBalance).gt(0);
+    usdceBalance = await usdceWhale.balanceOf(wallet2);
+    expect(usdceBalance).gt(0);
   });
 
   describe("initialize", function () {
