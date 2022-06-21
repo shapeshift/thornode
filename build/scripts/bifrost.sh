@@ -35,7 +35,9 @@ TERRA_START_BLOCK_HEIGHT="${TERRA_START_BLOCK_HEIGHT:=0}"
 TERRA_DISABLED="${TERRA_DISABLED:=false}"
 
 # Gaia chain config
-GAIA_HOST="${GAIA_HOST:=gaia-daemon:9090}"
+GAIA_HOST="${GAIA_HOST:=gaia-daemon:26657}"
+GAIA_GRPC_HOST="${GAIA_GRPC_HOST:=gaia-daemon:9090}"
+GAIA_GRPC_TLS="${GAIA_GRPC_TLS:=false}"
 GAIA_START_BLOCK_HEIGHT="${GAIA_START_BLOCK_HEIGHT:=0}"
 GAIA_DISABLED="${GAIA_DISABLED:=false}"
 
@@ -199,6 +201,8 @@ echo "{
       {
         \"chain_id\": \"GAIA\",
         \"rpc_host\": \"$GAIA_HOST\",
+        \"cosmos_grpc_host\": \"$GAIA_GRPC_HOST\",
+        \"cosmos_grpc_tls\": $GAIA_GRPC_TLS,
         \"username\": \"$RPC_USER\",
         \"password\": \"$RPC_PASSWD\",
         \"http_post_mode\": 1,
@@ -206,6 +210,8 @@ echo "{
         \"disabled\":$GAIA_DISABLED,
         \"block_scanner\": {
           \"rpc_host\": \"$GAIA_HOST\",
+          \"cosmos_grpc_host\": \"$GAIA_GRPC_HOST\",
+          \"cosmos_grpc_tls\": $GAIA_GRPC_TLS,
           \"enforce_block_height\": false,
           \"block_scan_processors\": 1,
           \"block_height_discover_back_off\": \"$BLOCK_SCANNER_BACKOFF\",
