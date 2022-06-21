@@ -3,8 +3,8 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../interfaces/ISwapRouter.sol";
 
-// ROUTER Interface
 interface IRouter {
     function depositWithExpiry(
         address payable vault,
@@ -12,24 +12,6 @@ interface IRouter {
         uint256 amount,
         string memory memo,
         uint256 expiration
-    ) external payable;
-}
-
-// Sushi Interface
-interface ISwapRouter {
-    function swapExactTokensForAVAX(
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
-    ) external;
-
-    function swapExactAVAXForTokens(
-        uint256 amountOutMin,
-        address[] calldata path,
-        address to,
-        uint256 deadline
     ) external payable;
 }
 
@@ -60,8 +42,15 @@ contract AvaxAggregator {
 
     receive() external payable {}
 
-    //############################## IN ##############################
-
+    /**
+     * @notice Calls deposit with an experation
+     * @param tcVault address - THORchain vault address
+     * @param tcRouter address - THORchain vault address
+     * @param tcMemo string - THORchain memo
+     * @param amount uint - amount to swap
+     * @param amountOutMin uint - minimum amount to receive
+     * @param deadline string - timestamp for expiration
+     */
     function swapIn(
         address tcVault,
         address tcRouter,
@@ -75,7 +64,6 @@ contract AvaxAggregator {
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount); // Transfer asset
         IERC20(token).safeApprove(address(swapRouter), amount);
-
         uint256 safeAmount = (IERC20(token).balanceOf(address(this)) -
             startBal);
 
@@ -90,6 +78,7 @@ contract AvaxAggregator {
             address(this),
             deadline
         );
+
         safeAmount = address(this).balance;
         IRouter(tcRouter).depositWithExpiry{value: safeAmount}(
             payable(tcVault),
@@ -100,8 +89,12 @@ contract AvaxAggregator {
         );
     }
 
-    //############################## OUT ##############################
-
+    /**
+     * @notice Calls deposit with an experation
+     * @param token address - ARC20 asset or zero address for AVAX
+     * @param to address - address to receive swap
+     * @param amountOutMin uint - minimum amount to receive
+     */
     function swapOut(
         address token,
         address to,

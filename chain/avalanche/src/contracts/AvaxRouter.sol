@@ -1,14 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pragma solidity 0.8.9;
 
-// ARC-20 Interface
-interface IARC20 {
-    function balanceOf(address) external view returns (uint256);
+import "../interfaces/IARC20.sol";
 
-    function burn(uint256) external;
-}
-
-// Router Interface
 interface IRouter {
     function depositWithExpiry(
         address,
