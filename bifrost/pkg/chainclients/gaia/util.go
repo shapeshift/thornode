@@ -1,10 +1,9 @@
 package gaia
 
 import (
+	"crypto/x509"
 	"fmt"
 	"math/big"
-	"net"
-	"net/url"
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/client"
@@ -16,6 +15,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	grpc "google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -113,18 +113,20 @@ func fromThorchainToCosmos(coin common.Coin) (cosmos.Coin, error) {
 	return cosmos.NewCoin(asset.CosmosDenom, ctypes.NewIntFromBigInt(amount)), nil
 }
 
-// Bifrost only supports an "RPCHost" in its configuration.
-// We also need to access GRPC for Cosmos chains
-func getGRPCConn(host string) (*grpc.ClientConn, error) {
-	url, err := url.Parse(host)
-	if err != nil {
-		return &grpc.ClientConn{}, fmt.Errorf("unable to parse RPCHost,err: %w", err)
+func getGRPCConn(host string, tls bool) (*grpc.ClientConn, error) {
+	// load system certificates or proceed with insecure if tls disabled
+	var creds credentials.TransportCredentials
+	if tls {
+		certs, err := x509.SystemCertPool()
+		if err != nil {
+			return &grpc.ClientConn{}, fmt.Errorf("unable to load system certs: %w", err)
+		}
+		creds = credentials.NewClientTLSFromCert(certs, "")
+	} else {
+		creds = insecure.NewCredentials()
 	}
-	host, _, _ = net.SplitHostPort(url.Host)
-	// CHANGEME: all Cosmos GRPC should be on port 9090. Update this if your chain uses something use else.
-	grpcHost := fmt.Sprintf("%s:9090", host)
 
-	return grpc.Dial(grpcHost, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	return grpc.Dial(host, grpc.WithTransportCredentials(creds))
 }
 
 func unmarshalJSONToPb(filePath string, msg proto.Message) error {

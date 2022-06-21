@@ -130,6 +130,7 @@ services:
       ETH_HOST: ${ETH_HOST:-http://ethereum:8545}
       TERRA_HOST: ${TERRA_HOST:-http://terra:26657}
       GAIA_HOST: ${GAIA_HOST:-http://gaia:26657}
+      GAIA_GRPC_HOST: ${GAIA_GRPC_HOST:-gaia:9090}
       THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
       BLOCK_SCANNER_BACKOFF: ${BLOCK_SCANNER_BACKOFF:-5s}
       PEER: ${PEER:-}
