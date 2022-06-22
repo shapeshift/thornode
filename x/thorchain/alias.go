@@ -156,6 +156,7 @@ var (
 	NewTHORName                    = types.NewTHORName
 	GetPoolStatus                  = types.GetPoolStatus
 	GetRandomVault                 = types.GetRandomVault
+	GetRandomYggVault              = types.GetRandomYggVault
 	GetRandomTx                    = types.GetRandomTx
 	GetRandomObservedTx            = types.GetRandomObservedTx
 	GetRandomTxOutItem             = types.GetRandomTxOutItem

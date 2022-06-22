@@ -16,6 +16,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 // SlasherV92 is v88 implementation of slasher
@@ -412,34 +413,44 @@ func (s *SlasherV92) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 		totalBond = totalBond.Add(na.Bond)
 	}
 
-	metricLabels, _ := ctx.Context().Value(constants.CtxMetricLabels).([]metrics.Label)
-
 	for _, coin := range coins {
 		if coin.IsEmpty() {
 			continue
 		}
-		// rune value is the value in RUNE of the missing funds
-		runeValue := cosmos.ZeroUint()
-		coinAmount := coin.Amount
+		pool, err := s.keeper.GetPool(ctx, coin.Asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool for slash", "asset", coin.Asset, "error", err)
+			continue
+		}
+		// THORChain doesn't even have a pool for the asset
+		if pool.IsEmpty() {
+			ctx.Logger().Error("cannot slash for an empty pool", "asset", coin.Asset)
+			continue
+		}
+
+		// stolenRuneValue is the value in RUNE of the missing funds
+		stolenRuneValue := cosmos.ZeroUint()
+		stolenAssetValue := coin.Amount
 		vaultAmount := vault.GetCoin(coin.Asset).Amount
-		if coinAmount.GT(vaultAmount) {
-			coinAmount = vaultAmount
+		if stolenAssetValue.GT(vaultAmount) {
+			stolenAssetValue = vaultAmount
 		}
-		if coin.Asset.IsRune() {
-			runeValue = coinAmount
-		} else {
-			runeValue = s.adjustPoolForSlashedAsset(ctx, common.NewCoin(coin.Asset, coinAmount), mgr)
+		if stolenAssetValue.GT(pool.BalanceAsset) {
+			stolenAssetValue = pool.BalanceAsset
 		}
-		if runeValue.IsZero() {
+
+		stolenRuneValue = pool.AssetValueInRune(stolenAssetValue)
+
+		if stolenRuneValue.IsZero() {
 			continue
 		}
 
 		penaltyPts := fetchConfigInt64(ctx, mgr, constants.SlashPenalty)
 		// total slash amount is penaltyPts the RUNE value of the missing funds
-		totalSlashAmountInRune := common.GetShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), runeValue)
-		totalSlashBondAmount := cosmos.ZeroUint()
+		totalRuneToSlash := common.GetShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), stolenRuneValue)
+		totalRuneSlashed := cosmos.ZeroUint()
 		pauseOnSlashThreshold := fetchConfigInt64(ctx, mgr, constants.PauseOnSlashThreshold)
-		if pauseOnSlashThreshold > 0 && totalSlashAmountInRune.GTE(cosmos.NewUint(uint64(pauseOnSlashThreshold))) {
+		if pauseOnSlashThreshold > 0 && totalRuneToSlash.GTE(cosmos.NewUint(uint64(pauseOnSlashThreshold))) {
 			// set mimirs to pause the chain and ygg funding
 			s.keeper.SetMimir(ctx, mimirStopFundYggdrasil, common.BlockHeight(ctx))
 			mimirEvent := NewEventSetMimir(strings.ToUpper(mimirStopFundYggdrasil), strconv.FormatInt(common.BlockHeight(ctx), 10))
@@ -464,90 +475,22 @@ func (s *SlasherV92) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 				ctx.Logger().Info("validator's bond is zero, can't be slashed", "node address", na.NodeAddress.String())
 				continue
 			}
-			slashAmountRune := common.GetSafeShare(na.Bond, totalBond, totalSlashAmountInRune)
-			if slashAmountRune.GT(na.Bond) {
-				ctx.Logger().Info("slash amount is larger than bond", "slash amount", slashAmountRune, "bond", na.Bond)
-				slashAmountRune = na.Bond
-			}
-			// need to count total slashed bond again , because the node might not have enough bond left
-			totalSlashBondAmount = totalSlashBondAmount.Add(slashAmountRune)
-			ctx.Logger().Info("slash node account", "node address", na.NodeAddress.String(), "amount", slashAmountRune.String(), "total slash amount", totalSlashAmountInRune)
-			na.Bond = common.SafeSub(na.Bond, slashAmountRune)
-
-			tx := common.Tx{}
-			tx.ID = common.BlankTxID
-			tx.FromAddress = na.BondAddress
-			bondEvent := NewEventBond(slashAmountRune, BondCost, tx)
-			if err := s.eventMgr.EmitEvent(ctx, bondEvent); err != nil {
-				return fmt.Errorf("fail to emit bond event: %w", err)
-			}
-
-			slashAmountRuneFloat, _ := new(big.Float).SetInt(slashAmountRune.BigInt()).Float32()
-			telemetry.IncrCounterWithLabels(
-				[]string{"thornode", "bond_slash"},
-				slashAmountRuneFloat,
-				append(
-					metricLabels,
-					telemetry.NewLabel("address", na.NodeAddress.String()),
-					telemetry.NewLabel("coin_symbol", coin.Asset.Symbol.String()),
-					telemetry.NewLabel("coin_chain", string(coin.Asset.Chain)),
-					telemetry.NewLabel("vault_type", vault.Type.String()),
-					telemetry.NewLabel("vault_status", vault.Status.String()),
-				),
-			)
-
-			// Ban the node account. Ensure we don't ban more than 1/3rd of any
-			// given active or retiring vault
-			if vault.IsYggdrasil() {
-				// TODO: temporally disabling banning for the theft of funds. This
-				// is to give the code time to prove itself reliable before the it
-				// starts booting nodes out of the system
-				toBan := false // TODO flip this to true
-				if na.Bond.IsZero() {
-					toBan = true
-				}
-				for _, vaultPk := range na.GetSignerMembership() {
-					vault, err := s.keeper.GetVault(ctx, vaultPk)
-					if err != nil {
-						ctx.Logger().Error("fail to get vault", "error", err)
-						continue
-					}
-					if !(vault.Status == ActiveVault || vault.Status == RetiringVault) {
-						continue
-					}
-					activeMembers := 0
-					for _, pk := range vault.GetMembership() {
-						member, _ := s.keeper.GetNodeAccountByPubKey(ctx, pk)
-						if member.Status == NodeActive {
-							activeMembers++
-						}
-					}
-					if !HasSuperMajority(activeMembers, len(vault.GetMembership())) {
-						toBan = false
-						break
-					}
-				}
-				if toBan {
-					na.ForcedToLeave = true
-					na.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
-				}
-			}
-
-			if err := s.keeper.SetNodeAccount(ctx, na); err != nil {
-				ctx.Logger().Error("fail to save node account for slash", "error", err)
-			}
+			runeSlashed := s.slashAndUpdateNodeAccount(ctx, na, coin, vault, totalBond, totalRuneToSlash)
+			totalRuneSlashed = totalRuneSlashed.Add(runeSlashed)
 		}
 
 		//  2/3 of the total slashed RUNE value to asgard
 		//  1/3 of the total slashed RUNE value to reserve
-		runeToAsgard := runeValue
-		// in the case that slash bond amount is less than the RUNE Value lost
-		if totalSlashBondAmount.LT(runeValue) {
+		runeToAsgard := stolenRuneValue
+
+		// stolenRuneValue is the total value in RUNE of stolen coins, but totalRuneSlashed is
+		// the total amount able to be slashed from Nodes, credit the pool only totalRuneSlashed
+		if totalRuneSlashed.LT(stolenRuneValue) {
 			// this should theoretically never happen
-			ctx.Logger().Info("total slashed bond amount is less than RUNE value", "slashed_bond", totalSlashBondAmount.String(), "rune_value", runeValue.String())
-			runeToAsgard = totalSlashBondAmount
+			ctx.Logger().Info("total slashed bond amount is less than RUNE value", "slashed_bond", totalRuneSlashed.String(), "rune_value", stolenRuneValue.String())
+			runeToAsgard = totalRuneSlashed
 		}
-		runeToReserve := common.SafeSub(totalSlashBondAmount, runeToAsgard)
+		runeToReserve := common.SafeSub(totalRuneSlashed, runeToAsgard)
 
 		if !runeToReserve.IsZero() {
 			if err := s.keeper.SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeToReserve))); err != nil {
@@ -558,11 +501,90 @@ func (s *SlasherV92) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			if err := s.keeper.SendFromModuleToModule(ctx, BondName, AsgardName, common.NewCoins(common.NewCoin(common.RuneAsset(), runeToAsgard))); err != nil {
 				ctx.Logger().Error("fail to send slash fund to asgard module", "pk", vaultPK, "error", err)
 			}
+			s.updatePoolFromSlash(ctx, pool, common.NewCoin(coin.Asset, stolenAssetValue), runeToAsgard, mgr)
 		}
-
 	}
 
 	return nil
+}
+
+// slashAndUpdateNodeAccount slashes a NodeAccount a portion of the value of coin based on their
+// portion of the total bond of the offending Vault's membership. Return the amount of RUNE slashed
+func (s SlasherV92) slashAndUpdateNodeAccount(ctx cosmos.Context, na types.NodeAccount, coin common.Coin, vault types.Vault, totalBond, totalSlashAmountInRune cosmos.Uint) cosmos.Uint {
+	slashAmountRune := common.GetSafeShare(na.Bond, totalBond, totalSlashAmountInRune)
+	if slashAmountRune.GT(na.Bond) {
+		ctx.Logger().Info("slash amount is larger than bond", "slash amount", slashAmountRune, "bond", na.Bond)
+		slashAmountRune = na.Bond
+	}
+
+	ctx.Logger().Info("slash node account", "node address", na.NodeAddress.String(), "amount", slashAmountRune.String(), "total slash amount", totalSlashAmountInRune)
+	na.Bond = common.SafeSub(na.Bond, slashAmountRune)
+
+	tx := common.Tx{}
+	tx.ID = common.BlankTxID
+	tx.FromAddress = na.BondAddress
+	bondEvent := NewEventBond(slashAmountRune, BondCost, tx)
+	if err := s.eventMgr.EmitEvent(ctx, bondEvent); err != nil {
+		ctx.Logger().Error("fail to emit bond event", "error", err)
+	}
+
+	metricLabels, _ := ctx.Context().Value(constants.CtxMetricLabels).([]metrics.Label)
+	slashAmountRuneFloat, _ := new(big.Float).SetInt(slashAmountRune.BigInt()).Float32()
+	telemetry.IncrCounterWithLabels(
+		[]string{"thornode", "bond_slash"},
+		slashAmountRuneFloat,
+		append(
+			metricLabels,
+			telemetry.NewLabel("address", na.NodeAddress.String()),
+			telemetry.NewLabel("coin_symbol", coin.Asset.Symbol.String()),
+			telemetry.NewLabel("coin_chain", string(coin.Asset.Chain)),
+			telemetry.NewLabel("vault_type", vault.Type.String()),
+			telemetry.NewLabel("vault_status", vault.Status.String()),
+		),
+	)
+
+	// Ban the node account. Ensure we don't ban more than 1/3rd of any
+	// given active or retiring vault
+	if vault.IsYggdrasil() {
+		// TODO: temporally disabling banning for the theft of funds. This
+		// is to give the code time to prove itself reliable before the it
+		// starts booting nodes out of the system
+		toBan := false // TODO flip this to true
+		if na.Bond.IsZero() {
+			toBan = true
+		}
+		for _, vaultPk := range na.GetSignerMembership() {
+			vault, err := s.keeper.GetVault(ctx, vaultPk)
+			if err != nil {
+				ctx.Logger().Error("fail to get vault", "error", err)
+				continue
+			}
+			if !(vault.Status == ActiveVault || vault.Status == RetiringVault) {
+				continue
+			}
+			activeMembers := 0
+			for _, pk := range vault.GetMembership() {
+				member, _ := s.keeper.GetNodeAccountByPubKey(ctx, pk)
+				if member.Status == NodeActive {
+					activeMembers++
+				}
+			}
+			if !HasSuperMajority(activeMembers, len(vault.GetMembership())) {
+				toBan = false
+				break
+			}
+		}
+		if toBan {
+			na.ForcedToLeave = true
+			na.LeaveScore = 1 // Set Leave Score to 1, which means the nodes is bad
+		}
+	}
+
+	if err := s.keeper.SetNodeAccount(ctx, na); err != nil {
+		ctx.Logger().Error("fail to save node account for slash", "error", err)
+	}
+
+	return slashAmountRune
 }
 
 // IncSlashPoints will increase the given account's slash points
@@ -583,47 +605,27 @@ func (s *SlasherV92) DecSlashPoints(ctx cosmos.Context, point int64, addresses .
 	}
 }
 
-// adjustPoolForSlashedAsset - deduct the asset coin amount from the pool and
-// reimburse with the RUNE value of the deducted amount. Returns the RUNE value
-// but does not transfer RUNE to the Asgard module.
-func (s *SlasherV92) adjustPoolForSlashedAsset(ctx cosmos.Context, coin common.Coin, mgr Manager) cosmos.Uint {
-	pool, err := s.keeper.GetPool(ctx, coin.Asset)
-	if err != nil {
-		ctx.Logger().Error("fail to get pool for slash", "asset", coin.Asset, "error", err)
-		return cosmos.ZeroUint()
-	}
-	// THORChain doesn't even have a pool for the asset
-	if pool.IsEmpty() {
-		ctx.Logger().Error("cannot slash for an empty pool", "asset", coin.Asset)
-		return cosmos.ZeroUint()
-	}
-	coinAmount := coin.Amount
-	if coinAmount.GT(pool.BalanceAsset) {
-		coinAmount = pool.BalanceAsset
-	}
-
-	runeValue := pool.AssetValueInRune(coinAmount)
-	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, coinAmount)
-	pool.BalanceRune = pool.BalanceRune.Add(runeValue)
+// updatePoolFromSlash updates a pool's depths and emits appropriate events after a slash
+func (s *SlasherV92) updatePoolFromSlash(ctx cosmos.Context, pool types.Pool, stolenAsset common.Coin, runeCreditAmt cosmos.Uint, mgr Manager) {
+	pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, stolenAsset.Amount)
+	pool.BalanceRune = pool.BalanceRune.Add(runeCreditAmt)
 	if err := s.keeper.SetPool(ctx, pool); err != nil {
-		ctx.Logger().Error("fail to save pool for slash", "asset", coin.Asset, "error", err)
-		return cosmos.ZeroUint()
+		ctx.Logger().Error("fail to save pool for slash", "asset", pool.Asset, "error", err)
 	}
 	poolSlashAmt := []PoolAmt{
 		{
 			Asset:  pool.Asset,
-			Amount: 0 - int64(coinAmount.Uint64()),
+			Amount: 0 - int64(stolenAsset.Amount.Uint64()),
 		},
 		{
 			Asset:  common.RuneAsset(),
-			Amount: int64(runeValue.Uint64()),
+			Amount: int64(runeCreditAmt.Uint64()),
 		},
 	}
 	eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
 	if err := mgr.EventMgr().EmitEvent(ctx, eventSlash); err != nil {
 		ctx.Logger().Error("fail to emit slash event", "error", err)
 	}
-	return runeValue
 }
 
 func (s *SlasherV92) needsNewVault(ctx cosmos.Context, mgr Manager, nas int, signingTransPeriod, startHeight int64, inhash common.TxID, pk common.PubKey) bool {
