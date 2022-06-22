@@ -343,6 +343,7 @@ services:
   gaia:
     profiles:
       - mocknet
+      - mocknet-cluster
     image: registry.gitlab.com/thorchain/devops/node-launcher:gaia-daemon-7.0.2
     volumes:
       - "./mocknet:/mocknet"
