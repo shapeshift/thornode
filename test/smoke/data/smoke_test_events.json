@@ -3477,10 +3477,10 @@
                 "asset": "ETH.ETH"
             },
             {
-                "asset_amt": "119481"
+                "asset_amt": "119472"
             },
             {
-                "rune_amt": "393142537"
+                "rune_amt": "393112923"
             },
             {
                 "transaction_count": "1"
@@ -3516,13 +3516,13 @@
                 "swap_slip": "3328"
             },
             {
-                "liquidity_fee": "11045932129"
+                "liquidity_fee": "11045924439"
             },
             {
-                "liquidity_fee_in_rune": "11045932129"
+                "liquidity_fee_in_rune": "11045924439"
             },
             {
-                "emit_asset": "22147476109 THOR.RUNE"
+                "emit_asset": "22147467317 THOR.RUNE"
             },
             {
                 "id": "TODO"
@@ -3609,10 +3609,10 @@
                 "asset": "ETH.ETH"
             },
             {
-                "asset_amt": "159645"
+                "asset_amt": "159636"
             },
             {
-                "rune_amt": "274837220"
+                "rune_amt": "274821597"
             },
             {
                 "transaction_count": "1"
@@ -3750,10 +3750,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "4491587"
+                "emit_asset": "4491589"
             },
             {
-                "emit_rune": "7787470136"
+                "emit_rune": "7787466492"
             },
             {
                 "imp_loss_protection": "0"
@@ -3789,7 +3789,7 @@
                 "coins": "195000 ETH.ETH"
             },
             {
-                "pool_deduct": "336466026"
+                "pool_deduct": "336465736"
             }
         ],
         "height": null
@@ -3816,10 +3816,10 @@
                 "asset": "ETH.ETH"
             },
             {
-                "asset_amt": "119517"
+                "asset_amt": "119508"
             },
             {
-                "rune_amt": "205232608"
+                "rune_amt": "205216977"
             },
             {
                 "transaction_count": "1"
@@ -3879,10 +3879,10 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "1118545 ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "coins": "1118543 ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
             },
             {
-                "pool_deduct": "335507628"
+                "pool_deduct": "335507031"
             }
         ],
         "height": null
@@ -3909,10 +3909,10 @@
                 "asset": "ETH.ETH"
             },
             {
-                "asset_amt": "159681"
+                "asset_amt": "159672"
             },
             {
-                "rune_amt": "275819929"
+                "rune_amt": "275804023"
             },
             {
                 "transaction_count": "1"
@@ -5667,10 +5667,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "285524942"
+                "emit_asset": "285524940"
             },
             {
-                "emit_rune": "85307712891"
+                "emit_rune": "85307713488"
             },
             {
                 "imp_loss_protection": "0"
@@ -5718,10 +5718,10 @@
                 "asset": "ETH.ETH"
             },
             {
-                "asset_amt": "134466"
+                "asset_amt": "134460"
             },
             {
-                "rune_amt": "234104382"
+                "rune_amt": "234093525"
             },
             {
                 "transaction_count": "1"
@@ -5757,10 +5757,10 @@
                 "asymmetry": "0.000000000000000000"
             },
             {
-                "emit_asset": "40108123"
+                "emit_asset": "40108163"
             },
             {
-                "emit_rune": "70465922120"
+                "emit_rune": "70465847215"
             },
             {
                 "imp_loss_protection": "0"
@@ -5808,7 +5808,7 @@
                 "asset": "ETH.ETH"
             },
             {
-                "asset_amt": "119553"
+                "asset_amt": "119544"
             },
             {
                 "rune_amt": "0"
