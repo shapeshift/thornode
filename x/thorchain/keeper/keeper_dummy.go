@@ -300,6 +300,11 @@ func (k KVStoreDummy) GetAsgardVaults(_ cosmos.Context) (Vaults, error) { return
 func (k KVStoreDummy) GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error) {
 	return nil, kaboom
 }
+
+func (k KVStoreDummy) RemoveFromAsgardIndex(ctx cosmos.Context, pubkey common.PubKey) error {
+	return kaboom
+}
+
 func (k KVStoreDummy) GetLeastSecure(_ cosmos.Context, _ Vaults, _ int64) Vault  { return Vault{} }
 func (k KVStoreDummy) GetMostSecure(_ cosmos.Context, _ Vaults, _ int64) Vault   { return Vault{} }
 func (k KVStoreDummy) SortBySecurity(_ cosmos.Context, _ Vaults, _ int64) Vaults { return nil }

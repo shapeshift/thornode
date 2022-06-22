@@ -157,6 +157,7 @@ type KeeperVault interface {
 	GetMostSecure(_ cosmos.Context, _ Vaults, _ int64) Vault
 	SortBySecurity(_ cosmos.Context, _ Vaults, _ int64) Vaults
 	DeleteVault(ctx cosmos.Context, pk common.PubKey) error
+	RemoveFromAsgardIndex(ctx cosmos.Context, pubkey common.PubKey) error
 }
 
 type KeeperReserveContributors interface {
