@@ -4,16 +4,13 @@ package common
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/google/uuid"
-	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type NodeRelayMsg struct {
@@ -60,23 +57,15 @@ func (n *NodeRelay) fetchUUID() error {
 }
 
 func (n *NodeRelay) sign() error {
-	kbs, err := cosmos.GetKeybase(os.Getenv("CHAIN_HOME_FOLDER"))
+	msg := fmt.Sprintf("%s|%s|%s", n.Msg.UUID, n.Msg.Channel, n.Msg.Text)
+
+	sig, pubkey, err := SignBase64([]byte(msg))
 	if err != nil {
 		return err
 	}
 
-	buf := []byte(fmt.Sprintf("%s|%s|%s", n.Msg.UUID, n.Msg.Channel, n.Msg.Text))
-	sig, _, err := kbs.Keybase.Sign(kbs.SignerName, buf)
-	if err != nil {
-		return err
-	}
-
-	info, err := kbs.Keybase.Key(kbs.SignerName)
-	if err != nil {
-		return err
-	}
-	n.PubKey = base64.StdEncoding.EncodeToString(info.GetPubKey().Bytes())
-	n.Signature = base64.StdEncoding.EncodeToString(sig)
+	n.PubKey = pubkey
+	n.Signature = sig
 
 	return nil
 }
