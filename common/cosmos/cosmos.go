@@ -24,6 +24,7 @@ const (
 
 	EnvSignerName     = "SIGNER_NAME"
 	EnvSignerPassword = "SIGNER_PASSWD"
+	EnvChainHome      = "CHAIN_HOME_FOLDER"
 )
 
 var (
