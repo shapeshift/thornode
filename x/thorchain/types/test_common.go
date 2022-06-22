@@ -246,6 +246,7 @@ func MakeTestCodec() *codec.LegacyAmino {
 // GetCurrentVersion - intended for unit tests, fetches the current version of
 // THORNode via `version` file
 // #nosec G304 this is a method only used for test purpose
+// This can also be used for reporting querier (e.g. fullnode) version.
 func GetCurrentVersion() semver.Version {
 	_, filename, _, _ := runtime.Caller(0)
 	dir := path.Join(path.Dir(filename), "../../..")
