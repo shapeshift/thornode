@@ -1,6 +1,7 @@
 package ethereum
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -88,6 +90,12 @@ func (scp *SmartContractLogParser) parseVaultTransfer(log etypes.Log) (routerVau
 }
 
 func (scp *SmartContractLogParser) unpackVaultLog(out interface{}, event string, log etypes.Log) error {
+	if len(log.Topics) == 0 {
+		return errors.New("topics field in event log is empty")
+	}
+	if log.Topics[0] != scp.vaultABI.Events[event].ID {
+		return errors.New("event signature mismatch")
+	}
 	if len(log.Data) > 0 {
 		if err := scp.vaultABI.UnpackIntoInterface(out, event, log.Data); err != nil {
 			return fmt.Errorf("fail to parse event: %w", err)
@@ -132,6 +140,27 @@ func (scp *SmartContractLogParser) parseTransferAllowanceEvent(log etypes.Log) (
 	event := vaultTransferAllowanceEvent{}
 	if err := scp.unpackVaultLog(&event, TransferAllowanceEventName, log); err != nil {
 		return event, fmt.Errorf("fail to parse transfer allowance event")
+	}
+	return event, nil
+}
+
+// THORChainRouterTransferOutAndCall represents a TransferOutAndCall event raised by the THORChainRouter contract.
+type THORChainRouterTransferOutAndCall struct {
+	Vault        ecommon.Address
+	Target       ecommon.Address
+	Amount       *big.Int
+	FinalAsset   ecommon.Address
+	To           ecommon.Address
+	AmountOutMin *big.Int
+	Memo         string
+}
+
+// ParseTransferOutAndCall is a log parse operation binding the contract event 0xbda904e26adea40cc083dc36e80fde1641dfdd8b9a035c44022a43e713f73d36.
+func (scp *SmartContractLogParser) ParseTransferOutAndCall(log etypes.Log) (*THORChainRouterTransferOutAndCall, error) {
+	const TransferOutAndCallEventName = "TransferOutAndCall"
+	event := new(THORChainRouterTransferOutAndCall)
+	if err := scp.unpackVaultLog(event, TransferOutAndCallEventName, log); err != nil {
+		return nil, err
 	}
 	return event, nil
 }
@@ -307,6 +336,48 @@ func (scp *SmartContractLogParser) getTxInItem(logs []*etypes.Log, txInItem *typ
 			}
 			txInItem.Coins = totalCoins
 			isVaultTransfer = true
+		case transferOutAndCallEvent:
+			transferOutAndCall, err := scp.ParseTransferOutAndCall(*item)
+			if err != nil {
+				scp.logger.Err(err).Msg("fail to parse transferOutAndCall event")
+				continue
+			}
+			scp.logger.Info().Msgf("transferOutAndCall: %+v", transferOutAndCall)
+			m, err := memo.ParseMemo(common.LatestVersion, transferOutAndCall.Memo)
+			if err != nil {
+				scp.logger.Err(err).Msgf("fail to parse memo: %s", transferOutAndCall.Memo)
+				continue
+			}
+			if !m.IsType(memo.TxOutbound) {
+				scp.logger.Error().Msgf("%s is not an outbound memo", transferOutAndCall.Memo)
+				continue
+			}
+			decimals := scp.decimalResolver(ethToken)
+			txInItem.Coins = common.Coins{
+				common.NewCoin(common.ETHAsset, scp.amtConverter(ethToken, transferOutAndCall.Amount)).WithDecimals(decimals),
+			}
+			aggregatorAddr, err := common.NewAddress(transferOutAndCall.Target.String())
+			if err != nil {
+				scp.logger.Err(err).Str("aggregator_address", transferOutAndCall.Target.String()).Msg("fail to parse aggregator address")
+				continue
+			}
+			aggregatorTargetAddr, err := common.NewAddress(transferOutAndCall.FinalAsset.String())
+			if err != nil {
+				scp.logger.Err(err).Str("final_asset", transferOutAndCall.FinalAsset.String()).Msg("fail to parse aggregator target address")
+				continue
+			}
+
+			txInItem.To = transferOutAndCall.To.String()
+			txInItem.Memo = transferOutAndCall.Memo
+			txInItem.Sender = transferOutAndCall.Vault.String()
+			txInItem.Aggregator = aggregatorAddr.String()
+			txInItem.AggregatorTarget = aggregatorTargetAddr.String()
+			if transferOutAndCall.AmountOutMin != nil {
+				limit := cosmos.NewUintFromBigInt(transferOutAndCall.AmountOutMin)
+				if !limit.IsZero() {
+					txInItem.AggregatorTargetLimit = &limit
+				}
+			}
 		}
 		if earlyExit {
 			break

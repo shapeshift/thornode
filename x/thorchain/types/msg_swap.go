@@ -13,15 +13,18 @@ const MaxAffiliateFeeBasisPoints = 1_000
 var _ cosmos.Msg = &MsgSwap{}
 
 // NewMsgSwap is a constructor function for MsgSwap
-func NewMsgSwap(tx common.Tx, target common.Asset, destination common.Address, tradeTarget cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, signer cosmos.AccAddress) *MsgSwap {
+func NewMsgSwap(tx common.Tx, target common.Asset, destination common.Address, tradeTarget cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, agg, aggregatorTargetAddr string, aggregatorTargetLimit *cosmos.Uint, signer cosmos.AccAddress) *MsgSwap {
 	return &MsgSwap{
-		Tx:                   tx,
-		TargetAsset:          target,
-		Destination:          destination,
-		TradeTarget:          tradeTarget,
-		AffiliateAddress:     affAddr,
-		AffiliateBasisPoints: affPts,
-		Signer:               signer,
+		Tx:                      tx,
+		TargetAsset:             target,
+		Destination:             destination,
+		TradeTarget:             tradeTarget,
+		AffiliateAddress:        affAddr,
+		AffiliateBasisPoints:    affPts,
+		Signer:                  signer,
+		Aggregator:              agg,
+		AggregatorTargetAddress: aggregatorTargetAddr,
+		AggregatorTargetLimit:   aggregatorTargetLimit,
 	}
 }
 
@@ -110,6 +113,12 @@ func (m *MsgSwap) ValidateBasicV63() error {
 	}
 	if !m.AffiliateAddress.IsEmpty() && !m.AffiliateAddress.IsChain(common.THORChain) {
 		return cosmos.ErrUnknownRequest("swap affiliate address must be a THOR address")
+	}
+	if len(m.Aggregator) != 0 && len(m.AggregatorTargetAddress) == 0 {
+		return cosmos.ErrUnknownRequest("aggregator target asset address is empty")
+	}
+	if len(m.AggregatorTargetAddress) > 0 && len(m.Aggregator) == 0 {
+		return cosmos.ErrUnknownRequest("aggregator is empty")
 	}
 	return nil
 }

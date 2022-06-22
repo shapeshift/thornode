@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"gitlab.com/thorchain/thornode/common"
-	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -15,25 +15,40 @@ type SwapMemo struct {
 	SlipLimit            cosmos.Uint
 	AffiliateAddress     common.Address
 	AffiliateBasisPoints cosmos.Uint
+	DexAggregator        string
+	DexTargetAddress     string
+	DexTargetLimit       *cosmos.Uint
 }
 
 func (m SwapMemo) GetDestination() common.Address       { return m.Destination }
 func (m SwapMemo) GetSlipLimit() cosmos.Uint            { return m.SlipLimit }
 func (m SwapMemo) GetAffiliateAddress() common.Address  { return m.AffiliateAddress }
 func (m SwapMemo) GetAffiliateBasisPoints() cosmos.Uint { return m.AffiliateBasisPoints }
+func (m SwapMemo) GetDexAggregator() string             { return m.DexAggregator }
+func (m SwapMemo) GetDexTargetAddress() string          { return m.DexTargetAddress }
+func (m SwapMemo) GetDexTargetLimit() *cosmos.Uint      { return m.DexTargetLimit }
 
-func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affAddr common.Address, affPts cosmos.Uint) SwapMemo {
-	return SwapMemo{
+func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, dexAgg, dexTargetAddress string, dexTargetLimit cosmos.Uint) SwapMemo {
+	swapMemo := SwapMemo{
 		MemoBase:             MemoBase{TxType: TxSwap, Asset: asset},
 		Destination:          dest,
 		SlipLimit:            slip,
 		AffiliateAddress:     affAddr,
 		AffiliateBasisPoints: affPts,
+		DexAggregator:        dexAgg,
+		DexTargetAddress:     dexTargetAddress,
 	}
+	if !dexTargetLimit.IsZero() {
+		swapMemo.DexTargetLimit = &dexTargetLimit
+	}
+	return swapMemo
 }
 
 func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
 	var err error
+	dexAgg := ""
+	dexTargetAddress := ""
+	dexTargetLimit := cosmos.ZeroUint()
 	if len(parts) < 2 {
 		return SwapMemo{}, fmt.Errorf("not enough parameters")
 	}
@@ -78,5 +93,22 @@ func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset,
 		}
 		affPts = cosmos.NewUint(pts)
 	}
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts), nil
+
+	if len(parts) > 6 && len(parts[6]) > 0 {
+		dexAgg = parts[6]
+	}
+
+	if len(parts) > 7 && len(parts[7]) > 0 {
+		dexTargetAddress = parts[7]
+	}
+
+	if len(parts) > 8 && len(parts[8]) > 0 {
+		dexTargetLimit, err = cosmos.ParseUint(parts[8])
+		if err != nil {
+			ctx.Logger().Error("invalid dex target limit, ignore it", "limit", parts[8])
+			dexTargetLimit = cosmos.ZeroUint()
+		}
+	}
+
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit), nil
 }

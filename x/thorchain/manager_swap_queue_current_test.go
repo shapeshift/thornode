@@ -46,38 +46,45 @@ func (s SwapQueueV58Suite) TestScoreMsgs(c *C) {
 			ID:    common.TxID("5E1DF027321F1FE37CA19B9ECB11C2B4ABEC0D8322199D335D9CE4C39F85F115"),
 			Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(2*common.One))},
 		}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    common.TxID("53C1A22436B385133BDD9157BB365DB7AAC885910D2FA7C9DC3578A04FFD4ADC"),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    common.TxID("6A470EB9AFE82981979A5EEEED3296E1E325597794BD5BFB3543A372CAF435E5"),
 			Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(1*common.One))},
 		}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    common.TxID("5EE9A7CCC55A3EBAFA0E542388CA1B909B1E3CE96929ED34427B96B7CCE9F8E8"),
 			Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(100*common.One))},
 		}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    common.TxID("0FF2A521FB11FFEA4DFE3B7AD4066FF0A33202E652D846F8397EFC447C97A91B"),
 			Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(10*common.One))},
 		}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(150*common.One))},
 		}, common.RuneAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(151*common.One))},
 		}, common.RuneAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 	}
 
@@ -108,57 +115,68 @@ func (s SwapQueueV58Suite) TestScoreMsgs(c *C) {
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(2*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(1*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(10*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(2*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(50*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(1*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(100*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 
 		NewMsgSwap(common.Tx{
 			ID:    GetRandomTxHash(),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One))},
 		}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
 			GetRandomBech32Addr()),
 	}
 

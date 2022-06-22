@@ -100,6 +100,14 @@
       "name": "THORWallet Governance Token",
       "decimals": 18,
       "tags": []
+    },
+    {
+      "chainId": 4,
+      "address": "0x0a44986b70527154e9F4290eC14e5f0D1C861823",
+      "symbol": "WETH",
+      "name": "WETH token for test",
+      "decimals": 18,
+      "tags": []
     }
   ],
   "version": {

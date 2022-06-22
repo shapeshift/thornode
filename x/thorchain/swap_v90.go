@@ -6,6 +6,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/cosmos/cosmos-sdk/telemetry"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -65,6 +66,9 @@ func (s *SwapperV90) Swap(ctx cosmos.Context,
 	target common.Asset,
 	destination common.Address,
 	swapTarget cosmos.Uint,
+	dexAgg string,
+	dexAggTargetAsset string,
+	dexAggLimit *cosmos.Uint,
 	transactionFee cosmos.Uint, synthVirtualDepthMult int64, mgr Manager,
 ) (cosmos.Uint, []*EventSwap, error) {
 	var swapEvents []*EventSwap
