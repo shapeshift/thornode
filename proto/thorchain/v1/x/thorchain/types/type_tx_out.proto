@@ -20,6 +20,9 @@ message TxOutItem {
   string in_hash = 8 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.TxID"];
   string out_hash = 9 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.TxID"];
   string module_name = 10 [json_name="-", (gogoproto.jsontag) = "-"];
+  string aggregator = 11;
+  string aggregator_target_asset = 12;
+  string aggregator_target_limit = 13 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = true];
 }
 
 message TxOut {

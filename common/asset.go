@@ -177,6 +177,10 @@ func (a *Asset) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &assetStr); err != nil {
 		return err
 	}
+	if assetStr == "." {
+		*a = EmptyAsset
+		return nil
+	}
 	*a, err = NewAsset(assetStr)
 	return err
 }

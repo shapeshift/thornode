@@ -39,7 +39,6 @@ func (b *ThorchainBridge) GetKeysign(blockHeight int64, pk string) (types.TxOut,
 	if query.Signature == "" {
 		return types.TxOut{}, errors.New("invalid keysign signature: empty")
 	}
-
 	buf, err := json.Marshal(query.Keysign)
 	if err != nil {
 		return types.TxOut{}, fmt.Errorf("fail to marshal keysign block to json: %w", err)

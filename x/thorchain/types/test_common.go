@@ -159,6 +159,13 @@ func GetRandomTERRAAddress() common.Address {
 	return terra
 }
 
+// GetRandomETHAddress get a random ETH address for test purpose
+func GetRandomETHAddress() common.Address {
+	pKey := GetRandomPubKey()
+	addr, _ := pKey.GetAddress(common.ETHChain)
+	return addr
+}
+
 // GetRandomGAIAAddress will just create a random terra address used for test purpose
 func GetRandomGAIAAddress() common.Address {
 	name := common.RandStringBytesMask(10)
