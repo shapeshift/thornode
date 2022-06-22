@@ -9,6 +9,99 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
+func subsidizePoolWithSlashBondV88(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
+	// Thorchain did not slash the node account
+	if slashRuneAmt.IsZero() {
+		return nil
+	}
+	stolenRUNE := ygg.GetCoin(common.RuneAsset()).Amount
+	slashRuneAmt = common.SafeSub(slashRuneAmt, stolenRUNE)
+	yggTotalStolen = common.SafeSub(yggTotalStolen, stolenRUNE)
+
+	// Should never happen, but this prevents a divide-by-zero panic in case it does
+	if yggTotalStolen.IsZero() {
+		return nil
+	}
+
+	type fund struct {
+		asset         common.Asset
+		stolenAsset   cosmos.Uint
+		subsidiseRune cosmos.Uint
+	}
+	// here need to use a map to hold on to the amount of RUNE need to be subsidized to each pool
+	// reason being , if ygg pool has both RUNE and BNB coin left, these two coin share the same pool
+	// which is BNB pool , if add the RUNE directly back to pool , it will affect BNB price , which will affect the result
+	subsidize := make([]fund, 0)
+	for _, coin := range ygg.Coins {
+		if coin.IsEmpty() {
+			continue
+		}
+		if coin.Asset.IsRune() {
+			// when the asset is RUNE, thorchain don't need to update the RUNE balance on pool
+			continue
+		}
+		f := fund{
+			asset:         coin.Asset,
+			stolenAsset:   cosmos.ZeroUint(),
+			subsidiseRune: cosmos.ZeroUint(),
+		}
+
+		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset)
+		if err != nil {
+			return err
+		}
+		f.stolenAsset = f.stolenAsset.Add(coin.Amount)
+		runeValue := pool.AssetValueInRune(coin.Amount)
+		// the amount of RUNE thorchain used to subsidize the pool is calculate by ratio
+		// slashRune * (stealAssetRuneValue /totalStealAssetRuneValue)
+		subsidizeAmt := slashRuneAmt.Mul(runeValue).Quo(yggTotalStolen)
+		f.subsidiseRune = f.subsidiseRune.Add(subsidizeAmt)
+		subsidize = append(subsidize, f)
+	}
+
+	for _, f := range subsidize {
+		pool, err := mgr.Keeper().GetPool(ctx, f.asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool", "asset", f.asset, "error", err)
+			continue
+		}
+		if pool.IsEmpty() {
+			continue
+		}
+
+		pool.BalanceRune = pool.BalanceRune.Add(f.subsidiseRune)
+		pool.BalanceAsset = common.SafeSub(pool.BalanceAsset, f.stolenAsset)
+
+		if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
+			ctx.Logger().Error("fail to save pool", "asset", pool.Asset, "error", err)
+			continue
+		}
+
+		// Send the subsidized RUNE from the Bond module to Asgard
+		runeToAsgard := common.NewCoin(common.RuneNative, f.subsidiseRune)
+		if err := mgr.Keeper().SendFromModuleToModule(ctx, BondName, AsgardName, common.NewCoins(runeToAsgard)); err != nil {
+			ctx.Logger().Error("fail to send subsidy from bond to asgard", "error", err)
+			return err
+		}
+
+		poolSlashAmt := []PoolAmt{
+			{
+				Asset:  pool.Asset,
+				Amount: 0 - int64(f.stolenAsset.Uint64()),
+			},
+			{
+				Asset:  common.RuneAsset(),
+				Amount: int64(f.subsidiseRune.Uint64()),
+			},
+		}
+		eventSlash := NewEventSlash(pool.Asset, poolSlashAmt)
+		if err := mgr.EventMgr().EmitEvent(ctx, eventSlash); err != nil {
+			ctx.Logger().Error("fail to emit slash event", "error", err)
+		}
+	}
+	return nil
+}
+
 func refundBondV81(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
