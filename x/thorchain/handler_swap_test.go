@@ -3,9 +3,14 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"strings"
+
+	se "github.com/cosmos/cosmos-sdk/types/errors"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 
 	. "gopkg.in/check.v1"
 
@@ -38,9 +43,13 @@ func (s *HandlerSwapSuite) TestValidate(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
+	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, observerAddr)
 	err := handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
+
+	// bad aggregator reference
+	msg.Aggregator = "zzzzzz"
+	c.Assert(handler.validate(ctx, *msg), NotNil)
 
 	// invalid msg
 	msg = &MsgSwap{}
@@ -140,7 +149,7 @@ func (s *HandlerSwapSuite) TestValidation(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	msg := NewMsgSwap(tx, common.BNBAsset.GetSyntheticAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
+	msg := NewMsgSwap(tx, common.BNBAsset.GetSyntheticAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, observerAddr)
 	err := handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
 
@@ -181,7 +190,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), observerAddr)
+	msg := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, observerAddr)
 
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
@@ -199,7 +208,7 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	msgSwapPriceProtection := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.NewUint(2*common.One), common.NoAddress, cosmos.ZeroUint(), observerAddr)
+	msgSwapPriceProtection := NewMsgSwap(tx, common.BNBAsset, signerBNBAddr, cosmos.NewUint(2*common.One), common.NoAddress, cosmos.ZeroUint(), "", "", nil, observerAddr)
 	result, err = handler.Run(ctx, msgSwapPriceProtection)
 	c.Assert(err.Error(), Equals, errors.New("emit asset 192233756 less than price limit 200000000").Error())
 	c.Assert(result, IsNil)
@@ -241,12 +250,12 @@ func (s *HandlerSwapSuite) TestHandle(c *C) {
 	result, err = handler.Run(ctx, msgSwapFromTxIn)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
-	msgSwap := NewMsgSwap(GetRandomTx(), common.EmptyAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
+	msgSwap := NewMsgSwap(GetRandomTx(), common.EmptyAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, GetRandomBech32Addr())
 	result, err = handler.Run(ctx, msgSwap)
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 
-	msgSwap2 := NewMsgSwap(GetRandomTx(), common.Rune67CAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
+	msgSwap2 := NewMsgSwap(GetRandomTx(), common.Rune67CAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, GetRandomBech32Addr())
 	result, err = handler.Run(ctx, msgSwap2)
 	c.Assert(err, NotNil)
 	c.Assert(err.Error(), Equals, fmt.Sprintf("target asset can't be %s", msgSwap2.TargetAsset.String()))
@@ -377,4 +386,121 @@ func (s *HandlerSwapSuite) TestDoubleSwap(c *C) {
 	items, err = mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 0)
+}
+
+func (s *HandlerSwapSuite) TestSwapOutDexIntegration(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	mgr.txOutStore = NewTxStoreDummy()
+	handler := NewSwapHandler(mgr)
+
+	pool := NewPool()
+	asset, err := common.NewAsset("ETH.ETH")
+	c.Assert(err, IsNil)
+	pool.Asset = asset
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	c.Assert(mgr.K.SetPool(ctx, pool), IsNil)
+
+	swapMemo := "swap:ETH.ETH:" + types.GetRandomETHAddress().String() + "::::2f2386f3848:" + types.GetRandomETHAddress().String()
+	m, err := ParseMemo(mgr.GetVersion(), swapMemo)
+	c.Assert(err, IsNil)
+
+	txIn := NewObservedTx(
+		common.NewTx(GetRandomTxHash(), GetRandomTHORAddress(), GetRandomTHORAddress(),
+			common.Coins{
+				common.NewCoin(common.RuneNative, cosmos.NewUint(2000000000)),
+			},
+			common.Gas{
+				common.NewCoin(common.RuneNative, cosmos.NewUint(20000000)),
+			},
+			swapMemo,
+		),
+		1,
+		GetRandomPubKey(), 1,
+	)
+
+	observerAddr, err := GetRandomTHORAddress().AccAddress()
+	c.Assert(err, IsNil)
+	msgSwapFromTxIn, err := getMsgSwapFromMemo(m.(SwapMemo), txIn, observerAddr)
+	c.Assert(err, IsNil)
+	// when SwapOut Dex integration has been disabled by mimir , it should return an error cause refund
+	mgr.Keeper().SetMimir(ctx, constants.SwapOutDexAggregationDisabled.String(), 1)
+	res, err := handler.Run(ctx, msgSwapFromTxIn)
+	c.Assert(res, IsNil)
+	c.Assert(err, NotNil)
+	c.Assert(err.Error(), Equals, "swap out dex integration disabled")
+
+	mgr.Keeper().SetMimir(ctx, constants.SwapOutDexAggregationDisabled.String(), 0)
+
+	// when target asset address is empty , swap should fail
+	swapM, ok := m.(SwapMemo)
+	c.Assert(ok, Equals, true)
+	swapM.DexTargetAddress = ""
+	msgSwapFromTxIn, err = getMsgSwapFromMemo(swapM, txIn, observerAddr)
+	c.Assert(err, IsNil)
+	res, err = handler.Run(ctx, msgSwapFromTxIn)
+	c.Assert(err, NotNil)
+	c.Assert(res, IsNil)
+	c.Assert(errors.Is(err, se.ErrUnknownRequest), Equals, true)
+	c.Assert(strings.HasPrefix(err.Error(), "aggregator target asset address is empty"), Equals, true)
+
+	// When the target asset is not ETH.ETH, it should fail
+	swapM, ok = m.(SwapMemo)
+	c.Assert(ok, Equals, true)
+	AAVEAsset, err := common.NewAsset("ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9")
+	c.Assert(err, IsNil)
+	swapM.Asset = AAVEAsset
+	msgSwapFromTxIn, err = getMsgSwapFromMemo(swapM, txIn, observerAddr)
+	c.Assert(err, IsNil)
+	res, err = handler.Run(ctx, msgSwapFromTxIn)
+	c.Assert(err, NotNil)
+	c.Assert(res, IsNil)
+	c.Assert(err.Error(), Equals, "target asset (ETH.AAVE-0X7FC66500C84A76AD7E9C93437BFC5AC33E2DDAE9) is not gas asset , can't use dex feature")
+
+	// when specified aggregator is not white list , swap should fail
+	swapM, ok = m.(SwapMemo)
+	c.Assert(ok, Equals, true)
+	swapM.DexAggregator = "whatever"
+	msgSwapFromTxIn, err = getMsgSwapFromMemo(swapM, txIn, observerAddr)
+	c.Assert(err, IsNil)
+	res, err = handler.Run(ctx, msgSwapFromTxIn)
+	c.Assert(err, NotNil)
+	c.Assert(res, IsNil)
+	c.Assert(err.Error(), Equals, "whatever aggregator not found")
+
+	// when aggregator target address is not valid , but we don't care
+	swapM, ok = m.(SwapMemo)
+	c.Assert(ok, Equals, true)
+	swapM.DexTargetAddress = "whatever"
+	msgSwapFromTxIn, err = getMsgSwapFromMemo(swapM, txIn, observerAddr)
+	c.Assert(err, IsNil)
+	res, err = handler.Run(ctx, msgSwapFromTxIn)
+	c.Assert(err, IsNil)
+	c.Assert(res, NotNil)
+
+	// when aggregator target address and target chain doesn't match , don't care
+	swapM, ok = m.(SwapMemo)
+	c.Assert(ok, Equals, true)
+	swapM.DexTargetAddress = GetRandomBNBAddress().String()
+	msgSwapFromTxIn, err = getMsgSwapFromMemo(swapM, txIn, observerAddr)
+	c.Assert(err, IsNil)
+	res, err = handler.Run(ctx, msgSwapFromTxIn)
+	c.Assert(err, IsNil)
+	c.Assert(res, NotNil)
+
+	mgr.TxOutStore().ClearOutboundItems(ctx)
+	// normal swap with DEX
+	swapM, ok = m.(SwapMemo)
+	c.Assert(ok, Equals, true)
+	msgSwapFromTxIn, err = getMsgSwapFromMemo(swapM, txIn, observerAddr)
+	c.Assert(err, IsNil)
+	res, err = handler.Run(ctx, msgSwapFromTxIn)
+	c.Assert(err, IsNil)
+	c.Assert(res, NotNil)
+	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(items, HasLen, 1)
+	c.Assert(items[0].Aggregator, Equals, "0x69800327b38A4CeF30367Dec3f64c2f2386f3848")
+	c.Assert(items[0].AggregatorTargetAsset, Equals, swapM.DexTargetAddress)
+	c.Assert(items[0].AggregatorTargetLimit, IsNil)
 }

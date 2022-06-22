@@ -6,19 +6,23 @@ import (
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 // TxOutItem represent the information of a tx bifrost need to process
 type TxOutItem struct {
-	Chain       common.Chain   `json:"chain"`
-	ToAddress   common.Address `json:"to"`
-	VaultPubKey common.PubKey  `json:"vault_pubkey"`
-	Coins       common.Coins   `json:"coins"`
-	Memo        string         `json:"memo"`
-	MaxGas      common.Gas     `json:"max_gas"`
-	GasRate     int64          `json:"gas_rate"`
-	InHash      common.TxID    `json:"in_hash"`
-	OutHash     common.TxID    `json:"out_hash"`
+	Chain                 common.Chain   `json:"chain"`
+	ToAddress             common.Address `json:"to"`
+	VaultPubKey           common.PubKey  `json:"vault_pubkey"`
+	Coins                 common.Coins   `json:"coins"`
+	Memo                  string         `json:"memo"`
+	MaxGas                common.Gas     `json:"max_gas"`
+	GasRate               int64          `json:"gas_rate"`
+	InHash                common.TxID    `json:"in_hash"`
+	OutHash               common.TxID    `json:"out_hash"`
+	Aggregator            string         `json:"aggregator"`
+	AggregatorTargetAsset string         `json:"aggregator_target_asset,omitempty"`
+	AggregatorTargetLimit *cosmos.Uint   `json:"aggregator_target_limit,omitempty"`
 }
 
 // Hash return a sha256 hash that can uniquely represent the TxOutItem
@@ -56,6 +60,24 @@ func (tx TxOutItem) Equals(tx2 TxOutItem) bool {
 	if tx.GasRate != tx2.GasRate {
 		return false
 	}
+	if !strings.EqualFold(tx.Aggregator, tx2.Aggregator) {
+		return false
+	}
+	if !strings.EqualFold(tx.AggregatorTargetAsset, tx2.AggregatorTargetAsset) {
+		return false
+	}
+	if tx.AggregatorTargetLimit == nil && tx2.AggregatorTargetLimit == nil {
+		return true
+	}
+	if tx.AggregatorTargetLimit == nil && tx2.AggregatorTargetLimit != nil {
+		return false
+	}
+	if tx.AggregatorTargetLimit != nil && tx2.AggregatorTargetLimit == nil {
+		return false
+	}
+	if !tx.AggregatorTargetLimit.Equal(*tx2.AggregatorTargetLimit) {
+		return false
+	}
 	return true
 }
 
@@ -65,29 +87,35 @@ func (tx TxOutItem) Equals(tx2 TxOutItem) bool {
 // TxOutItem used in bifrost need to support Coins , because when Yggdrasil return , it send all the coins back to asgard
 // using multisend
 type TxArrayItem struct {
-	Chain       common.Chain   `json:"chain,omitempty"`
-	ToAddress   common.Address `json:"to_address,omitempty"`
-	VaultPubKey common.PubKey  `json:"vault_pub_key,omitempty"`
-	Coin        common.Coin    `json:"coin"`
-	Memo        string         `json:"memo,omitempty"`
-	MaxGas      common.Gas     `json:"max_gas"`
-	GasRate     int64          `json:"gas_rate,omitempty"`
-	InHash      common.TxID    `json:"in_hash,omitempty"`
-	OutHash     common.TxID    `json:"out_hash,omitempty"`
+	Chain                 common.Chain   `json:"chain,omitempty"`
+	ToAddress             common.Address `json:"to_address,omitempty"`
+	VaultPubKey           common.PubKey  `json:"vault_pub_key,omitempty"`
+	Coin                  common.Coin    `json:"coin"`
+	Memo                  string         `json:"memo,omitempty"`
+	MaxGas                common.Gas     `json:"max_gas"`
+	GasRate               int64          `json:"gas_rate,omitempty"`
+	InHash                common.TxID    `json:"in_hash,omitempty"`
+	OutHash               common.TxID    `json:"out_hash,omitempty"`
+	Aggregator            string         `json:"aggregator,omitempty"`
+	AggregatorTargetAsset string         `json:"aggregator_target_asset,omitempty"`
+	AggregatorTargetLimit *cosmos.Uint   `json:"aggregator_target_limit,omitempty"`
 }
 
 // TxOutItem convert the information to TxOutItem
 func (tx TxArrayItem) TxOutItem() TxOutItem {
 	return TxOutItem{
-		Chain:       tx.Chain,
-		ToAddress:   tx.ToAddress,
-		VaultPubKey: tx.VaultPubKey,
-		Coins:       common.Coins{tx.Coin},
-		Memo:        tx.Memo,
-		MaxGas:      tx.MaxGas,
-		GasRate:     tx.GasRate,
-		InHash:      tx.InHash,
-		OutHash:     tx.OutHash,
+		Chain:                 tx.Chain,
+		ToAddress:             tx.ToAddress,
+		VaultPubKey:           tx.VaultPubKey,
+		Coins:                 common.Coins{tx.Coin},
+		Memo:                  tx.Memo,
+		MaxGas:                tx.MaxGas,
+		GasRate:               tx.GasRate,
+		InHash:                tx.InHash,
+		OutHash:               tx.OutHash,
+		Aggregator:            tx.Aggregator,
+		AggregatorTargetAsset: tx.AggregatorTargetAsset,
+		AggregatorTargetLimit: tx.AggregatorTargetLimit,
 	}
 }
 

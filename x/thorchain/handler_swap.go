@@ -44,6 +44,8 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.92.0")):
+		return h.validateV92(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.1")):
 		return h.validateV88(ctx, msg)
 	case version.GTE(semver.MustParse("0.65.0")):
@@ -53,7 +55,7 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	}
 }
 
-func (h SwapHandler) validateV88(ctx cosmos.Context, msg MsgSwap) error {
+func (h SwapHandler) validateV92(ctx cosmos.Context, msg MsgSwap) error {
 	if err := msg.ValidateBasicV63(); err != nil {
 		return err
 	}
@@ -63,7 +65,6 @@ func (h SwapHandler) validateV88(ctx cosmos.Context, msg MsgSwap) error {
 		return errors.New("trading is halted, can't process swap")
 	}
 	if target.IsSyntheticAsset() {
-
 		// the following  only applicable for chaosnet
 		totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
 		if err != nil {
@@ -125,6 +126,28 @@ func (h SwapHandler) validateV88(ctx cosmos.Context, msg MsgSwap) error {
 			return errAddLiquidityRUNEMoreThanBond
 		}
 	}
+
+	if len(msg.Aggregator) > 0 {
+		swapOutDisabled := fetchConfigInt64(ctx, h.mgr, constants.SwapOutDexAggregationDisabled)
+		if swapOutDisabled > 0 {
+			return errors.New("swap out dex integration disabled")
+		}
+		if !msg.TargetAsset.Equals(msg.TargetAsset.Chain.GetGasAsset()) {
+			return fmt.Errorf("target asset (%s) is not gas asset , can't use dex feature", msg.TargetAsset)
+		}
+		// validate that a referenced dex aggregator is legit
+		addr, err := FetchDexAggregator(h.mgr.GetVersion(), target.Chain, msg.Aggregator)
+		if err != nil {
+			return err
+		}
+		if addr == "" {
+			return fmt.Errorf("aggregator address is empty")
+		}
+		if len(msg.AggregatorTargetAddress) == 0 {
+			return fmt.Errorf("aggregator target address is empty")
+		}
+	}
+
 	return nil
 }
 
@@ -132,6 +155,8 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.92.0")):
+		return h.handleV92(ctx, msg)
 	case version.GTE(semver.MustParse("0.81.0")):
 		return h.handleV81(ctx, msg)
 	default:
@@ -139,7 +164,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	}
 }
 
-func (h SwapHandler) handleV81(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+func (h SwapHandler) handleV92(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
@@ -154,11 +179,20 @@ func (h SwapHandler) handleV81(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 		return nil, fmt.Errorf("target asset can't be %s", msg.TargetAsset.String())
 	}
 
+	dexAgg := ""
+	dexAggTargetAsset := ""
+	if len(msg.Aggregator) > 0 {
+		dexAgg, err = FetchDexAggregator(h.mgr.GetVersion(), msg.TargetAsset.Chain, msg.Aggregator)
+		if err != nil {
+			return nil, err
+		}
+	}
+	dexAggTargetAsset = msg.AggregatorTargetAddress
+
 	swapper, err := GetSwapper(h.mgr.Keeper().GetVersion())
 	if err != nil {
 		return nil, err
 	}
-
 	_, _, swapErr := swapper.Swap(
 		ctx,
 		h.mgr.Keeper(),
@@ -166,6 +200,9 @@ func (h SwapHandler) handleV81(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 		msg.TargetAsset,
 		msg.Destination,
 		msg.TradeTarget,
+		dexAgg,
+		dexAggTargetAsset,
+		msg.AggregatorTargetLimit,
 		transactionFee,
 		synthVirtualDepthMult,
 		h.mgr)

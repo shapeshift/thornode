@@ -94,6 +94,7 @@ func StringToTxType(s string) (TxType, error) {
 	if t, ok := stringToTxTypeMap[sl]; ok {
 		return t, nil
 	}
+
 	return TxUnknown, fmt.Errorf("invalid tx type: %s", s)
 }
 
@@ -163,6 +164,9 @@ type Memo interface {
 	GetTxID() common.TxID
 	GetAccAddress() cosmos.AccAddress
 	GetBlockHeight() int64
+	GetDexAggregator() string
+	GetDexTargetAddress() string
+	GetDexTargetLimit() *cosmos.Uint
 }
 
 type MemoBase struct {
@@ -184,6 +188,9 @@ func (m MemoBase) IsOutbound() bool                 { return m.TxType.IsOutbound
 func (m MemoBase) IsInbound() bool                  { return m.TxType.IsInbound() }
 func (m MemoBase) IsInternal() bool                 { return m.TxType.IsInternal() }
 func (m MemoBase) IsEmpty() bool                    { return m.TxType.IsEmpty() }
+func (m MemoBase) GetDexAggregator() string         { return "" }
+func (m MemoBase) GetDexTargetAddress() string      { return "" }
+func (m MemoBase) GetDexTargetLimit() *cosmos.Uint  { return nil }
 
 func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 	defer func() {

@@ -63,7 +63,22 @@ func (m ObservedTx) Equals(tx2 ObservedTx) bool {
 	if m.FinaliseHeight != tx2.FinaliseHeight {
 		return false
 	}
-
+	if !strings.EqualFold(m.Aggregator, tx2.Aggregator) {
+		return false
+	}
+	if !strings.EqualFold(m.AggregatorTarget, tx2.AggregatorTarget) {
+		return false
+	}
+	emptyAmt := cosmos.ZeroUint()
+	if m.AggregatorTargetLimit == nil {
+		m.AggregatorTargetLimit = &emptyAmt
+	}
+	if tx2.AggregatorTargetLimit == nil {
+		tx2.AggregatorTargetLimit = &emptyAmt
+	}
+	if !m.AggregatorTargetLimit.Equal(*tx2.AggregatorTargetLimit) {
+		return false
+	}
 	return true
 }
 

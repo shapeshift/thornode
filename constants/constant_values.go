@@ -78,6 +78,7 @@ const (
 	PoolDepthForYggFundingMin
 	MaxNodeToChurnOutForLowVersion
 	RagnarokProcessNumOfLPPerIteration
+	SwapOutDexAggregationDisabled
 )
 
 var nameToString = map[ConstantName]string{
@@ -148,6 +149,7 @@ var nameToString = map[ConstantName]string{
 	NodeOperatorFee:                    "NodeOperatorFee",
 	PoolDepthForYggFundingMin:          "PoolDepthForYggFundingMin",
 	MaxNodeToChurnOutForLowVersion:     "MaxNodeToChurnOutForLowVersion",
+	SwapOutDexAggregationDisabled:      "SwapOutDexAggregationDisabled",
 	RagnarokProcessNumOfLPPerIteration: "RagnarokProcessNumOfLPPerIteration",
 }
 
