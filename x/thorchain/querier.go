@@ -811,7 +811,10 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
 	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
-	pool.CalcUnits(mgr.GetVersion(), synthSupply)
+	// Querier needs to use GetLowestActiveVersion for historical version information
+	// (for efficiency, only for a query which needs it),
+	// since not recreating all managers with BeginBlock in managers.go .
+	pool.CalcUnits(mgr.Keeper().GetLowestActiveVersion(ctx), synthSupply)
 
 	p := struct {
 		BalanceRune         cosmos.Uint  `json:"balance_rune"`
@@ -874,7 +877,10 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		}
 
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
-		pool.CalcUnits(mgr.GetVersion(), synthSupply)
+		// Querier needs to use GetLowestActiveVersion for historical version information
+		// (for efficiency, only for a query which needs it),
+		// since not recreating all managers with BeginBlock in managers.go .
+		pool.CalcUnits(mgr.Keeper().GetLowestActiveVersion(ctx), synthSupply)
 
 		p := pp{
 			BalanceRune:         pool.BalanceRune,
@@ -1235,8 +1241,12 @@ func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuer
 
 func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	ver := QueryVersion{
-		Current: mgr.GetVersion(),
+		// Querier needs to use GetLowestActiveVersion for historical version information
+		// (for efficiency, only for a query which needs it),
+		// since not recreating all managers with BeginBlock in managers.go .
+		Current: mgr.Keeper().GetLowestActiveVersion(ctx),
 		Next:    mgr.Keeper().GetMinJoinVersion(ctx),
+		Querier: GetCurrentVersion(),
 	}
 	res, err := json.MarshalIndent(ver, "", "	")
 	if err != nil {
