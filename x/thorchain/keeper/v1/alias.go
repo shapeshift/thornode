@@ -15,6 +15,8 @@ const (
 	AsgardVault    = types.VaultType_AsgardVault
 	YggdrasilVault = types.VaultType_YggdrasilVault
 	ActiveVault    = types.VaultStatus_ActiveVault
+	InitVault      = types.VaultStatus_InitVault
+	RetiringVault  = types.VaultStatus_RetiringVault
 	InactiveVault  = types.VaultStatus_InactiveVault
 
 	// Node status
