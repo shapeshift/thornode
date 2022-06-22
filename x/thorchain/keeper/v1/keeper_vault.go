@@ -251,6 +251,23 @@ func (k KVStore) addAsgardIndex(ctx cosmos.Context, pubkey common.PubKey) error 
 	return nil
 }
 
+func (k KVStore) RemoveFromAsgardIndex(ctx cosmos.Context, pubkey common.PubKey) error {
+	pks, err := k.getAsgardIndex(ctx)
+	if err != nil {
+		return err
+	}
+
+	newPks := common.PubKeys{}
+	for _, pk := range pks {
+		if !pk.Equals(pubkey) {
+			newPks = append(newPks, pk)
+		}
+	}
+
+	k.setStrings(ctx, k.GetKey(ctx, prefixVaultAsgardIndex, ""), newPks.Strings())
+	return nil
+}
+
 // GetAsgardVaults return all asgard vaults
 func (k KVStore) GetAsgardVaults(ctx cosmos.Context) (Vaults, error) {
 	pks, err := k.getAsgardIndex(ctx)
@@ -304,19 +321,9 @@ func (k KVStore) DeleteVault(ctx cosmos.Context, pubkey common.PubKey) error {
 	}
 
 	if vault.IsAsgard() {
-		pks, err := k.getAsgardIndex(ctx)
-		if err != nil {
-			return err
+		if err := k.RemoveFromAsgardIndex(ctx, pubkey); err != nil {
+			ctx.Logger().Error("fail to remove vault from asgard index", "error", err)
 		}
-
-		newPks := common.PubKeys{}
-		for _, pk := range pks {
-			if !pk.Equals(pubkey) {
-				newPks = append(newPks, pk)
-			}
-		}
-
-		k.setStrings(ctx, k.GetKey(ctx, prefixVaultAsgardIndex, ""), newPks.Strings())
 	}
 	// delete the actual vault
 	k.del(ctx, k.GetKey(ctx, prefixVault, vault.PubKey.String()))
