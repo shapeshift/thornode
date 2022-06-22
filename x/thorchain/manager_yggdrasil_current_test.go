@@ -314,7 +314,7 @@ func (s YggdrasilManagerV79Suite) TestAbandonYggdrasil(c *C) {
 	vault := GetRandomVault()
 	vault.Membership = []string{vault.PubKey.String()}
 	vault.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(10000*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(10000*common.One)),
 	}
 	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
@@ -324,6 +324,11 @@ func (s YggdrasilManagerV79Suite) TestAbandonYggdrasil(c *C) {
 	bnbPool.BalanceRune = cosmos.NewUint(1000 * common.One)
 	bnbPool.BalanceAsset = cosmos.NewUint(1000 * common.One)
 	c.Assert(mgr.Keeper().SetPool(ctx, bnbPool), IsNil)
+	btcPool := NewPool()
+	btcPool.Asset = common.BTCAsset
+	btcPool.BalanceRune = cosmos.NewUint(1000 * common.One)
+	btcPool.BalanceAsset = cosmos.NewUint(1000 * common.One)
+	c.Assert(mgr.Keeper().SetPool(ctx, btcPool), IsNil)
 	// setup 6 active nodes ,  so it will fund yggdrasil
 	for i := 0; i < 6; i++ {
 		na := GetRandomValidatorNode(NodeActive)
@@ -341,7 +346,7 @@ func (s YggdrasilManagerV79Suite) TestAbandonYggdrasil(c *C) {
 	yggdrasilVault.PubKey = naDisabled.PubKeySet.Secp256k1
 	yggdrasilVault.Membership = []string{yggdrasilVault.PubKey.String()}
 	yggdrasilVault.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), cosmos.NewUint(250*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(250*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
 	}
 	yggdrasilVault.Type = YggdrasilVault
