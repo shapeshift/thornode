@@ -3,6 +3,7 @@ package thorchain
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
 
+	"gitlab.com/thorchain/thornode/x/thorchain/aggregators"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -193,6 +194,8 @@ var (
 	NewYggdrasilReturn     = mem.NewYggdrasilReturn
 	NewYggdrasilFund       = mem.NewYggdrasilFund
 	NewMigrateMemo         = mem.NewMigrateMemo
+
+	FetchDexAggregator = aggregators.FetchDexAggregator
 )
 
 type (

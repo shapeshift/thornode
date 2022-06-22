@@ -37,7 +37,7 @@ func (PoolTestSuite) TestPool(c *C) {
 		BNBGasFeeSingleton,
 		"",
 	)
-	m := NewMsgSwap(tx, common.BNBAsset, bnbAddress, cosmos.NewUint(2), common.NoAddress, cosmos.ZeroUint(), signer)
+	m := NewMsgSwap(tx, common.BNBAsset, bnbAddress, cosmos.NewUint(2), common.NoAddress, cosmos.ZeroUint(), "", "", nil, signer)
 
 	c.Check(p.EnsureValidPoolStatus(m), IsNil)
 	msgNoop := NewMsgNoOp(GetRandomObservedTx(), signer, "")
@@ -63,7 +63,7 @@ func (PoolTestSuite) TestPool(c *C) {
 	// When Pool is in staged status, it can't swap
 	p2 := NewPool()
 	p2.Status = PoolStatus_Staged
-	msgSwap := NewMsgSwap(GetRandomTx(), common.BNBAsset, GetRandomBNBAddress(), cosmos.NewUint(1000), common.NoAddress, cosmos.ZeroUint(), GetRandomBech32Addr())
+	msgSwap := NewMsgSwap(GetRandomTx(), common.BNBAsset, GetRandomBNBAddress(), cosmos.NewUint(1000), common.NoAddress, cosmos.ZeroUint(), "", "", nil, GetRandomBech32Addr())
 	c.Check(p2.EnsureValidPoolStatus(msgSwap), NotNil)
 	c.Check(p2.EnsureValidPoolStatus(msgNoop), IsNil)
 }

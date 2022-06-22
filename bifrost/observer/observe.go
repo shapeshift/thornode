@@ -541,6 +541,9 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 			item.ObservedVaultPubKey,
 			item.BlockHeight+txIn.ConfirmationRequired)
 		tx.KeysignMs = o.tssKeysignMetricMgr.GetTssKeysignMetric(item.Tx)
+		tx.Aggregator = item.Aggregator
+		tx.AggregatorTarget = item.AggregatorTarget
+		tx.AggregatorTargetLimit = item.AggregatorTargetLimit
 		txs = append(txs, tx)
 	}
 	return txs, nil

@@ -413,11 +413,45 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	hasRouterUpdated := false
 	switch memo.GetType() {
 	case mem.TxOutbound, mem.TxRefund, mem.TxRagnarok:
-		data, err = c.vaultABI.Pack("transferOut", dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
-		if err != nil {
-			return nil, fmt.Errorf("fail to create data to call smart contract(transferOut): %w", err)
+		if tx.Aggregator == "" {
+			data, err = c.vaultABI.Pack("transferOut", dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
+			if err != nil {
+				return nil, fmt.Errorf("fail to create data to call smart contract(transferOut): %w", err)
+			}
+		} else {
+			memoType := memo.GetType()
+			if memoType == mem.TxRefund || memoType == mem.TxRagnarok {
+				return nil, fmt.Errorf("%s can't use transferOutAndCall", memoType)
+			}
+			c.logger.Info().Msgf("aggregator target address: %s", tx.AggregatorTargetAsset)
+			if ethValue.Uint64() == 0 {
+				return nil, fmt.Errorf("transferOutAndCall can only be used when outbound asset is ETH")
+			}
+			targetLimit := tx.AggregatorTargetLimit
+			if targetLimit == nil {
+				zeroLimit := cosmos.ZeroUint()
+				targetLimit = &zeroLimit
+			}
+			aggAddr := ecommon.HexToAddress(tx.Aggregator)
+			targetAddr := ecommon.HexToAddress(tx.AggregatorTargetAsset)
+			// when address can't be round trip , the tx out item will be dropped
+			if !strings.EqualFold(aggAddr.String(), tx.Aggregator) {
+				c.logger.Error().Msgf("aggregator address can't roundtrip , ignore tx (%s != %s)", tx.Aggregator, aggAddr.String())
+				return nil, nil
+			}
+			if !strings.EqualFold(targetAddr.String(), tx.AggregatorTargetAsset) {
+				c.logger.Error().Msgf("aggregator target asset address can't roundtrip , ignore tx (%s != %s)", tx.AggregatorTargetAsset, targetAddr.String())
+				return nil, nil
+			}
+			data, err = c.vaultABI.Pack("transferOutAndCall", aggAddr, targetAddr, dest, targetLimit.BigInt(), tx.Memo)
+			if err != nil {
+				return nil, fmt.Errorf("fail to create data to call smart contract(transferOutAndCall): %w", err)
+			}
 		}
 	case mem.TxMigrate, mem.TxYggdrasilFund:
+		if tx.Aggregator != "" || tx.AggregatorTargetAsset != "" {
+			return nil, fmt.Errorf("migration / yggdrasil+ can't use aggregator")
+		}
 		if IsETH(tokenAddr) {
 			data, err = c.vaultABI.Pack("transferOut", dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
 			if err != nil {
@@ -434,6 +468,9 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 			}
 		}
 	case mem.TxYggdrasilReturn:
+		if tx.Aggregator != "" || tx.AggregatorTargetAsset != "" {
+			return nil, fmt.Errorf("yggdrasil- can't use aggregator")
+		}
 		newSmartContractAddr := c.getSmartContractByAddress(tx.ToAddress)
 		if newSmartContractAddr.IsEmpty() {
 			return nil, fmt.Errorf("fail to get new smart contract address")
@@ -517,8 +554,18 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 				c.logger.Info().Msgf("yggdrasil return fund , gas need: %s", gap.String())
 				ethValue = ethValue.Sub(ethValue, gap)
 			} else {
-				gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
-				c.logger.Info().Msgf("based on estimated gas unit (%d) , total gas will be %s, which is more than %s, so adjust gas rate to %s", estimatedGas, totalGas.String(), gasOut.String(), gasRate.String())
+				if tx.Aggregator == "" {
+					gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
+					c.logger.Info().Msgf("based on estimated gas unit (%d) , total gas will be %s, which is more than %s, so adjust gas rate to %s", estimatedGas, totalGas.String(), gasOut.String(), gasRate.String())
+				} else {
+					if estimatedGas > maxGasLimit {
+						// the estimated gas unit is more than the maximum , so bring down the gas rate
+						maxGasWei := big.NewInt(1).Mul(big.NewInt(maxGasLimit), gasRate)
+						gasRate = big.NewInt(1).Div(maxGasWei, big.NewInt(int64(estimatedGas)))
+					} else {
+						estimatedGas = maxGasLimit // pay the maximum
+					}
+				}
 			}
 		} else {
 			// override estimate gas with the max
@@ -529,8 +576,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	} else {
 		if estimatedGas > maxGasLimit {
 			// the estimated gas unit is more than the maximum , so bring down the gas rate
-			maximumGasToPay := big.NewInt(1).Mul(big.NewInt(maxGasLimit), gasRate)
-			gasRate = big.NewInt(1).Div(maximumGasToPay, big.NewInt(int64(estimatedGas)))
+			maxGasWei := big.NewInt(1).Mul(big.NewInt(maxGasLimit), gasRate)
+			gasRate = big.NewInt(1).Div(maxGasWei, big.NewInt(int64(estimatedGas)))
 		}
 		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	}

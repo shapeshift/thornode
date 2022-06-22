@@ -39,17 +39,18 @@ import (
 type SolvencyReporter func(int64) error
 
 const (
-	BlockCacheSize         = 6000
-	MaxContractGas         = 80000
-	depositEvent           = "0xef519b7eb82aaf6ac376a6df2d793843ebfd593de5f1a0601d3cc6ab49ebb395"
-	transferOutEvent       = "0xa9cd03aa3c1b4515114539cd53d22085129d495cb9e9f9af77864526240f1bf7"
-	transferAllowanceEvent = "0x05b90458f953d3fcb2d7fb25616a2fddeca749d0c47cc5c9832d0266b5346eea"
-	vaultTransferEvent     = "0x281daef48d91e5cd3d32db0784f6af69cd8d8d2e8c612a3568dca51ded51e08f"
-	ethToken               = "0x0000000000000000000000000000000000000000"
-	symbolMethod           = "symbol"
-	decimalMethod          = "decimals"
-	defaultDecimals        = 18 // on ETH , consolidate all decimals to 18, in Wei
-	tenGwei                = 10000000000
+	BlockCacheSize          = 6000
+	MaxContractGas          = 80000
+	depositEvent            = "0xef519b7eb82aaf6ac376a6df2d793843ebfd593de5f1a0601d3cc6ab49ebb395"
+	transferOutEvent        = "0xa9cd03aa3c1b4515114539cd53d22085129d495cb9e9f9af77864526240f1bf7"
+	transferAllowanceEvent  = "0x05b90458f953d3fcb2d7fb25616a2fddeca749d0c47cc5c9832d0266b5346eea"
+	vaultTransferEvent      = "0x281daef48d91e5cd3d32db0784f6af69cd8d8d2e8c612a3568dca51ded51e08f"
+	transferOutAndCallEvent = "0x8e5841bcd195b858d53b38bcf91b38d47f3bc800469b6812d35451ab619c6f6c"
+	ethToken                = "0x0000000000000000000000000000000000000000"
+	symbolMethod            = "symbol"
+	decimalMethod           = "decimals"
+	defaultDecimals         = 18 // on ETH , consolidate all decimals to 18, in Wei
+	tenGwei                 = 10000000000
 )
 
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc

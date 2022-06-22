@@ -723,6 +723,8 @@ func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
 		Chain:       common.BNBChain,
 		Coins:       common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(2*common.One))},
 	}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000),
+		"",
+		"", nil,
 		GetRandomBech32Addr(),
 	)
 	handler.addSwap(ctx, *msg)
