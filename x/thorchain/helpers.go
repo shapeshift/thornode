@@ -143,15 +143,19 @@ func getFee(input, output common.Coins, transactionFee cosmos.Uint) common.Fee {
 
 func subsidizePoolWithSlashBond(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("1.88.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.92.0")):
+		return subsidizePoolWithSlashBondV92(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
+	case version.GTE(semver.MustParse("1.88.0")):
 		return subsidizePoolWithSlashBondV88(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
-	} else if version.GTE(semver.MustParse("0.74.0")) {
+	case version.GTE(semver.MustParse("0.74.0")):
 		return subsidizePoolWithSlashBondV74(ctx, ygg, yggTotalStolen, slashRuneAmt, mgr)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
-func subsidizePoolWithSlashBondV88(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
+func subsidizePoolWithSlashBondV92(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
 	// Thorchain did not slash the node account
 	if slashRuneAmt.IsZero() {
 		return nil
@@ -194,6 +198,10 @@ func subsidizePoolWithSlashBondV88(ctx cosmos.Context, ygg Vault, yggTotalStolen
 		}
 		f.stolenAsset = f.stolenAsset.Add(coin.Amount)
 		runeValue := pool.AssetValueInRune(coin.Amount)
+		if runeValue.IsZero() {
+			ctx.Logger().Info("rune value of stolen asset is 0", "pool", pool.Asset, "asset amount", coin.Amount.String())
+			continue
+		}
 		// the amount of RUNE thorchain used to subsidize the pool is calculate by ratio
 		// slashRune * (stealAssetRuneValue /totalStealAssetRuneValue)
 		subsidizeAmt := slashRuneAmt.Mul(runeValue).Quo(yggTotalStolen)
@@ -221,9 +229,11 @@ func subsidizePoolWithSlashBondV88(ctx cosmos.Context, ygg Vault, yggTotalStolen
 
 		// Send the subsidized RUNE from the Bond module to Asgard
 		runeToAsgard := common.NewCoin(common.RuneNative, f.subsidiseRune)
-		if err := mgr.Keeper().SendFromModuleToModule(ctx, BondName, AsgardName, common.NewCoins(runeToAsgard)); err != nil {
-			ctx.Logger().Error("fail to send subsidy from bond to asgard", "error", err)
-			return err
+		if !runeToAsgard.Amount.IsZero() {
+			if err := mgr.Keeper().SendFromModuleToModule(ctx, BondName, AsgardName, common.NewCoins(runeToAsgard)); err != nil {
+				ctx.Logger().Error("fail to send subsidy from bond to asgard", "error", err)
+				return err
+			}
 		}
 
 		poolSlashAmt := []PoolAmt{
