@@ -116,13 +116,17 @@ func (h UnBondHandler) validateV88(ctx cosmos.Context, msg MsgUnBond) error {
 
 func (h UnBondHandler) handle(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.81.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.92.0")):
+		return h.handleV92(ctx, msg)
+	case version.GTE(semver.MustParse("0.81.0")):
 		return h.handleV81(ctx, msg)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
-func (h UnBondHandler) handleV81(ctx cosmos.Context, msg MsgUnBond) error {
+func (h UnBondHandler) handleV92(ctx cosmos.Context, msg MsgUnBond) error {
 	na, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -175,7 +179,8 @@ func (h UnBondHandler) handleV81(ctx cosmos.Context, msg MsgUnBond) error {
 			}
 			return nil
 		}
-		totalRuneValue = totalRuneValue.MulUint64(3).QuoUint64(2)
+		penaltyPts := fetchConfigInt64(ctx, h.mgr, constants.SlashPenalty)
+		totalRuneValue = common.GetShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), totalRuneValue)
 		totalAmountCanBeUnbond := common.SafeSub(na.Bond, totalRuneValue)
 		if msg.Amount.GT(totalAmountCanBeUnbond) {
 			return cosmos.ErrUnknownRequest(fmt.Sprintf("unbond amount %s is more than %s , not allowed", msg.Amount, totalAmountCanBeUnbond))
