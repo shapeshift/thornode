@@ -401,7 +401,7 @@ paths:
     parameters:
       - $ref: "#/components/parameters/queryHeight"
     get:
-      description: Returns the network version.
+      description: Returns the network's current THORNode version, the network's next THORNode version, and the querier's THORNode version.
       operationId: version
       tags:
         - Network
@@ -422,6 +422,10 @@ paths:
                     type: string
                     example: "0.18.0"
                     description: next version
+                  querier:
+                    type: string
+                    example: "0.16.0"
+                    description: querier version
 
   /thorchain/constants:
     parameters:
