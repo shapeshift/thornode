@@ -203,6 +203,25 @@ func (s *HelperSuite) TestSubsidizePoolWithSlashBond(c *C) {
 	c.Assert(err, IsNil)
 	slashAmt = cosmos.NewUint(2 * common.One)
 	c.Assert(subsidizePoolWithSlashBond(ctx, ygg2, totalRuneLeft, slashAmt, mgr), IsNil)
+
+	// Skip subsidy if rune value of coin is 0 - can happen with an old, empty pool
+	poolETH := NewPool()
+	poolETH.Asset = common.ETHAsset
+	poolETH.BalanceAsset = cosmos.ZeroUint()
+	poolETH.BalanceRune = cosmos.NewUint(300 * common.One)
+	poolETH.Status = PoolAvailable
+	c.Assert(mgr.Keeper().SetPool(ctx, poolETH), IsNil)
+
+	ygg3 := GetRandomVault()
+	ygg3.Type = YggdrasilVault
+	ygg3.Coins = common.Coins{
+		common.NewCoin(common.ETHAsset, cosmos.NewUint(100)),
+	}
+
+	c.Assert(subsidizePoolWithSlashBond(ctx, ygg3, totalRuneLeft, slashAmt, mgr), IsNil)
+	poolETH, err = mgr.Keeper().GetPool(ctx, common.ETHAsset)
+	c.Assert(err, IsNil)
+	c.Assert(poolETH.BalanceRune.Equal(cosmos.NewUint(300*common.One)), Equals, true)
 }
 
 func (s *HelperSuite) TestPausedLP(c *C) {
