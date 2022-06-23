@@ -622,7 +622,7 @@ func (s *SlashingV92Suite) TestSlashVault(c *C) {
 	c.Assert(val, Equals, int64(18), Commentf("%d", val))
 }
 
-func (S *SlashingV92Suite) TestSlashAndUpdateNodeAccount(c *C) {
+func (s *SlashingV92Suite) TestSlashAndUpdateNodeAccount(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	slasher := newSlasherV92(mgr.Keeper(), mgr.EventMgr())
 

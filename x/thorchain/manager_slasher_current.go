@@ -428,8 +428,6 @@ func (s *SlasherV92) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			continue
 		}
 
-		// stolenRuneValue is the value in RUNE of the missing funds
-		stolenRuneValue := cosmos.ZeroUint()
 		stolenAssetValue := coin.Amount
 		vaultAmount := vault.GetCoin(coin.Asset).Amount
 		if stolenAssetValue.GT(vaultAmount) {
@@ -439,7 +437,8 @@ func (s *SlasherV92) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			stolenAssetValue = pool.BalanceAsset
 		}
 
-		stolenRuneValue = pool.AssetValueInRune(stolenAssetValue)
+		// stolenRuneValue is the value in RUNE of the missing funds
+		stolenRuneValue := pool.AssetValueInRune(stolenAssetValue)
 
 		if stolenRuneValue.IsZero() {
 			continue
