@@ -9,6 +9,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/cosmos/cosmos-sdk/telemetry"
+	"github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 	"github.com/tendermint/tendermint/crypto"
 
@@ -419,12 +420,12 @@ func (s *SlasherV89) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			continue
 		}
 		// rune value is the value in RUNE of the missing funds
-		runeValue := cosmos.ZeroUint()
 		coinAmount := coin.Amount
 		vaultAmount := vault.GetCoin(coin.Asset).Amount
 		if coinAmount.GT(vaultAmount) {
 			coinAmount = vaultAmount
 		}
+		var runeValue types.Uint
 		if coin.Asset.IsRune() {
 			runeValue = coinAmount
 		} else {
