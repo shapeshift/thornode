@@ -1,13 +1,13 @@
 version: 0.1
 cli:
-  version: 0.12.1-beta
+  version: 0.13.2-beta
 lint:
   enabled:
     - black-py@22.3.0
     - flake8@4.0.1
     - gitleaks@8.2.5
     - gofmt@1.16.7
-    - golangci-lint@1.42.1
+    - golangci-lint@1.46.2
     - hadolint@2.8.0
     - isort@5.10.1
     - markdownlint@0.30.0
