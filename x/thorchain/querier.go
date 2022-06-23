@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	types2 "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -406,7 +407,10 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 	var resp []address
 	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-
+	if mgr.Keeper() == nil {
+		ctx.Logger().Error("keeper is nil, can't fulfill query")
+		return nil, errors.New("keeper is nil, can't fulfill query")
+	}
 	// select vault that is most secure
 	vault := mgr.Keeper().GetMostSecure(ctx, active, signingTransactionPeriod)
 
@@ -415,9 +419,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 	if len(chains) == 0 {
 		chains = common.Chains{common.RuneAsset().Chain}
 	}
-	if err := mgr.BeginBlock(ctx); err != nil {
-		return nil, fmt.Errorf("fail to build manager: %w", err)
-	}
+
 	for _, chain := range chains {
 		// tx send to thorchain doesn't need an address , thus here skip it
 		if chain == common.THORChain {
@@ -811,10 +813,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
 	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
-	// Querier needs to use GetLowestActiveVersion for historical version information
-	// (for efficiency, only for a query which needs it),
-	// since not recreating all managers with BeginBlock in managers.go .
-	pool.CalcUnits(mgr.Keeper().GetLowestActiveVersion(ctx), synthSupply)
+	pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
 	p := struct {
 		BalanceRune         cosmos.Uint  `json:"balance_rune"`
@@ -877,10 +876,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		}
 
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
-		// Querier needs to use GetLowestActiveVersion for historical version information
-		// (for efficiency, only for a query which needs it),
-		// since not recreating all managers with BeginBlock in managers.go .
-		pool.CalcUnits(mgr.Keeper().GetLowestActiveVersion(ctx), synthSupply)
+		pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
 		p := pp{
 			BalanceRune:         pool.BalanceRune,
