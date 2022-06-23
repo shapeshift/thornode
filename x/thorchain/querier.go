@@ -1242,7 +1242,7 @@ func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr 
 		// since not recreating all managers with BeginBlock in managers.go .
 		Current: mgr.Keeper().GetLowestActiveVersion(ctx),
 		Next:    mgr.Keeper().GetMinJoinVersion(ctx),
-		Querier: GetCurrentVersion(),
+		Querier: constants.SWVersion,
 	}
 	res, err := json.MarshalIndent(ver, "", "	")
 	if err != nil {
