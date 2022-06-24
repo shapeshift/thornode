@@ -4,9 +4,9 @@
 
 THORNode is following semantic version. MAJOR.MINOR.PATCH(0.77.1)
 
-At the moment, Major is always 0, it might become 1 once mainnet reached
+The MAJOR version currently is updated per soft-fork.
 
-Minor version need to update when the network introduce some none backward compatible changes
+Minor version need to update when the network introduce some none backward compatible changes. 
 
 Patch version, is backward compatible, usually changes only in bifrost
 
@@ -15,7 +15,9 @@ Patch version, is backward compatible, usually changes only in bifrost
 1. Create a milestone using the release version
 2. Tag issues & PRs using the milestone, so we can identify which PR is on which version
 3. PRs need to get approved by #thornode-team and #thorsec, once get approved, merge to `develop` branch
-4. Once all PRs for a version have been merged, then create a tag from `develop` branch. for example: https://gitlab.com/thorchain/thornode/-/tags/v0.76.0
+4. Once all PRs for a version have been merged, create a release branch from `develop` such as: `release-1.92.0`. This allows future PRs to still land into `develop` while the release is happening. 
+
+ 
 
 ## Test release candidate
 
@@ -47,7 +49,8 @@ Patch version, is backward compatible, usually changes only in bifrost
 
 1. Raise a PR to merge all changes from `develop` branch -> `testnet` branch, once the PR get approved & merged, testnet image should be created automatically by pipeline
    for example: https://gitlab.com/thorchain/thornode/-/pipelines/433627075
-2. If you click "build-thornode" pipeline step, you should be able to see the docker image has been build and tagged successfully
+2. Check for any changes in `heimdall` repo that might need to be merged into the `heimdall` `testnet` branch for smoke tests to pass.
+3. Make sure "build-thornode" pipeline is successful, you should be able to see the docker image has been build and tagged successfully
 
 ```logs
 Successfully built a15350678d3e
@@ -62,7 +65,8 @@ Successfully tagged registry.gitlab.com/thorchain/thornode:8be434a
 
 1. Raise a PR to merge all changes from `develop` branch -> `chaosnet-multichain` branch, once the PR get approved & merged, chaosnet image should be created automatically by pipeline
    for example: https://gitlab.com/thorchain/thornode/-/pipelines/433627314
-2. Make sure "build-thornode" pipeline step is successful, when you click the step, inside you should be able to see
+2. Check for any changes in `heimdall` repo that might need to be merged into the `heimdall` `chaosnet-multichain` branch for smoke tests to pass.
+3. Make sure "build-thornode" pipeline step is successful, when you click the step, inside you should be able to see
 
 ```logs
 Successfully built fdfd001f96ba
@@ -115,3 +119,5 @@ How to release to chaosnet.
 
 1. Post release announcement in #thornode-chaosnet or #thornode-testnet
 2. For chaosnet release, post the release announcement in telegram #THORNode Announcement as well
+3. Create a tag from `release-X.Y.Z` branch. for example: https://gitlab.com/thorchain/thornode/-/tags/v0.76.0
+4. Create a gitlab release from that tag: https://gitlab.com/thorchain/thornode/-/releases
