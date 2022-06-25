@@ -402,7 +402,7 @@ func (s *HandlerSwapSuite) TestSwapOutDexIntegration(c *C) {
 	c.Assert(mgr.K.SetPool(ctx, pool), IsNil)
 
 	swapMemo := "swap:ETH.ETH:" + types.GetRandomETHAddress().String() + "::::2f2386f3848:" + types.GetRandomETHAddress().String()
-	m, err := ParseMemo(mgr.GetVersion(), swapMemo)
+	m, err := ParseMemoWithTHORNames(ctx, mgr.Keeper(), swapMemo)
 	c.Assert(err, IsNil)
 
 	txIn := NewObservedTx(
