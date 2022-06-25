@@ -34,6 +34,7 @@ func (s *MemoSuite) TestTxType(c *C) {
 func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	ctx := cosmos.Context{}
 	k := kv1.KVStore{}
+	k.SetVersion(kv1.GetCurrentVersion())
 
 	// happy paths
 	memo, err := ParseMemoWithTHORNames(ctx, k, "d:"+common.RuneAsset().String())
