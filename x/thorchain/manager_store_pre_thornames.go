@@ -1,16 +1,12 @@
 package thorchain
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
-
-//go:embed preregister_thornames.json
-var preregisterTHORNames []byte
 
 type PreRegisterTHORName struct {
 	Name    string
