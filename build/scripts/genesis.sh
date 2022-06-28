@@ -3,7 +3,12 @@
 set -o pipefail
 
 . "$(dirname "$0")/core.sh"
-. "$(dirname "$0")/testnet/state.sh"
+
+if [ "$NET" = "mocknet" ] || [ "$NET" = "testnet" ]; then
+  echo "Loading unsafe init for mocknet and testnet..."
+  . "$(dirname "$0")/core-unsafe.sh"
+  . "$(dirname "$0")/testnet/state.sh"
+fi
 
 SIGNER_NAME="${SIGNER_NAME:=thorchain}"
 SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
@@ -29,48 +34,14 @@ NODE_ADDRESS=$(echo "$SIGNER_PASSWD" | thornode keys show thorchain -a --keyring
 NODE_PUB_KEY=$(echo "$SIGNER_PASSWD" | thornode keys show thorchain -p --keyring-backend file | thornode pubkey)
 VERSION=$(fetch_version)
 
-mkdir -p /tmp/shared
-
-if [ "$SEED" = "$(hostname)" ]; then
-  thornode tendermint show-node-id >/tmp/shared/node.txt
-fi
-
-# write node account data to json file in shared directory
-echo "$NODE_ADDRESS $VALIDATOR $NODE_PUB_KEY $VERSION $NODE_ADDRESS $NODE_PUB_KEY_ED25519" >"/tmp/shared/node_$NODE_ADDRESS.json"
-
-# wait until THORNode have the correct number of nodes in our directory before continuing
-while [ "$(find /tmp/shared -maxdepth 1 -type f -name 'node_*.json' | awk -F/ '{print $NF}' | wc -l | tr -d '[:space:]')" != "$NODES" ]; do
-  sleep 1
-done
-
 if [ "$SEED" = "$(hostname)" ]; then
   echo "Setting THORNode as genesis"
   if [ ! -f ~/.thornode/config/genesis.json ]; then
-    # get a list of addresses (thor bech32)
-    ADDRS=""
-    for f in /tmp/shared/node_*.json; do
-      ADDRS="$ADDRS,$(awk <"$f" '{print $1}')"
-    done
-    init_chain "$(echo "$ADDRS" | sed -e 's/^,*//')"
-
-    if [ -n "${VAULT_PUBKEY+x}" ]; then
-      PUBKEYS=""
-      for f in /tmp/shared/node_*.json; do
-        PUBKEYS="$PUBKEYS,$(awk <"$f" '{print $3}')"
-      done
-      add_vault "$VAULT_PUBKEY" "$(echo "$PUBKEYS" | sed -e 's/^,*//')"
-    fi
-
+    # add ourselves to the genesis state
     NODE_IP_ADDRESS=${EXTERNAL_IP:=$(curl -s http://whatismyip.akamai.com)}
 
-    # add node accounts to genesis file
-    for f in /tmp/shared/node_*.json; do
-      if [ -n "${VAULT_PUBKEY+x}" ]; then
-        add_node_account "$(awk <"$f" '{print $1}')" "$(awk <"$f" '{print $2}')" "$(awk <"$f" '{print $3}')" "$(awk <"$f" '{print $4}')" "$(awk <"$f" '{print $5}')" "$(awk <"$f" '{print $6}')" "$NODE_IP_ADDRESS" "$VAULT_PUBKEY"
-      else
-        add_node_account "$(awk <"$f" '{print $1}')" "$(awk <"$f" '{print $2}')" "$(awk <"$f" '{print $3}')" "$(awk <"$f" '{print $4}')" "$(awk <"$f" '{print $5}')" "$(awk <"$f" '{print $6}')" "$NODE_IP_ADDRESS"
-      fi
-    done
+    init_chain "$NODE_ADDRESS"
+    add_node_account "$NODE_ADDRESS" "$VALIDATOR" "$NODE_PUB_KEY" "$VERSION" "$NODE_ADDRESS" "$NODE_PUB_KEY_ED25519" "$NODE_IP_ADDRESS"
 
     # disable default bank transfer, and opt to use our own custom one
     disable_bank_send
@@ -106,8 +77,8 @@ if [ "$SEED" = "$(hostname)" ]; then
       # mint 1m RUNE to reserve for testnet
       reserve 100000000000000
 
-      # add existing account and balances
-      add_exiting_accounts
+      # add testnet account and balances
+      testnet_add_accounts
     fi
 
     # enable telemetry through prometheus metrics endpoint
