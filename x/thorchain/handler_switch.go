@@ -77,15 +77,19 @@ func (h SwitchHandler) validateV87(ctx cosmos.Context, msg MsgSwitch) error {
 func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgSwitch request", "destination address", msg.Destination.String())
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("1.87.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.handleV93(ctx, msg)
+	case version.GTE(semver.MustParse("1.87.0")):
 		return h.handleV87(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.56.0")) {
+	case version.GTE(semver.MustParse("0.56.0")):
 		return h.handleV56(ctx, msg)
+	default:
+		return nil, errBadVersion
 	}
-	return nil, errBadVersion
 }
 
-func (h SwitchHandler) handleV87(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
+func (h SwitchHandler) handleV93(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
 	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
@@ -95,27 +99,19 @@ func (h SwitchHandler) handleV87(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Res
 	}
 
 	if !msg.Tx.Coins[0].IsNative() && msg.Tx.Coins[0].Asset.IsRune() {
-		return h.toNativeV87(ctx, msg)
+		return h.toNativeV93(ctx, msg)
 	}
 
 	return nil, fmt.Errorf("only non-native rune can be 'switched' to native rune")
 }
 
-func (h SwitchHandler) calcCoin(ctx cosmos.Context, in cosmos.Uint) cosmos.Uint {
-	killSwitchStart := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchStart)
-	killSwitchDuration := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchDuration)
-	if killSwitchStart > 0 {
-		remainBlocks := (killSwitchStart + killSwitchDuration) - common.BlockHeight(ctx)
-		if remainBlocks <= 0 {
-			return cosmos.ZeroUint()
-		}
-		return common.GetShare(cosmos.NewUint(uint64(remainBlocks)), cosmos.NewUint(uint64(killSwitchDuration)), in)
-	}
-	return in
-}
+func (h SwitchHandler) toNativeV93(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
+	coin := common.NewCoin(common.RuneNative, h.calcCoinV93(ctx, msg.Tx.Coins[0].Amount))
 
-func (h SwitchHandler) toNativeV87(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
-	coin := common.NewCoin(common.RuneNative, h.calcCoin(ctx, msg.Tx.Coins[0].Amount))
+	// sanity check
+	if coin.Amount.GT(msg.Tx.Coins[0].Amount) {
+		return nil, fmt.Errorf("improper switch calculation: %d/%d", coin.Amount.Uint64(), msg.Tx.Coins[0].Amount.Uint64())
+	}
 
 	addr, err := cosmos.AccAddressFromBech32(msg.Destination.String())
 	if err != nil {
@@ -148,4 +144,29 @@ func (h SwitchHandler) toNativeV87(ctx cosmos.Context, msg MsgSwitch) (*cosmos.R
 	}
 
 	return &cosmos.Result{}, nil
+}
+
+func (h SwitchHandler) calcCoin(ctx cosmos.Context, in cosmos.Uint) cosmos.Uint {
+	version := h.mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.calcCoinV93(ctx, in)
+	case version.GTE(semver.MustParse("0.56.0")):
+		return h.calcCoinV56(ctx, in)
+	default:
+		return cosmos.ZeroUint()
+	}
+}
+
+func (h SwitchHandler) calcCoinV93(ctx cosmos.Context, in cosmos.Uint) cosmos.Uint {
+	killSwitchStart := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchStart)
+	if killSwitchStart > 0 && common.BlockHeight(ctx) >= killSwitchStart {
+		killSwitchDuration := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchDuration)
+		remainBlocks := (killSwitchStart + killSwitchDuration) - common.BlockHeight(ctx)
+		if remainBlocks <= 0 {
+			return cosmos.ZeroUint()
+		}
+		return common.GetSafeShare(cosmos.NewUint(uint64(remainBlocks)), cosmos.NewUint(uint64(killSwitchDuration)), in)
+	}
+	return in
 }
