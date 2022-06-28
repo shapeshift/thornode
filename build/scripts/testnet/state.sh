@@ -1,6 +1,6 @@
 #!/bin/sh
 
-add_exiting_accounts() {
+testnet_add_accounts() {
   jq '.app_state.auth.accounts += [
   {
       "@type": "/cosmos.auth.v1beta1.BaseAccount",
