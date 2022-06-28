@@ -208,4 +208,11 @@ func (s *HandlerSwitchSuite) TestCalcCoin(c *C) {
 	ctx = ctx.WithBlockHeight(200 + 1)
 	amt = handler.calcCoin(ctx, in).Uint64()
 	c.Check(amt, Equals, uint64(0), Commentf("%d", amt))
+
+	// with kill switch but not yet active
+	mgr.Keeper().SetMimir(ctx, constants.KillSwitchStart.String(), 100)
+	mgr.Keeper().SetMimir(ctx, constants.KillSwitchDuration.String(), 201)
+	ctx = ctx.WithBlockHeight(50)
+	amt = handler.calcCoin(ctx, in).Uint64()
+	c.Check(amt, Equals, uint64(100), Commentf("%d", amt))
 }
