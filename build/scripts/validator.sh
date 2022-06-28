@@ -4,6 +4,11 @@ set -o pipefail
 
 . "$(dirname "$0")/core.sh"
 
+if [ "$NET" = "mocknet" ] || [ "$NET" = "testnet" ]; then
+  echo "Loading unsafe init for mocknet and testnet..."
+  . "$(dirname "$0")/core-unsafe.sh"
+fi
+
 SEEDS="${SEEDS:=none}"        # the hostname of multiple seeds set as tendermint seeds
 PEER="${PEER:=none}"          # the hostname of a seed node set as tendermint persistent peer
 PEER_API="${PEER_API:=$PEER}" # the hostname of a seed node API if different
