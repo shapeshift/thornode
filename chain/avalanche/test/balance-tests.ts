@@ -37,7 +37,7 @@ describe("AvaxAggregator", function () {
   });
 
   describe("Check Balances", function () {
-    it.skip("Balance of USDC.e", async () => {
+    it.only("Balance of USDC.e", async () => {
       const { admin } = await getNamedAccounts();
 
       const usdceContract = await ethers.getContractAt("IERC20", USDCE_ADDRESS);
