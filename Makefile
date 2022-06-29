@@ -30,6 +30,9 @@ all: lint install
 protob:
 	@./scripts/protocgen.sh
 
+protob-docker:
+	@docker run --rm -v $(shell pwd):/app -w /app registry.gitlab.com/thorchain/thornode:builder-v1@sha256:6a7fb4e4ba636ca8ae6b7db93ae8838a8393ddbc8dfc2b99eb706fb18f50d635 make protob
+
 build: protob
 	go build ${BUILD_FLAGS} ${BINARIES}
 
