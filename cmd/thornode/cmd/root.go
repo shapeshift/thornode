@@ -36,8 +36,8 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/client/cli"
 )
 
-// NewRootCmd creates a new root command for simd. It is called once in the
-// main function.
+// NewRootCmd creates a new root command for thornode.
+// It is called once in the main function.
 func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 	encodingConfig := app.MakeEncodingConfig()
 	initClientCtx := client.Context{}.
@@ -81,7 +81,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		GetPubKeyCmd(),
 	)
 	rootCmd.SetOut(rootCmd.OutOrStdout())
-	server.AddCommands(rootCmd, app.DefaultNodeHome(appName), newApp, createSimappAndExport, addModuleInitFlags)
+	server.AddCommands(rootCmd, app.DefaultNodeHome(appName), newApp, createAppAndExport, addModuleInitFlags)
 
 	// add keybase, auxiliary RPC, query, and tx child commands
 	rootCmd.AddCommand(
@@ -103,6 +103,7 @@ func addModuleInitFlags(startCmd *cobra.Command) {
 		if err := serverCtx.Viper.BindPFlags(cmd.Flags()); err != nil {
 			return fmt.Errorf("fail to bind flags,err: %w", err)
 		}
+
 		_, err := server.GetPruningOptionsFromFlags(serverCtx.Viper)
 		filterModules := serverCtx.Viper.GetString("filter-modules")
 		if zw, ok := serverCtx.Logger.(server.ZeroLogWrapper); ok {
@@ -209,20 +210,18 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 	)
 }
 
-func createSimappAndExport(
+func createAppAndExport(
 	logger log.Logger, db dbm.DB, traceStore io.Writer, height int64, forZeroHeight bool, jailWhiteList []string, appOpts servertypes.AppOptions,
 ) (servertypes.ExportedApp, error) {
 	encCfg := app.MakeEncodingConfig() // Ideally, we would reuse the one created by NewRootCmd.
 	encCfg.Marshaler = codec.NewProtoCodec(encCfg.InterfaceRegistry)
-	var a *app.THORChainApp
-	if height != -1 {
-		a = app.New(appName, logger, db, traceStore, false, map[int64]bool{}, cast.ToString(appOpts.Get(flags.FlagHome)), uint(1), encCfg, false)
 
+	heightSpecified := height != -1
+	a := app.New(appName, logger, db, traceStore, !heightSpecified, map[int64]bool{}, cast.ToString(appOpts.Get(flags.FlagHome)), uint(1), encCfg, false)
+	if heightSpecified {
 		if err := a.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
-	} else {
-		a = app.New(appName, logger, db, traceStore, true, map[int64]bool{}, cast.ToString(appOpts.Get(flags.FlagHome)), uint(1), encCfg, false)
 	}
 
 	return a.ExportAppStateAndValidators(forZeroHeight, jailWhiteList)
