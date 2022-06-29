@@ -84,7 +84,6 @@ describe("AvaxAggregator", function () {
 
       const usdceContract = await ethers.getContractAt("IERC20", USDCE_ADDRESS);
       const balanceOfUsdce = await usdceContract.balanceOf(wallet1);
-
       // Doesn't matter what the result from pangolin is
       expect(balanceOfUsdce).gt(0);
     });
@@ -209,7 +208,7 @@ describe("AvaxAggregator", function () {
       expect(await usdceToken.balanceOf(wallet2)).to.equal("150016858977");
     });
 
-    it.only("Should Fail Swap Out using Aggregator", async function () {
+    it("Should Fail Swap Out using Aggregator", async function () {
       const { wallet2, asgard1 } = await getNamedAccounts();
       expect(await usdceToken.balanceOf(wallet2)).to.equal("150000000000");
       expect(await ethers.provider.getBalance(wallet2)).eq(
@@ -252,7 +251,7 @@ describe("AvaxAggregator", function () {
       expect(await usdceToken.balanceOf(wallet2)).to.equal("150000000000");
     });
 
-    it.only("Should Fail Swap Out with AVAX using Aggregator", async function () {
+    it("Should Fail Swap Out with AVAX using Aggregator", async function () {
       const { wallet2, asgard1 } = await getNamedAccounts();
       expect(await usdceToken.balanceOf(wallet2)).to.equal("150000000000");
       expect(await ethers.provider.getBalance(wallet2)).eq(
