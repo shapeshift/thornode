@@ -63,6 +63,7 @@
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^5.28.0",
     "@typescript-eslint/parser": "^5.28.0",
+    "hardhat-ethernal": "^1.0.0",
     "typescript": "^4.6.4"
   }
 }

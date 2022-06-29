@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import hre, { ethers } from "hardhat";
 
 async function main() {
   const wavaxAddress = "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7";
@@ -10,6 +10,11 @@ async function main() {
 
   console.log("AvaxRouter deployed to:", avaxRouter.address);
 
+  await hre.ethernal.push({
+    name: 'AvaxRouter',
+    address: avaxRouter.address
+  });
+
   const AvaxAggregator = await ethers.getContractFactory("AvaxAggregator");
   const avaxAggregator = await AvaxAggregator.deploy(
     wavaxAddress,
@@ -17,6 +22,10 @@ async function main() {
   );
   await avaxAggregator.deployed();
 
+  await hre.ethernal.push({
+    name: 'AvaxAggregator',
+    address: avaxAggregator.address
+  });
   console.log("AvaxAggregator deployed to:", avaxAggregator.address);
 }
 
