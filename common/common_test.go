@@ -13,11 +13,11 @@ type CommonSuite struct{}
 
 var _ = Suite(&CommonSuite{})
 
-func (s CommonSuite) TestGetShare(c *C) {
+func (s CommonSuite) TestGetUncappedShare(c *C) {
 	part := cosmos.NewUint(149506590)
 	total := cosmos.NewUint(50165561086)
 	alloc := cosmos.NewUint(50000000)
-	share := GetShare(part, total, alloc)
+	share := GetUncappedShare(part, total, alloc)
 	c.Assert(share.Equal(cosmos.NewUint(149013)), Equals, true)
 }
 

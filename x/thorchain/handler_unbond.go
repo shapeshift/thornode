@@ -180,7 +180,7 @@ func (h UnBondHandler) handleV92(ctx cosmos.Context, msg MsgUnBond) error {
 			return nil
 		}
 		penaltyPts := fetchConfigInt64(ctx, h.mgr, constants.SlashPenalty)
-		totalRuneValue = common.GetShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), totalRuneValue)
+		totalRuneValue = common.GetUncappedShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), totalRuneValue)
 		totalAmountCanBeUnbond := common.SafeSub(na.Bond, totalRuneValue)
 		if msg.Amount.GT(totalAmountCanBeUnbond) {
 			return cosmos.ErrUnknownRequest(fmt.Sprintf("unbond amount %s is more than %s , not allowed", msg.Amount, totalAmountCanBeUnbond))

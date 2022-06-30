@@ -226,8 +226,8 @@ func calcImpLossV91(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, prote
 		A0 = assetDepositValue; R0 = runeDepositValue;
 
 		liquidityUnits = units the member wishes to redeem after applying withdrawBasisPoints
-		A1 = GetShare(liquidityUnits, lpUnits, assetDepth);
-		R1 = GetShare(liquidityUnits, lpUnits, runeDepth);
+		A1 = GetUncappedShare(liquidityUnits, lpUnits, assetDepth);
+		R1 = GetUncappedShare(liquidityUnits, lpUnits, runeDepth);
 		P1 = R1/A1
 		coverage = ((A0 * P1) + R0) - ((A1 * P1) + R1) => ((A0 * R1/A1) + R0) - (R1 + R1)
 	*/

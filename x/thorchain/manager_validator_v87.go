@@ -483,8 +483,8 @@ func (vm *validatorMgrV87) payNodeAccountBondAward(ctx cosmos.Context, lastChurn
 	}
 
 	// reward = totalBondReward * (naEffectiveBond / totalEffectiveBond) * (unslashed blocks since last churn / blocks since last churn)
-	reward := common.GetShare(naEffectiveBond, totalEffectiveBond, totalBondReward)
-	reward = common.GetShare(cosmos.NewUint(uint64(earnedBlocks)), cosmos.NewUint(uint64(totalActiveBlocks)), reward)
+	reward := common.GetUncappedShare(naEffectiveBond, totalEffectiveBond, totalBondReward)
+	reward = common.GetUncappedShare(cosmos.NewUint(uint64(earnedBlocks)), cosmos.NewUint(uint64(totalActiveBlocks)), reward)
 
 	// Add to their bond the amount rewarded
 	na.Bond = na.Bond.Add(reward)

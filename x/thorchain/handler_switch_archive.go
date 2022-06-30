@@ -100,7 +100,7 @@ func (h SwitchHandler) calcCoinV56(ctx cosmos.Context, in cosmos.Uint) cosmos.Ui
 		if remainBlocks <= 0 {
 			return cosmos.ZeroUint()
 		}
-		return common.GetShare(cosmos.NewUint(uint64(remainBlocks)), cosmos.NewUint(uint64(killSwitchDuration)), in)
+		return common.GetUncappedShare(cosmos.NewUint(uint64(remainBlocks)), cosmos.NewUint(uint64(killSwitchDuration)), in)
 	}
 	return in
 }
