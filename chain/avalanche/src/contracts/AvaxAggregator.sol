@@ -71,7 +71,7 @@ contract AvaxAggregator {
         path[0] = token;
         path[1] = WAVAX;
 
-        swapRouter.swapExactTokensForAVAX(
+        ISwapRouter(swapRouter).swapExactTokensForAVAX(
             safeAmount,
             amountOutMin,
             path,
@@ -103,7 +103,7 @@ contract AvaxAggregator {
         address[] memory path = new address[](2);
         path[0] = WAVAX;
         path[1] = token;
-        swapRouter.swapExactAVAXForTokens{value: msg.value}(
+        ISwapRouter(swapRouter).swapExactAVAXForTokens{value: msg.value}(
             amountOutMin,
             path,
             to,

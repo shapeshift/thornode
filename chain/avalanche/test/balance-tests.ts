@@ -24,25 +24,22 @@ describe("AvaxAggregator", function () {
       pangolinRouterAbi,
       accounts[0]
     );
-    const avaxRouterDeployment = await ethers.getContractFactory("AvaxRouter");
-    avaxRouter = await avaxRouterDeployment.deploy();
-    const avaxAggregatorDeployment = await ethers.getContractFactory(
-      "AvaxAggregator"
-    );
-    avaxAggregator = await avaxAggregatorDeployment.deploy(
-      WAVAX_ADDRESS,
-      pangolinRouter
-    );
     usdceToken = new ethers.Contract(USDCE_ADDRESS, ERC20.abi, accounts[0]);
   });
 
   describe("Check Balances", function () {
-    it.only("Balance of USDC.e", async () => {
-      const { admin } = await getNamedAccounts();
+    it("Balance of USDC.e", async () => {
+      const { admin, asgard1 } = await getNamedAccounts();
 
       const usdceContract = await ethers.getContractAt("IERC20", USDCE_ADDRESS);
       const balanceOfUsdce = await usdceContract.balanceOf(admin);
-      console.log(balanceOfUsdce)
+      console.log('usdcebal', balanceOfUsdce)
+
+      let avaxBal = await ethers.provider.getBalance(admin);
+      console.log('adminavaxbal', avaxBal)
+
+      avaxBal = await ethers.provider.getBalance(asgard1);
+      console.log('routeravaxbal', avaxBal)
     });
   });
 });
