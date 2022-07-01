@@ -16,7 +16,7 @@ describe("AvaxAggregator", function () {
   const pangolinRouter = "0xE54Ca86531e17Ef3616d22Ca28b0D458b6C89106";
 
   beforeEach(async () => {
-    const { wallet1, wallet2 } = await getNamedAccounts();
+    const { admin, wallet1, wallet2 } = await getNamedAccounts();
     const usdceAmount = "150000000000"; // 6 dec
 
     accounts = await ethers.getSigners();
@@ -29,9 +29,11 @@ describe("AvaxAggregator", function () {
     );
     const avaxRouterDeployment = await ethers.getContractFactory("AvaxRouter");
     avaxRouter = await avaxRouterDeployment.deploy();
+
     const avaxAggregatorDeployment = await ethers.getContractFactory(
       "AvaxAggregator"
     );
+
     avaxAggregator = await avaxAggregatorDeployment.deploy(
       WAVAX_ADDRESS,
       pangolinRouter
@@ -45,6 +47,7 @@ describe("AvaxAggregator", function () {
 
     const whaleSigner = await ethers.getSigner(USDCE_WHALE);
     const usdceWhale = usdceToken.connect(whaleSigner);
+    await usdceWhale.transfer(admin, usdceAmount);
     await usdceWhale.transfer(wallet1, usdceAmount);
     await usdceWhale.transfer(wallet2, usdceAmount);
     let usdceBalance = await usdceWhale.balanceOf(wallet1);
@@ -89,6 +92,7 @@ describe("AvaxAggregator", function () {
     });
     it("Should Swap In Token for AVAX", async function () {
       const { wallet2, asgard1 } = await getNamedAccounts();
+
       const transferAmount = "10000000000";
       const initialAvaxBalance = "10000000000000000000000";
       expect(await ethers.provider.getBalance(asgard1)).to.equal(
@@ -111,15 +115,16 @@ describe("AvaxAggregator", function () {
 
       const deadline = ~~(Date.now() / 1000) + 100;
 
-      await avaxAggregatorWallet2.swapIn(
+      const tx = await avaxAggregatorWallet2.swapIn(
         asgard1,
         avaxRouter.address,
-        "SWAP:BTC.BTC:bc1Address:",
+        "SWAP:THOR.RUNE:tthor1uuds8pd92qnnq0udw0rpg0szpgcslc9p8lluej",
         usdceToken.address,
         transferAmount,
         0,
         deadline
       );
+      tx.wait()
 
       expect(await usdceToken.balanceOf(wallet2)).to.equal("140000000000");
       expect(await ethers.provider.getBalance(wallet2)).lt(initialAvaxBalance);
@@ -203,7 +208,7 @@ describe("AvaxAggregator", function () {
       );
 
       expect(await ethers.provider.getBalance(asgard1)).eq(
-        "9998967857625000000000"
+        "9998968562775000000000"
       );
       expect(await usdceToken.balanceOf(wallet2)).to.equal("150016858977");
     });
@@ -243,7 +248,7 @@ describe("AvaxAggregator", function () {
       );
 
       expect(await ethers.provider.getBalance(asgard1)).eq(
-        "9998980915725000000000"
+        "9998982338400000000000"
       );
       expect(await ethers.provider.getBalance(wallet2)).eq(
         "10000989446600000000000"
@@ -289,7 +294,7 @@ describe("AvaxAggregator", function () {
       );
 
       expect(await ethers.provider.getBalance(asgard1)).eq(
-        "9998982695925000000000"
+        "9998984118600000000000"
       );
       expect(await ethers.provider.getBalance(ethers.constants.AddressZero)).eq(
         "7836438818935998343"

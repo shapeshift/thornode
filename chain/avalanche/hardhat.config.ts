@@ -9,7 +9,6 @@ import "hardhat-contract-sizer";
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
 import "solidity-coverage";
-import "hardhat-ethernal";
 
 const FORK_FUJI = false;
 const FORK_MAINNET = true;

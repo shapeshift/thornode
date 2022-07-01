@@ -119,7 +119,7 @@ contract AvaxRouter {
         if (asset == address(0)) {
             safeAmount = msg.value;
             bool success = vault.send(safeAmount);
-            require(success);
+            require(success, "Send Failed");
         } else {
             require(msg.value == 0, "unexpected avax"); // protect user from accidentally locking up AVAX
 
@@ -178,7 +178,7 @@ contract AvaxRouter {
             (bool success, bytes memory data) = asset.call(
                 abi.encodeWithSignature("transfer(address,uint256)", to, amount)
             );
-            require(success && (data.length == 0 || abi.decode(data, (bool))));
+            require(success && (data.length == 0 || abi.decode(data, (bool))), "transfer out failed");
             safeAmount = amount;
         }
         emit TransferOut(msg.sender, to, asset, safeAmount, memo);
@@ -258,7 +258,7 @@ contract AvaxRouter {
             }
         }
         bool success = asgard.send(msg.value);
-        require(success);
+        require(success, "return vault assets failed");
     }
 
     /**
@@ -336,7 +336,7 @@ contract AvaxRouter {
                 _amount
             )
         ); // Approve to transfer
-        require(success);
+        require(success, "router deposit failed");
         IRouter(_router).depositWithExpiry(
             _vault,
             _asset,
