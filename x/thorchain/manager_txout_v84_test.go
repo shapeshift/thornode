@@ -114,7 +114,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem(c *C) {
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
 	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
@@ -131,7 +131,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem(c *C) {
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
 	txOutStore.ClearOutboundItems(w.ctx)
-	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(success, Equals, true)
 	c.Assert(err, IsNil)
 	msgs, err = txOutStore.GetOutboundItems(w.ctx)
@@ -146,7 +146,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem(c *C) {
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(1000*common.One)),
 	}
 	txOutStore.ClearOutboundItems(w.ctx)
-	success, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	success, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
 	msgs, err = txOutStore.GetOutboundItems(w.ctx)
@@ -164,7 +164,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem(c *C) {
 		},
 	}
 	txOutStore.ClearOutboundItems(w.ctx)
-	result, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	result, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(result, Equals, true)
 	c.Assert(err, IsNil)
 	msgs, _ = txOutStore.GetOutboundItems(w.ctx)
@@ -240,7 +240,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
 	}
 	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 
@@ -262,7 +262,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 	item.Chain = common.THORChain
 	item.Coin = common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One))
 	item.ToAddress = GetRandomTHORAddress()
-	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 
@@ -333,7 +333,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(30000)),
 	}
 	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, NotNil)
 	c.Assert(err, Equals, ErrNotEnoughToPayFee)
 	c.Assert(ok, Equals, false)
@@ -358,7 +358,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItemWithoutBFT(c *C) {
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
 	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
@@ -432,7 +432,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 		},
 	}
 	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
@@ -448,7 +448,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(7500)),
 		},
 	}
-	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item1)
+	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item1, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 	msgs, err = txOutStore.GetOutboundItems(w.ctx)
@@ -571,7 +571,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
 	}
 	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 
@@ -582,7 +582,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(common.One)),
 	}
 
-	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item1)
+	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item1, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 
@@ -604,7 +604,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 	item.Chain = common.THORChain
 	item.Coin = common.NewCoin(common.RuneNative, cosmos.NewUint(100*common.One))
 	item.ToAddress = GetRandomTHORAddress()
-	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	ok, err = txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
 
@@ -638,7 +638,7 @@ func (s TxOutStoreV84Suite) TestAddOutTxItemInteractionWithPool(c *C) {
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
 	txOutStore := newTxOutStorageV84(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
-	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item)
+	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
