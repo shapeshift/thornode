@@ -257,7 +257,7 @@ func (vm *NetworkMgrV93) EndBlock(ctx cosmos.Context, mgr Manager) error {
 					},
 					Memo: NewMigrateMemo(common.BlockHeight(ctx)).String(),
 				}
-				ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, toi)
+				ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, toi, cosmos.ZeroUint())
 				if err != nil && !errors.Is(err, ErrNotEnoughToPayFee) {
 					return err
 				}
