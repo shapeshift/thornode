@@ -141,7 +141,7 @@ func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawL
 			toi.GasRate = int64(h.mgr.GasMgr().GetGasRate(ctx, msg.Asset.GetChain()).Uint64())
 		}
 
-		okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+		okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi, cosmos.ZeroUint())
 		if err != nil {
 			return nil, multierror.Append(errFailAddOutboundTx, err)
 		}
@@ -158,7 +158,7 @@ func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawL
 			Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
 			Memo:      memo,
 		}
-		okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi)
+		okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi, cosmos.ZeroUint())
 		if err != nil {
 			return nil, multierror.Append(errFailAddOutboundTx, err)
 		}

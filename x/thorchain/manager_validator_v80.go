@@ -723,7 +723,7 @@ func (vm *validatorMgrV80) ragnarokBond(ctx cosmos.Context, nth int64, mgr Manag
 			Memo:       NewRagnarokMemo(common.BlockHeight(ctx)).String(),
 			ModuleName: BondName,
 		}
-		ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, txOutItem)
+		ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, txOutItem, cosmos.ZeroUint())
 		if err != nil {
 			if !errors.Is(err, ErrNotEnoughToPayFee) {
 				return err
