@@ -343,7 +343,7 @@ type MockWithdrawTxOutStore struct {
 	errRune  error
 }
 
-func (store *MockWithdrawTxOutStore) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) (bool, error) {
+func (store *MockWithdrawTxOutStore) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem, _ cosmos.Uint) (bool, error) {
 	if toi.Coin.Asset.IsNativeRune() && store.errRune != nil {
 		return false, store.errRune
 	}

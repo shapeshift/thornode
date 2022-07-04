@@ -197,7 +197,7 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 			Coin:       common.NewCoin(common.RuneAsset(), amt),
 			ModuleName: BondName,
 		}
-		_, err = mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, txOutItem)
+		_, err = mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, txOutItem, cosmos.ZeroUint())
 		if err != nil {
 			return fmt.Errorf("fail to add outbound tx: %w", err)
 		}
@@ -341,7 +341,7 @@ func refundBondV88(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 			Coin:       common.NewCoin(common.RuneAsset(), amt),
 			ModuleName: BondName,
 		}
-		_, err = mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, txOutItem)
+		_, err = mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, txOutItem, cosmos.ZeroUint())
 		if err != nil {
 			return fmt.Errorf("fail to add outbound tx: %w", err)
 		}

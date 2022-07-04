@@ -341,7 +341,7 @@ func (h ErrataTxHandler) processErrataOutboundTxV65(ctx cosmos.Context, msg MsgE
 				Coin:      item.Coin,
 				Memo:      item.Memo,
 			}
-			_, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, newTxOutItem)
+			_, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, newTxOutItem, cosmos.ZeroUint())
 			if err != nil {
 				return nil, fmt.Errorf("fail to reschedule tx out item: %w", err)
 			}

@@ -159,7 +159,7 @@ func (s *SwapperV81) Swap(ctx cosmos.Context,
 		toi.ModuleName = ModuleName
 	}
 
-	ok, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi)
+	ok, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi, cosmos.ZeroUint())
 	if err != nil {
 		// when it fail to send out the txout item , thus let's restore the pool balance here , thus nothing happen to the pool
 		// given the previous pool status is already in memory, so here just apply it again
