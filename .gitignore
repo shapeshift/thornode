@@ -13,6 +13,7 @@ observe
 *balances.json
 *.pb.go
 openapi/openapi.json
+openapi/gen/
 
 # IDE
 .idea/
