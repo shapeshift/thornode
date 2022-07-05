@@ -4,7 +4,7 @@ set -euo pipefail
 git show origin/develop:bifrost/pkg/chainclients/ethereum/token_list.json |
   jq -r '.tokens[] | .address | ascii_downcase' | sort -n | uniq -u >/tmp/orig_erc20_token_list.txt
 
-jq -r '.tokens[] | .address | ascii_downcase' <bifrost/pkg/chainclients/ethereum/token_list.json |
+jq -r '.tokens[] | .address | ascii_downcase' <common/tokenlist/eth_mainnet_V93.json |
   uniq -u >/tmp/modified_erc20_token_list.txt
 
 cat /tmp/orig_erc20_token_list.txt /tmp/modified_erc20_token_list.txt |

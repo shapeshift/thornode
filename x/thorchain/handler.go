@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/tokenlist"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -242,6 +243,7 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 		newMsg, err = getMsgWithdrawFromMemo(m, tx, signer)
 	case SwapMemo:
 		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
+		m.DexTargetAddress = externalAssetMatch(keeper.GetVersion(), m.Asset.GetChain(), m.DexTargetAddress)
 		newMsg, err = getMsgSwapFromMemo(m, tx, signer)
 	case DonateMemo:
 		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
@@ -363,4 +365,43 @@ func fuzzyAssetMatchV83(ctx cosmos.Context, keeper keeper.Keeper, origAsset comm
 	winner.Asset.Synth = origAsset.Synth
 
 	return winner.Asset
+}
+
+func externalAssetMatch(version semver.Version, chain common.Chain, hint string) string {
+	switch {
+	case version.GTE(semver.MustParse("1.93.0")):
+		return externalAssetMatchV93(version, chain, hint)
+	default:
+		return hint
+	}
+}
+
+func externalAssetMatchV93(version semver.Version, chain common.Chain, hint string) string {
+	if len(hint) == 0 {
+		return hint
+	}
+	switch chain {
+	case common.ETHChain:
+		// find all potential matches
+		matches := []string{}
+		for _, token := range tokenlist.GetETHTokenList(version).Tokens {
+			if strings.HasSuffix(strings.ToLower(token.Address), strings.ToLower(hint)) {
+				matches = append(matches, token.Address)
+				if len(matches) > 1 {
+					break
+				}
+			}
+		}
+
+		// if we only have one match, lets go with it, otherwise leave the
+		// user's input alone. It may still work, if it doesn't, should get the
+		// gas asset instead of the erc20 desired.
+		if len(matches) == 1 {
+			return matches[0]
+		}
+
+		return hint
+	default:
+		return hint
+	}
 }
