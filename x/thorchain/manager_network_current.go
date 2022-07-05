@@ -1022,6 +1022,11 @@ func (vm *NetworkMgrV93) ragnarokPool(ctx cosmos.Context, mgr Manager, p Pool) e
 		if err != nil {
 			ctx.Logger().Error("fail to get pool ragnarok start block height", "error", err)
 		}
+
+		// redeem all synth asset from the pool , and send RUNE to reserve
+		if err := vm.redeemSynthAssetToReserve(ctx, p); err != nil {
+			ctx.Logger().Error("fail to redeem synth to reserve, continue to ragnarok", "error", err)
+		}
 		// set it to current block height
 		vm.k.SetPoolRagnarokStart(ctx, p.Asset)
 		startBlockHeight = common.BlockHeight(ctx)
@@ -1044,10 +1049,6 @@ func (vm *NetworkMgrV93) ragnarokPool(ctx cosmos.Context, mgr Manager, p Pool) e
 	// first round , let's set the pool to stage , and recall yggdrasil fund
 	// staged pool will not fund yggdrasil again
 	if nth == 1 {
-		// redeem all synth asset from the pool , and send RUNE to reserve
-		if err := vm.redeemSynthAssetToReserve(ctx, p); err != nil {
-			ctx.Logger().Error("fail to redeem synth to reserve, continue to ragnarok", "error", err)
-		}
 		return vm.RecallChainFunds(ctx, p.Asset.GetChain(), mgr, common.PubKeys{})
 	}
 
