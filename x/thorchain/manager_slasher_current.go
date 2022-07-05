@@ -446,7 +446,7 @@ func (s *SlasherV92) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 
 		penaltyPts := fetchConfigInt64(ctx, mgr, constants.SlashPenalty)
 		// total slash amount is penaltyPts the RUNE value of the missing funds
-		totalRuneToSlash := common.GetShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), stolenRuneValue)
+		totalRuneToSlash := common.GetUncappedShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), stolenRuneValue)
 		totalRuneSlashed := cosmos.ZeroUint()
 		pauseOnSlashThreshold := fetchConfigInt64(ctx, mgr, constants.PauseOnSlashThreshold)
 		if pauseOnSlashThreshold > 0 && totalRuneToSlash.GTE(cosmos.NewUint(uint64(pauseOnSlashThreshold))) {

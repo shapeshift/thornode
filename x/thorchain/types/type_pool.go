@@ -144,7 +144,7 @@ func (m Pool) AssetValueInRune(amt cosmos.Uint) cosmos.Uint {
 	if m.BalanceRune.IsZero() || m.BalanceAsset.IsZero() {
 		return cosmos.ZeroUint()
 	}
-	return common.GetShare(m.BalanceRune, m.BalanceAsset, amt)
+	return common.GetUncappedShare(m.BalanceRune, m.BalanceAsset, amt)
 }
 
 // RuneReimbursementForAssetWithdrawal returns the equivalent amount of rune for a
@@ -162,7 +162,7 @@ func (m Pool) RuneReimbursementForAssetWithdrawal(amt cosmos.Uint) cosmos.Uint {
 		// case.
 		return cosmos.ZeroUint()
 	}
-	return common.GetShare(m.BalanceRune, denom, amt)
+	return common.GetUncappedShare(m.BalanceRune, denom, amt)
 }
 
 // RuneValueInAsset convert a specific amount of rune amt into its asset value
@@ -170,7 +170,7 @@ func (m Pool) RuneValueInAsset(amt cosmos.Uint) cosmos.Uint {
 	if m.BalanceRune.IsZero() || m.BalanceAsset.IsZero() {
 		return cosmos.ZeroUint()
 	}
-	assetAmt := common.GetShare(m.BalanceAsset, m.BalanceRune, amt)
+	assetAmt := common.GetUncappedShare(m.BalanceAsset, m.BalanceRune, amt)
 	return cosmos.RoundToDecimal(assetAmt, m.Decimals)
 }
 
@@ -202,7 +202,7 @@ func (m Pool) RuneDisbursementForAssetAdd(amt cosmos.Uint) cosmos.Uint {
 		return cosmos.ZeroUint()
 	}
 	denom := m.BalanceAsset.Add(amt)
-	return common.GetShare(m.BalanceRune, denom, amt)
+	return common.GetUncappedShare(m.BalanceRune, denom, amt)
 }
 
 // AssetDisbursementForRuneAdd returns the equivalent amount of asset for a
@@ -214,6 +214,6 @@ func (m Pool) AssetDisbursementForRuneAdd(amt cosmos.Uint) cosmos.Uint {
 		return cosmos.ZeroUint()
 	}
 	denom := m.BalanceRune.Add(amt)
-	outAmt := common.GetShare(m.BalanceAsset, denom, amt)
+	outAmt := common.GetUncappedShare(m.BalanceAsset, denom, amt)
 	return cosmos.RoundToDecimal(outAmt, m.Decimals)
 }
