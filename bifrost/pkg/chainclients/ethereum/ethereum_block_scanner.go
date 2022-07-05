@@ -3,7 +3,6 @@ package ethereum
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ecommon "github.com/ethereum/go-ethereum/common"
@@ -31,6 +31,7 @@ import (
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	tokenlist "gitlab.com/thorchain/thornode/common/tokenlist"
 	"gitlab.com/thorchain/thornode/constants"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
@@ -75,7 +76,7 @@ type ETHScanner struct {
 	currentBlockHeight   int64
 	gasCache             []*big.Int
 	solvencyReporter     SolvencyReporter
-	whitelistTokens      []ERC20Token
+	whitelistTokens      []tokenlist.ERC20Token
 	signerCacheManager   *signercache.CacheManager
 
 	// set at creation based on the SuggestedFeeVersion in config
@@ -122,11 +123,6 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 	if err != nil {
 		return nil, fmt.Errorf("fail to create contract abi: %w", err)
 	}
-	// load token list
-	var whitelistTokens TokenList
-	if err := json.Unmarshal(tokenList, &whitelistTokens); err != nil {
-		return nil, fmt.Errorf("fail to load token list,err: %w", err)
-	}
 
 	// suggested gas fee configuration
 	var gasCacheBlocks, blockLag uint64
@@ -161,7 +157,7 @@ func NewETHScanner(cfg config.BlockScannerConfiguration,
 		pubkeyMgr:            pubkeyMgr,
 		gasCache:             make([]*big.Int, 0),
 		solvencyReporter:     solvencyReporter,
-		whitelistTokens:      whitelistTokens.Tokens,
+		whitelistTokens:      tokenlist.GetETHTokenList(semver.MustParse("9999.0.0")).Tokens,
 		signerCacheManager:   signerCacheManager,
 		gasCacheBlocks:       gasCacheBlocks,
 		blockLag:             blockLag,
