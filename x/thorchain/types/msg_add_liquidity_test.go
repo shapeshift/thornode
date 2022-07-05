@@ -90,9 +90,13 @@ func (MsgAddLiquiditySuite) TestMsgAddLiquidity(c *C) {
 			"",
 		)
 		m := NewMsgAddLiquidity(tx, item.asset, item.r, item.amt, item.runeAddr, item.assetAddr, common.NoAddress, cosmos.ZeroUint(), item.signer)
-		c.Assert(m.ValidateBasicV63(), NotNil, Commentf("%d) %s\n", i, m))
+		c.Assert(m.ValidateBasicV93(), NotNil, Commentf("%d) %s\n", i, m))
 	}
 	// If affiliate fee basis point is more than 1000 , the message should be rejected
 	m1 := NewMsgAddLiquidity(tx, common.BNBAsset, cosmos.NewUint(100*common.One), cosmos.NewUint(100*common.One), GetRandomTHORAddress(), GetRandomBNBAddress(), GetRandomTHORAddress(), cosmos.NewUint(1024), GetRandomBech32Addr())
-	c.Assert(m1.ValidateBasicV63(), NotNil)
+	c.Assert(m1.ValidateBasicV93(), NotNil)
+
+	// check that we can have zero asset and zero rune amounts
+	m1 = NewMsgAddLiquidity(tx, common.BNBAsset, cosmos.ZeroUint(), cosmos.ZeroUint(), GetRandomTHORAddress(), GetRandomBNBAddress(), GetRandomTHORAddress(), cosmos.ZeroUint(), GetRandomBech32Addr())
+	c.Assert(m1.ValidateBasicV93(), IsNil)
 }

@@ -46,10 +46,12 @@ func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos
 
 func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.80.0")) {
+	switch {
+	case version.GTE(semver.MustParse("0.80.0")):
 		return h.validateV80(ctx, msg)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
 func (h WithdrawLiquidityHandler) validateV80(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
@@ -86,6 +88,8 @@ func (h WithdrawLiquidityHandler) validateV80(ctx cosmos.Context, msg MsgWithdra
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.handleV93(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.1")):
 		return h.handleV88(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.0")):
@@ -103,12 +107,12 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV93(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
 	}
-	runeAmt, assetAmount, impLossProtection, units, gasAsset, err := withdraw(ctx, msg, h.mgr)
+	runeAmt, assetAmt, impLossProtection, units, gasAsset, err := withdraw(ctx, msg, h.mgr)
 	if err != nil {
 		return nil, ErrInternal(err, "fail to process withdraw request")
 	}
@@ -119,12 +123,12 @@ func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawL
 		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
 	}
 
-	if !assetAmount.IsZero() {
+	transfer := func(coin common.Coin, addr common.Address) error {
 		toi := TxOutItem{
-			Chain:     msg.Asset.GetChain(),
+			Chain:     coin.Asset.GetChain(),
 			InHash:    msg.Tx.ID,
-			ToAddress: lp.AssetAddress,
-			Coin:      common.NewCoin(msg.Asset, assetAmount),
+			ToAddress: addr,
+			Coin:      coin,
 			Memo:      memo,
 		}
 		if !gasAsset.IsZero() {
@@ -141,29 +145,34 @@ func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawL
 			toi.GasRate = int64(h.mgr.GasMgr().GetGasRate(ctx, msg.Asset.GetChain()).Uint64())
 		}
 
-		okAsset, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi, cosmos.ZeroUint())
+		ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi, cosmos.ZeroUint())
 		if err != nil {
-			return nil, multierror.Append(errFailAddOutboundTx, err)
+			return multierror.Append(errFailAddOutboundTx, err)
 		}
-		if !okAsset {
-			return nil, errFailAddOutboundTx
+		if !ok {
+			return errFailAddOutboundTx
+		}
+
+		return nil
+	}
+
+	if !assetAmt.IsZero() {
+		coin := common.NewCoin(msg.Asset, assetAmt)
+		if !msg.Asset.IsNativeRune() && !lp.AssetAddress.IsChain(msg.Asset.Chain) {
+			if err := h.swapV93(ctx, msg, coin, lp.AssetAddress); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := transfer(coin, lp.AssetAddress); err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	if !runeAmt.IsZero() {
-		toi := TxOutItem{
-			Chain:     common.RuneAsset().GetChain(),
-			InHash:    msg.Tx.ID,
-			ToAddress: lp.RuneAddress,
-			Coin:      common.NewCoin(common.RuneAsset(), runeAmt),
-			Memo:      memo,
-		}
-		okRune, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi, cosmos.ZeroUint())
-		if err != nil {
-			return nil, multierror.Append(errFailAddOutboundTx, err)
-		}
-		if !okRune {
-			return nil, errFailAddOutboundTx
+		coin := common.NewCoin(common.RuneAsset(), runeAmt)
+		if err := transfer(coin, lp.RuneAddress); err != nil {
+			return nil, err
 		}
 	}
 
@@ -182,7 +191,7 @@ func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawL
 			lp.RuneAddress,
 			runeAmt,
 			lp.AssetAddress,
-			assetAmount,
+			assetAmt,
 			runeHash,
 			assetHash,
 		)
@@ -196,7 +205,7 @@ func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawL
 			int64(msg.BasisPoints.Uint64()),
 			cosmos.ZeroDec(),
 			msg.Tx,
-			assetAmount,
+			assetAmt,
 			runeAmt,
 			impLossProtection,
 		)
@@ -221,4 +230,32 @@ func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawL
 	)
 
 	return &cosmos.Result{}, nil
+}
+
+func (h WithdrawLiquidityHandler) swapV93(ctx cosmos.Context, msg MsgWithdrawLiquidity, coin common.Coin, addr common.Address) error {
+	// ensure TxID does NOT have a collision with another swap, this could
+	// happen if the user submits two identical loan requests in the same
+	// block
+	if ok := h.mgr.Keeper().HasSwapQueueItem(ctx, msg.Tx.ID, 0); ok {
+		return fmt.Errorf("txn hash conflict")
+	}
+
+	target := addr.GetChain().GetGasAsset()
+	memo := fmt.Sprintf("=:%s:%s", target, addr)
+	msg.Tx.Memo = memo
+	msg.Tx.Coins = common.NewCoins(coin)
+	swapMsg := NewMsgSwap(msg.Tx, target, addr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, msg.Signer)
+
+	// sanity check swap msg
+	handler := NewSwapHandler(h.mgr)
+	if err := handler.validate(ctx, *swapMsg); err != nil {
+		return err
+	}
+
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+		return err
+	}
+
+	return nil
 }

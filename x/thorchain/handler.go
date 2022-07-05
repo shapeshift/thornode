@@ -285,7 +285,12 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 	// MsgAddLiquidity & MsgSwap has a new version of validateBasic
 	switch m := newMsg.(type) {
 	case *MsgAddLiquidity:
-		return newMsg, m.ValidateBasicV63()
+		switch {
+		case keeper.GetVersion().GTE(semver.MustParse("1.93.0")):
+			return newMsg, m.ValidateBasicV93()
+		default:
+			return newMsg, m.ValidateBasicV63()
+		}
 	case *MsgSwap:
 		return newMsg, m.ValidateBasicV63()
 	}
