@@ -880,21 +880,13 @@ class ThorchainState:
             return self.refund(tx, 105, "refund reason message")
 
         # check for mismatch coin asset and memo
-        for coin in tx.coins:
-            if not coin.is_rune():
-                if not asset == coin.asset:
-                    return self.refund(
-                        tx, 105, "did not find both coins: unknown request"
-                    )
-
-        # check for synth coin asset
-        for coin in tx.coins:
-            if coin.asset.is_synth:
-                return self.refund(
-                    tx,
-                    105,
-                    "rune and asset amounts cannot both be empty: unknown request",
-                )
+        if len(tx.coins) == 2:
+            for coin in tx.coins:
+                if not coin.is_rune():
+                    if not asset == coin.asset:
+                        return self.refund(
+                            tx, 105, "did not find both coins: unknown request"
+                        )
 
         pool = self.get_pool(asset)
 
@@ -1053,7 +1045,7 @@ class ThorchainState:
         self.bch_estimate_size = 417
         self.ltc_estimate_size = 255
         self.doge_estimate_size = 417
-        if pool.lp_units == 0:
+        if pool.lp_units == 0 and pool.synth_units() == 0 and pool.synth_balance == 0:
             if pool.asset.is_bnb():
                 gas_amt = gas.amount
                 if RUNE.get_chain() == "BNB":

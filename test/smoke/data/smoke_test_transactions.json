@@ -434,19 +434,6 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "ADD:BNB.BNB",
-        "coins": [
-            {
-                "asset": "BNB/BNB",
-                "amount": 10000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
         "memo": "ADD:BNB/BNB",
         "coins": [
             {
@@ -1417,7 +1404,7 @@
         "coins": [
             {
                 "asset": "BTC/BTC",
-                "amount": 22061431
+                "amount": 22061991
             }
         ],
         "gas": null
