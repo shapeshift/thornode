@@ -368,6 +368,7 @@ func (vm *NetworkMgrV93) RotateVault(ctx cosmos.Context, vault Vault) error {
 		}
 	}
 
+	vault.UpdateStatus(ActiveVault, common.BlockHeight(ctx))
 	if err := vm.k.SetVault(ctx, vault); err != nil {
 		return err
 	}
