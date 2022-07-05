@@ -16,6 +16,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	openapi "gitlab.com/thorchain/thornode/openapi/gen"
 	q "gitlab.com/thorchain/thornode/x/thorchain/query"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -366,19 +367,12 @@ func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 		ctx.Logger().Error("fail to get vault", "error", err)
 		return nil, fmt.Errorf("fail to get vault: %w", err)
 	}
-	type NetworkResp struct {
-		BondRewardRune  cosmos.Uint `json:"bond_reward_rune"` // The total amount of awarded rune for bonders
-		TotalBondUnits  cosmos.Uint `json:"total_bond_units"` // Total amount of bond units
-		TotalReserve    cosmos.Uint `json:"total_reserve"`
-		BurnedBep2Rune  cosmos.Uint `json:"burned_bep_2_rune"`
-		BurnedErc20Rune cosmos.Uint `json:"burned_erc_20_rune"`
-	}
-	result := NetworkResp{
-		BondRewardRune:  data.BondRewardRune,
-		TotalBondUnits:  data.TotalBondUnits,
-		TotalReserve:    mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName),
-		BurnedBep2Rune:  data.BurnedBep2Rune,
-		BurnedErc20Rune: data.BurnedErc20Rune,
+	result := openapi.NetworkResponse{
+		BondRewardRune:  data.BondRewardRune.String(),
+		TotalBondUnits:  data.TotalBondUnits.String(),
+		TotalReserve:    mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName).String(),
+		BurnedBep2Rune:  data.BurnedBep2Rune.String(),
+		BurnedErc20Rune: data.BurnedErc20Rune.String(),
 	}
 
 	res, err := json.MarshalIndent(result, "", "	")
@@ -396,15 +390,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		return nil, fmt.Errorf("fail to get active vaults: %w", err)
 	}
 
-	type address struct {
-		Chain   common.Chain   `json:"chain,omitempty"`
-		PubKey  common.PubKey  `json:"pub_key,omitempty"`
-		Address common.Address `json:"address,omitempty"`
-		Router  common.Address `json:"router,omitempty"`
-		Halted  bool           `json:"halted"`
-		GasRate cosmos.Uint    `json:"gas_rate,omitempty"`
-	}
-	var resp []address
+	var resp []openapi.InboundAddress
 	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	if mgr.Keeper() == nil {
@@ -437,13 +423,13 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		if chain.Equals(common.ETHChain) {
 			gasRate = gasRate.MulUint64(10)
 		}
-		addr := address{
-			Chain:   chain,
-			PubKey:  vault.PubKey,
-			Address: vaultAddress,
-			Router:  cc.Router,
+		addr := openapi.InboundAddress{
+			Chain:   wrapString(chain.String()),
+			PubKey:  wrapString(vault.PubKey.String()),
+			Address: wrapString(vaultAddress.String()),
+			Router:  wrapString(cc.Router.String()),
 			Halted:  isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, chain),
-			GasRate: gasRate,
+			GasRate: wrapString(gasRate.String()),
 		}
 
 		resp = append(resp, addr)
@@ -815,30 +801,18 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 	pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
-	p := struct {
-		BalanceRune         cosmos.Uint  `json:"balance_rune"`
-		BalanceAsset        cosmos.Uint  `json:"balance_asset"`
-		Asset               common.Asset `json:"asset"`
-		LPUnits             cosmos.Uint  `json:"LP_units"`
-		PoolUnits           cosmos.Uint  `json:"pool_units"`
-		Status              PoolStatus   `json:"status,omitempty"`
-		Decimals            int64        `json:"decimals,omitempty"`
-		SynthUnits          cosmos.Uint  `json:"synth_units"`
-		SynthSupply         cosmos.Uint  `json:"synth_supply"`
-		PendingInboundRune  cosmos.Uint  `json:"pending_inbound_rune"`
-		PendingInboundAsset cosmos.Uint  `json:"pending_inbound_asset"`
-	}{
-		BalanceRune:         pool.BalanceRune,
-		BalanceAsset:        pool.BalanceAsset,
-		Asset:               pool.Asset,
-		LPUnits:             pool.LPUnits,
-		PoolUnits:           pool.GetPoolUnits(),
-		Status:              pool.Status,
-		Decimals:            pool.Decimals,
-		SynthUnits:          pool.SynthUnits,
-		SynthSupply:         synthSupply,
-		PendingInboundRune:  pool.PendingInboundRune,
-		PendingInboundAsset: pool.PendingInboundAsset,
+	p := &openapi.Pool{
+		BalanceRune:         pool.BalanceRune.String(),
+		BalanceAsset:        pool.BalanceAsset.String(),
+		Asset:               pool.Asset.String(),
+		LPUnits:             pool.LPUnits.String(),
+		PoolUnits:           pool.GetPoolUnits().String(),
+		Status:              pool.Status.String(),
+		Decimals:            wrapInt64(pool.Decimals),
+		SynthUnits:          pool.SynthUnits.String(),
+		SynthSupply:         synthSupply.String(),
+		PendingInboundRune:  pool.PendingInboundRune.String(),
+		PendingInboundAsset: pool.PendingInboundAsset.String(),
 	}
 
 	res, err := json.MarshalIndent(p, "", "	")
@@ -849,21 +823,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 }
 
 func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
-	type pp struct {
-		BalanceRune         cosmos.Uint  `json:"balance_rune"`
-		BalanceAsset        cosmos.Uint  `json:"balance_asset"`
-		Asset               common.Asset `json:"asset"`
-		LPUnits             cosmos.Uint  `json:"LP_units"`
-		PoolUnits           cosmos.Uint  `json:"pool_units"`
-		Status              PoolStatus   `json:"status,omitempty"`
-		Decimals            int64        `json:"decimals,omitempty"`
-		SynthUnits          cosmos.Uint  `json:"synth_units"`
-		SynthSupply         cosmos.Uint  `json:"synth_supply"`
-		PendingInboundRune  cosmos.Uint  `json:"pending_inbound_rune"`
-		PendingInboundAsset cosmos.Uint  `json:"pending_inbound_asset"`
-	}
-
-	pools := make([]pp, 0)
+	pools := make([]openapi.Pool, 0)
 	iterator := mgr.Keeper().GetPoolIterator(ctx)
 	for ; iterator.Valid(); iterator.Next() {
 		var pool Pool
@@ -878,18 +838,18 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 		pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
-		p := pp{
-			BalanceRune:         pool.BalanceRune,
-			BalanceAsset:        pool.BalanceAsset,
-			Asset:               pool.Asset,
-			LPUnits:             pool.LPUnits,
-			PoolUnits:           pool.GetPoolUnits(),
-			Status:              pool.Status,
-			Decimals:            pool.Decimals,
-			SynthUnits:          pool.SynthUnits,
-			SynthSupply:         synthSupply,
-			PendingInboundRune:  pool.PendingInboundRune,
-			PendingInboundAsset: pool.PendingInboundAsset,
+		p := openapi.Pool{
+			BalanceRune:         pool.BalanceRune.String(),
+			BalanceAsset:        pool.BalanceAsset.String(),
+			Asset:               pool.Asset.String(),
+			LPUnits:             pool.LPUnits.String(),
+			PoolUnits:           pool.GetPoolUnits().String(),
+			Status:              pool.Status.String(),
+			Decimals:            wrapInt64(pool.Decimals),
+			SynthUnits:          pool.SynthUnits.String(),
+			SynthSupply:         synthSupply.String(),
+			PendingInboundRune:  pool.PendingInboundRune.String(),
+			PendingInboundAsset: pool.PendingInboundAsset.String(),
 		}
 		pools = append(pools, p)
 	}
@@ -1545,4 +1505,18 @@ func queryTssMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		KeysignMetric: keysignMetric,
 	}
 	return json.MarshalIndent(m, "", "	")
+}
+
+func wrapString(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+func wrapInt64(d int64) *int64 {
+	if d == 0 {
+		return nil
+	}
+	return &d
 }
