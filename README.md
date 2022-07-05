@@ -126,6 +126,7 @@ Install Docker and Docker Compose V2.
 Install via this `make` command.
 
 ```bash
+make openapi
 make install
 ```
 
@@ -230,7 +231,6 @@ If you find a vulnerability in THORNode, please submit it for a bounty according
 THORNode manage changelog entry the same way like gitlab, refer to (https://docs.gitlab.com/ee/development/changelog.html) for more detail. Once a merge request get merged into master branch,
 if the merge request upgrade the [version](https://gitlab.com/thorchain/thornode/-/blob/master/version), then a new release will be created automatically, and the repository will be tagged with
 the new version by the release tool.
-
 
 ## New Chain Integration
 

@@ -23,9 +23,23 @@ before_script:
   - export GOPATH="$CI_PROJECT_DIR/.cache"
 
 stages:
+  - generate
   - test
   - build
   - smoke-test
+
+generate:
+  cache: []
+  stage: generate
+  image: docker:20.10.12
+  services:
+    - docker:20.10.12-dind
+  artifacts:
+    untracked: true
+  before_script:
+    - apk -U add bash curl findutils git go jq make protoc wget
+  script:
+    - PATH="$PATH:/root/go/bin" make protob openapi
 
 unit-tests:
   stage: test
@@ -34,7 +48,6 @@ unit-tests:
     - schedules
   coverage: '/total:\s+\(statements\)\s+(\d+.\d+\%)/'
   before_script:
-    - make protob
     - go get github.com/boumenot/gocover-cobertura
     - go get gotest.tools/gotestsum
   script:
