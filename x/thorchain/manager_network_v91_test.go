@@ -519,7 +519,7 @@ func (s *NetworkManagerV91TestSuite) TestRagnarokPool(c *C) {
 	err = networkMgr.checkPoolRagnarok(ctx, mgr)
 	c.Assert(err, IsNil)
 	items, _ = mgr.txOutStore.GetOutboundItems(ctx)
-	c.Assert(items, HasLen, 3)
+	c.Assert(items, HasLen, 3, Commentf("%d", len(items)))
 
 	tempPool, err := k.GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)

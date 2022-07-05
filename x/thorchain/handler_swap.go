@@ -44,8 +44,8 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
 	switch {
-	case version.GTE(semver.MustParse("1.92.0")):
-		return h.validateV92(ctx, msg)
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.validateV93(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.1")):
 		return h.validateV88(ctx, msg)
 	case version.GTE(semver.MustParse("0.65.0")):
@@ -55,7 +55,7 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	}
 }
 
-func (h SwapHandler) validateV92(ctx cosmos.Context, msg MsgSwap) error {
+func (h SwapHandler) validateV93(ctx cosmos.Context, msg MsgSwap) error {
 	if err := msg.ValidateBasicV63(); err != nil {
 		return err
 	}
@@ -155,8 +155,8 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	switch {
-	case version.GTE(semver.MustParse("1.92.0")):
-		return h.handleV92(ctx, msg)
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.handleV93(ctx, msg)
 	case version.GTE(semver.MustParse("0.81.0")):
 		return h.handleV81(ctx, msg)
 	default:
@@ -164,7 +164,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	}
 }
 
-func (h SwapHandler) handleV92(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+func (h SwapHandler) handleV93(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
@@ -193,7 +193,8 @@ func (h SwapHandler) handleV92(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 	if err != nil {
 		return nil, err
 	}
-	_, _, swapErr := swapper.Swap(
+
+	emit, _, swapErr := swapper.Swap(
 		ctx,
 		h.mgr.Keeper(),
 		msg.Tx,
@@ -209,6 +210,32 @@ func (h SwapHandler) handleV92(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 	if swapErr != nil {
 		return nil, swapErr
 	}
+
+	mem, err := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Tx.Memo)
+	if err != nil {
+		ctx.Logger().Error("swap handler failed to parse memo", "memo", msg.Tx.Memo, "error", err)
+		return nil, err
+	}
+	if mem.IsType(TxAdd) {
+		m, ok := mem.(AddLiquidityMemo)
+		if !ok {
+			return nil, fmt.Errorf("fail to cast add liquidity memo")
+		}
+		m.Asset = fuzzyAssetMatch(ctx, h.mgr.Keeper(), m.Asset)
+		msg.Tx.Coins = common.NewCoins(common.NewCoin(m.Asset, emit))
+		obTx := ObservedTx{Tx: msg.Tx}
+		msg, err := getMsgAddLiquidityFromMemo(ctx, m, obTx, msg.Signer)
+		if err != nil {
+			return nil, err
+		}
+		handler := NewAddLiquidityHandler(h.mgr)
+		_, err = handler.Run(ctx, msg)
+		if err != nil {
+			ctx.Logger().Error("swap handler failed to add liquidity", "error", err)
+			return nil, err
+		}
+	}
+
 	return &cosmos.Result{}, nil
 }
 

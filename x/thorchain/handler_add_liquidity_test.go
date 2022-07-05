@@ -273,11 +273,6 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 			expectedResult: errAddLiquidityRUNEMoreThanBond,
 		},
 		{
-			name:           "asset address with wrong chain should fail",
-			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomRUNEAddress(), GetRandomRUNEAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
-			expectedResult: errAddLiquidityFailValidation,
-		},
-		{
 			name:           "rune address with wrong chain should fail",
 			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomRUNEAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errAddLiquidityFailValidation,
@@ -364,6 +359,66 @@ func (s *HandlerAddLiquiditySuite) TestHandlerAddLiquidityFailScenario(c *C) {
 		_, err := addHandler.Run(ctx, msg)
 		c.Assert(errors.Is(err, tc.expectedResult), Equals, true, Commentf(tc.name))
 	}
+}
+
+func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerWithSwap(c *C) {
+	var err error
+	ctx, mgr := setupManagerForTest(c)
+	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	runeAddr := GetRandomRUNEAddress()
+	bnbAddr := GetRandomBNBAddress()
+	pool := NewPool()
+	pool.Asset = common.BNBAsset
+	pool.BalanceRune = cosmos.NewUint(219911755050746)
+	pool.BalanceAsset = cosmos.NewUint(2189430478930)
+	pool.LPUnits = cosmos.NewUint(104756821848147)
+	pool.Status = PoolAvailable
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+	pool.Asset = common.BTCAsset
+	pool.BalanceRune = cosmos.NewUint(929514035216049)
+	pool.BalanceAsset = cosmos.NewUint(89025872745)
+	pool.LPUnits = cosmos.NewUint(530237037742827)
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+
+	// happy path
+	addHandler := NewAddLiquidityHandler(mgr)
+	btcAddr := GetRandomBTCAddress()
+	tx := common.NewTx(
+		GetRandomTxHash(),
+		btcAddr,
+		runeAddr,
+		common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(common.One*5))},
+		BNBGasFeeSingleton,
+		"add:BNB.BNB",
+	)
+	msg := NewMsgAddLiquidity(
+		tx,
+		common.BNBAsset,
+		cosmos.NewUint(100*common.One),
+		cosmos.ZeroUint(),
+		runeAddr,
+		bnbAddr,
+		common.NoAddress, cosmos.ZeroUint(),
+		activeNodeAccount.NodeAddress)
+	err = addHandler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	c.Assert(mgr.SwapQ().EndBlock(ctx, mgr), IsNil)
+
+	pool, err = mgr.Keeper().GetPool(ctx, common.BTCAsset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(924351713466224), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(89525872745), Commentf("%d", pool.BalanceAsset.Uint64()))
+
+	pool, err = mgr.Keeper().GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(225074076800571), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(2189430478930), Commentf("%d", pool.BalanceAsset.Uint64()))
+
+	lp, err := mgr.Keeper().GetLiquidityProvider(ctx, common.BNBAsset, btcAddr)
+	c.Assert(err, IsNil)
+	c.Check(lp.Units.IsZero(), Equals, false)
+	c.Check(lp.Units.Uint64(), Equals, uint64(1173802086792), Commentf("%d", lp.Units.Uint64()))
 }
 
 type AddLiquidityTestKeeper struct {
