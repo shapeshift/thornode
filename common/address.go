@@ -20,7 +20,10 @@ import (
 
 type Address string
 
-var NoAddress = Address("")
+const (
+	NoAddress   = Address("")
+	NoopAddress = Address("noop")
+)
 
 const ETHAddressLen = 42
 
@@ -440,6 +443,10 @@ func (addr Address) Equals(addr2 Address) bool {
 
 func (addr Address) IsEmpty() bool {
 	return strings.TrimSpace(addr.String()) == ""
+}
+
+func (addr Address) IsNoop() bool {
+	return addr.Equals(NoopAddress)
 }
 
 func (addr Address) String() string {

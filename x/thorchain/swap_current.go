@@ -97,7 +97,7 @@ func (s *SwapperV92) Swap(ctx cosmos.Context,
 		}
 	}
 
-	if !destination.IsChain(target.GetChain()) {
+	if !destination.IsNoop() && !destination.IsChain(target.GetChain()) {
 		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("destination address is not a valid %s address", target.GetChain())
 	}
 	if source.Equals(target) {
@@ -137,26 +137,28 @@ func (s *SwapperV92) Swap(ctx cosmos.Context,
 		return cosmos.ZeroUint(), swapEvents, errors.New("zero emit asset")
 	}
 
-	toi := TxOutItem{
-		Chain:                 target.GetChain(),
-		InHash:                tx.ID,
-		ToAddress:             destination,
-		Coin:                  common.NewCoin(target, assetAmount),
-		Aggregator:            dexAgg,
-		AggregatorTargetAsset: dexAggTargetAsset,
-		AggregatorTargetLimit: dexAggLimit,
-	}
-	// let the txout manager mint our outbound asset if it is a synthetic asset
-	if toi.Chain.IsTHORChain() && toi.Coin.Asset.IsSyntheticAsset() {
-		toi.ModuleName = ModuleName
-	}
+	if !destination.IsNoop() {
+		toi := TxOutItem{
+			Chain:                 target.GetChain(),
+			InHash:                tx.ID,
+			ToAddress:             destination,
+			Coin:                  common.NewCoin(target, assetAmount),
+			Aggregator:            dexAgg,
+			AggregatorTargetAsset: dexAggTargetAsset,
+			AggregatorTargetLimit: dexAggLimit,
+		}
+		// let the txout manager mint our outbound asset if it is a synthetic asset
+		if toi.Chain.IsTHORChain() && toi.Coin.Asset.IsSyntheticAsset() {
+			toi.ModuleName = ModuleName
+		}
 
-	ok, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi, swapTarget)
-	if err != nil {
-		return assetAmount, swapEvents, ErrInternal(err, "fail to add outbound tx")
-	}
-	if !ok {
-		return assetAmount, swapEvents, errFailAddOutboundTx
+		ok, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi, swapTarget)
+		if err != nil {
+			return assetAmount, swapEvents, ErrInternal(err, "fail to add outbound tx")
+		}
+		if !ok {
+			return assetAmount, swapEvents, errFailAddOutboundTx
+		}
 	}
 
 	// emit the swap events , by this stage , it is guarantee that swap already happened

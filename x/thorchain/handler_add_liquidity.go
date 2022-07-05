@@ -3,6 +3,7 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/blang/semver"
 
@@ -48,14 +49,18 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.76.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.validateV93(ctx, msg)
+	case version.GTE(semver.MustParse("0.76.0")):
 		return h.validateV76(ctx, msg)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
-func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity) error {
-	if err := msg.ValidateBasicV63(); err != nil {
+func (h AddLiquidityHandler) validateV93(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	if err := msg.ValidateBasicV93(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
 	}
@@ -65,20 +70,28 @@ func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity
 		return errAddLiquidityFailValidation
 	}
 
-	// Synths coins are not compatible with add liquidity
-	if msg.Tx.Coins.HasSynthetic() {
-		ctx.Logger().Error("asset coins cannot be synth", "error", errAddLiquidityFailValidation)
-		return errAddLiquidityFailValidation
-	}
-
-	if !msg.AssetAddress.IsEmpty() && !msg.AssetAddress.IsChain(msg.Asset.Chain) {
-		ctx.Logger().Error("asset address must match asset chain")
-		return errAddLiquidityFailValidation
-	}
-
 	if !msg.RuneAddress.IsEmpty() && !msg.RuneAddress.IsChain(common.THORChain) {
 		ctx.Logger().Error("rune address must be THORChain")
 		return errAddLiquidityFailValidation
+	}
+
+	// check if swap meets standards
+	if h.needsSwap(msg) {
+		if !msg.Asset.IsSyntheticAsset() {
+			return fmt.Errorf("swap & add liquidity is only available for synthetic pools")
+		}
+		if !msg.Asset.GetLayer1Asset().Equals(msg.Tx.Coins[0].Asset) {
+			return fmt.Errorf("deposit asset must be the layer1 equivalent for the synthetic asset")
+		}
+	}
+
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
+	if err != nil {
+		return ErrInternal(err, "fail to get pool")
+	}
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
+		ctx.Logger().Error("fail to check pool status", "error", err)
+		return errInvalidPoolStatus
 	}
 
 	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
@@ -93,10 +106,6 @@ func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity
 	}
 
 	// total liquidity RUNE after current add liquidity
-	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
-	if err != nil {
-		return ErrInternal(err, "fail to get pool")
-	}
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(pool.AssetValueInRune(msg.AssetAmount))
 	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
@@ -126,13 +135,22 @@ func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity
 
 func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.63.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.handleV93(ctx, msg)
+	case version.GTE(semver.MustParse("0.63.0")):
 		return h.handleV63(ctx, msg)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
-func (h AddLiquidityHandler) handleV63(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
+func (h AddLiquidityHandler) handleV93(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
+	// check if we need to swap before adding asset
+	if h.needsSwap(msg) {
+		return h.swapV93(ctx, msg)
+	}
+
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
@@ -160,11 +178,6 @@ func (h AddLiquidityHandler) handleV63(ctx cosmos.Context, msg MsgAddLiquidity) 
 				return ErrInternal(err, "fail to save pool to key value store")
 			}
 		}
-	}
-
-	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
-		ctx.Logger().Error("fail to check pool status", "error", err)
-		return errInvalidPoolStatus
 	}
 
 	// figure out if we need to stage the funds and wait for a follow on
@@ -230,6 +243,35 @@ func (h AddLiquidityHandler) handleV63(ctx cosmos.Context, msg MsgAddLiquidity) 
 		// function first (TODO).
 		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
 	}
+	return nil
+}
+
+func (h AddLiquidityHandler) swapV93(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	// ensure TxID does NOT have a collision with another swap, this could
+	// happen if the user submits two identical loan requests in the same
+	// block
+	if ok := h.mgr.Keeper().HasSwapQueueItem(ctx, msg.Tx.ID, 0); ok {
+		return fmt.Errorf("txn hash conflict")
+	}
+
+	// sanity check, ensure address or asset doesn't have separator within them
+	if strings.Contains(fmt.Sprintf("%s%s", msg.Asset, msg.AffiliateAddress), ":") {
+		return fmt.Errorf("illegal character")
+	}
+	memo := fmt.Sprintf("+:%s::%s:%d", msg.Asset, msg.AffiliateAddress, msg.AffiliateBasisPoints)
+	msg.Tx.Memo = memo
+	swapMsg := NewMsgSwap(msg.Tx, msg.Asset, common.NoopAddress, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, msg.Signer)
+
+	// sanity check swap msg
+	handler := NewSwapHandler(h.mgr)
+	if err := handler.validate(ctx, *swapMsg); err != nil {
+		return err
+	}
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -314,12 +356,14 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	constAccessor constants.ConstantValues,
 ) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("1.90.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.90.0")):
 		return h.addLiquidityV90(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
-	} else if version.GTE(semver.MustParse("0.79.0")) {
+	case version.GTE(semver.MustParse("0.79.0")):
 		return h.addLiquidityV79(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
 func (h AddLiquidityHandler) addLiquidityV90(ctx cosmos.Context,
@@ -329,7 +373,7 @@ func (h AddLiquidityHandler) addLiquidityV90(ctx cosmos.Context,
 	requestTxHash common.TxID,
 	stage bool,
 	constAccessor constants.ConstantValues,
-) error {
+) (err error) {
 	ctx.Logger().Info("liquidity provision", "asset", asset, "rune amount", addRuneAmount, "asset amount", addAssetAmount)
 	if err := h.validateAddLiquidityMessage(ctx, h.mgr.Keeper(), asset, requestTxHash, runeAddr, assetAddr); err != nil {
 		return fmt.Errorf("add liquidity message fail validation: %w", err)
@@ -520,4 +564,8 @@ func (h AddLiquidityHandler) getTotalLiquidityRUNE(ctx cosmos.Context) (cosmos.U
 		total = total.Add(p.BalanceRune)
 	}
 	return total, nil
+}
+
+func (h AddLiquidityHandler) needsSwap(msg MsgAddLiquidity) bool {
+	return len(msg.Tx.Coins) == 1 && !msg.Tx.Coins[0].Asset.IsNativeRune() && !msg.Asset.Equals(msg.Tx.Coins[0].Asset)
 }

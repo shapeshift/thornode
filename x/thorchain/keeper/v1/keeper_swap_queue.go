@@ -52,6 +52,13 @@ func (k KVStore) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID, i int) (
 	return record, err
 }
 
+// HasSwapQueueItem - checks if swap item already exists
+func (k KVStore) HasSwapQueueItem(ctx cosmos.Context, txID common.TxID, i int) bool {
+	record := MsgSwap{}
+	ok, _ := k.getMsgSwap(ctx, k.GetKey(ctx, prefixSwapQueueItem, fmt.Sprintf("%s-%d", txID.String(), i)), &record)
+	return ok
+}
+
 // RemoveSwapQueueItem - removes a swap item from the kv store
 func (k KVStore) RemoveSwapQueueItem(ctx cosmos.Context, txID common.TxID, i int) {
 	k.del(ctx, k.GetKey(ctx, prefixSwapQueueItem, fmt.Sprintf("%s-%d", txID.String(), i)))
