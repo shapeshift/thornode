@@ -120,15 +120,18 @@ func (h TssHandler) validateSigner(ctx cosmos.Context, signer cosmos.AccAddress)
 func (h TssHandler) handle(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("1.92.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.handleV93(ctx, msg)
+	case version.GTE(semver.MustParse("1.92.0")):
 		return h.handleV92(ctx, msg)
-	} else if version.GTE(semver.MustParse("0.73.0")) {
+	case version.GTE(semver.MustParse("0.73.0")):
 		return h.handleV73(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h TssHandler) handleV92(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
+func (h TssHandler) handleV93(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", h.mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {
 		ctx.Logger().Error(msg.Blame.String())
@@ -230,10 +233,6 @@ func (h TssHandler) handleV92(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 
 			if len(initVaults) == len(keygenBlock.Keygens) {
 				for _, v := range initVaults {
-					v.UpdateStatus(ActiveVault, common.BlockHeight(ctx))
-					if err := h.mgr.Keeper().SetVault(ctx, v); err != nil {
-						return nil, fmt.Errorf("fail to save vault: %w", err)
-					}
 					if err := h.mgr.NetworkMgr().RotateVault(ctx, v); err != nil {
 						return nil, fmt.Errorf("fail to rotate vault: %w", err)
 					}
