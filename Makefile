@@ -1,5 +1,5 @@
 include Makefile.cicd
-.PHONY: build test tools export healthcheck run-mocknet build-mocknet stop-mocknet ps-mocknet reset-mocknet logs-mocknet
+.PHONY: build test tools export healthcheck run-mocknet build-mocknet stop-mocknet ps-mocknet reset-mocknet logs-mocknet openapi
 
 module = gitlab.com/thorchain/thornode
 GOBIN?=${GOPATH}/bin
@@ -31,10 +31,18 @@ protob:
 protob-docker:
 	@docker run --rm -v $(shell pwd):/app -w /app registry.gitlab.com/thorchain/thornode:builder-v1@sha256:6a7fb4e4ba636ca8ae6b7db93ae8838a8393ddbc8dfc2b99eb706fb18f50d635 make protob
 
+openapi:
+	@docker run --rm \
+		--user $(shell id -u):$(shell id -g) \
+		-v $$PWD/openapi:/mnt \
+		openapitools/openapi-generator-cli:v6.0.0@sha256:310bd0353c11863c0e51e5cb46035c9e0778d4b9c6fe6a7fc8307b3b41997a35 \
+		generate -i /mnt/openapi.yaml -g go -o /mnt/gen
+	@rm openapi/gen/go.mod openapi/gen/go.sum
+
 build: protob
 	go build ${BUILD_FLAGS} ${BINARIES}
 
-install: go.sum protob
+install: protob
 	go install ${BUILD_FLAGS} ${BINARIES}
 
 tools:
@@ -59,22 +67,19 @@ test-coverage-sum:
 	@go tool cover -func=coverage.txt
 	@go tool cover -html=coverage.txt -o coverage.html
 
-clear:
-	clear
-
 test:
 	@CGO_ENABLED=0 go test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 test-race:
 	@go test -race ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
-test-watch: clear
+test-watch:
 	@gow -c test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 format:
 	@git ls-files '*.go' | grep -v -e '^docs/' | xargs gofumpt -w
 
-lint: protob
+lint:
 	@./scripts/lint.sh
 	@go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 ifdef CI_MERGE_REQUEST_TARGET_BRANCH_NAME
