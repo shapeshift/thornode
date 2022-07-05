@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-git show origin/develop:bifrost/pkg/chainclients/ethereum/token_list.json |
+git show origin/develop:common/tokenlist/eth_mainnet_V93.json |
   jq -r '.tokens[] | .address | ascii_downcase' | sort -n | uniq -u >/tmp/orig_erc20_token_list.txt
 
 jq -r '.tokens[] | .address | ascii_downcase' <common/tokenlist/eth_mainnet_V93.json |
