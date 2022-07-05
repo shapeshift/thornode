@@ -343,7 +343,7 @@ func refundBondV92(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 	}
 	// slash yggdrasil remains
 	penaltyPts := fetchConfigInt64(ctx, mgr, constants.SlashPenalty)
-	slashRune := common.GetShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), yggRune)
+	slashRune := common.GetUncappedShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), yggRune)
 	if slashRune.GT(nodeAcc.Bond) {
 		slashRune = nodeAcc.Bond
 	}

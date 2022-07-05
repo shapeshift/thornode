@@ -596,8 +596,8 @@ func getNodeCurrentRewards(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount, l
 	}
 
 	// reward = totalBondReward * (naEffectiveBond / totalEffectiveBond) * (unslashed blocks since last churn / blocks since last churn)
-	reward := common.GetShare(naEffectiveBond, totalEffectiveBond, totalBondReward)
-	reward = common.GetShare(cosmos.NewUint(uint64(earnedBlocks)), cosmos.NewUint(uint64(totalActiveBlocks)), reward)
+	reward := common.GetUncappedShare(naEffectiveBond, totalEffectiveBond, totalBondReward)
+	reward = common.GetUncappedShare(cosmos.NewUint(uint64(earnedBlocks)), cosmos.NewUint(uint64(totalActiveBlocks)), reward)
 	return reward, nil
 }
 
@@ -923,7 +923,7 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs
 	}
 	keysignMetric, err := mgr.Keeper().GetTssKeysignMetric(ctx, hash)
 	if err != nil {
-		ctx.Logger().Error("fatil to get keysign metrics", "error", err)
+		ctx.Logger().Error("fail to get keysign metrics", "error", err)
 	}
 	result := struct {
 		ObservedTx     `json:"observed_tx"`

@@ -32,26 +32,26 @@ func (TypeConvertTestSuite) TestSafeDivision(c *C) {
 	total := input1.Add(input2)
 	allocation := cosmos.NewUint(100000000)
 
-	result1 := GetShare(input1, total, allocation)
+	result1 := GetUncappedShare(input1, total, allocation)
 	c.Check(result1.Equal(cosmos.NewUint(33333333)), Equals, true, Commentf("%d", result1.Uint64()))
 
-	result2 := GetShare(input2, total, allocation)
+	result2 := GetUncappedShare(input2, total, allocation)
 	c.Check(result2.Equal(cosmos.NewUint(66666667)), Equals, true, Commentf("%d", result2.Uint64()))
 
-	result3 := GetShare(cosmos.ZeroUint(), total, allocation)
+	result3 := GetUncappedShare(cosmos.ZeroUint(), total, allocation)
 	c.Check(result3.Equal(cosmos.ZeroUint()), Equals, true, Commentf("%d", result3.Uint64()))
 
-	result4 := GetShare(input1, cosmos.ZeroUint(), allocation)
+	result4 := GetUncappedShare(input1, cosmos.ZeroUint(), allocation)
 	c.Check(result4.Equal(cosmos.ZeroUint()), Equals, true, Commentf("%d", result4.Uint64()))
 
-	result5 := GetShare(input1, total, cosmos.ZeroUint())
+	result5 := GetUncappedShare(input1, total, cosmos.ZeroUint())
 	c.Check(result5.Equal(cosmos.ZeroUint()), Equals, true, Commentf("%d", result5.Uint64()))
 
-	result6 := GetShare(cosmos.NewUint(1014), cosmos.NewUint(3), cosmos.NewUint(1000_000*One))
+	result6 := GetUncappedShare(cosmos.NewUint(1014), cosmos.NewUint(3), cosmos.NewUint(1000_000*One))
 	c.Check(result6.Equal(cosmos.NewUint(33799999999999997)), Equals, true, Commentf("%s", result6.String()))
 }
 
-func (TypeConvertTestSuite) TestGetShare(c *C) {
+func (TypeConvertTestSuite) TestGetUncappedShare(c *C) {
 	x := cosmos.NewUint(0)
 	data := []byte{
 		0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30,
@@ -63,6 +63,6 @@ func (TypeConvertTestSuite) TestGetShare(c *C) {
 	z2.SetBytes(data)
 	c.Log(z2.String())
 	y := cosmos.NewUintFromBigInt(z2)
-	share := GetShare(y, cosmos.NewUint(10000), x)
+	share := GetUncappedShare(y, cosmos.NewUint(10000), x)
 	c.Assert(share.IsZero(), Equals, true)
 }
