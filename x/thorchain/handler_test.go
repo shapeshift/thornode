@@ -718,3 +718,13 @@ func (s *HandlerSuite) TestMemoFetchAddress(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(addr.Equals(thorAddr), Equals, true)
 }
+
+func (s *HandlerSuite) TestExternalAssetMatch(c *C) {
+	v := GetCurrentVersion()
+
+	c.Check(externalAssetMatch(v, common.ETHChain, "7a0"), Equals, "0xd601c6A3a36721320573885A8d8420746dA3d7A0")
+	c.Check(externalAssetMatch(v, common.ETHChain, "foobar"), Equals, "foobar")
+	c.Check(externalAssetMatch(v, common.ETHChain, "3"), Equals, "3")
+	c.Check(externalAssetMatch(v, common.ETHChain, ""), Equals, "")
+	c.Check(externalAssetMatch(v, common.BTCChain, "foo"), Equals, "foo")
+}
