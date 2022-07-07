@@ -4,7 +4,9 @@ import (
 	_ "embed"
 	"net/http"
 
+	json "github.com/json-iterator/go"
 	"github.com/rs/zerolog/log"
+	"gopkg.in/yaml.v2"
 )
 
 // -------------------------------------------------------------------------------------
@@ -14,6 +16,9 @@ import (
 var (
 	//go:embed openapi.yaml
 	openapiYAML []byte
+
+	// set at init based on loaded yaml
+	openapiJSON []byte
 
 	swaggerUI = []byte(`
 <!DOCTYPE html>
@@ -51,12 +56,37 @@ var (
 )
 
 // -------------------------------------------------------------------------------------
+// Init
+// -------------------------------------------------------------------------------------
+
+func init() {
+	config := map[string]interface{}{}
+	err := yaml.Unmarshal(openapiYAML, &config)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to unmarshal openapi yaml")
+	}
+
+	openapiJSON, err = json.Marshal(config)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to marshal openapi json")
+	}
+}
+
+// -------------------------------------------------------------------------------------
 // Handlers
 // -------------------------------------------------------------------------------------
 
-func HandleSpec(w http.ResponseWriter, r *http.Request) {
+func HandleSpecYAML(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("content-type", "text/yaml")
 	_, err := w.Write(openapiYAML)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to write spec response")
+	}
+}
+
+func HandleSpecJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("content-type", "application/json")
+	_, err := w.Write(openapiJSON)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to write spec response")
 	}
