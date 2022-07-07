@@ -72,7 +72,8 @@ func RegisterRoutes(cliCtx client.Context, r *mux.Router, storeName string) {
 	).Methods(http.MethodPost)
 
 	// api doc handlers
-	r.HandleFunc(fmt.Sprintf("/%s/doc/openapi.yaml", storeName), openapi.HandleSpec)
+	r.HandleFunc(fmt.Sprintf("/%s/doc/openapi.yaml", storeName), openapi.HandleSpecYAML)
+	r.HandleFunc(fmt.Sprintf("/%s/doc/openapi.json", storeName), openapi.HandleSpecJSON)
 	r.HandleFunc(fmt.Sprintf("/%s/doc", storeName), openapi.HandleSwaggerUI)
 	r.HandleFunc(fmt.Sprintf("/%s/doc/", storeName), openapi.HandleSwaggerUI)
 

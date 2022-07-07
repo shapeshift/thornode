@@ -52,11 +52,13 @@ require (
 	gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d
 	gitlab.com/thorchain/tss/go-tss v1.5.1
 	go.uber.org/atomic v1.7.0
+	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	google.golang.org/genproto v0.0.0-20220211171837-173942840c17 // indirect
 	google.golang.org/grpc v1.44.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/ini.v1 v1.63.2 // indirect
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -140,6 +142,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/jmhodges/levigo v1.0.0 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/keybase/go-keychain v0.0.0-20190712205309-48d3d31d256d // indirect
 	github.com/kkdai/bstream v1.0.0 // indirect
 	github.com/klauspost/compress v1.11.7 // indirect
@@ -194,6 +197,8 @@ require (
 	github.com/minio/sha256-simd v0.1.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/multiformats/go-base32 v0.0.3 // indirect
@@ -248,16 +253,12 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	golang.org/x/tools v0.1.8 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
-	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	nhooyr.io/websocket v1.8.6 // indirect
 )
-
-require golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c
-
-require google.golang.org/appengine v1.6.7 // indirect
 
 replace (
 	github.com/agl/ed25519 => github.com/binance-chain/edwards25519 v0.0.0-20200305024217-f36fc4b53d43
