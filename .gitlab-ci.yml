@@ -108,6 +108,26 @@ build-thornode:
     - make docker-gitlab-build
     - make docker-gitlab-push
 
+build-smoke:
+  stage: build
+  image: docker:20.10.12
+  only:
+    - develop
+  services:
+    - docker:20.10.12-dind
+  before_script:
+    # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27384#note_497228752
+    - |
+      for i in $(seq 1 30)
+      do
+          docker info && break
+          echo "Waiting for docker to start"
+          sleep 1s
+      done
+    - make build-smoke
+  script:
+    - make push-smoke
+
 smoke-test:
   stage: smoke-test
   cache: {}
