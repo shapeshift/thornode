@@ -9,8 +9,6 @@ VERSION:=$(shell cat version)
 TAG?=testnet
 TEST_DIR?="./..."
 
-SMOKE_DOCKER_OPTS = --network=host --rm -e RUNE=THOR.RUNE -e LOGLEVEL=INFO -e PYTHONPATH=/app -v ${PWD}/test/smoke:/app -w /app
-
 ldflags = -X gitlab.com/thorchain/thornode/constants.Version=$(VERSION) \
 		  -X gitlab.com/thorchain/thornode/constants.GitCommit=$(COMMIT) \
 		  -X gitlab.com/thorchain/thornode/constants.BuildTime=${NOW} \
@@ -58,11 +56,9 @@ go.sum: go.mod
 test-coverage:
 	@go test ${TEST_BUILD_FLAGS} -v -coverprofile=coverage.txt -covermode count ${TEST_DIR}
 	sed -i '/\.pb\.go:/d' coverage.txt
-	@docker run ${SMOKE_DOCKER_OPTS} ${IMAGE_NAME} coverage run -m unittest tests/test_*
 
 coverage-report: test-coverage
 	@go tool cover -html=coverage.txt
-	@docker run ${DOCKER_OPTS} ${IMAGE_NAME} coverage report -m
 
 test-coverage-sum:
 	@go run gotest.tools/gotestsum --junitfile report.xml --format testname -- ${TEST_BUILD_FLAGS} -v -coverprofile=coverage.txt -covermode count ${TEST_DIR}
@@ -73,7 +69,6 @@ test-coverage-sum:
 
 test:
 	@CGO_ENABLED=0 go test ${TEST_BUILD_FLAGS} ${TEST_DIR}
-	@docker run ${SMOKE_DOCKER_OPTS} -e EXPORT=${EXPORT} -e EXPORT_EVENTS=${EXPORT_EVENTS} ${IMAGE_NAME} python -m unittest tests/test_*
 
 test-race:
 	@go test -race ${TEST_BUILD_FLAGS} ${TEST_DIR}
@@ -104,6 +99,15 @@ tss:
 	go get gitlab.com/thorchain/tss/go-tss
 
 # ------------------------------ Smoke Tests ------------------------------
+
+SMOKE_DOCKER_OPTS = --network=host --rm -e RUNE=THOR.RUNE -e LOGLEVEL=INFO -e PYTHONPATH=/app -v ${PWD}/test/smoke:/app -w /app
+
+test-smoke:
+	@docker run ${SMOKE_DOCKER_OPTS} \
+		-e EXPORT=${EXPORT} \
+		-e EXPORT_EVENTS=${EXPORT_EVENTS} \
+		registry.gitlab.com/thorchain/thornode:smoke \
+		sh -c 'python -m unittest tests/test_*'
 
 build-smoke:
 	@docker pull registry.gitlab.com/thorchain/thornode:smoke || true
