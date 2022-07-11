@@ -105,9 +105,17 @@ tss:
 
 # ------------------------------ Smoke Tests ------------------------------
 
-smoke: reset-mocknet
-	@docker build -f test/smoke/Dockerfile -t registry.gitlab.com/thorchain/thornode:smoke test/smoke
-	docker run ${SMOKE_DOCKER_OPTS} \
+build-smoke:
+	@docker pull registry.gitlab.com/thorchain/thornode:smoke || true
+	@docker build --cache-from registry.gitlab.com/thorchain/thornode:smoke \
+		-f test/smoke/Dockerfile -t registry.gitlab.com/thorchain/thornode:smoke \
+		./test/smoke
+
+push-smoke:
+	@docker push registry.gitlab.com/thorchain/thornode:smoke
+
+smoke: reset-mocknet build-smoke
+	@docker run ${SMOKE_DOCKER_OPTS} \
 		-e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} \
 		registry.gitlab.com/thorchain/thornode:smoke \
 		python scripts/smoke.py --fast-fail=True
