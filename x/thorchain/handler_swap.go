@@ -46,6 +46,8 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	switch {
 	case version.GTE(semver.MustParse("1.93.0")):
 		return h.validateV93(ctx, msg)
+	case version.GTE(semver.MustParse("1.92.0")):
+		return h.validateV92(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.1")):
 		return h.validateV88(ctx, msg)
 	case version.GTE(semver.MustParse("0.65.0")):
@@ -157,6 +159,8 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	switch {
 	case version.GTE(semver.MustParse("1.93.0")):
 		return h.handleV93(ctx, msg)
+	case version.GTE(semver.MustParse("1.92.0")):
+		return h.handleV92(ctx, msg)
 	case version.GTE(semver.MustParse("0.81.0")):
 		return h.handleV81(ctx, msg)
 	default:
