@@ -414,7 +414,7 @@ func (s *SlasherV88) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 		}
 
 		// rune value is the value in RUNE of the missing funds
-		runeValue := cosmos.ZeroUint()
+		var runeValue cosmos.Uint
 		if coin.Asset.IsRune() {
 			runeValue = coin.Amount
 		} else {
