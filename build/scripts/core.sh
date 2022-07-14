@@ -136,7 +136,7 @@ fetch_genesis_from_seeds() {
   SEED_LIST=""
   for SEED in $1; do
     echo "Fetching genesis from seed $SEED"
-    curl -sL --fail -m 10 "$SEED:$PORT_RPC/genesis" | jq .result.genesis >~/.thornode/config/genesis.json || continue
+    curl -sL --fail -m 30 "$SEED:$PORT_RPC/genesis" | jq .result.genesis >~/.thornode/config/genesis.json || continue
     thornode validate-genesis
     cat ~/.thornode/config/genesis.json
     break
