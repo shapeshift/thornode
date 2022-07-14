@@ -124,6 +124,7 @@ build-smoke:
           echo "Waiting for docker to start"
           sleep 1s
       done
+    - apk -U add make git jq curl protoc
     - make build-smoke
   script:
     - make push-smoke
