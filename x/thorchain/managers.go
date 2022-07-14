@@ -302,6 +302,8 @@ func GetTxOutStore(version semver.Version, keeper keeper.Keeper, eventMgr EventM
 // GetNetworkManager  retrieve a NetworkManager that is compatible with the given version
 func GetNetworkManager(version semver.Version, keeper keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.94.0")):
+		return newNetworkMgrV94(keeper, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.93.0")):
 		return newNetworkMgrV93(keeper, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.92.0")):
