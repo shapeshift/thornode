@@ -73,6 +73,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 	case 92:
 		migrateStoreV92(ctx, smgr.mgr)
 		migrateStoreV92_USDCBalance(ctx, smgr.mgr)
+	case 94:
+		migrateStoreV94(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -212,4 +214,53 @@ func migrateStoreV92_USDCBalance(ctx cosmos.Context, mgr *Mgrs) {
 	if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
 		ctx.Logger().Error("fail to save pool balance", "error", err)
 	}
+}
+
+func migrateStoreV94(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v94", "error", err)
+		}
+	}()
+	iter := mgr.Keeper().GetVaultIterator(ctx)
+	defer iter.Close()
+
+	ustAsset, err := common.NewAsset("TERRA.UST")
+	if err != nil {
+		ctx.Logger().Error("fail to parse UST asset", "error", err)
+		return
+	}
+	for ; iter.Valid(); iter.Next() {
+		var v Vault
+		if err := mgr.Keeper().Cdc().Unmarshal(iter.Value(), &v); err != nil {
+			ctx.Logger().Error("fail to unmarshal vault", "error", err)
+			continue
+		}
+		if v.Status == InactiveVault || v.Status == InitVault {
+			continue
+		}
+		coinsToSubtract := common.NewCoins(v.GetCoin(common.LUNAAsset), v.GetCoin(ustAsset))
+		if coinsToSubtract.IsEmpty() {
+			continue
+		}
+		v.SubFunds(coinsToSubtract)
+		if err := mgr.Keeper().SetVault(ctx, v); err != nil {
+			ctx.Logger().Error("fail to save vault", "error", err)
+		}
+	}
+	poolLuna, err := mgr.Keeper().GetPool(ctx, common.LUNAAsset)
+	if err != nil {
+		ctx.Logger().Error("fail to get LUNA pool", "error", err)
+		return
+	}
+	if !poolLuna.BalanceRune.IsZero() {
+		// move the remaining RUNE to reserve
+		if err := mgr.Keeper().SendFromModuleToModule(ctx, AsgardName, ReserveName,
+			common.NewCoins(common.NewCoin(common.RuneNative, poolLuna.BalanceRune))); err != nil {
+			ctx.Logger().Error("fail to move remaining RUNE from asgard to reserve", "error", err)
+			return
+		}
+	}
+	// remove LUNA pool
+	mgr.Keeper().RemovePool(ctx, common.LUNAAsset)
 }

@@ -216,3 +216,69 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV92_UpdateUSDCBalance(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(pAfter.BalanceAsset.IsZero(), Equals, true)
 }
+
+func (s *StoreManagerTestSuite) TestMigrateStoreV94(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	storeMgr := newStoreMgr(mgr)
+	poolLuna := NewPool()
+	poolLuna.Asset = common.LUNAAsset
+	poolLuna.BalanceRune = cosmos.NewUint(77243905859)
+	poolLuna.BalanceAsset = cosmos.ZeroUint()
+	poolLuna.LPUnits = cosmos.NewUint(670538702)
+	poolLuna.Status = PoolSuspended
+	poolLuna.PendingInboundAsset = cosmos.NewUint(557871500)
+	c.Assert(mgr.Keeper().SetPool(ctx, poolLuna), IsNil)
+	ustAsset, err := common.NewAsset("TERRA.UST")
+	c.Assert(err, IsNil)
+	vault := NewVault(1024, ActiveVault, AsgardVault, GetRandomPubKey(), []string{
+		common.ETHChain.String(),
+		common.TERRAChain.String(),
+	}, nil)
+
+	vault.Coins = common.NewCoins(common.NewCoin(common.LUNAAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(ustAsset, cosmos.NewUint(1*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One)))
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
+
+	vault1 := NewVault(1024, RetiringVault, AsgardVault, GetRandomPubKey(), []string{
+		common.ETHChain.String(),
+		common.TERRAChain.String(),
+	}, nil)
+
+	vault1.Coins = common.NewCoins(common.NewCoin(common.LUNAAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(ustAsset, cosmos.NewUint(1*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One)))
+	c.Assert(mgr.Keeper().SetVault(ctx, vault1), IsNil)
+
+	vaultYgg := NewVault(1024, ActiveVault, YggdrasilVault, GetRandomPubKey(), []string{
+		common.ETHChain.String(),
+		common.TERRAChain.String(),
+	}, nil)
+
+	vaultYgg.Coins = common.NewCoins(common.NewCoin(common.LUNAAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(ustAsset, cosmos.NewUint(1*common.One)),
+		common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One)))
+	c.Assert(mgr.Keeper().SetVault(ctx, vaultYgg), IsNil)
+
+	c.Assert(storeMgr.migrate(ctx, 94), IsNil)
+	vaultAfter, err := mgr.Keeper().GetVault(ctx, vault.PubKey)
+	c.Assert(err, IsNil)
+	c.Assert(vaultAfter.HasAsset(common.LUNAAsset), Equals, false)
+	c.Assert(vaultAfter.HasAsset(ustAsset), Equals, false)
+	c.Assert(vaultAfter.HasAsset(common.BTCAsset), Equals, true)
+
+	vaultAfter1, err := mgr.Keeper().GetVault(ctx, vault1.PubKey)
+	c.Assert(err, IsNil)
+	c.Assert(vaultAfter1.HasAsset(common.LUNAAsset), Equals, false)
+	c.Assert(vaultAfter1.HasAsset(ustAsset), Equals, false)
+	c.Assert(vaultAfter1.HasAsset(common.BTCAsset), Equals, true)
+
+	vaultYggAfter, err := mgr.Keeper().GetVault(ctx, vaultYgg.PubKey)
+	c.Assert(err, IsNil)
+	c.Assert(vaultYggAfter.HasAsset(common.LUNAAsset), Equals, false)
+	c.Assert(vaultYggAfter.HasAsset(ustAsset), Equals, false)
+	c.Assert(vaultYggAfter.HasAsset(common.BTCAsset), Equals, true)
+	poolLunaAfter, err := mgr.Keeper().GetPool(ctx, common.LUNAAsset)
+	c.Assert(err, IsNil)
+	c.Assert(poolLunaAfter.IsEmpty(), Equals, true)
+}
