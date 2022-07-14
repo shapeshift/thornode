@@ -192,35 +192,47 @@ func (m MemoBase) GetDexAggregator() string         { return "" }
 func (m MemoBase) GetDexTargetAddress() string      { return "" }
 func (m MemoBase) GetDexTargetLimit() *cosmos.Uint  { return nil }
 
+func parseBase(memo string) (MemoBase, []string, error) {
+	parts := strings.Split(memo, ":")
+	mem := MemoBase{TxType: TxUnknown}
+	if len(memo) == 0 {
+		return mem, parts, fmt.Errorf("memo can't be empty")
+	}
+	var err error
+	mem.TxType, err = StringToTxType(parts[0])
+	if err != nil {
+		return mem, parts, err
+	}
+
+	switch mem.TxType {
+	case TxDonate, TxAdd, TxSwap, TxWithdraw:
+		if len(parts) < 2 {
+			return mem, parts, fmt.Errorf("cannot parse given memo: length %d", len(parts))
+		}
+		mem.Asset, err = common.NewAsset(parts[1])
+		if err != nil {
+			return mem, parts, err
+		}
+	}
+
+	return mem, parts, nil
+}
+
 func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panicked parsing memo(%s), err: %s", memo, r)
 		}
 	}()
-	mem = MemoBase{TxType: TxUnknown}
-	if len(memo) == 0 {
-		return mem, fmt.Errorf("memo can't be empty")
-	}
-	parts := strings.Split(memo, ":")
-	tx, err := StringToTxType(parts[0])
+
+	mem, parts, err := parseBase(memo)
 	if err != nil {
 		return mem, err
 	}
 
-	var asset common.Asset
-	switch tx {
-	case TxDonate, TxAdd, TxSwap, TxWithdraw:
-		if len(parts) < 2 {
-			return mem, fmt.Errorf("cannot parse given memo: length %d", len(parts))
-		}
-		asset, err = common.NewAsset(parts[1])
-		if err != nil {
-			return mem, err
-		}
-	}
+	asset := mem.GetAsset()
 
-	switch tx {
+	switch mem.GetType() {
 	case TxLeave:
 		return ParseLeaveMemo(parts)
 	case TxDonate:
@@ -256,7 +268,7 @@ func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 	case TxConsolidate:
 		return ParseConsolidateMemo(parts)
 	default:
-		return mem, fmt.Errorf("TxType not supported: %s", tx.String())
+		return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
 	}
 }
 
@@ -266,29 +278,15 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 			err = fmt.Errorf("panicked parsing memo(%s), err: %s", memo, r)
 		}
 	}()
-	mem = MemoBase{TxType: TxUnknown}
-	if len(memo) == 0 {
-		return mem, fmt.Errorf("memo can't be empty")
-	}
-	parts := strings.Split(memo, ":")
-	tx, err := StringToTxType(parts[0])
+
+	mem, parts, err := parseBase(memo)
 	if err != nil {
 		return mem, err
 	}
 
-	var asset common.Asset
-	switch tx {
-	case TxDonate, TxAdd, TxSwap, TxWithdraw:
-		if len(parts) < 2 {
-			return mem, fmt.Errorf("cannot parse given memo: length %d", len(parts))
-		}
-		asset, err = common.NewAsset(parts[1])
-		if err != nil {
-			return mem, err
-		}
-	}
+	asset := mem.GetAsset()
 
-	switch tx {
+	switch mem.GetType() {
 	case TxLeave:
 		return ParseLeaveMemo(parts)
 	case TxDonate:
@@ -326,7 +324,7 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 	case TxTHORName:
 		return ParseManageTHORNameMemo(parts)
 	default:
-		return mem, fmt.Errorf("TxType not supported: %s", tx.String())
+		return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
 	}
 }
 
