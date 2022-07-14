@@ -126,6 +126,32 @@ docker-gitlab-build:
 		$(shell sh ./build/docker/semver_tags.sh registry.gitlab.com/thorchain/thornode ${BRANCH} $(shell cat version)) \
 		-t registry.gitlab.com/thorchain/thornode:${GITREF} --build-arg TAG=${BUILDTAG} .
 
+# ------------------------------ Smoke Tests ------------------------------
+
+SMOKE_DOCKER_OPTS = --network=host --rm -e RUNE=THOR.RUNE -e LOGLEVEL=INFO -e PYTHONPATH=/app -v ${PWD}/test/smoke:/app -w /app
+
+test-smoke:
+	@docker run ${SMOKE_DOCKER_OPTS} \
+		-e EXPORT=${EXPORT} \
+		-e EXPORT_EVENTS=${EXPORT_EVENTS} \
+		registry.gitlab.com/thorchain/thornode:smoke \
+		sh -c 'python -m unittest tests/test_*'
+
+build-smoke:
+	@docker pull registry.gitlab.com/thorchain/thornode:smoke || true
+	@docker build --cache-from registry.gitlab.com/thorchain/thornode:smoke \
+		-f test/smoke/Dockerfile -t registry.gitlab.com/thorchain/thornode:smoke \
+		./test/smoke
+
+push-smoke:
+	@docker push registry.gitlab.com/thorchain/thornode:smoke
+
+smoke: reset-mocknet build-smoke
+	@docker run ${SMOKE_DOCKER_OPTS} \
+		-e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} \
+		registry.gitlab.com/thorchain/thornode:smoke \
+		python scripts/smoke.py --fast-fail=True
+
 # ------------------------------ Single Node Mocknet ------------------------------
 
 cli-mocknet:
