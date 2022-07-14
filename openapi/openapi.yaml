@@ -223,7 +223,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Vault"
+                $ref: "#/components/schemas/VaultResponse"
 
   /thorchain/vaults/pubkeys:
     parameters:
@@ -553,7 +553,8 @@ paths:
           content:
             application/json:
               schema:
-                type: int64
+                type: integer
+                format: int64
 
   /thorchain/mimir/admin:
     parameters:
@@ -621,7 +622,8 @@ components:
       description: optional block height, defaults to current tip
       required: false
       schema:
-        type: int64
+        type: integer
+        format: int64
         minimum: 0
 
     pathHeight:
@@ -629,7 +631,8 @@ components:
       in: path
       required: true
       schema:
-        type: int64
+        type: integer
+        format: int64
         minimum: 0
 
     hash:
@@ -710,7 +713,8 @@ components:
           type: string
           example: "Available"
         decimals:
-          type: int64
+          type: integer
+          format: int64
           example: 6
         synth_units:
           type: string
@@ -747,10 +751,12 @@ components:
           type: string
           example: "bnb1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         last_add_height:
-          type: int64
+          type: integer
+          format: int64
           example: 82745
         last_withdraw_height:
-          type: int64
+          type: integer
+          format: int64
           example: 82745
         units:
           type: string
@@ -784,7 +790,8 @@ components:
           type: string
           example: "100000"
         decimals:
-          type: int64
+          type: integer
+          format: int64
           example: 6
 
     Vault:
@@ -795,7 +802,8 @@ components:
         - addresses
       properties:
         block_height:
-          type: int64
+          type: integer
+          format: int64
         pub_key:
           type: string
         coins:
@@ -810,7 +818,8 @@ components:
           # TODO: Currently status is not consistent between asgard and yggdrasil.
           # enum: ["Active", ...]
         status_since:
-          type: int64
+          type: integer
+          format: int64
         membership:
           type: array
           description: the list of node public keys which are members of the vault
@@ -821,13 +830,16 @@ components:
           items:
             type: string
         inbound_tx_count:
-          type: int64
+          type: integer
+          format: int64
         outbound_tx_count:
-          type: int64
+          type: integer
+          format: int64
         pending_tx_block_heights:
           type: array
           items:
-            type: int64
+            type: integer
+            format: int64
         routers:
           type: array
           items:
@@ -912,11 +924,14 @@ components:
         chain:
           type: string
         last_observed_in:
-          type: int64
+          type: integer
+          format: int64
         last_signed_out:
-          type: int64
+          type: integer
+          format: int64
         thorchain:
-          type: int64
+          type: integer
+          format: int64
 
     ObservedTx:
       type: object
@@ -935,8 +950,10 @@ components:
             type: string
             example: "E17A0906E015F0C343691C18E475C8CB5F3F6C63F5BCDE0F3A341909763CC92B"
         block_height:
-          type: int64
+          type: integer
+          format: int64
           example: 7581334
+          description: the block height of the observed transaction on the source chain, not provided if chain is THOR
         signers:
           type: array
           items:
@@ -946,11 +963,14 @@ components:
           type: string
           example: "thorpub1addwnpepq27ck6u44zl8qqdnmzjjc8rg72amrxrsp42p9vd7kt6marhy6ww76z8shwe"
         keysign_ms:
-          type: int64
+          type: integer
+          format: int64
           example: 10000
         finalise_height:
-          type: int64
+          type: integer
+          format: int64
           example: 7581334
+          description: the finalised height of the observed transaction on the source chain, not provided if chain is THOR
         aggregator:
           type: string
           description: the outbound aggregator to use, will also match a suffix
@@ -992,7 +1012,8 @@ components:
           items:
             $ref: "#/components/schemas/Coin"
         gas_rate:
-          type: int64
+          type: integer
+          format: int64
         in_hash:
           type: string
           example: "208BF0ACD78C89A0534B0457BA0867B101961A2319C1E49DD28676526904BBEA"
@@ -1000,7 +1021,8 @@ components:
           type: string
           example: "0D0B2FDB6DAD6E5FD3C5E46D39128F9DA15E96F0B2CC054CE059EA3532B150FB"
         height:
-          type: int64
+          type: integer
+          format: int64
           example: 1234
 
     TssMetric:
@@ -1009,7 +1031,8 @@ components:
         address:
           type: string
         tss_time:
-          type: int64
+          type: integer
+          format: int64
 
     TssKeysignMetric:
       type: object
@@ -1073,14 +1096,16 @@ components:
           description: current node bond
           example: "123456789"
         active_block_height:
-          type: int64
+          type: integer
+          format: int64
           description: the block height at which the node became active
           example: 123456
         bond_address:
           type: string
           example: "thor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5"
         status_since:
-          type: int64
+          type: integer
+          format: int64
           description: the block height of the current provided information for the node
           example: 100000
         signer_membership:
@@ -1095,7 +1120,8 @@ components:
           type: boolean
           description: indicates whether the node has been forced to leave by the network, typically via ban
         leave_height:
-          type: int64
+          type: integer
+          format: int64
           example: 0
         ip_address:
           type: string
@@ -1105,7 +1131,8 @@ components:
           description: the currently set version of the node
           example: "0.35.0"
         slash_points:
-          type: int64
+          type: integer
+          format: int64
           description: the accumlated slash points, reset at churn but excessive slash points may carry over
           example: 42
         jail:
@@ -1116,7 +1143,8 @@ components:
               type: string
               example: "tthor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5"
             release_height:
-              type: int64
+              type: integer
+              format: int64
               example: 1234
             reason:
               type: string
@@ -1137,7 +1165,8 @@ components:
                 type: string
                 example: "BTC"
               height:
-                type: int64
+                type: integer
+                format: int64
                 example: 2000000
         preflight_status:
           type: object
@@ -1156,7 +1185,8 @@ components:
               description: the reason for the transition to the next status
               example: "OK"
             code:
-              type: int64
+              type: integer
+              format: int64
               example: 0
         bond_providers:
           type: object
@@ -1212,7 +1242,8 @@ components:
         tx:
           $ref: "#/components/schemas/ObservedTx"
         height:
-          type: int64
+          type: integer
+          format: int64
           example: 1234
         txs:
           type: array
@@ -1227,8 +1258,10 @@ components:
           items:
             type: string
         finalised_height:
-          type: int64
+          type: integer
+          format: int64
           example: 7581334
+          description: the thorchain height at which the outbound was finalised
         updated_vault:
           type: boolean
           example: false
@@ -1236,7 +1269,8 @@ components:
           type: boolean
           example: false
         outbound_height:
-          type: int64
+          type: integer
+          format: int64
           example: 1234
 
     NodeResponse:
@@ -1381,7 +1415,8 @@ components:
           type: string
           example: "thor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5"
         block_height:
-          type: int64
+          type: integer
+          format: int64
         signers:
           type: array
           items:
@@ -1397,14 +1432,17 @@ components:
         - scheduled_outbound_value
       properties:
         swap:
-          type: int64
+          type: integer
+          format: int64
           example: 0
         outbound:
-          type: int64
+          type: integer
+          format: int64
           example: 10
           description: number of signed outbound tx in the queue
         internal:
-          type: int64
+          type: integer
+          format: int64
           example: 0
         scheduled_outbound_value:
           type: string
@@ -1430,7 +1468,8 @@ components:
             - tx_array
           properties:
             height:
-              type: int64
+              type: integer
+              format: int64
               description: the block(s) in which a tx out item is scheduled to be signed and moved from the scheduled outbound queue to the outbound queue
             tx_array:
               type: array
@@ -1492,7 +1531,8 @@ components:
             type: string
             example: "bc1qd45uzetakjvdy5ynjjyp4nlnj89am88e4e5jeq"
           expire_block_height:
-            type: int64
+            type: integer
+            format: int64
             example: 1234
 
     MimirResponse:
@@ -1515,6 +1555,7 @@ components:
               key:
                 type: string
               value:
-                type: int64
+                type: integer
+                format: int64
               signer:
                 type: string
