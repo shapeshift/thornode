@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/blang/semver"
@@ -26,12 +27,16 @@ const (
 	NoopAddress = Address("noop")
 )
 
-const ETHAddressLen = 42
+var alphaNumRegex = regexp.MustCompile("^[:A-Za-z0-9]*$")
 
 // NewAddress create a new Address. Supports Binance, Bitcoin, and Ethereum
 func NewAddress(address string) (Address, error) {
 	if len(address) == 0 {
 		return NoAddress, nil
+	}
+
+	if !alphaNumRegex.MatchString(address) {
+		return NoAddress, fmt.Errorf("address format not supported: %s", address)
 	}
 
 	// Check is eth address
