@@ -21,7 +21,7 @@ import (
 
 const (
 	DefaultSignerLevelDBFolder = "signer_data"
-	txOutPrefix                = "txout-v3-"
+	txOutPrefix                = "txout-v4-"
 )
 
 type TxStatus int
