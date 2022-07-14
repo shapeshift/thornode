@@ -393,7 +393,7 @@ func (s *SlasherV75) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 		if coin.IsEmpty() {
 			continue
 		}
-		totalSlashAmountInRune := cosmos.ZeroUint()
+		var totalSlashAmountInRune cosmos.Uint
 		if coin.Asset.IsRune() {
 			totalSlashAmountInRune = coin.Amount.MulUint64(3).QuoUint64(2)
 		} else {

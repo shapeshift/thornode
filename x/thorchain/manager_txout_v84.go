@@ -219,7 +219,7 @@ func (tos *TxOutStorageV84) discoverOutbounds(ctx cosmos.Context, transactionFee
 // return list of outbound transactions
 func (tos *TxOutStorageV84) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) ([]TxOutItem, error) {
 	var outputs []TxOutItem
-	remaining := cosmos.ZeroUint()
+	var remaining cosmos.Uint
 
 	// Default the memo to the standard outbound memo
 	if toi.Memo == "" {

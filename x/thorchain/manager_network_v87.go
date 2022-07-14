@@ -682,7 +682,7 @@ func (vm *NetworkMgrV87) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 			if !pool.IsAvailable() {
 				continue
 			}
-			amt := cosmos.ZeroUint()
+			var amt cosmos.Uint
 			if totalLiquidityFees.IsZero() {
 				amt = common.GetSafeShare(pool.BalanceRune, totalProvidedLiquidity, totalPoolRewards)
 			} else {
