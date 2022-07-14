@@ -349,10 +349,14 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 
 // GetSwapQueue retrieve a SwapQueue that is compatible with the given version
 func GetSwapQueue(version semver.Version, keeper keeper.Keeper) (SwapQueue, error) {
-	if version.GTE(semver.MustParse("0.58.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.94.0")):
+		return newSwapQv94(keeper), nil
+	case version.GTE(semver.MustParse("0.58.0")):
 		return newSwapQv58(keeper), nil
+	default:
+		return nil, errInvalidVersion
 	}
-	return nil, errInvalidVersion
 }
 
 // GetSlasher return an implementation of Slasher
