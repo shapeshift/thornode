@@ -301,9 +301,9 @@ func (s *SwapperV81) swapOne(ctx cosmos.Context,
 		return cosmos.ZeroUint(), evt, errSwapFailInvalidBalance
 	}
 
-	liquidityFee = s.calcLiquidityFee(X, x, Y)
-	swapSlip = s.calcSwapSlip(X, x)
-	emitAssets = s.calcAssetEmission(X, x, Y)
+	liquidityFee = s.CalcLiquidityFee(X, x, Y)
+	swapSlip = s.CalcSwapSlip(X, x)
+	emitAssets = s.CalcAssetEmission(X, x, Y)
 	emitAssets = cosmos.RoundToDecimal(emitAssets, pool.Decimals)
 	swapEvt.LiquidityFee = liquidityFee
 
@@ -352,7 +352,7 @@ func (s *SwapperV81) swapOne(ctx cosmos.Context,
 
 // calculate the number of assets sent to the address (includes liquidity fee)
 // nolint
-func (s *SwapperV81) calcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV81) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x * X * Y ) / ( x + X )^2
 	numerator := x.Mul(X).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -364,7 +364,7 @@ func (s *SwapperV81) calcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 
 // calculateFee the fee of the swap
 // nolint
-func (s *SwapperV81) calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV81) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x^2 *  Y ) / ( x + X )^2
 	numerator := x.Mul(x).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -374,9 +374,9 @@ func (s *SwapperV81) calcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	return numerator.Quo(denominator)
 }
 
-// calcSwapSlip - calculate the swap slip, expressed in basis points (10000)
+// CalcSwapSlip - calculate the swap slip, expressed in basis points (10000)
 // nolint
-func (s *SwapperV81) calcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
+func (s *SwapperV81) CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// Cast to DECs
 	xD := cosmos.NewDecFromBigInt(xi.BigInt())
 	XD := cosmos.NewDecFromBigInt(Xi.BigInt())

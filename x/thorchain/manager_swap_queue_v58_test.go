@@ -8,12 +8,12 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type SwapQueueV94Suite struct{}
+type SwapQueueV58Suite struct{}
 
-var _ = Suite(&SwapQueueV94Suite{})
+var _ = Suite(&SwapQueueV58Suite{})
 
-func (s SwapQueueV94Suite) TestGetTodoNum(c *C) {
-	queue := newSwapQv94(keeper.KVStoreDummy{})
+func (s SwapQueueV58Suite) TestGetTodoNum(c *C) {
+	queue := newSwapQv58(keeper.KVStoreDummy{})
 
 	c.Check(queue.getTodoNum(50, 10, 100), Equals, int64(25))     // halves it
 	c.Check(queue.getTodoNum(11, 10, 100), Equals, int64(5))      // halves it
@@ -24,7 +24,7 @@ func (s SwapQueueV94Suite) TestGetTodoNum(c *C) {
 	c.Check(queue.getTodoNum(200, 10, 100), Equals, int64(100))   // does max 100
 }
 
-func (s SwapQueueV94Suite) TestScoreMsgs(c *C) {
+func (s SwapQueueV58Suite) TestScoreMsgs(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	pool := NewPool()
@@ -38,7 +38,7 @@ func (s SwapQueueV94Suite) TestScoreMsgs(c *C) {
 	pool.BalanceAsset = cosmos.NewUint(1000 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	queue := newSwapQv94(k)
+	queue := newSwapQv58(k)
 
 	// check that we sort by liquidity ok
 	msgs := []*MsgSwap{
@@ -96,7 +96,7 @@ func (s SwapQueueV94Suite) TestScoreMsgs(c *C) {
 			slip: cosmos.ZeroUint(),
 		}
 	}
-	swaps, err := queue.scoreMsgs(ctx, swaps, 1)
+	swaps, err := queue.scoreMsgs(ctx, swaps)
 	c.Assert(err, IsNil)
 	swaps = swaps.Sort()
 	c.Check(swaps, HasLen, 7)
@@ -188,7 +188,7 @@ func (s SwapQueueV94Suite) TestScoreMsgs(c *C) {
 			slip: cosmos.ZeroUint(),
 		}
 	}
-	swaps, err = queue.scoreMsgs(ctx, swaps, 1)
+	swaps, err = queue.scoreMsgs(ctx, swaps)
 	c.Assert(err, IsNil)
 	swaps = swaps.Sort()
 	c.Assert(swaps, HasLen, 11)
