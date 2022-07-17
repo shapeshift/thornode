@@ -368,6 +368,8 @@ func GetSlasher(version semver.Version, keeper keeper.Keeper, eventMgr EventMana
 		return newSlasherV89(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.88.0")):
 		return newSlasherV88(keeper, eventMgr), nil
+	case version.GTE(semver.MustParse("1.87.0")):
+		return newSlasherV87(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.86.0")):
 		return newSlasherV86(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("0.75.0")):
