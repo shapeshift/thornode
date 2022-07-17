@@ -538,39 +538,40 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	}
 	totalGas := big.NewInt(int64(estimatedGas) * gasRate.Int64())
 	if ethValue.Uint64() > 0 {
-		// when the estimated gas is larger than the MaxGas that is allowed to be used
-		// adjust the gas price to reflect that , so not breach the MaxGas restriction
-		// This might cause the tx to delay
-		if totalGas.Cmp(gasOut) == 1 {
-			// for Yggdrasil return , the total gas will always larger than gasOut , as we don't specify MaxGas
-			if memo.GetType() == mem.TxYggdrasilReturn {
-				if hasRouterUpdated {
-					// when we are doing smart contract upgrade , we inflate the estimate gas by 1.5 , to give it more room with gas
-					estimatedGas = estimatedGas * 3 / 2
-					totalGas = big.NewInt(int64(estimatedGas) * gasRate.Int64())
-				}
-				// yggdrasil return fund
-				gap := totalGas.Sub(totalGas, gasOut)
-				c.logger.Info().Msgf("yggdrasil return fund , gas need: %s", gap.String())
-				ethValue = ethValue.Sub(ethValue, gap)
+		if tx.Aggregator != "" {
+			// At this point, if this is is to an aggregator (which should be white-listed), allow the maximum gas.
+			if estimatedGas > maxGasLimit {
+				// the estimated gas unit is more than the maximum , so bring down the gas rate
+				maxGasWei := big.NewInt(1).Mul(big.NewInt(maxGasLimit), gasRate)
+				gasRate = big.NewInt(1).Div(maxGasWei, big.NewInt(int64(estimatedGas)))
 			} else {
-				if tx.Aggregator == "" {
-					gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
-					c.logger.Info().Msgf("based on estimated gas unit (%d) , total gas will be %s, which is more than %s, so adjust gas rate to %s", estimatedGas, totalGas.String(), gasOut.String(), gasRate.String())
-				} else {
-					if estimatedGas > maxGasLimit {
-						// the estimated gas unit is more than the maximum , so bring down the gas rate
-						maxGasWei := big.NewInt(1).Mul(big.NewInt(maxGasLimit), gasRate)
-						gasRate = big.NewInt(1).Div(maxGasWei, big.NewInt(int64(estimatedGas)))
-					} else {
-						estimatedGas = maxGasLimit // pay the maximum
-					}
-				}
+				estimatedGas = maxGasLimit // pay the maximum
 			}
 		} else {
-			// override estimate gas with the max
-			estimatedGas = big.NewInt(0).Div(gasOut, gasRate).Uint64()
-			c.logger.Info().Msgf("transaction with memo %s can spend up to %d gas unit, gasRate:%s", tx.Memo, estimatedGas, gasRate)
+			// when the estimated gas is larger than the MaxGas that is allowed to be used
+			// adjust the gas price to reflect that , so not breach the MaxGas restriction
+			// This might cause the tx to delay
+			if totalGas.Cmp(gasOut) == 1 {
+				// for Yggdrasil return , the total gas will always larger than gasOut , as we don't specify MaxGas
+				if memo.GetType() == mem.TxYggdrasilReturn {
+					if hasRouterUpdated {
+						// when we are doing smart contract upgrade , we inflate the estimate gas by 1.5 , to give it more room with gas
+						estimatedGas = estimatedGas * 3 / 2
+						totalGas = big.NewInt(int64(estimatedGas) * gasRate.Int64())
+					}
+					// yggdrasil return fund
+					gap := totalGas.Sub(totalGas, gasOut)
+					c.logger.Info().Msgf("yggdrasil return fund , gas need: %s", gap.String())
+					ethValue = ethValue.Sub(ethValue, gap)
+				} else {
+					gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
+					c.logger.Info().Msgf("based on estimated gas unit (%d) , total gas will be %s, which is more than %s, so adjust gas rate to %s", estimatedGas, totalGas.String(), gasOut.String(), gasRate.String())
+				}
+			} else {
+				// override estimate gas with the max
+				estimatedGas = big.NewInt(0).Div(gasOut, gasRate).Uint64()
+				c.logger.Info().Msgf("transaction with memo %s can spend up to %d gas unit, gasRate:%s", tx.Memo, estimatedGas, gasRate)
+			}
 		}
 		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), ethValue, estimatedGas, gasRate, data)
 	} else {
