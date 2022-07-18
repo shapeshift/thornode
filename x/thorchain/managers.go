@@ -43,7 +43,7 @@ type Manager interface {
 
 // GasManager define all the methods required to manage gas
 type GasManager interface {
-	BeginBlock()
+	BeginBlock(mgr Manager)
 	EndBlock(ctx cosmos.Context, keeper keeper.Keeper, eventManager EventManager)
 	AddGasAsset(gas common.Gas, increaseTxCount bool)
 	ProcessGas(ctx cosmos.Context, keeper keeper.Keeper)
@@ -262,6 +262,8 @@ func GetKeeper(version semver.Version, cdc codec.BinaryCodec, coinKeeper bankkee
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAcessor := constants.GetConstantValues(version)
 	switch {
+	case version.GTE(semver.MustParse("1.94.0")):
+		return newGasMgrV94(constAcessor, keeper), nil
 	case version.GTE(semver.MustParse("1.89.0")):
 		return newGasMgrV89(constAcessor, keeper), nil
 	case version.GTE(semver.MustParse("0.81.0")):

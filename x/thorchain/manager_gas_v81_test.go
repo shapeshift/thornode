@@ -14,12 +14,13 @@ type GasManagerTestSuiteV81 struct{}
 var _ = Suite(&GasManagerTestSuiteV81{})
 
 func (GasManagerTestSuiteV81) TestGasManagerV81(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
+	k := mgr.Keeper()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	gasMgr := newGasMgrV81(constAccessor, k)
 	gasEvent := gasMgr.gasEvent
 	c.Assert(gasMgr, NotNil)
-	gasMgr.BeginBlock()
+	gasMgr.BeginBlock(mgr)
 	c.Assert(gasEvent != gasMgr.gasEvent, Equals, true)
 
 	pool := NewPool()
@@ -131,10 +132,11 @@ func (g *gasManagerTestHelper) SetPool(ctx cosmos.Context, p Pool) error {
 }
 
 func (GasManagerTestSuiteV81) TestDifferentValidations(c *C) {
-	ctx, k := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
+	k := mgr.Keeper()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	gasMgr := newGasMgrV81(constAccessor, k)
-	gasMgr.BeginBlock()
+	gasMgr.BeginBlock(mgr)
 	helper := newGasManagerTestHelper(k)
 	eventMgr := newEventMgrV1()
 	gasMgr.EndBlock(ctx, helper, eventMgr)

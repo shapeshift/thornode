@@ -882,7 +882,7 @@ func isLPPausedV1(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
 	return false
 }
 
-// gets the amount of rune that is equal to 1 USD
+// DollarInRune gets the amount of rune that is equal to 1 USD
 func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 	// check for mimir override
 	dollarInRune, err := mgr.Keeper().GetMimir(ctx, "DollarInRune")

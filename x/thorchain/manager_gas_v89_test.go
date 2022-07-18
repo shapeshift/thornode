@@ -8,15 +8,15 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type GasManagerTestSuiteV94 struct{}
+type GasManagerTestSuiteV89 struct{}
 
-var _ = Suite(&GasManagerTestSuiteV94{})
+var _ = Suite(&GasManagerTestSuiteV89{})
 
-func (GasManagerTestSuiteV94) TestGasManagerV93(c *C) {
+func (GasManagerTestSuiteV89) TestGasManagerV89(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	k := mgr.K
+	k := mgr.Keeper()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV94(constAccessor, k)
+	gasMgr := newGasMgrV89(constAccessor, k)
 	gasEvent := gasMgr.gasEvent
 	c.Assert(gasMgr, NotNil)
 	gasMgr.BeginBlock(mgr)
@@ -46,12 +46,10 @@ func (GasManagerTestSuiteV94) TestGasManagerV93(c *C) {
 	gasMgr.EndBlock(ctx, k, eventMgr)
 }
 
-func (GasManagerTestSuiteV94) TestGetFee(c *C) {
-	ctx, mgr := setupManagerForTest(c)
-	k := mgr.Keeper()
+func (GasManagerTestSuiteV89) TestGetFee(c *C) {
+	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV94(constAccessor, k)
-	gasMgr.BeginBlock(mgr)
+	gasMgr := newGasMgrV89(constAccessor, k)
 	fee := gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
 	defaultTxFee := uint64(constAccessor.GetInt64Value(constants.OutboundTransactionFee))
 	// when there is no network fee available, it should just get from the constants
@@ -96,33 +94,13 @@ func (GasManagerTestSuiteV94) TestGetFee(c *C) {
 	}), IsNil)
 	synthAssetFee := gasMgr.GetFee(ctx, common.THORChain, sBTC)
 	c.Assert(synthAssetFee.Uint64(), Equals, uint64(400000))
-
-	// when MinimumL1OutboundFeeUSD set to something higher, it should override the network fee
-	busdAsset, err := common.NewAsset("BNB.BUSD-BD1")
-	c.Assert(err, IsNil)
-	c.Assert(k.SetPool(ctx, Pool{
-		BalanceRune:  cosmos.NewUint(500 * common.One),
-		BalanceAsset: cosmos.NewUint(500 * common.One),
-		Asset:        busdAsset,
-		Status:       PoolAvailable,
-	}), IsNil)
-	k.SetMimir(ctx, constants.MinimumL1OutboundFeeUSD.String(), 1_0000_0000)
-
-	fee = gasMgr.GetFee(ctx, common.BTCChain, common.BTCAsset)
-	c.Assert(fee.Uint64(), Equals, uint64(20000000))
-
-	// when network fee is higher than MinimumL1OutboundFeeUSD , then choose network fee
-	networkFee = NewNetworkFee(common.BTCChain, 1000, 50000)
-	c.Assert(k.SaveNetworkFee(ctx, common.BTCChain, networkFee), IsNil)
-	fee = gasMgr.GetFee(ctx, common.BTCChain, common.BTCAsset)
-	c.Assert(fee.Uint64(), Equals, uint64(150000000))
 }
 
-func (GasManagerTestSuiteV94) TestDifferentValidations(c *C) {
+func (GasManagerTestSuiteV89) TestDifferentValidations(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	k := mgr.Keeper()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV94(constAccessor, k)
+	k := mgr.Keeper()
+	gasMgr := newGasMgrV89(constAccessor, k)
 	gasMgr.BeginBlock(mgr)
 	helper := newGasManagerTestHelper(k)
 	eventMgr := newEventMgrV1()
@@ -153,10 +131,10 @@ func (GasManagerTestSuiteV94) TestDifferentValidations(c *C) {
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 }
 
-func (GasManagerTestSuiteV94) TestGetMaxGas(c *C) {
+func (GasManagerTestSuiteV89) TestGetMaxGas(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV94(constAccessor, k)
+	gasMgr := newGasMgrV89(constAccessor, k)
 	gasCoin, err := gasMgr.GetMaxGas(ctx, common.BTCChain)
 	c.Assert(err, IsNil)
 	c.Assert(gasCoin.Amount.IsZero(), Equals, true)
