@@ -106,7 +106,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err: %w", err)
 		}
 		return NewAddress(str)
-	case ETHChain:
+	case ETHChain, AVAXChain:
 		// retrieve compressed pubkey bytes from bechh32 encoded str
 		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, string(pubKey))
 		if err != nil {
