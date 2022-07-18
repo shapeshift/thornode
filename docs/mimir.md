@@ -95,5 +95,12 @@
 
 ### Router Upgrading (DO NOT TOUCH!)
 
+#### Old keys (pre 1.94.0)
+
 `MimirRecallFund`: Recalls Chain funds, typically used for router upgrades only
 `MimirUpgradeContract`: Upgrades contract, typically used for router upgrades only
+
+#### New keys (1.94.0 and on)
+
+`MimirRecallFund<CHAIN>`: Recalls Chain funds, typically used for router upgrades only
+`MimirUpgradeContract<CHAIN>`: Upgrades contract, typically used for router upgrades only
