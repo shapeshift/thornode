@@ -183,7 +183,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	if err := am.mgr.BeginBlock(ctx); err != nil {
 		ctx.Logger().Error("fail to get managers", "error", err)
 	}
-	am.mgr.GasMgr().BeginBlock()
+	am.mgr.GasMgr().BeginBlock(am.mgr)
 
 	am.mgr.Slasher().BeginBlock(ctx, req, am.mgr.GetConstants())
 

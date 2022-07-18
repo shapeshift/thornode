@@ -80,6 +80,7 @@ const (
 	MaxNodeToChurnOutForLowVersion
 	RagnarokProcessNumOfLPPerIteration
 	SwapOutDexAggregationDisabled
+	MinimumL1OutboundFeeUSD
 )
 
 var nameToString = map[ConstantName]string{
@@ -153,6 +154,7 @@ var nameToString = map[ConstantName]string{
 	MaxNodeToChurnOutForLowVersion:     "MaxNodeToChurnOutForLowVersion",
 	SwapOutDexAggregationDisabled:      "SwapOutDexAggregationDisabled",
 	RagnarokProcessNumOfLPPerIteration: "RagnarokProcessNumOfLPPerIteration",
+	MinimumL1OutboundFeeUSD:            "MinimumL1OutboundFeeUSD",
 }
 
 // String implement fmt.stringer

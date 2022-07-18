@@ -65,6 +65,7 @@ func NewConstantValue010() *ConstantVals {
 			PoolDepthForYggFundingMin:          500_000_00000000,   // the minimum pool depth in RUNE required for ygg funding
 			MaxNodeToChurnOutForLowVersion:     1,                  // the maximum number of nodes to churn out for low version per churn
 			RagnarokProcessNumOfLPPerIteration: 200,                // the number of LP to be processed per iteration during ragnarok pool
+			MinimumL1OutboundFeeUSD:            1000000,            // Minimum fee in USD to charge for LP swap, default to $0.01 , nodes need to vote it to a larger value
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,

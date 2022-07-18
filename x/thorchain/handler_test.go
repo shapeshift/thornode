@@ -115,6 +115,7 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 	mgr := NewManagers(k, marshaler, bk, ak, keyThorchain)
 	constants.SWVersion = GetCurrentVersion()
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
+	mgr.gasMgr.BeginBlock(mgr)
 	return ctx, mgr
 }
 
