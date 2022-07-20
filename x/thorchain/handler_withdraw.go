@@ -88,6 +88,8 @@ func (h WithdrawLiquidityHandler) validateV80(ctx cosmos.Context, msg MsgWithdra
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.94.0")):
+		return h.handleV94(ctx, msg)
 	case version.GTE(semver.MustParse("1.93.0")):
 		return h.handleV93(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.1")):
@@ -107,7 +109,7 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleV93(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV94(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -121,6 +123,46 @@ func (h WithdrawLiquidityHandler) handleV93(ctx cosmos.Context, msg MsgWithdrawL
 	if msg.Tx.ID.Equals(common.BlankTxID) {
 		// tx id is blank, must be triggered by the ragnarok protocol
 		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
+	}
+
+	// Thanks to CacheContext, the withdraw event can be emitted before handling outbounds,
+	// since if there's a later error the event emission will not take place.
+	if units.IsZero() && impLossProtection.IsZero() {
+		// withdraw pending liquidity event
+		runeHash := common.TxID("")
+		assetHash := common.TxID("")
+		if msg.Tx.Chain.Equals(common.THORChain) {
+			runeHash = msg.Tx.ID
+		} else {
+			assetHash = msg.Tx.ID
+		}
+		evt := NewEventPendingLiquidity(
+			msg.Asset,
+			WithdrawPendingLiquidity,
+			lp.RuneAddress,
+			runeAmt,
+			lp.AssetAddress,
+			assetAmt,
+			runeHash,
+			assetHash,
+		)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+			return nil, multierror.Append(errFailSaveEvent, err)
+		}
+	} else {
+		withdrawEvt := NewEventWithdraw(
+			msg.Asset,
+			units,
+			int64(msg.BasisPoints.Uint64()),
+			cosmos.ZeroDec(),
+			msg.Tx,
+			assetAmt,
+			runeAmt,
+			impLossProtection,
+		)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
+			return nil, multierror.Append(errFailSaveEvent, err)
+		}
 	}
 
 	transfer := func(coin common.Coin, addr common.Address) error {
@@ -173,44 +215,6 @@ func (h WithdrawLiquidityHandler) handleV93(ctx cosmos.Context, msg MsgWithdrawL
 		coin := common.NewCoin(common.RuneAsset(), runeAmt)
 		if err := transfer(coin, lp.RuneAddress); err != nil {
 			return nil, err
-		}
-	}
-
-	if units.IsZero() && impLossProtection.IsZero() {
-		// withdraw pending liquidity event
-		runeHash := common.TxID("")
-		assetHash := common.TxID("")
-		if msg.Tx.Chain.Equals(common.THORChain) {
-			runeHash = msg.Tx.ID
-		} else {
-			assetHash = msg.Tx.ID
-		}
-		evt := NewEventPendingLiquidity(
-			msg.Asset,
-			WithdrawPendingLiquidity,
-			lp.RuneAddress,
-			runeAmt,
-			lp.AssetAddress,
-			assetAmt,
-			runeHash,
-			assetHash,
-		)
-		if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
-			return nil, multierror.Append(errFailSaveEvent, err)
-		}
-	} else {
-		withdrawEvt := NewEventWithdraw(
-			msg.Asset,
-			units,
-			int64(msg.BasisPoints.Uint64()),
-			cosmos.ZeroDec(),
-			msg.Tx,
-			assetAmt,
-			runeAmt,
-			impLossProtection,
-		)
-		if err := h.mgr.EventMgr().EmitEvent(ctx, withdrawEvt); err != nil {
-			return nil, multierror.Append(errFailSaveEvent, err)
 		}
 	}
 
