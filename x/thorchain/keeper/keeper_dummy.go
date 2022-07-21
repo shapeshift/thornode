@@ -14,6 +14,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 var kaboom = errors.New("Kaboom!!!")
@@ -356,6 +357,46 @@ func (k KVStoreDummy) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID, _ i
 func (k KVStoreDummy) HasSwapQueueItem(ctx cosmos.Context, txID common.TxID, _ int) bool {
 	return false
 }
+func (k KVStoreDummy) SetOrderBookItem(ctx cosmos.Context, msg MsgSwap) error      { return kaboom }
+func (k KVStoreDummy) GetOrderBookItemIterator(ctx cosmos.Context) cosmos.Iterator { return nil }
+func (k KVStoreDummy) RemoveOrderBookItem(ctx cosmos.Context, _ common.TxID) error {
+	return kaboom
+}
+
+func (k KVStoreDummy) GetOrderBookItem(ctx cosmos.Context, txID common.TxID) (MsgSwap, error) {
+	return MsgSwap{}, kaboom
+}
+
+func (k KVStoreDummy) HasOrderBookItem(ctx cosmos.Context, txID common.TxID) bool { return false }
+func (k KVStoreDummy) GetOrderBookIndexIterator(_ cosmos.Context, _ types.OrderType, _, _ common.Asset) cosmos.Iterator {
+	return nil
+}
+
+func (k KVStoreDummy) SetOrderBookIndex(_ cosmos.Context, _ MsgSwap) error {
+	return kaboom
+}
+
+func (k KVStoreDummy) GetOrderBookIndex(_ cosmos.Context, _ MsgSwap) (common.TxIDs, error) {
+	return nil, kaboom
+}
+
+func (k KVStoreDummy) HasOrderBookIndex(_ cosmos.Context, _ MsgSwap) (bool, error) {
+	return false, kaboom
+}
+
+func (k KVStoreDummy) RemoveOrderBookIndex(_ cosmos.Context, _ MsgSwap) error {
+	return kaboom
+}
+
+func (k KVStoreDummy) SetOrderBookProcessor(ctx cosmos.Context, record uint64) error {
+	return kaboom
+}
+
+// GetOrderBookProcessor - get a list of asset pairs to process
+func (k KVStoreDummy) GetOrderBookProcessor(ctx cosmos.Context) (uint64, error) {
+	return 0, kaboom
+}
+
 func (k KVStoreDummy) GetMimir(_ cosmos.Context, key string) (int64, error) { return 0, kaboom }
 func (k KVStoreDummy) SetMimir(_ cosmos.Context, key string, value int64)   {}
 func (k KVStoreDummy) GetNodeMimirs(ctx cosmos.Context, key string) (NodeMimirs, error) {
