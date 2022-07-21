@@ -58,6 +58,10 @@ const (
 	AddPendingLiquidity      = types.PendingLiquidityType_add
 	WithdrawPendingLiquidity = types.PendingLiquidityType_withdraw
 
+	// Order Type
+	MarketOrder = types.OrderType_market
+	LimitOrder  = types.OrderType_limit
+
 	// Memos
 	TxSwap            = mem.TxSwap
 	TxAdd             = mem.TxAdd

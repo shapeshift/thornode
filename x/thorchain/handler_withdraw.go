@@ -248,7 +248,7 @@ func (h WithdrawLiquidityHandler) swapV93(ctx cosmos.Context, msg MsgWithdrawLiq
 	memo := fmt.Sprintf("=:%s:%s", target, addr)
 	msg.Tx.Memo = memo
 	msg.Tx.Coins = common.NewCoins(coin)
-	swapMsg := NewMsgSwap(msg.Tx, target, addr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, msg.Signer)
+	swapMsg := NewMsgSwap(msg.Tx, target, addr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, msg.Signer)
 
 	// sanity check swap msg
 	handler := NewSwapHandler(h.mgr)
