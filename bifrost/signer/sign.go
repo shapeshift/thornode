@@ -221,7 +221,7 @@ func (s *Signer) processTransactions() {
 							s.logger.Error().Err(err).Msg("fail to update tx out store item with retry #")
 						}
 						cancel()
-						return
+						continue
 					}
 					cancel()
 
