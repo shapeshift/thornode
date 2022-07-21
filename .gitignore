@@ -14,6 +14,8 @@ observe
 *.pb.go
 openapi/openapi.json
 openapi/gen/
+test/smoke/thornode_proto
+__pycache__
 
 # IDE
 .idea/

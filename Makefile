@@ -33,6 +33,8 @@ endif
 all: lint install
 
 # ------------------------------ Generate ------------------------------
+#
+SMOKE_PROTO_DIR="./test/smoke/thornode_proto"
 
 protob:
 	@./scripts/protocgen.sh
@@ -41,6 +43,23 @@ protob-docker:
 	@docker run --rm -v $(shell pwd):/app -w /app \
 		registry.gitlab.com/thorchain/thornode:builder-v1@sha256:6a7fb4e4ba636ca8ae6b7db93ae8838a8393ddbc8dfc2b99eb706fb18f50d635 \
 		make protob
+
+smoke-protob:
+	@echo "Install betterproto..."
+	@pip3 install --upgrade markupsafe==2.0.1 betterproto[compiler]==2.0.0b4
+	@rm -rf "${SMOKE_PROTO_DIR}"
+	@mkdir -p "${SMOKE_PROTO_DIR}"
+	@echo "Processing thornode proto files..."
+	@protoc \
+  	-I ./proto \
+  	-I ./third_party/proto \
+  	--python_betterproto_out="${SMOKE_PROTO_DIR}" \
+  	$(shell find ./proto -path -prune -o -name '*.proto' -print0 | xargs -0)
+
+smoke-protob-docker:
+	@docker run --rm -v $(shell pwd):/app -w /app \
+		registry.gitlab.com/thorchain/thornode:builder-v1@sha256:6a7fb4e4ba636ca8ae6b7db93ae8838a8393ddbc8dfc2b99eb706fb18f50d635 \
+		sh -c 'apt-get install -y python3-pip && make smoke-protob'
 
 openapi:
 	@docker run --rm \
@@ -130,23 +149,23 @@ docker-gitlab-build:
 
 SMOKE_DOCKER_OPTS = --network=host --rm -e RUNE=THOR.RUNE -e LOGLEVEL=INFO -e PYTHONPATH=/app -v ${PWD}/test/smoke:/app -w /app
 
-test-smoke:
+smoke-unit-test:
 	@docker run ${SMOKE_DOCKER_OPTS} \
 		-e EXPORT=${EXPORT} \
 		-e EXPORT_EVENTS=${EXPORT_EVENTS} \
 		registry.gitlab.com/thorchain/thornode:smoke \
 		sh -c 'python -m unittest tests/test_*'
 
-build-smoke:
+smoke-build-image:
 	@docker pull registry.gitlab.com/thorchain/thornode:smoke || true
 	@docker build --cache-from registry.gitlab.com/thorchain/thornode:smoke \
 		-f test/smoke/Dockerfile -t registry.gitlab.com/thorchain/thornode:smoke \
 		./test/smoke
 
-push-smoke:
+smoke-push-image:
 	@docker push registry.gitlab.com/thorchain/thornode:smoke
 
-smoke: reset-mocknet build-smoke
+smoke: reset-mocknet smoke-build-image
 	@docker run ${SMOKE_DOCKER_OPTS} \
 		-e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} \
 		registry.gitlab.com/thorchain/thornode:smoke \
