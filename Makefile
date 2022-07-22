@@ -147,7 +147,7 @@ docker-gitlab-build:
 
 # ------------------------------ Smoke Tests ------------------------------
 
-SMOKE_DOCKER_OPTS = --network=host --rm -e RUNE=THOR.RUNE -e LOGLEVEL=INFO -e PYTHONPATH=/app -v ${PWD}/test/smoke:/app -w /app
+SMOKE_DOCKER_OPTS = --network=host --rm -e RUNE=THOR.RUNE -e LOGLEVEL=INFO -e PYTHONPATH=/app -w /app
 
 smoke-unit-test:
 	@docker run ${SMOKE_DOCKER_OPTS} \
@@ -166,6 +166,13 @@ smoke-push-image:
 	@docker push registry.gitlab.com/thorchain/thornode:smoke
 
 smoke: reset-mocknet smoke-build-image
+	@docker run ${SMOKE_DOCKER_OPTS} \
+		-e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} \
+		-v ${PWD}/test/smoke:/app \
+		registry.gitlab.com/thorchain/thornode:smoke \
+		python scripts/smoke.py --fast-fail=True
+
+smoke-remote-ci: reset-mocknet
 	@docker run ${SMOKE_DOCKER_OPTS} \
 		-e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} \
 		registry.gitlab.com/thorchain/thornode:smoke \
