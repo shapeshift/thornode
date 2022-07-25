@@ -29,10 +29,10 @@ func newSwapperV90() *SwapperV90 {
 func (s *SwapperV90) validatePools(ctx cosmos.Context, keeper keeper.Keeper, assets ...common.Asset) error {
 	for _, asset := range assets {
 		if !asset.IsRune() {
-			if !keeper.PoolExist(ctx, asset) {
+			if !keeper.PoolExist(ctx, asset.GetLayer1Asset()) {
 				return fmt.Errorf("%s pool doesn't exist", asset)
 			}
-			pool, err := keeper.GetPool(ctx, asset)
+			pool, err := keeper.GetPool(ctx, asset.GetLayer1Asset())
 			if err != nil {
 				return ErrInternal(err, fmt.Sprintf("fail to get %s pool", asset))
 			}

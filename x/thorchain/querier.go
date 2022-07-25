@@ -790,7 +790,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		return nil, fmt.Errorf("could not parse asset: %w", err)
 	}
 
-	pool, err := mgr.Keeper().GetPool(ctx, asset)
+	pool, err := mgr.Keeper().GetPool(ctx, asset.GetLayer1Asset())
 	if err != nil {
 		ctx.Logger().Error("fail to get pool", "error", err)
 		return nil, fmt.Errorf("could not get pool: %w", err)

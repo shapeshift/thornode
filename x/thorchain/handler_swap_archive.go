@@ -31,7 +31,7 @@ func (h SwapHandler) validateV92(ctx cosmos.Context, msg MsgSwap) error {
 			coin := msg.Tx.Coins[0]
 			runeVal := coin.Amount
 			if !coin.Asset.IsRune() {
-				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset)
+				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
 				if err != nil {
 					return ErrInternal(err, "fail to get pool")
 				}
@@ -55,7 +55,7 @@ func (h SwapHandler) validateV92(ctx cosmos.Context, msg MsgSwap) error {
 			maxSynths = h.mgr.GetConstants().GetInt64Value(constants.MaxSynthPerAssetDepth)
 		}
 		synthSupply := h.mgr.Keeper().GetTotalSupply(ctx, target.GetSyntheticAsset())
-		pool, err := h.mgr.Keeper().GetPool(ctx, target)
+		pool, err := h.mgr.Keeper().GetPool(ctx, target.GetLayer1Asset())
 		if err != nil {
 			return ErrInternal(err, "fail to get pool")
 		}
@@ -176,7 +176,7 @@ func (h SwapHandler) validateV88(ctx cosmos.Context, msg MsgSwap) error {
 			coin := msg.Tx.Coins[0]
 			runeVal := coin.Amount
 			if !coin.Asset.IsRune() {
-				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset)
+				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
 				if err != nil {
 					return ErrInternal(err, "fail to get pool")
 				}
@@ -200,7 +200,7 @@ func (h SwapHandler) validateV88(ctx cosmos.Context, msg MsgSwap) error {
 			maxSynths = h.mgr.GetConstants().GetInt64Value(constants.MaxSynthPerAssetDepth)
 		}
 		synthSupply := h.mgr.Keeper().GetTotalSupply(ctx, target.GetSyntheticAsset())
-		pool, err := h.mgr.Keeper().GetPool(ctx, target)
+		pool, err := h.mgr.Keeper().GetPool(ctx, target.GetLayer1Asset())
 		if err != nil {
 			return ErrInternal(err, "fail to get pool")
 		}
@@ -248,7 +248,7 @@ func (h SwapHandler) validateV65(ctx cosmos.Context, msg MsgSwap) error {
 			coin := msg.Tx.Coins[0]
 			runeVal := coin.Amount
 			if !coin.Asset.IsRune() {
-				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset)
+				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
 				if err != nil {
 					return ErrInternal(err, "fail to get pool")
 				}
@@ -272,7 +272,7 @@ func (h SwapHandler) validateV65(ctx cosmos.Context, msg MsgSwap) error {
 			maxSynths = h.mgr.GetConstants().GetInt64Value(constants.MaxSynthPerAssetDepth)
 		}
 		synthSupply := h.mgr.Keeper().GetTotalSupply(ctx, target.GetSyntheticAsset())
-		pool, err := h.mgr.Keeper().GetPool(ctx, target)
+		pool, err := h.mgr.Keeper().GetPool(ctx, target.GetLayer1Asset())
 		if err != nil {
 			return ErrInternal(err, "fail to get pool")
 		}

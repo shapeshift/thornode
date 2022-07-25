@@ -264,7 +264,7 @@ func (tos *TxOutStorageV94) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 	}
 
 	// ensure amount is rounded to appropriate decimals
-	toiPool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset)
+	toiPool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset.GetLayer1Asset())
 	if err != nil {
 		return nil, fmt.Errorf("fail to get pool for txout manager: %w", err)
 	}
@@ -411,7 +411,7 @@ func (tos *TxOutStorageV94) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 			} else {
 				if pool.IsEmpty() {
 					var err error
-					pool, err = tos.keeper.GetPool(ctx, toi.Coin.Asset) // Get pool
+					pool, err = tos.keeper.GetPool(ctx, toi.Coin.Asset.GetLayer1Asset()) // Get pool
 					if err != nil {
 						// the error is already logged within kvstore
 						return nil, fmt.Errorf("fail to get pool: %w", err)
@@ -597,7 +597,7 @@ func (tos *TxOutStorageV94) calcTxOutHeight(ctx cosmos.Context, version semver.V
 	// get txout item value in rune
 	runeValue := toi.Coin.Amount
 	if !toi.Coin.Asset.IsRune() {
-		pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset)
+		pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset.GetLayer1Asset())
 		if err != nil {
 			ctx.Logger().Error("fail to get pool for appending txout item", "error", err)
 			return common.BlockHeight(ctx) + maxTxOutOffset, err

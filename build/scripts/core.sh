@@ -127,7 +127,6 @@ fetch_genesis() {
   done
   curl -s "$1:$PORT_RPC/genesis" | jq .result.genesis >~/.thornode/config/genesis.json
   thornode validate-genesis --trace
-  cat ~/.thornode/config/genesis.json
 }
 
 fetch_genesis_from_seeds() {
@@ -138,7 +137,6 @@ fetch_genesis_from_seeds() {
     echo "Fetching genesis from seed $SEED"
     curl -sL --fail -m 30 "$SEED:$PORT_RPC/genesis" | jq .result.genesis >~/.thornode/config/genesis.json || continue
     thornode validate-genesis
-    cat ~/.thornode/config/genesis.json
     break
   done
   IFS=$OLD_IFS

@@ -10,7 +10,7 @@ import (
 
 func fuzzyAssetMatchV1(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset) common.Asset {
 	// if its already an exact match, return it immediately
-	if keeper.PoolExist(ctx, asset) {
+	if keeper.PoolExist(ctx, asset.GetLayer1Asset()) {
 		return asset
 	}
 
