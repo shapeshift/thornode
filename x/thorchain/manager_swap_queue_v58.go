@@ -121,7 +121,7 @@ func (vm *SwapQv58) scoreMsgs(ctx cosmos.Context, items swapItems) (swapItems, e
 
 			if _, ok := pools[a]; !ok {
 				var err error
-				pools[a], err = vm.k.GetPool(ctx, a)
+				pools[a], err = vm.k.GetPool(ctx, a.GetLayer1Asset())
 				if err != nil {
 					ctx.Logger().Error("fail to get pool", "pool", a, "error", err)
 					continue

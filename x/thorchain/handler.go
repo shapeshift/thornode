@@ -310,7 +310,7 @@ func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asse
 func fuzzyAssetMatchV83(ctx cosmos.Context, keeper keeper.Keeper, origAsset common.Asset) common.Asset {
 	asset := origAsset.GetLayer1Asset()
 	// if its already an exact match, return it immediately
-	if keeper.PoolExist(ctx, asset) {
+	if keeper.PoolExist(ctx, asset.GetLayer1Asset()) {
 		return origAsset
 	}
 

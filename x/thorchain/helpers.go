@@ -74,7 +74,7 @@ func refundTxV47(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uint
 		if coin.Asset.IsRune() && coin.Asset.GetChain().Equals(common.ETHChain) {
 			continue
 		}
-		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset)
+		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
 		if err != nil {
 			return fmt.Errorf("fail to get pool: %w", err)
 		}
@@ -192,7 +192,7 @@ func subsidizePoolWithSlashBondV92(ctx cosmos.Context, ygg Vault, yggTotalStolen
 			subsidiseRune: cosmos.ZeroUint(),
 		}
 
-		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset)
+		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
 		if err != nil {
 			return err
 		}
@@ -900,7 +900,7 @@ func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 		if isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, asset.Chain) {
 			continue
 		}
-		pool, err := mgr.Keeper().GetPool(ctx, asset)
+		pool, err := mgr.Keeper().GetPool(ctx, asset.GetLayer1Asset())
 		if err != nil {
 			ctx.Logger().Error("fail to get usd pool", "asset", asset.String(), "error", err)
 			continue
@@ -1066,7 +1066,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 			if coin.Asset.IsRune() {
 				totalValue = totalValue.Add(coin.Amount)
 			} else {
-				pool, err := mgr.Keeper().GetPool(ctx, coin.Asset)
+				pool, err := mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
 				if err != nil {
 					continue
 				}
