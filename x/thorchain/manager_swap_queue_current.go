@@ -218,7 +218,11 @@ func (vm *SwapQv94) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualD
 		if pool.IsEmpty() || !pool.IsAvailable() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 			continue
 		}
-		vm.getLiquidityFeeAndSlip(ctx, pool, item.msg.Tx.Coins[0], &items[i], synthVirtualDepthMult)
+		virtualDepthMult := int64(1)
+		if poolAsset.IsSyntheticAsset() {
+			virtualDepthMult = synthVirtualDepthMult
+		}
+		vm.getLiquidityFeeAndSlip(ctx, pool, item.msg.Tx.Coins[0], &items[i], virtualDepthMult)
 
 		if sourceAsset.IsRune() || targetAsset.IsRune() {
 			// single swap , stop here
@@ -231,14 +235,18 @@ func (vm *SwapQv94) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualD
 		if pool.IsEmpty() || !pool.IsAvailable() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 			continue
 		}
-		vm.getLiquidityFeeAndSlip(ctx, pool, runeCoin, &items[i], synthVirtualDepthMult)
+		virtualDepthMult = int64(1)
+		if targetAsset.IsSyntheticAsset() {
+			virtualDepthMult = synthVirtualDepthMult
+		}
+		vm.getLiquidityFeeAndSlip(ctx, pool, runeCoin, &items[i], virtualDepthMult)
 	}
 
 	return items, nil
 }
 
 // getLiquidityFeeAndSlip calculate liquidity fee and slip, fee is in RUNE
-func (vm *SwapQv94) getLiquidityFeeAndSlip(ctx cosmos.Context, pool Pool, sourceCoin common.Coin, item *swapItem, synthVirtualDepthMult int64) {
+func (vm *SwapQv94) getLiquidityFeeAndSlip(ctx cosmos.Context, pool Pool, sourceCoin common.Coin, item *swapItem, virtualDepthMult int64) {
 	// Get our X, x, Y values
 	var X, x, Y cosmos.Uint
 	x = sourceCoin.Amount
@@ -250,11 +258,8 @@ func (vm *SwapQv94) getLiquidityFeeAndSlip(ctx cosmos.Context, pool Pool, source
 		X = pool.BalanceAsset
 	}
 
-	// give virtual pool depth if we're swapping with a synthetic asset
-	if sourceCoin.Asset.IsSyntheticAsset() {
-		X = X.MulUint64(uint64(synthVirtualDepthMult))
-		Y = Y.MulUint64(uint64(synthVirtualDepthMult))
-	}
+	X = X.MulUint64(uint64(virtualDepthMult))
+	Y = Y.MulUint64(uint64(virtualDepthMult))
 
 	swapper, err := GetSwapper(vm.k.GetVersion())
 	if err != nil {
