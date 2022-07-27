@@ -236,36 +236,24 @@ class Smoker:
         else:
             logging.error(err)
 
+    def check_pool_attribute(self, sa, ra, asset, description):
+        if int(sa) != int(ra):
+            self.error(
+                f"Bad Pool-{asset} balance: {description} "
+                f"Sim {sa} != Real {ra}"
+            )
+
     def check_pools(self):
         # compare simulation pools vs real pools
         real_pools = self.thorchain_client.get_pools()
         for rpool in real_pools:
             spool = self.thorchain_state.get_pool(Asset(rpool["asset"]))
-            if int(spool.rune_balance) != int(rpool["balance_rune"]):
-                self.error(
-                    f"Bad Pool-{rpool['asset']} balance: RUNE "
-                    f"{spool.rune_balance} != {rpool['balance_rune']}"
-                )
-            if int(spool.asset_balance) != int(rpool["balance_asset"]):
-                self.error(
-                    f"Bad Pool-{rpool['asset']} balance: ASSET "
-                    f"{spool.asset_balance} != {rpool['balance_asset']}"
-                )
-            if int(spool.lp_units) != int(rpool["LP_units"]):
-                self.error(
-                    f"Bad Pool-{rpool['asset']} balance: LP UNITS "
-                    f"{spool.lp_units} != {rpool['LP_units']}"
-                )
-            if int(spool.synth_units()) != int(rpool["synth_units"]):
-                self.error(
-                    f"Bad Pool-{rpool['asset']} balance: SYNTH UNITS "
-                    f"{spool.synth_units()} != {rpool['synth_units']}"
-                )
-            if int(spool.pool_units()) != int(rpool["pool_units"]):
-                self.error(
-                    f"Bad Pool-{rpool['asset']} balance: UNITS "
-                    f"{spool.pool_units()} != {rpool['pool_units']}"
-                )
+            self.check_pool_attribute(spool.rune_balance, rpool["balance_rune"], rpool['asset'], "RUNE")
+            self.check_pool_attribute(spool.asset_balance, rpool["balance_asset"], rpool['asset'], "ASSET")
+            self.check_pool_attribute(spool.synth_balance, rpool["synth_supply"], rpool['asset'], "SYNTH SUPPLY")
+            self.check_pool_attribute(spool.lp_units, rpool["LP_units"], rpool['asset'], "LP UNITS")
+            self.check_pool_attribute(spool.synth_units(), rpool["synth_units"], rpool['asset'], "SYNTH UNITS")
+            self.check_pool_attribute(spool.pool_units(), rpool["pool_units"], rpool['asset'], "POOL UNITS")
 
     def check_binance(self):
         # compare simulation binance vs mock binance
