@@ -412,7 +412,7 @@ services:
     profiles:
       - mocknet
       - mocknet-cluster
-    image: ethereum/client-go:v1.10.20
+    image: ethereum/client-go:v1.10.21
     restart: unless-stopped
     environment:
       ETH_BLOCK_TIME: ${ETH_BLOCK_TIME:-5}
