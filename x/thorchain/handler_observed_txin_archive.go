@@ -3,7 +3,6 @@ package thorchain
 import (
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -28,7 +27,7 @@ func (h ObservedTxInHandler) handleV78(ctx cosmos.Context, msg MsgObservedTxIn) 
 
 		voter, ok := h.preflightV1(ctx, voter, activeNodeAccounts, tx, msg.Signer)
 		if !ok {
-			if voter.Height == common.BlockHeight(ctx) || voter.FinalisedHeight == common.BlockHeight(ctx) {
+			if voter.Height == ctx.BlockHeight() || voter.FinalisedHeight == ctx.BlockHeight() {
 				// we've already process the transaction, but we should still
 				// update the observing addresses
 				h.mgr.ObMgr().AppendObserver(tx.Tx.Chain, msg.GetSigners())

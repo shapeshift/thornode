@@ -7,7 +7,6 @@ import (
 
 	"github.com/blang/semver"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
@@ -106,15 +105,15 @@ func (h NodePauseChainHandler) handleV87(ctx cosmos.Context, msg MsgNodePauseCha
 	}
 
 	if msg.Value > 0 { // node intends to pause chain
-		if pauseHeight > common.BlockHeight(ctx) { // chain is paused
+		if pauseHeight > ctx.BlockHeight() { // chain is paused
 			pauseHeight += blocks
 			h.mgr.Keeper().SetNodePauseChain(ctx, msg.Signer)
 		} else { // chain isn't paused
-			pauseHeight = common.BlockHeight(ctx) + blocks
+			pauseHeight = ctx.BlockHeight() + blocks
 			h.mgr.Keeper().SetNodePauseChain(ctx, msg.Signer)
 		}
 	} else if msg.Value < 0 { // node intends so resume chain
-		if pauseHeight > common.BlockHeight(ctx) { // chain is paused
+		if pauseHeight > ctx.BlockHeight() { // chain is paused
 			h.mgr.Keeper().SetNodePauseChain(ctx, msg.Signer)
 			pauseHeight -= blocks
 		}

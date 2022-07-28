@@ -4,7 +4,6 @@
 package thorchain
 
 import (
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
@@ -13,7 +12,7 @@ func migrateStoreV86(ctx cosmos.Context, mgr *Mgrs) {}
 
 func importPreRegistrationTHORNames(ctx cosmos.Context, mgr Manager) error {
 	oneYear := fetchConfigInt64(ctx, mgr, constants.BlocksPerYear)
-	names, err := getPreRegisterTHORNames(ctx, common.BlockHeight(ctx)+oneYear)
+	names, err := getPreRegisterTHORNames(ctx, ctx.BlockHeight()+oneYear)
 	if err != nil {
 		return err
 	}

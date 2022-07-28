@@ -118,13 +118,13 @@ func (h SolvencyHandler) handleV87(ctx cosmos.Context, msg MsgSolvency) (*cosmos
 
 	// from this point , solvency reach consensus
 	if voter.ConsensusBlockHeight > 0 {
-		if (voter.ConsensusBlockHeight + observeFlex) >= common.BlockHeight(ctx) {
+		if (voter.ConsensusBlockHeight + observeFlex) >= ctx.BlockHeight() {
 			h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
 		}
 		// solvency tx already processed
 		return &cosmos.Result{}, nil
 	}
-	voter.ConsensusBlockHeight = common.BlockHeight(ctx)
+	voter.ConsensusBlockHeight = ctx.BlockHeight()
 	h.mgr.Keeper().SetSolvencyVoter(ctx, voter)
 	// decrease the slash points
 	h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)
@@ -138,7 +138,7 @@ func (h SolvencyHandler) handleV87(ctx cosmos.Context, msg MsgSolvency) (*cosmos
 	if err != nil {
 		ctx.Logger().Error("fail to get mimir", "key", StopSolvencyCheckKey, "error", err)
 	}
-	if stopSolvencyCheck > 0 && stopSolvencyCheck < common.BlockHeight(ctx) {
+	if stopSolvencyCheck > 0 && stopSolvencyCheck < ctx.BlockHeight() {
 		return &cosmos.Result{}, nil
 	}
 	// stop solvency checker per chain
@@ -148,7 +148,7 @@ func (h SolvencyHandler) handleV87(ctx cosmos.Context, msg MsgSolvency) (*cosmos
 	if err != nil {
 		ctx.Logger().Error("fail to get mimir", "key", StopSolvencyCheckKey+voter.Chain.String(), "error", err)
 	}
-	if stopSolvencyCheckChain > 0 && stopSolvencyCheckChain < common.BlockHeight(ctx) {
+	if stopSolvencyCheckChain > 0 && stopSolvencyCheckChain < ctx.BlockHeight() {
 		return &cosmos.Result{}, nil
 	}
 	haltChainKey := fmt.Sprintf(`SolvencyHalt%sChain`, voter.Chain)
@@ -165,7 +165,7 @@ func (h SolvencyHandler) handleV87(ctx cosmos.Context, msg MsgSolvency) (*cosmos
 			return &cosmos.Result{}, nil
 		}
 		// if the chain was halted by previous solvency checker, auto unhalt it
-		ctx.Logger().Info("auto un-halt", "chain", voter.Chain, "previous halt height", haltChain, "current block height", common.BlockHeight(ctx))
+		ctx.Logger().Info("auto un-halt", "chain", voter.Chain, "previous halt height", haltChain, "current block height", ctx.BlockHeight())
 		h.mgr.Keeper().SetMimir(ctx, haltChainKey, 0)
 		mimirEvent := NewEventSetMimir(strings.ToUpper(haltChainKey), "0")
 		if err := h.mgr.EventMgr().EmitEvent(ctx, mimirEvent); err != nil {
@@ -173,12 +173,12 @@ func (h SolvencyHandler) handleV87(ctx cosmos.Context, msg MsgSolvency) (*cosmos
 		}
 	}
 
-	if haltChain > 0 && haltChain < common.BlockHeight(ctx) {
+	if haltChain > 0 && haltChain < ctx.BlockHeight() {
 		// Trading already halt
 		return &cosmos.Result{}, nil
 	}
-	h.mgr.Keeper().SetMimir(ctx, haltChainKey, common.BlockHeight(ctx))
-	mimirEvent := NewEventSetMimir(strings.ToUpper(haltChainKey), strconv.FormatInt(common.BlockHeight(ctx), 10))
+	h.mgr.Keeper().SetMimir(ctx, haltChainKey, ctx.BlockHeight())
+	mimirEvent := NewEventSetMimir(strings.ToUpper(haltChainKey), strconv.FormatInt(ctx.BlockHeight(), 10))
 	if err := h.mgr.EventMgr().EmitEvent(ctx, mimirEvent); err != nil {
 		ctx.Logger().Error("fail to emit set_mimir event", "error", err)
 	}
@@ -241,11 +241,11 @@ func (h SolvencyHandler) excludePendingOutboundFromVault(ctx cosmos.Context, vau
 	// go back SigningTransactionPeriod blocks to see whether there are outstanding tx, the vault need to send out
 	// if there is , deduct it from their balance
 	signingPeriod := h.mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
-	startHeight := common.BlockHeight(ctx) - signingPeriod
+	startHeight := ctx.BlockHeight() - signingPeriod
 	if startHeight < 1 {
 		startHeight = 1
 	}
-	for i := startHeight; i < common.BlockHeight(ctx); i++ {
+	for i := startHeight; i < ctx.BlockHeight(); i++ {
 		blockOut, err := h.mgr.Keeper().GetTxOut(ctx, i)
 		if err != nil {
 			ctx.Logger().Error("fail to get block tx out", "error", err)

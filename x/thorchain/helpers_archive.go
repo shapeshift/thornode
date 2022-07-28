@@ -217,7 +217,7 @@ func refundBondV81(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 	if nodeAcc.RequestedToLeave {
 		// when node already request to leave , it can't come back , here means the node already unbond
 		// so set the node to disabled status
-		nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+		nodeAcc.UpdateStatus(NodeDisabled, ctx.BlockHeight())
 	}
 	if err := mgr.Keeper().SetNodeAccount(ctx, *nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
@@ -361,7 +361,7 @@ func refundBondV88(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 	if nodeAcc.RequestedToLeave {
 		// when node already request to leave , it can't come back , here means the node already unbond
 		// so set the node to disabled status
-		nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+		nodeAcc.UpdateStatus(NodeDisabled, ctx.BlockHeight())
 	}
 	if err := mgr.Keeper().SetNodeAccount(ctx, *nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)

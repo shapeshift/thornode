@@ -171,7 +171,7 @@ func (k KVStore) GetNodeAccount(ctx cosmos.Context, addr cosmos.AccAddress) (Nod
 		Secp256k1: common.EmptyPubKey,
 		Ed25519:   common.EmptyPubKey,
 	}
-	record := NewNodeAccount(addr, NodeUnknown, emptyPubKeySet, "", cosmos.ZeroUint(), "", common.BlockHeight(ctx))
+	record := NewNodeAccount(addr, NodeUnknown, emptyPubKeySet, "", cosmos.ZeroUint(), "", ctx.BlockHeight())
 	_, err := k.getNodeAccount(ctx, k.GetKey(ctx, prefixNodeAccount, addr.String()), &record)
 	return record, err
 }
@@ -195,7 +195,7 @@ func (k KVStore) SetNodeAccount(ctx cosmos.Context, na NodeAccount) error {
 			// the na is active, and does not have a block height when they
 			// became active. This must be the first block they are active, so
 			// THORNode will set it now.
-			na.ActiveBlockHeight = common.BlockHeight(ctx)
+			na.ActiveBlockHeight = ctx.BlockHeight()
 			k.ResetNodeAccountSlashPoints(ctx, na.NodeAddress) // reset slash points
 		}
 	}

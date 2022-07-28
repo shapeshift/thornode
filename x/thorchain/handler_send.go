@@ -81,7 +81,7 @@ func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend) (*cosmos.Result, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
 	}
-	if haltHeight > 0 && common.BlockHeight(ctx) > haltHeight {
+	if haltHeight > 0 && ctx.BlockHeight() > haltHeight {
 		return nil, fmt.Errorf("mimir has halted THORChain transactions")
 	}
 

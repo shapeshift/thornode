@@ -80,13 +80,13 @@ func (s *SwapperV90) Swap(ctx cosmos.Context,
 
 	if source.IsSyntheticAsset() {
 		burnHeight, _ := keeper.GetMimir(ctx, "BurnSynths")
-		if burnHeight > 0 && common.BlockHeight(ctx) > burnHeight {
+		if burnHeight > 0 && ctx.BlockHeight() > burnHeight {
 			return cosmos.ZeroUint(), swapEvents, fmt.Errorf("burning synthetics has been disabled")
 		}
 	}
 	if target.IsSyntheticAsset() {
 		mintHeight, _ := keeper.GetMimir(ctx, "MintSynths")
-		if mintHeight > 0 && common.BlockHeight(ctx) > mintHeight {
+		if mintHeight > 0 && ctx.BlockHeight() > mintHeight {
 			return cosmos.ZeroUint(), swapEvents, fmt.Errorf("minting synthetics has been disabled")
 		}
 	}

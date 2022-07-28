@@ -22,7 +22,7 @@ func (s *NetworkManagerV89TestSuite) TestRagnarokChain(c *C) {
 	ctx = ctx.WithBlockHeight(100000)
 
 	activeVault := GetRandomVault()
-	activeVault.StatusSince = common.BlockHeight(ctx) - 10
+	activeVault.StatusSince = ctx.BlockHeight() - 10
 	activeVault.Coins = common.Coins{
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	}

@@ -22,7 +22,7 @@ func (h WithdrawLiquidityHandler) handleV93(ctx cosmos.Context, msg MsgWithdrawL
 	memo := ""
 	if msg.Tx.ID.Equals(common.BlankTxID) {
 		// tx id is blank, must be triggered by the ragnarok protocol
-		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
+		memo = NewRagnarokMemo(ctx.BlockHeight()).String()
 	}
 
 	transfer := func(coin common.Coin, addr common.Address) error {
@@ -147,7 +147,7 @@ func (h WithdrawLiquidityHandler) handleV88(ctx cosmos.Context, msg MsgWithdrawL
 	memo := ""
 	if msg.Tx.ID.Equals(common.BlankTxID) {
 		// tx id is blank, must be triggered by the ragnarok protocol
-		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
+		memo = NewRagnarokMemo(ctx.BlockHeight()).String()
 	}
 
 	if !assetAmount.IsZero() {
@@ -271,7 +271,7 @@ func (h WithdrawLiquidityHandler) handleV75(ctx cosmos.Context, msg MsgWithdrawL
 	memo := ""
 	if msg.Tx.ID.Equals(common.BlankTxID) {
 		// tx id is blank, must be triggered by the ragnarok protocol
-		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
+		memo = NewRagnarokMemo(ctx.BlockHeight()).String()
 	}
 
 	// any extra rune in the transaction will be donated to reserve

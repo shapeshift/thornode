@@ -104,7 +104,7 @@ func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 	if nodeAcc.Status == NodeActive {
 		if nodeAcc.LeaveScore == 0 {
 			// get to the 8th decimal point, but keep numbers integers for safer math
-			age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - nodeAcc.StatusSince) * common.One))
+			age := cosmos.NewUint(uint64((ctx.BlockHeight() - nodeAcc.StatusSince) * common.One))
 			slashPts, err := h.mgr.Keeper().GetNodeAccountSlashPoints(ctx, nodeAcc.NodeAddress)
 			if err != nil || slashPts == 0 {
 				ctx.Logger().Error("fail to get node account slash points", "error", err)
@@ -118,7 +118,7 @@ func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 		if err != nil || bondLockPeriod < 0 {
 			bondLockPeriod = h.mgr.GetConstants().GetInt64Value(constants.BondLockupPeriod)
 		}
-		if common.BlockHeight(ctx)-nodeAcc.StatusSince < bondLockPeriod {
+		if ctx.BlockHeight()-nodeAcc.StatusSince < bondLockPeriod {
 			return fmt.Errorf("node can not unbond before %d", nodeAcc.StatusSince+bondLockPeriod)
 		}
 		vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
@@ -141,7 +141,7 @@ func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 				if err := refundBond(ctx, msg.Tx, bondAddr, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 					return ErrInternal(err, "fail to refund bond")
 				}
-				nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+				nodeAcc.UpdateStatus(NodeDisabled, ctx.BlockHeight())
 			} else {
 				// given the node is not active, they should not have Yggdrasil pool either
 				// but let's check it anyway just in case
@@ -155,7 +155,7 @@ func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 						if err := refundBond(ctx, msg.Tx, bondAddr, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {
 							return ErrInternal(err, "fail to refund bond")
 						}
-						nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+						nodeAcc.UpdateStatus(NodeDisabled, ctx.BlockHeight())
 					} else {
 						if h.canAbandonVault(ctx, vault, nodeAcc) {
 							if err := refundBond(ctx, msg.Tx, bondAddr, cosmos.ZeroUint(), &nodeAcc, h.mgr); err != nil {

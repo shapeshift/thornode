@@ -385,11 +385,11 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_outboundFailures(c *C) {
 	runeAddr := GetRandomRUNEAddress()
 	lp := LiquidityProvider{
 		Asset:              asset,
-		LastAddHeight:      common.BlockHeight(ctx),
+		LastAddHeight:      ctx.BlockHeight(),
 		RuneAddress:        runeAddr,
 		AssetAddress:       GetRandomBTCAddress(),
 		Units:              cosmos.NewUint(100),
-		LastWithdrawHeight: common.BlockHeight(ctx),
+		LastWithdrawHeight: ctx.BlockHeight(),
 	}
 	c.Assert(lp.Valid(), IsNil)
 	keeper.SetLiquidityProvider(ctx, lp)

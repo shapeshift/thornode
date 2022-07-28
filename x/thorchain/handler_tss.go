@@ -66,7 +66,7 @@ func (h TssHandler) validateV71(ctx cosmos.Context, msg MsgTssPool) error {
 	}
 
 	churnRetryBlocks := h.mgr.GetConstants().GetInt64Value(constants.ChurnRetryInterval)
-	if msg.Height <= common.BlockHeight(ctx)-churnRetryBlocks {
+	if msg.Height <= ctx.BlockHeight()-churnRetryBlocks {
 		return cosmos.ErrUnknownRequest("invalid keygen block")
 	}
 
@@ -193,7 +193,7 @@ func (h TssHandler) handleV93(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 	}
 
 	if voter.BlockHeight == 0 {
-		voter.BlockHeight = common.BlockHeight(ctx)
+		voter.BlockHeight = ctx.BlockHeight()
 		h.mgr.Keeper().SetTssVoter(ctx, voter)
 		h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)
 		if msg.IsSuccess() {
@@ -202,7 +202,7 @@ func (h TssHandler) handleV93(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 				vaultType = AsgardVault
 			}
 			chains := voter.ConsensusChains()
-			vault := NewVault(common.BlockHeight(ctx), InitVault, vaultType, voter.PoolPubKey, chains.Strings(), h.mgr.Keeper().GetChainContracts(ctx, chains))
+			vault := NewVault(ctx.BlockHeight(), InitVault, vaultType, voter.PoolPubKey, chains.Strings(), h.mgr.Keeper().GetChainContracts(ctx, chains))
 			vault.Membership = voter.PubKeys
 
 			if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
@@ -268,7 +268,7 @@ func (h TssHandler) handleV93(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 				} else {
 					// go to jail
 					jailTime := h.mgr.GetConstants().GetInt64Value(constants.JailTimeKeygen)
-					releaseHeight := common.BlockHeight(ctx) + jailTime
+					releaseHeight := ctx.BlockHeight() + jailTime
 					reason := "failed to perform keygen"
 					if err := h.mgr.Keeper().SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
 						ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
@@ -320,7 +320,7 @@ func (h TssHandler) handleV93(ctx cosmos.Context, msg MsgTssPool) (*cosmos.Resul
 		return &cosmos.Result{}, nil
 	}
 
-	if (voter.BlockHeight + observeFlex) >= common.BlockHeight(ctx) {
+	if (voter.BlockHeight + observeFlex) >= ctx.BlockHeight() {
 		h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
 	}
 
@@ -346,7 +346,7 @@ func (h TssHandler) judgeLateSigner(ctx cosmos.Context, msg MsgTssPool, voter Ts
 		return
 	}
 
-	voter.MajorityConsensusBlockHeight = common.BlockHeight(ctx)
+	voter.MajorityConsensusBlockHeight = ctx.BlockHeight()
 	h.mgr.Keeper().SetTssVoter(ctx, voter)
 	for _, member := range msg.PubKeys {
 		pkey, err := common.NewPubKey(member)
@@ -364,7 +364,7 @@ func (h TssHandler) judgeLateSigner(ctx cosmos.Context, msg MsgTssPool, voter Ts
 			h.mgr.Slasher().IncSlashPoints(slashCtx, slashPoints, thorAddr)
 			// go to jail
 			jailTime := h.mgr.GetConstants().GetInt64Value(constants.JailTimeKeygen)
-			releaseHeight := common.BlockHeight(ctx) + jailTime
+			releaseHeight := ctx.BlockHeight() + jailTime
 			reason := "failed to vote keygen in time"
 			if err := h.mgr.Keeper().SetNodeAccountJail(ctx, thorAddr, releaseHeight, reason); err != nil {
 				ctx.Logger().Error("fail to set node account jail", "node address", thorAddr, "reason", reason, "error", err)

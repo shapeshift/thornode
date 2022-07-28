@@ -392,7 +392,7 @@ func refundBondV92(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 	if nodeAcc.RequestedToLeave {
 		// when node already request to leave , it can't come back , here means the node already unbond
 		// so set the node to disabled status
-		nodeAcc.UpdateStatus(NodeDisabled, common.BlockHeight(ctx))
+		nodeAcc.UpdateStatus(NodeDisabled, ctx.BlockHeight())
 	}
 	if err := mgr.Keeper().SetNodeAccount(ctx, *nodeAcc); err != nil {
 		ctx.Logger().Error(fmt.Sprintf("fail to save node account(%s)", nodeAcc), "error", err)
@@ -514,7 +514,7 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 		case PoolStaged:
 			ctx.Logger().Info("Pool demoted to staged status", "pool", pool.Asset)
 		}
-		pool.StatusSince = common.BlockHeight(ctx)
+		pool.StatusSince = ctx.BlockHeight()
 		return mgr.Keeper().SetPool(ctx, pool)
 	}
 
@@ -773,7 +773,7 @@ func isTradingHaltV65(ctx cosmos.Context, msg cosmos.Msg, mgr Manager) bool {
 // isGlobalTradingHalted check whether trading has been halt at global level
 func isGlobalTradingHalted(ctx cosmos.Context, mgr Manager) bool {
 	haltTrading, err := mgr.Keeper().GetMimir(ctx, "HaltTrading")
-	if err == nil && ((haltTrading > 0 && haltTrading < common.BlockHeight(ctx)) || mgr.Keeper().RagnarokInProgress(ctx)) {
+	if err == nil && ((haltTrading > 0 && haltTrading < ctx.BlockHeight()) || mgr.Keeper().RagnarokInProgress(ctx)) {
 		return true
 	}
 	return false
@@ -783,7 +783,7 @@ func isGlobalTradingHalted(ctx cosmos.Context, mgr Manager) bool {
 func isChainTradingHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	mimirKey := fmt.Sprintf("Halt%sTrading", chain)
 	haltChainTrading, err := mgr.Keeper().GetMimir(ctx, mimirKey)
-	if err == nil && (haltChainTrading > 0 && haltChainTrading < common.BlockHeight(ctx)) {
+	if err == nil && (haltChainTrading > 0 && haltChainTrading < ctx.BlockHeight()) {
 		ctx.Logger().Info("trading is halt", "chain", chain)
 		return true
 	}
@@ -807,27 +807,27 @@ func isChainHalted(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 // outbound will not be signed and broadcast
 func isChainHaltedV87(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	haltChain, err := mgr.Keeper().GetMimir(ctx, "HaltChainGlobal")
-	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+	if err == nil && (haltChain > 0 && haltChain < ctx.BlockHeight()) {
 		ctx.Logger().Info("global is halt")
 		return true
 	}
 
 	haltChain, err = mgr.Keeper().GetMimir(ctx, "NodePauseChainGlobal")
-	if err == nil && haltChain > common.BlockHeight(ctx) {
+	if err == nil && haltChain > ctx.BlockHeight() {
 		ctx.Logger().Info("node global is halt")
 		return true
 	}
 
 	haltMimirKey := fmt.Sprintf("Halt%sChain", chain)
 	haltChain, err = mgr.Keeper().GetMimir(ctx, haltMimirKey)
-	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+	if err == nil && (haltChain > 0 && haltChain < ctx.BlockHeight()) {
 		ctx.Logger().Info("chain is halt via admin or double-spend check", "chain", chain)
 		return true
 	}
 
 	solvencyHaltMimirKey := fmt.Sprintf("SolvencyHalt%sChain", chain)
 	haltChain, err = mgr.Keeper().GetMimir(ctx, solvencyHaltMimirKey)
-	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+	if err == nil && (haltChain > 0 && haltChain < ctx.BlockHeight()) {
 		ctx.Logger().Info("chain is halt via solvency check", "chain", chain)
 		return true
 	}
@@ -839,20 +839,20 @@ func isChainHaltedV87(ctx cosmos.Context, mgr Manager, chain common.Chain) bool 
 // outbound will not be signed and broadcast
 func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
 	haltChain, err := mgr.Keeper().GetMimir(ctx, "HaltChainGlobal")
-	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+	if err == nil && (haltChain > 0 && haltChain < ctx.BlockHeight()) {
 		ctx.Logger().Info("global is halt")
 		return true
 	}
 
 	haltChain, err = mgr.Keeper().GetMimir(ctx, "NodePauseChainGlobal")
-	if err == nil && haltChain > common.BlockHeight(ctx) {
+	if err == nil && haltChain > ctx.BlockHeight() {
 		ctx.Logger().Info("node global is halt")
 		return true
 	}
 
 	mimirKey := fmt.Sprintf("Halt%sChain", chain)
 	haltChain, err = mgr.Keeper().GetMimir(ctx, mimirKey)
-	if err == nil && (haltChain > 0 && haltChain < common.BlockHeight(ctx)) {
+	if err == nil && (haltChain > 0 && haltChain < ctx.BlockHeight()) {
 		ctx.Logger().Info("chain is halt", "chain", chain)
 		return true
 	}
@@ -870,12 +870,12 @@ func isLPPaused(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
 func isLPPausedV1(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
 	// check if global LP is paused
 	pauseLPGlobal, err := mgr.Keeper().GetMimir(ctx, "PauseLP")
-	if err == nil && pauseLPGlobal > 0 && pauseLPGlobal < common.BlockHeight(ctx) {
+	if err == nil && pauseLPGlobal > 0 && pauseLPGlobal < ctx.BlockHeight() {
 		return true
 	}
 
 	pauseLP, err := mgr.Keeper().GetMimir(ctx, fmt.Sprintf("PauseLP%s", chain))
-	if err == nil && pauseLP > 0 && pauseLP < common.BlockHeight(ctx) {
+	if err == nil && pauseLP > 0 && pauseLP < ctx.BlockHeight() {
 		ctx.Logger().Info("chain has paused LP actions", "chain", chain)
 		return true
 	}
@@ -1009,7 +1009,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 			[]metrics.Label{telemetry.NewLabel("node_address", node.NodeAddress.String())},
 		)
 
-		age := cosmos.NewUint(uint64((common.BlockHeight(ctx) - node.StatusSince) * common.One))
+		age := cosmos.NewUint(uint64((ctx.BlockHeight() - node.StatusSince) * common.One))
 		if pts > 0 {
 			leaveScore := age.QuoUint64(uint64(pts))
 			telemetry.SetGaugeWithLabels(
@@ -1088,7 +1088,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 
 	// emit queue metrics
 	signingTransactionPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
-	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	startHeight := ctx.BlockHeight() - signingTransactionPeriod
 	txOutDelayMax, err := mgr.Keeper().GetMimir(ctx, constants.TxOutDelayMax.String())
 	if txOutDelayMax <= 0 || err != nil {
 		txOutDelayMax = mgr.GetConstants().GetInt64Value(constants.TxOutDelayMax)
@@ -1109,7 +1109,7 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 		}
 		query.Swap++
 	}
-	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
+	for height := startHeight; height <= ctx.BlockHeight(); height++ {
 		txs, err := mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			continue
@@ -1125,13 +1125,13 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 			}
 		}
 	}
-	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+	for height := ctx.BlockHeight() + 1; height <= ctx.BlockHeight()+txOutDelayMax; height++ {
 		value, err := mgr.Keeper().GetTxOutValue(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
 			continue
 		}
-		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+		if height > ctx.BlockHeight()+maxTxOutOffset && value.IsZero() {
 			// we've hit our max offset, and an empty block, we can assume the
 			// rest will be empty as well
 			break

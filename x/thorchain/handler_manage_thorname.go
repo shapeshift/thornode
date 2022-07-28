@@ -84,7 +84,7 @@ func (h ManageTHORNameHandler) validateV1(ctx cosmos.Context, msg MsgManageTHORN
 
 		// if this thorname is already owned, check signer has ownership. If
 		// expiration is past, allow different user to take ownership
-		if !name.Owner.Equals(msg.Signer) && common.BlockHeight(ctx) <= name.ExpireBlockHeight {
+		if !name.Owner.Equals(msg.Signer) && ctx.BlockHeight() <= name.ExpireBlockHeight {
 			ctx.Logger().Error("no authorization", "owner", name.Owner)
 			return fmt.Errorf("no authorization: owned by %s", name.Owner)
 		}
@@ -146,8 +146,8 @@ func (h ManageTHORNameHandler) handleV1(ctx cosmos.Context, msg MsgManageTHORNam
 		feePerBlock := fetchConfigInt64(ctx, h.mgr, constants.TNSFeePerBlock)
 		fundPaid = msg.Coin.Amount
 		addBlocks += (int64(msg.Coin.Amount.Uint64()) / feePerBlock)
-		if tn.ExpireBlockHeight < common.BlockHeight(ctx) {
-			tn.ExpireBlockHeight = common.BlockHeight(ctx) + addBlocks
+		if tn.ExpireBlockHeight < ctx.BlockHeight() {
+			tn.ExpireBlockHeight = ctx.BlockHeight() + addBlocks
 		} else {
 			tn.ExpireBlockHeight += addBlocks
 		}

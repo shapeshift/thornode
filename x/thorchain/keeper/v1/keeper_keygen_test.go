@@ -2,8 +2,6 @@ package keeperv1
 
 import (
 	. "gopkg.in/check.v1"
-
-	"gitlab.com/thorchain/thornode/common"
 )
 
 type KeeperKeygenSuite struct{}
@@ -16,7 +14,7 @@ func (s *KeeperKeygenSuite) TestKeeperKeygen(c *C) {
 
 	keygenBlock := NewKeygenBlock(1)
 	keygenMembers := []string{GetRandomPubKey().String(), GetRandomPubKey().String(), GetRandomPubKey().String()}
-	keygen, err := NewKeygen(common.BlockHeight(ctx), keygenMembers, AsgardKeygen)
+	keygen, err := NewKeygen(ctx.BlockHeight(), keygenMembers, AsgardKeygen)
 	c.Assert(err, IsNil)
 	c.Assert(keygen.IsEmpty(), Equals, false)
 	keygenBlock.Keygens = append(keygenBlock.Keygens, keygen)

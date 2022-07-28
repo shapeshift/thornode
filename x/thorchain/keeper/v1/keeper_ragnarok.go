@@ -93,7 +93,7 @@ func (k KVStore) SetRagnarokWithdrawPosition(ctx cosmos.Context, position Ragnar
 
 // SetPoolRagnarokStart set pool ragnarok start block height
 func (k KVStore) SetPoolRagnarokStart(ctx cosmos.Context, asset common.Asset) {
-	k.setInt64(ctx, k.GetKey(ctx, prefixRagnarokPoolHeight, asset.String()), common.BlockHeight(ctx))
+	k.setInt64(ctx, k.GetKey(ctx, prefixRagnarokPoolHeight, asset.String()), ctx.BlockHeight())
 }
 
 // GetPoolRagnarokStart get pool ragnarok start block height

@@ -81,7 +81,7 @@ func (ymgr YggMgrV79) Fund(ctx cosmos.Context, mgr Manager) error {
 	// function. So THORNode use modulus to determine which Ygg THORNode process. This
 	// should behave as a "round robin" approach checking one Ygg per block.
 	// With 100 Ygg pools, THORNode should check each pool every 8.33 minutes.
-	na := nodeAccs[common.BlockHeight(ctx)%int64(len(nodeAccs))]
+	na := nodeAccs[ctx.BlockHeight()%int64(len(nodeAccs))]
 
 	// check that we have enough bond
 	minBond, err := ymgr.keeper.GetMimir(ctx, constants.MinimumBondInRune.String())
@@ -120,7 +120,7 @@ func (ymgr YggMgrV79) Fund(ctx cosmos.Context, mgr Manager) error {
 		}
 		supportChains := asgards[0].GetChains()
 		// supported chain for yggdrasil vault will be set at the time when it get created
-		ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, supportChains.Strings(), ymgr.keeper.GetChainContracts(ctx, supportChains))
+		ygg = NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, supportChains.Strings(), ymgr.keeper.GetChainContracts(ctx, supportChains))
 		ygg.Membership = append(ygg.Membership, na.PubKeySet.Secp256k1.String())
 
 		if err := ymgr.keeper.SetVault(ctx, ygg); err != nil {
@@ -134,7 +134,7 @@ func (ymgr YggMgrV79) Fund(ctx cosmos.Context, mgr Manager) error {
 	if maxBlock < 0 || err != nil {
 		maxBlock = mgr.GetConstants().GetInt64Value(constants.YggFundRetry)
 	}
-	pendingTxCount := ygg.LenPendingTxBlockHeights(common.BlockHeight(ctx), maxBlock)
+	pendingTxCount := ygg.LenPendingTxBlockHeights(ctx.BlockHeight(), maxBlock)
 	if pendingTxCount > 0 {
 		return fmt.Errorf("cannot send more yggdrasil funds while transactions are pending (%s: %d)", ygg.PubKey, pendingTxCount)
 	}
@@ -179,7 +179,7 @@ func (ymgr YggMgrV79) Fund(ctx cosmos.Context, mgr Manager) error {
 			return err
 		}
 		for i := 0; i < count; i++ {
-			ygg.AppendPendingTxBlockHeights(common.BlockHeight(ctx), mgr.GetConstants())
+			ygg.AppendPendingTxBlockHeights(ctx.BlockHeight(), mgr.GetConstants())
 		}
 		if err := ymgr.keeper.SetVault(ctx, ygg); err != nil {
 			return fmt.Errorf("fail to create yggdrasil pool: %w", err)
@@ -271,7 +271,7 @@ func (ymgr YggMgrV79) sendCoinsToYggdrasil(ctx cosmos.Context, coins common.Coin
 				Chain:       coin.Asset.GetChain(),
 				ToAddress:   to,
 				InHash:      common.BlankTxID,
-				Memo:        NewYggdrasilFund(common.BlockHeight(ctx)).String(),
+				Memo:        NewYggdrasilFund(ctx.BlockHeight()).String(),
 				Coin:        coin,
 				VaultPubKey: vault.PubKey,
 				MaxGas: common.Gas{

@@ -219,7 +219,7 @@ func (h AddLiquidityHandler) addLiquidityV79(ctx cosmos.Context,
 		return ErrInternal(err, "fail to get liquidity provider")
 	}
 
-	su.LastAddHeight = common.BlockHeight(ctx)
+	su.LastAddHeight = ctx.BlockHeight()
 	if su.Units.IsZero() {
 		if su.PendingTxID.IsEmpty() {
 			if su.RuneAddress.IsEmpty() {

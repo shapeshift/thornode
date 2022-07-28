@@ -81,7 +81,7 @@ func (h RagnarokHandler) handleV65(ctx cosmos.Context, msg MsgRagnarok) (*cosmos
 	shouldSlash := true
 	signingTransPeriod := h.mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 	decrementedPendingRagnarok := false
-	for height := msg.BlockHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
+	for height := msg.BlockHeight; height <= ctx.BlockHeight(); height += signingTransPeriod {
 		// update txOut record with our TxID that sent funds out of the pool
 		txOut, err := h.mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {

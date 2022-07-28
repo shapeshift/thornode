@@ -7,7 +7,6 @@ import (
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
@@ -99,14 +98,14 @@ func (h NetworkFeeHandler) handleV47(ctx cosmos.Context, msg MsgNetworkFee) (*co
 	}
 
 	if voter.BlockHeight > 0 {
-		if (voter.BlockHeight + observeFlex) >= common.BlockHeight(ctx) {
+		if (voter.BlockHeight + observeFlex) >= ctx.BlockHeight() {
 			h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
 		}
 		// MsgNetworkFee tx already processed
 		return &cosmos.Result{}, nil
 	}
 
-	voter.BlockHeight = common.BlockHeight(ctx)
+	voter.BlockHeight = ctx.BlockHeight()
 	h.mgr.Keeper().SetObservedNetworkFeeVoter(ctx, voter)
 	// decrease the slash points
 	h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)

@@ -154,7 +154,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	c.Assert(valMgr.BeginBlock(ctx, consts, existingValidators), IsNil)
 
 	// check we've created a keygen, with the correct members
-	keygenBlock, err := mgr.Keeper().GetKeygenBlock(ctx, common.BlockHeight(ctx))
+	keygenBlock, err := mgr.Keeper().GetKeygenBlock(ctx, ctx.BlockHeight())
 	c.Assert(err, IsNil)
 	c.Assert(keygenBlock.IsEmpty(), Equals, false)
 	expected := append(vault.Membership[1:], na.PubKeySet.Secp256k1.String()) // nolint
@@ -173,7 +173,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	signer, err := common.PubKey(keygen.Members[0]).GetThorAddress()
 	c.Assert(err, IsNil)
 	keygenTime := int64(1024)
-	msg, err := NewMsgTssPool(keygen.Members, newVaultPk, AsgardKeygen, common.BlockHeight(ctx), Blame{}, common.Chains{common.RuneAsset().Chain}.Strings(), signer, keygenTime)
+	msg, err := NewMsgTssPool(keygen.Members, newVaultPk, AsgardKeygen, ctx.BlockHeight(), Blame{}, common.Chains{common.RuneAsset().Chain}.Strings(), signer, keygenTime)
 	c.Assert(err, IsNil)
 	tssHandler := NewTssHandler(mgr)
 
@@ -523,8 +523,8 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	c.Assert(updates, IsNil)
 	ragnarokHeight, err := mgr.Keeper().GetRagnarokBlockHeight(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(ragnarokHeight, Equals, common.BlockHeight(ctx))
-	currentHeight := common.BlockHeight(ctx)
+	c.Assert(ragnarokHeight, Equals, ctx.BlockHeight())
+	currentHeight := ctx.BlockHeight()
 	migrateInterval := consts.GetInt64Value(constants.FundMigrationInterval)
 	ctx = ctx.WithBlockHeight(currentHeight + migrateInterval)
 	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts, nil), IsNil)

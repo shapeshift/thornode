@@ -323,8 +323,8 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 
 	var observedTxInVoters ObservedTxVoters
 	var outs []TxOut
-	startBlockHeight := common.BlockHeight(ctx)
-	endBlockHeight := common.BlockHeight(ctx) + 17200
+	startBlockHeight := ctx.BlockHeight()
+	endBlockHeight := ctx.BlockHeight() + 17200
 
 	for height := startBlockHeight; height < endBlockHeight; height++ {
 		txOut, err := k.GetTxOut(ctx, height)

@@ -50,7 +50,7 @@ func (s *SlasherV86) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, 
 func (s *SlasherV86) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, infractionHeight int64, constAccessor constants.ConstantValues) error {
 	// check if we're recent enough to slash for this behavior
 	maxAge := constAccessor.GetInt64Value(constants.DoubleSignMaxAge)
-	if (common.BlockHeight(ctx) - infractionHeight) > maxAge {
+	if (ctx.BlockHeight() - infractionHeight) > maxAge {
 		ctx.Logger().Info("double sign detected but too old to be slashed", "infraction height", fmt.Sprintf("%d", infractionHeight), "address", addr.String())
 		return nil
 	}
@@ -106,7 +106,7 @@ func (s *SlasherV86) HandleDoubleSign(ctx cosmos.Context, addr crypto.Address, i
 // LackObserving Slash node accounts that didn't observe a single inbound txn
 func (s *SlasherV86) LackObserving(ctx cosmos.Context, constAccessor constants.ConstantValues) error {
 	signingTransPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	height := common.BlockHeight(ctx)
+	height := ctx.BlockHeight()
 	if height < signingTransPeriod {
 		return nil
 	}
@@ -196,10 +196,10 @@ func (s *SlasherV86) checkSignerAndSlash(ctx cosmos.Context, nodes NodeAccounts,
 func (s *SlasherV86) LackSigning(ctx cosmos.Context, mgr Manager) error {
 	var resultErr error
 	signingTransPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
-	if common.BlockHeight(ctx) < signingTransPeriod {
+	if ctx.BlockHeight() < signingTransPeriod {
 		return nil
 	}
-	height := common.BlockHeight(ctx) - signingTransPeriod
+	height := ctx.BlockHeight() - signingTransPeriod
 	txs, err := s.keeper.GetTxOut(ctx, height)
 	if err != nil {
 		return fmt.Errorf("fail to get txout from block height(%d): %w", height, err)
@@ -236,7 +236,7 @@ func (s *SlasherV86) LackSigning(ctx cosmos.Context, mgr Manager) error {
 				if err := mgr.EventMgr().EmitEvent(ctx, NewEventSlashPoint(na.NodeAddress, slashPoints, fmt.Sprintf("fail to sign out tx after %d blocks", signingTransPeriod))); err != nil {
 					ctx.Logger().Error("fail to emit slash point event")
 				}
-				releaseHeight := common.BlockHeight(ctx) + (signingTransPeriod * 2)
+				releaseHeight := ctx.BlockHeight() + (signingTransPeriod * 2)
 				reason := "fail to send yggdrasil transaction"
 				if err := s.keeper.SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
 					ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
@@ -261,7 +261,7 @@ func (s *SlasherV86) LackSigning(ctx cosmos.Context, mgr Manager) error {
 
 			maxOutboundAttempts := fetchConfigInt64(ctx, mgr, constants.MaxOutboundAttempts)
 			if maxOutboundAttempts > 0 {
-				age := common.BlockHeight(ctx) - voter.FinalisedHeight
+				age := ctx.BlockHeight() - voter.FinalisedHeight
 				attempts := age / signingTransPeriod
 				if attempts >= maxOutboundAttempts {
 					ctx.Logger().Info("txn dropped, too many attempts", "hash", tx.InHash)
@@ -294,7 +294,7 @@ func (s *SlasherV86) LackSigning(ctx cosmos.Context, mgr Manager) error {
 				// than last time. This is here to ensure that if an asgard
 				// vault becomes unavailable, the network will reschedule the
 				// transaction on a different asgard vault.
-				age := common.BlockHeight(ctx) - voter.FinalisedHeight
+				age := ctx.BlockHeight() - voter.FinalisedHeight
 				if vault.IsYggdrasil() {
 					// since the last attempt was a yggdrasil vault, lets
 					// artificially inflate the age to ensure that the first
@@ -449,8 +449,8 @@ func (s *SlasherV86) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 		pauseOnSlashThreshold := fetchConfigInt64(ctx, mgr, constants.PauseOnSlashThreshold)
 		if pauseOnSlashThreshold > 0 && totalSlashAmountInRune.GTE(cosmos.NewUint(uint64(pauseOnSlashThreshold))) {
 			// set mimirs to pause the chain and ygg funding
-			s.keeper.SetMimir(ctx, mimirStopFundYggdrasil, common.BlockHeight(ctx))
-			s.keeper.SetMimir(ctx, fmt.Sprintf("Halt%sChain", coin.Asset.Chain), common.BlockHeight(ctx))
+			s.keeper.SetMimir(ctx, mimirStopFundYggdrasil, ctx.BlockHeight())
+			s.keeper.SetMimir(ctx, fmt.Sprintf("Halt%sChain", coin.Asset.Chain), ctx.BlockHeight())
 		}
 
 		for _, member := range membership {

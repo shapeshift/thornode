@@ -19,12 +19,12 @@ func (s *KeeperVaultSuite) TestVault(c *C) {
 	c.Check(existVault, Equals, false)
 
 	pubKey := GetRandomPubKey()
-	yggdrasil := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pubKey, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	yggdrasil := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pubKey, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	err = k.SetVault(ctx, yggdrasil)
 	c.Assert(err, IsNil)
 	c.Assert(k.VaultExists(ctx, pubKey), Equals, true)
 	pubKey1 := GetRandomPubKey()
-	yggdrasil1 := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pubKey1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	yggdrasil1 := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pubKey1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	yggdrasil1.PendingTxBlockHeights = []int64{35}
 	yggdrasil1.Coins = common.Coins{
 		common.NewCoin(common.BNBAsset, types.NewUint(100)),
@@ -43,9 +43,9 @@ func (s *KeeperVaultSuite) TestVault(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(asgards, HasLen, 0)
 	pubKey = GetRandomPubKey()
-	asgard := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	asgard := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, pubKey, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	c.Assert(k.SetVault(ctx, asgard), IsNil)
-	asgard2 := NewVault(common.BlockHeight(ctx), InactiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	asgard2 := NewVault(ctx.BlockHeight(), InactiveVault, AsgardVault, GetRandomPubKey(), common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	c.Assert(k.SetVault(ctx, asgard2), IsNil)
 	asgards, err = k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	c.Assert(err, IsNil)

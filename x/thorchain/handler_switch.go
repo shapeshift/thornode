@@ -59,7 +59,7 @@ func (h SwitchHandler) validateV87(ctx cosmos.Context, msg MsgSwitch) error {
 	killSwitchStart := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchStart)
 	killSwitchDuration := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchDuration)
 
-	if killSwitchStart > 0 && common.BlockHeight(ctx) > killSwitchStart+killSwitchDuration {
+	if killSwitchStart > 0 && ctx.BlockHeight() > killSwitchStart+killSwitchDuration {
 		return fmt.Errorf("switch is deprecated")
 	}
 
@@ -94,7 +94,7 @@ func (h SwitchHandler) handleV93(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Res
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
 	}
-	if haltHeight > 0 && common.BlockHeight(ctx) > haltHeight {
+	if haltHeight > 0 && ctx.BlockHeight() > haltHeight {
 		return nil, fmt.Errorf("mimir has halted THORChain transactions")
 	}
 
@@ -160,9 +160,9 @@ func (h SwitchHandler) calcCoin(ctx cosmos.Context, in cosmos.Uint) cosmos.Uint 
 
 func (h SwitchHandler) calcCoinV93(ctx cosmos.Context, in cosmos.Uint) cosmos.Uint {
 	killSwitchStart := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchStart)
-	if killSwitchStart > 0 && common.BlockHeight(ctx) >= killSwitchStart {
+	if killSwitchStart > 0 && ctx.BlockHeight() >= killSwitchStart {
 		killSwitchDuration := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchDuration)
-		remainBlocks := (killSwitchStart + killSwitchDuration) - common.BlockHeight(ctx)
+		remainBlocks := (killSwitchStart + killSwitchDuration) - ctx.BlockHeight()
 		if remainBlocks <= 0 {
 			return cosmos.ZeroUint()
 		}

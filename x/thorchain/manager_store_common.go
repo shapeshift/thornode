@@ -96,7 +96,7 @@ func refundTransactions(ctx cosmos.Context, mgr *Mgrs, pubKey string, adhocRefun
 			ctx.Logger().Error("fail to get observe tx in voter", "error", err)
 			continue
 		}
-		voter.OutboundHeight = common.BlockHeight(ctx)
+		voter.OutboundHeight = ctx.BlockHeight()
 		mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 
 		if err := mgr.TxOutStore().UnSafeAddTxOutItem(ctx, mgr, toi); err != nil {

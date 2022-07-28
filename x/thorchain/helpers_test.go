@@ -253,20 +253,20 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), IsNil)
 
 	// fail to get vault should return an error
-	na.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
+	na.UpdateStatus(NodeStandby, ctx.BlockHeight())
 	keeper1.na = na
 	mgr.K = keeper1
 	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), NotNil)
 
 	// if the vault is not a yggdrasil pool , it should return an error
-	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg := NewVault(ctx.BlockHeight(), ActiveVault, AsgardVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	ygg.Coins = common.Coins{}
 	keeper1.ygg = ygg
 	mgr.K = keeper1
 	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), NotNil)
 
 	// fail to get pool should fail
-	ygg = NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg = NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(27*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(27*common.One)),
@@ -295,7 +295,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 	na.Bond = cosmos.NewUint(12098 * common.One)
 	pk := GetRandomPubKey()
 	na.PubKeySet.Secp256k1 = pk
-	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(3946*common.One)),
@@ -337,7 +337,7 @@ func (s *HelperSuite) TestRefundBondDisableRequestToLeaveNode(c *C) {
 	na.Bond = cosmos.NewUint(12098 * common.One)
 	pk := GetRandomPubKey()
 	na.PubKeySet.Secp256k1 = pk
-	ygg := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(3946*common.One)),
@@ -587,7 +587,7 @@ func newAddGasFeeTestHelper(c *C) addGasFeeTestHelper {
 
 	na := GetRandomValidatorNode(NodeActive)
 	c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
-	yggVault := NewVault(common.BlockHeight(ctx), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	yggVault := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, na.PubKeySet.Secp256k1, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
 	c.Assert(mgr.Keeper().SetVault(ctx, yggVault), IsNil)
 	version := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(version)
@@ -635,7 +635,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 					},
 					Status:         types.Status_done,
 					OutHashes:      nil,
-					BlockHeight:    common.BlockHeight(helper.ctx),
+					BlockHeight:    helper.ctx.BlockHeight(),
 					Signers:        []string{helper.na.NodeAddress.String()},
 					ObservedPubKey: helper.na.PubKeySet.Secp256k1,
 				}
@@ -670,7 +670,7 @@ func (s *HelperSuite) TestAddGasFees(c *C) {
 					},
 					Status:         types.Status_done,
 					OutHashes:      nil,
-					BlockHeight:    common.BlockHeight(helper.ctx),
+					BlockHeight:    helper.ctx.BlockHeight(),
 					Signers:        []string{helper.na.NodeAddress.String()},
 					ObservedPubKey: helper.na.PubKeySet.Secp256k1,
 				}
@@ -734,7 +734,7 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	}, "swap:BNB.BNB:"+GetRandomBNBAddress().String())
 	memo, err := ParseMemoWithTHORNames(ctx, mgr.Keeper(), tx.Memo)
 	c.Assert(err, IsNil)
-	m, err := getMsgSwapFromMemo(memo.(SwapMemo), NewObservedTx(tx, common.BlockHeight(ctx), GetRandomPubKey(), common.BlockHeight(ctx)), GetRandomBech32Addr())
+	m, err := getMsgSwapFromMemo(memo.(SwapMemo), NewObservedTx(tx, ctx.BlockHeight(), GetRandomPubKey(), ctx.BlockHeight()), GetRandomBech32Addr())
 	c.Assert(err, IsNil)
 
 	txAddLiquidity := common.NewTx(txID, GetRandomBTCAddress(), GetRandomBTCAddress(), common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(100))), common.Gas{
@@ -744,7 +744,7 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	c.Assert(err, IsNil)
 	mAddExternal, err := getMsgAddLiquidityFromMemo(ctx,
 		memoAddExternal.(AddLiquidityMemo),
-		NewObservedTx(txAddLiquidity, common.BlockHeight(ctx), GetRandomPubKey(), common.BlockHeight(ctx)),
+		NewObservedTx(txAddLiquidity, ctx.BlockHeight(), GetRandomPubKey(), ctx.BlockHeight()),
 		GetRandomBech32Addr())
 
 	c.Assert(err, IsNil)
@@ -755,13 +755,13 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	c.Assert(err, IsNil)
 	mAddRUNE, err := getMsgAddLiquidityFromMemo(ctx,
 		memoAddRUNE.(AddLiquidityMemo),
-		NewObservedTx(txAddRUNE, common.BlockHeight(ctx), GetRandomPubKey(), common.BlockHeight(ctx)),
+		NewObservedTx(txAddRUNE, ctx.BlockHeight(), GetRandomPubKey(), ctx.BlockHeight()),
 		GetRandomBech32Addr())
 	c.Assert(err, IsNil)
 
 	mgr.Keeper().SetTHORName(ctx, THORName{
 		Name:              "testtest",
-		ExpireBlockHeight: common.BlockHeight(ctx) + 1024,
+		ExpireBlockHeight: ctx.BlockHeight() + 1024,
 		Owner:             GetRandomBech32Addr(),
 		PreferredAsset:    common.BNBAsset,
 		Aliases: []THORNameAlias{
@@ -776,7 +776,7 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	}, "swap:BNB.BNB:testtest")
 	memoWithThorname, err := ParseMemoWithTHORNames(ctx, mgr.Keeper(), txWithThorname.Memo)
 	c.Assert(err, IsNil)
-	mWithThorname, err := getMsgSwapFromMemo(memoWithThorname.(SwapMemo), NewObservedTx(txWithThorname, common.BlockHeight(ctx), GetRandomPubKey(), common.BlockHeight(ctx)), GetRandomBech32Addr())
+	mWithThorname, err := getMsgSwapFromMemo(memoWithThorname.(SwapMemo), NewObservedTx(txWithThorname, ctx.BlockHeight(), GetRandomPubKey(), ctx.BlockHeight()), GetRandomBech32Addr())
 	c.Assert(err, IsNil)
 
 	txSynth := common.NewTx(txID, GetRandomTHORAddress(), GetRandomTHORAddress(),
@@ -785,7 +785,7 @@ func (s *HelperSuite) TestIsTradingHalt(c *C) {
 		"swap:ETH.ETH:"+GetRandomTHORAddress().String())
 	memoRedeemSynth, err := ParseMemoWithTHORNames(ctx, mgr.Keeper(), txSynth.Memo)
 	c.Assert(err, IsNil)
-	mRedeemSynth, err := getMsgSwapFromMemo(memoRedeemSynth.(SwapMemo), NewObservedTx(txSynth, common.BlockHeight(ctx), GetRandomPubKey(), common.BlockHeight(ctx)), GetRandomBech32Addr())
+	mRedeemSynth, err := getMsgSwapFromMemo(memoRedeemSynth.(SwapMemo), NewObservedTx(txSynth, ctx.BlockHeight(), GetRandomPubKey(), ctx.BlockHeight()), GetRandomBech32Addr())
 	c.Assert(err, IsNil)
 
 	c.Assert(isTradingHalt(ctx, m, mgr), Equals, false)

@@ -99,14 +99,14 @@ func (h ErrataTxHandler) handleV58(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 	}
 
 	if voter.BlockHeight > 0 {
-		if (voter.BlockHeight + observeFlex) >= common.BlockHeight(ctx) {
+		if (voter.BlockHeight + observeFlex) >= ctx.BlockHeight() {
 			h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, msg.Signer)
 		}
 		// errata tx already processed
 		return &cosmos.Result{}, nil
 	}
 
-	voter.BlockHeight = common.BlockHeight(ctx)
+	voter.BlockHeight = ctx.BlockHeight()
 	h.mgr.Keeper().SetErrataTxVoter(ctx, voter)
 	// decrease the slash points
 	h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)
@@ -197,7 +197,7 @@ func (h ErrataTxHandler) handleV58(ctx cosmos.Context, msg MsgErrataTx) (*cosmos
 		// since this address is being malicious, zero their liquidity provider units
 		pool.LPUnits = common.SafeSub(pool.LPUnits, lp.Units)
 		lp.Units = cosmos.ZeroUint()
-		lp.LastAddHeight = common.BlockHeight(ctx)
+		lp.LastAddHeight = ctx.BlockHeight()
 
 		h.mgr.Keeper().SetLiquidityProvider(ctx, lp)
 	}
