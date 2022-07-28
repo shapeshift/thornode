@@ -54,7 +54,7 @@ var (
 	errFailAddOutboundTx            = se.Register(DefaultCodespace, CodeFailAddOutboundTx, "prepare outbound tx not successful")
 	errWithdrawFailValidation       = se.Register(DefaultCodespace, CodeWithdrawFailValidation, "fail to validate withdraw")
 	errFailGetLiquidityProvider     = se.Register(DefaultCodespace, CodeFailGetLiquidityProvider, "fail to get liquidity provider")
-	errAddLiquidityMismatchAddr     = se.Register(DefaultCodespace, CodeAddLiquidityMismatchAddr, "mismatch of address")
+	errAddLiquidityMismatchAddr     = se.Register(DefaultCodespace, CodeAddLiquidityMismatchAddr, "memo paired address must be non-empty and together with origin address match the liquidity provider record")
 	errSwapFailNotEnoughFee         = se.Register(DefaultCodespace, CodeSwapFailNotEnoughFee, "fail swap, not enough fee")
 	errSwapFail                     = se.Register(DefaultCodespace, CodeSwapFail, "fail swap")
 	errSwapFailInvalidAmount        = se.Register(DefaultCodespace, CodeSwapFailInvalidAmount, "fail swap, invalid amount")
