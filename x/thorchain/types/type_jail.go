@@ -1,7 +1,6 @@
 package types
 
 import (
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -14,5 +13,5 @@ func NewJail(addr cosmos.AccAddress) Jail {
 
 // IsJailed on a given height , check whether a node is jailed or not
 func (m *Jail) IsJailed(ctx cosmos.Context) bool {
-	return m.ReleaseHeight > common.BlockHeight(ctx)
+	return m.ReleaseHeight > ctx.BlockHeight()
 }

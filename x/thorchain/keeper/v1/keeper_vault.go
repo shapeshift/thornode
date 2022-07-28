@@ -101,11 +101,11 @@ func (k KVStore) SortBySecurity(ctx cosmos.Context, vaults Vaults, signingTransP
 		}
 
 		// add recent unsent txout items to totalValue
-		h := common.BlockHeight(ctx) - signingTransPeriod
+		h := ctx.BlockHeight() - signingTransPeriod
 		if h < 1 {
 			h = 1
 		}
-		for height := h; height <= common.BlockHeight(ctx); height += 1 {
+		for height := h; height <= ctx.BlockHeight(); height += 1 {
 			txOut, err := k.GetTxOut(ctx, height)
 			if err != nil {
 				ctx.Logger().Error("unable to get txout", "error", err)
@@ -191,7 +191,7 @@ func (k KVStore) VaultExists(ctx cosmos.Context, pk common.PubKey) bool {
 // GetVault get Vault with the given pubkey from data store
 func (k KVStore) GetVault(ctx cosmos.Context, pk common.PubKey) (Vault, error) {
 	record := Vault{
-		BlockHeight: common.BlockHeight(ctx),
+		BlockHeight: ctx.BlockHeight(),
 		PubKey:      pk,
 	}
 	ok, err := k.getVault(ctx, k.GetKey(ctx, prefixVault, pk.String()), &record)

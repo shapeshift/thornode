@@ -6,7 +6,6 @@ import (
 
 	"github.com/blang/semver"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -112,5 +111,5 @@ func (k KVStore) GetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) in
 }
 
 func (k KVStore) SetNodePauseChain(ctx cosmos.Context, acc cosmos.AccAddress) {
-	k.setInt64(ctx, k.GetKey(ctx, prefixNodePauseChain, acc.String()), common.BlockHeight(ctx))
+	k.setInt64(ctx, k.GetKey(ctx, prefixNodePauseChain, acc.String()), ctx.BlockHeight())
 }

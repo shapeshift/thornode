@@ -122,7 +122,7 @@ func (h WithdrawLiquidityHandler) handleV94(ctx cosmos.Context, msg MsgWithdrawL
 	memo := ""
 	if msg.Tx.ID.Equals(common.BlankTxID) {
 		// tx id is blank, must be triggered by the ragnarok protocol
-		memo = NewRagnarokMemo(common.BlockHeight(ctx)).String()
+		memo = NewRagnarokMemo(ctx.BlockHeight()).String()
 	}
 
 	// Thanks to CacheContext, the withdraw event can be emitted before handling outbounds,

@@ -15,7 +15,7 @@ func (s *KeeperLiquidityFeesSuite) TestLiquidityFees(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	ctx = ctx.WithBlockHeight(10)
-	height := uint64(common.BlockHeight(ctx))
+	height := uint64(ctx.BlockHeight())
 	err := k.AddToLiquidityFees(ctx, common.BTCAsset, cosmos.NewUint(200))
 	c.Assert(err, IsNil)
 	err = k.AddToLiquidityFees(ctx, common.BNBAsset, cosmos.NewUint(300))

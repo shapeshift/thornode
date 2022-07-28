@@ -189,7 +189,7 @@ func (h UnBondHandler) handleV92(ctx cosmos.Context, msg MsgUnBond) error {
 	if err != nil || bondLockPeriod < 0 {
 		bondLockPeriod = h.mgr.GetConstants().GetInt64Value(constants.BondLockupPeriod)
 	}
-	if common.BlockHeight(ctx)-na.StatusSince < bondLockPeriod {
+	if ctx.BlockHeight()-na.StatusSince < bondLockPeriod {
 		return fmt.Errorf("node can not unbond before %d", na.StatusSince+bondLockPeriod)
 	}
 	vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)

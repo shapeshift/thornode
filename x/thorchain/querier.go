@@ -582,7 +582,7 @@ func getNodeCurrentRewards(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount, l
 	}
 
 	// Find number of blocks since the last churn (the last bond reward payout)
-	totalActiveBlocks := common.BlockHeight(ctx) - lastChurnHeight
+	totalActiveBlocks := ctx.BlockHeight() - lastChurnHeight
 
 	// find number of blocks they were well behaved (ie active - slash points)
 	earnedBlocks := totalActiveBlocks - slashPts
@@ -951,7 +951,7 @@ func queryKeygen(ctx cosmos.Context, kbs cosmos.KeybaseStore, path []string, req
 		return nil, fmt.Errorf("fail to parse block height: %w", err)
 	}
 
-	if height > common.BlockHeight(ctx) {
+	if height > ctx.BlockHeight() {
 		return nil, fmt.Errorf("block height not available yet")
 	}
 
@@ -1012,7 +1012,7 @@ func queryKeysign(ctx cosmos.Context, kbs cosmos.KeybaseStore, path []string, re
 		return nil, fmt.Errorf("fail to parse block height: %w", err)
 	}
 
-	if height > common.BlockHeight(ctx) {
+	if height > ctx.BlockHeight() {
 		return nil, fmt.Errorf("block height not available yet")
 	}
 
@@ -1070,7 +1070,7 @@ func queryKeysign(ctx cosmos.Context, kbs cosmos.KeybaseStore, path []string, re
 func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	startHeight := ctx.BlockHeight() - signingTransactionPeriod
 	query := QueryQueue{
 		ScheduledOutboundValue: cosmos.ZeroUint(),
 	}
@@ -1085,7 +1085,7 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		query.Swap++
 	}
 
-	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
+	for height := startHeight; height <= ctx.BlockHeight(); height++ {
 		txs, err := mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
@@ -1113,13 +1113,13 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		txOutDelayMax = constAccessor.GetInt64Value(constants.TxOutDelayMax)
 	}
 
-	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+	for height := ctx.BlockHeight() + 1; height <= ctx.BlockHeight()+txOutDelayMax; height++ {
 		value, err := mgr.Keeper().GetTxOutValue(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
 			continue
 		}
-		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+		if height > ctx.BlockHeight()+maxTxOutOffset && value.IsZero() {
 			// we've hit our max offset, and an empty block, we can assume the
 			// rest will be empty as well
 			break
@@ -1173,7 +1173,7 @@ func queryLastBlockHeights(ctx cosmos.Context, path []string, req abci.RequestQu
 			Chain:            c,
 			LastChainHeight:  chainHeight,
 			LastSignedHeight: signed,
-			Thorchain:        common.BlockHeight(ctx),
+			Thorchain:        ctx.BlockHeight(),
 		})
 	}
 
@@ -1398,13 +1398,13 @@ func queryScheduledOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	if maxTxOutOffset < 0 || err != nil {
 		maxTxOutOffset = constAccessor.GetInt64Value(constants.MaxTxOutOffset)
 	}
-	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+17280; height++ {
+	for height := ctx.BlockHeight() + 1; height <= ctx.BlockHeight()+17280; height++ {
 		txOut, err := mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
 			continue
 		}
-		if height > common.BlockHeight(ctx)+maxTxOutOffset && len(txOut.TxArray) == 0 {
+		if height > ctx.BlockHeight()+maxTxOutOffset && len(txOut.TxArray) == 0 {
 			// we've hit our max offset, and an empty block, we can assume the
 			// rest will be empty as well
 			break
@@ -1425,9 +1425,9 @@ func queryScheduledOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 func queryPendingOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	startHeight := common.BlockHeight(ctx) - signingTransactionPeriod
+	startHeight := ctx.BlockHeight() - signingTransactionPeriod
 	var result []TxOutItem
-	for height := startHeight; height <= common.BlockHeight(ctx); height++ {
+	for height := startHeight; height <= ctx.BlockHeight(); height++ {
 		txs, err := mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)

@@ -46,9 +46,9 @@ func (h CommonOutboundTxHandler) handleV92(ctx cosmos.Context, tx ObservedTx, in
 	if outHeight == 0 {
 		outHeight = voter.FinalisedHeight
 	}
-	for height := outHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
+	for height := outHeight; height <= ctx.BlockHeight(); height += signingTransPeriod {
 
-		if height < common.BlockHeight(ctx)-signingTransPeriod {
+		if height < ctx.BlockHeight()-signingTransPeriod {
 			ctx.Logger().Info("Expired outbound transaction, should slash")
 			continue
 		}
@@ -196,9 +196,9 @@ func (h CommonOutboundTxHandler) handleV69(ctx cosmos.Context, tx ObservedTx, in
 	if outHeight == 0 {
 		outHeight = voter.FinalisedHeight
 	}
-	for height := outHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
+	for height := outHeight; height <= ctx.BlockHeight(); height += signingTransPeriod {
 
-		if height < common.BlockHeight(ctx)-signingTransPeriod {
+		if height < ctx.BlockHeight()-signingTransPeriod {
 			ctx.Logger().Info("Expired outbound transaction, should slash")
 			continue
 		}
@@ -321,9 +321,9 @@ func (h CommonOutboundTxHandler) handleV85(ctx cosmos.Context, tx ObservedTx, in
 	if outHeight == 0 {
 		outHeight = voter.FinalisedHeight
 	}
-	for height := outHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
+	for height := outHeight; height <= ctx.BlockHeight(); height += signingTransPeriod {
 
-		if height < common.BlockHeight(ctx)-signingTransPeriod {
+		if height < ctx.BlockHeight()-signingTransPeriod {
 			ctx.Logger().Info("Expired outbound transaction, should slash")
 			continue
 		}
@@ -458,9 +458,9 @@ func (h CommonOutboundTxHandler) handleV87(ctx cosmos.Context, tx ObservedTx, in
 	if outHeight == 0 {
 		outHeight = voter.FinalisedHeight
 	}
-	for height := outHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
+	for height := outHeight; height <= ctx.BlockHeight(); height += signingTransPeriod {
 
-		if height < common.BlockHeight(ctx)-signingTransPeriod {
+		if height < ctx.BlockHeight()-signingTransPeriod {
 			ctx.Logger().Info("Expired outbound transaction, should slash")
 			continue
 		}
@@ -604,9 +604,9 @@ func (h CommonOutboundTxHandler) handleV88(ctx cosmos.Context, tx ObservedTx, in
 	if outHeight == 0 {
 		outHeight = voter.FinalisedHeight
 	}
-	for height := outHeight; height <= common.BlockHeight(ctx); height += signingTransPeriod {
+	for height := outHeight; height <= ctx.BlockHeight(); height += signingTransPeriod {
 
-		if height < common.BlockHeight(ctx)-signingTransPeriod {
+		if height < ctx.BlockHeight()-signingTransPeriod {
 			ctx.Logger().Info("Expired outbound transaction, should slash")
 			continue
 		}

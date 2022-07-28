@@ -29,7 +29,7 @@ func (h SwitchHandler) handleV56(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Res
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
 	}
-	if haltHeight > 0 && common.BlockHeight(ctx) > haltHeight {
+	if haltHeight > 0 && ctx.BlockHeight() > haltHeight {
 		return nil, fmt.Errorf("mimir has halted THORChain transactions")
 	}
 
@@ -81,7 +81,7 @@ func (h SwitchHandler) handleV87(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Res
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
 	}
-	if haltHeight > 0 && common.BlockHeight(ctx) > haltHeight {
+	if haltHeight > 0 && ctx.BlockHeight() > haltHeight {
 		return nil, fmt.Errorf("mimir has halted THORChain transactions")
 	}
 
@@ -96,7 +96,7 @@ func (h SwitchHandler) calcCoinV56(ctx cosmos.Context, in cosmos.Uint) cosmos.Ui
 	killSwitchStart := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchStart)
 	killSwitchDuration := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchDuration)
 	if killSwitchStart > 0 {
-		remainBlocks := (killSwitchStart + killSwitchDuration) - common.BlockHeight(ctx)
+		remainBlocks := (killSwitchStart + killSwitchDuration) - ctx.BlockHeight()
 		if remainBlocks <= 0 {
 			return cosmos.ZeroUint()
 		}

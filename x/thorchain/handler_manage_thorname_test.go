@@ -83,7 +83,7 @@ func (s *HandlerManageTHORNameSuite) TestHandler(c *C) {
 	name, err := mgr.Keeper().GetTHORName(ctx, tnName)
 	c.Assert(err, IsNil)
 	c.Check(name.Owner.Empty(), Equals, false)
-	c.Check(name.ExpireBlockHeight, Equals, common.BlockHeight(ctx)+blocksPerYear+(int64(coin.Amount.Uint64())-registrationFee)/feePerBlock)
+	c.Check(name.ExpireBlockHeight, Equals, ctx.BlockHeight()+blocksPerYear+(int64(coin.Amount.Uint64())-registrationFee)/feePerBlock)
 
 	// happy path, set alt chain address
 	bnbAddr := GetRandomBNBAddress()

@@ -52,7 +52,7 @@ func withdrawV89(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 	}
 
 	cv := mgr.GetConstants()
-	height := common.BlockHeight(ctx)
+	height := ctx.BlockHeight()
 	if height < (lp.LastAddHeight + cv.GetInt64Value(constants.LiquidityLockUpBlocks)) {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawWithin24Hours
 	}
@@ -147,7 +147,7 @@ func withdrawV89(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 
 	ctx.Logger().Info("pool after withdraw", "pool unit", pool.GetPoolUnits(), "balance RUNE", pool.BalanceRune, "balance asset", pool.BalanceAsset)
 
-	lp.LastWithdrawHeight = common.BlockHeight(ctx)
+	lp.LastWithdrawHeight = ctx.BlockHeight()
 	maxPts := cosmos.NewUint(uint64(MaxWithdrawBasisPoints))
 	lp.RuneDepositValue = common.SafeSub(lp.RuneDepositValue, common.GetSafeShare(msg.BasisPoints, maxPts, lp.RuneDepositValue))
 	lp.AssetDepositValue = common.SafeSub(lp.AssetDepositValue, common.GetSafeShare(msg.BasisPoints, maxPts, lp.AssetDepositValue))

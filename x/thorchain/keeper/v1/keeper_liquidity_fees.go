@@ -10,7 +10,7 @@ import (
 
 // AddToLiquidityFees - measure of fees collected in each block
 func (k KVStore) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error {
-	currentHeight := uint64(common.BlockHeight(ctx))
+	currentHeight := uint64(ctx.BlockHeight())
 
 	totalFees, err := k.GetTotalLiquidityFees(ctx, currentHeight)
 	if err != nil {

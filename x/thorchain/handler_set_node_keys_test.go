@@ -179,10 +179,10 @@ func (s *HandlerSetNodeKeysSuite) TestHandle(c *C) {
 	msgNodeKeys := NewMsgSetNodeKeys(pubKeys, bepConsPubKey, signer)
 
 	bond := cosmos.NewUint(common.One * 100)
-	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
+	nodeAccount := NewNodeAccount(signer, NodeActive, emptyPubKeySet, "", bond, bondAddr, ctx.BlockHeight())
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 
-	nodeAccount = NewNodeAccount(signer, NodeWhiteListed, emptyPubKeySet, "", bond, bondAddr, common.BlockHeight(ctx))
+	nodeAccount = NewNodeAccount(signer, NodeWhiteListed, emptyPubKeySet, "", bond, bondAddr, ctx.BlockHeight())
 	c.Assert(helper.Keeper.SetNodeAccount(ctx, nodeAccount), IsNil)
 	FundModule(c, ctx, helper, BondName, common.One*100)
 	// happy path

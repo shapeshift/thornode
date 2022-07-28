@@ -33,7 +33,7 @@ func newNetworkMgrV87(k keeper.Keeper, txOutStore TxOutStore, eventMgr EventMana
 }
 
 func (vm *NetworkMgrV87) processGenesisSetup(ctx cosmos.Context) error {
-	if common.BlockHeight(ctx) != genesisBlockHeight {
+	if ctx.BlockHeight() != genesisBlockHeight {
 		return nil
 	}
 	vaults, err := vm.k.GetAsgardVaults(ctx)
@@ -79,7 +79,7 @@ func (vm *NetworkMgrV87) processGenesisSetup(ctx cosmos.Context) error {
 
 // EndBlock move funds from retiring asgard vaults
 func (vm *NetworkMgrV87) EndBlock(ctx cosmos.Context, mgr Manager) error {
-	if common.BlockHeight(ctx) == genesisBlockHeight {
+	if ctx.BlockHeight() == genesisBlockHeight {
 		return vm.processGenesisSetup(ctx)
 	}
 	controller := NewRouterUpgradeController(mgr)
@@ -114,7 +114,7 @@ func (vm *NetworkMgrV87) EndBlock(ctx cosmos.Context, mgr Manager) error {
 		}
 	}
 	for _, vault := range retiring {
-		if vault.LenPendingTxBlockHeights(common.BlockHeight(ctx), mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)) > 0 {
+		if vault.LenPendingTxBlockHeights(ctx.BlockHeight(), mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)) > 0 {
 			ctx.Logger().Info("Skipping the migration of funds while transactions are still pending")
 			return nil
 		}
@@ -130,7 +130,7 @@ func (vm *NetworkMgrV87) EndBlock(ctx cosmos.Context, mgr Manager) error {
 		}
 
 		// move partial funds every 30 minutes
-		if (common.BlockHeight(ctx)-vault.StatusSince)%migrateInterval == 0 {
+		if (ctx.BlockHeight()-vault.StatusSince)%migrateInterval == 0 {
 			for _, coin := range vault.Coins {
 				// non-native rune assets are no migrated, therefore they are
 				// burned in each churn
@@ -175,7 +175,7 @@ func (vm *NetworkMgrV87) EndBlock(ctx cosmos.Context, mgr Manager) error {
 				}
 
 				// figure the nth time, we've sent migration txs from this vault
-				nth := (common.BlockHeight(ctx)-vault.StatusSince)/migrateInterval + 1
+				nth := (ctx.BlockHeight()-vault.StatusSince)/migrateInterval + 1
 
 				// Default amount set to total remaining amount. Relies on the
 				// signer, to successfully send these funds while respecting
@@ -259,14 +259,14 @@ func (vm *NetworkMgrV87) EndBlock(ctx cosmos.Context, mgr Manager) error {
 						Asset:  coin.Asset,
 						Amount: amt,
 					},
-					Memo: NewMigrateMemo(common.BlockHeight(ctx)).String(),
+					Memo: NewMigrateMemo(ctx.BlockHeight()).String(),
 				}
 				ok, err := vm.txOutStore.TryAddTxOutItem(ctx, mgr, toi, cosmos.ZeroUint())
 				if err != nil && !errors.Is(err, ErrNotEnoughToPayFee) {
 					return err
 				}
 				if ok {
-					vault.AppendPendingTxBlockHeights(common.BlockHeight(ctx), mgr.GetConstants())
+					vault.AppendPendingTxBlockHeights(ctx.BlockHeight(), mgr.GetConstants())
 					if err := vm.k.SetVault(ctx, vault); err != nil {
 						return fmt.Errorf("fail to save vault: %w", err)
 					}
@@ -281,7 +281,7 @@ func (vm *NetworkMgrV87) EndBlock(ctx cosmos.Context, mgr Manager) error {
 // TriggerKeygen generate a record to instruct signer kick off keygen process
 func (vm *NetworkMgrV87) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error {
 	halt, err := vm.k.GetMimir(ctx, "HaltChurning")
-	if halt > 0 && halt <= common.BlockHeight(ctx) && err == nil {
+	if halt > 0 && halt <= ctx.BlockHeight() && err == nil {
 		ctx.Logger().Info("churn event skipped due to mimir has halted churning")
 		return nil
 	}
@@ -289,11 +289,11 @@ func (vm *NetworkMgrV87) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) err
 	for i := range nas {
 		members = append(members, nas[i].PubKeySet.Secp256k1.String())
 	}
-	keygen, err := NewKeygen(common.BlockHeight(ctx), members, AsgardKeygen)
+	keygen, err := NewKeygen(ctx.BlockHeight(), members, AsgardKeygen)
 	if err != nil {
 		return fmt.Errorf("fail to create a new keygen: %w", err)
 	}
-	keygenBlock, err := vm.k.GetKeygenBlock(ctx, common.BlockHeight(ctx))
+	keygenBlock, err := vm.k.GetKeygenBlock(ctx, ctx.BlockHeight())
 	if err != nil {
 		return fmt.Errorf("fail to get keygen block from data store: %w", err)
 	}
@@ -326,7 +326,7 @@ func (vm *NetworkMgrV87) TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) err
 		if v.HasFunds() {
 			continue
 		}
-		v.UpdateStatus(InactiveVault, common.BlockHeight(ctx))
+		v.UpdateStatus(InactiveVault, ctx.BlockHeight())
 		if err := vm.k.SetVault(ctx, v); err != nil {
 			ctx.Logger().Error("fail to save vault", "error", err)
 		}
@@ -345,7 +345,7 @@ func (vm *NetworkMgrV87) RotateVault(ctx cosmos.Context, vault Vault) error {
 	for _, asgard := range active {
 		for _, member := range asgard.GetMembership() {
 			if vault.Contains(member) {
-				asgard.UpdateStatus(RetiringVault, common.BlockHeight(ctx))
+				asgard.UpdateStatus(RetiringVault, ctx.BlockHeight())
 				if err := vm.k.SetVault(ctx, asgard); err != nil {
 					return err
 				}
@@ -401,7 +401,7 @@ func (vm *NetworkMgrV87) manageChains(ctx cosmos.Context, mgr Manager) error {
 	if migrateInterval < 0 || err != nil {
 		migrateInterval = mgr.GetConstants().GetInt64Value(constants.FundMigrationInterval)
 	}
-	nth := (common.BlockHeight(ctx)-vault.StatusSince)/migrateInterval + 1
+	nth := (ctx.BlockHeight()-vault.StatusSince)/migrateInterval + 1
 	if nth > 10 {
 		nth = 10
 	}
@@ -517,7 +517,7 @@ func (vm *NetworkMgrV87) RecallChainFunds(ctx cosmos.Context, chain common.Chain
 				InHash:      common.BlankTxID,
 				VaultPubKey: ygg.PubKey,
 				Coin:        common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()),
-				Memo:        NewYggdrasilReturn(common.BlockHeight(ctx)).String(),
+				Memo:        NewYggdrasilReturn(ctx.BlockHeight()).String(),
 				GasRate:     int64(mgr.GasMgr().GetGasRate(ctx, chain).Uint64()),
 			}
 			// yggdrasil- will not set coin field here, when signer see a
@@ -620,7 +620,7 @@ func (vm *NetworkMgrV87) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 	if totalReserve.IsZero() {
 		return nil
 	}
-	currentHeight := uint64(common.BlockHeight(ctx))
+	currentHeight := uint64(ctx.BlockHeight())
 	pools, totalProvidedLiquidity, err := vm.getTotalProvidedLiquidityRune(ctx)
 	if err != nil {
 		return fmt.Errorf("fail to get available pools and total provided liquidity rune: %w", err)
@@ -870,7 +870,7 @@ func (vm *NetworkMgrV87) deductPoolRewardDeficit(ctx cosmos.Context, pools Pools
 		if !pool.IsAvailable() {
 			continue
 		}
-		poolFees, err := vm.k.GetPoolLiquidityFees(ctx, uint64(common.BlockHeight(ctx)), pool.Asset)
+		poolFees, err := vm.k.GetPoolLiquidityFees(ctx, uint64(ctx.BlockHeight()), pool.Asset)
 		if err != nil {
 			return poolAmts, fmt.Errorf("fail to get liquidity fees for pool(%s): %w", pool.Asset, err)
 		}

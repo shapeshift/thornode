@@ -71,7 +71,7 @@ func (h DepositHandler) handleV87(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
 	}
-	if haltHeight > 0 && common.BlockHeight(ctx) > haltHeight {
+	if haltHeight > 0 && ctx.BlockHeight() > haltHeight {
 		return nil, fmt.Errorf("mimir has halted THORChain transactions")
 	}
 
@@ -154,7 +154,7 @@ func (h DepositHandler) handleV87(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	for _, node := range activeNodes {
 		txInVoter.Add(txIn, node.NodeAddress)
 	}
-	txInVoter.FinalisedHeight = common.BlockHeight(ctx)
+	txInVoter.FinalisedHeight = ctx.BlockHeight()
 	txInVoter.Tx = txInVoter.GetTx(activeNodes)
 	h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)
 	m, txErr := processOneTxIn(ctx, h.mgr.GetVersion(), h.mgr.Keeper(), txIn, msg.Signer)

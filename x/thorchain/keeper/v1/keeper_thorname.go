@@ -3,7 +3,6 @@ package keeperv1
 import (
 	"fmt"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -48,7 +47,7 @@ func (k KVStore) THORNameExists(ctx cosmos.Context, name string) bool {
 	}
 	if k.has(ctx, k.GetKey(ctx, prefixTHORName, record.Key())) {
 		record, _ = k.GetTHORName(ctx, name)
-		return record.ExpireBlockHeight >= common.BlockHeight(ctx)
+		return record.ExpireBlockHeight >= ctx.BlockHeight()
 	}
 	return false
 }
@@ -62,7 +61,7 @@ func (k KVStore) GetTHORName(ctx cosmos.Context, name string) (THORName, error) 
 	if !ok {
 		return record, fmt.Errorf("THORName doesn't exist: %s", name)
 	}
-	if record.ExpireBlockHeight < common.BlockHeight(ctx) {
+	if record.ExpireBlockHeight < ctx.BlockHeight() {
 		return THORName{Name: name}, nil
 	}
 	return record, err

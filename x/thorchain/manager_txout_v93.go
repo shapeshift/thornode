@@ -78,12 +78,12 @@ func (tos *TxOutStorageV93) EndBlock(ctx cosmos.Context, mgr Manager) error {
 
 // GetBlockOut read the TxOut from kv store
 func (tos *TxOutStorageV93) GetBlockOut(ctx cosmos.Context) (*TxOut, error) {
-	return tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
+	return tos.keeper.GetTxOut(ctx, ctx.BlockHeight())
 }
 
 // GetOutboundItems read all the outbound item from kv store
 func (tos *TxOutStorageV93) GetOutboundItems(ctx cosmos.Context) ([]TxOutItem, error) {
-	block, err := tos.keeper.GetTxOut(ctx, common.BlockHeight(ctx))
+	block, err := tos.keeper.GetTxOut(ctx, ctx.BlockHeight())
 	if block == nil {
 		return nil, nil
 	}
@@ -104,7 +104,7 @@ func (tos *TxOutStorageV93) GetOutboundItemByToAddress(ctx cosmos.Context, to co
 
 // ClearOutboundItems remove all the tx out items , mostly used for test
 func (tos *TxOutStorageV93) ClearOutboundItems(ctx cosmos.Context) {
-	_ = tos.keeper.ClearTxOut(ctx, common.BlockHeight(ctx))
+	_ = tos.keeper.ClearTxOut(ctx, ctx.BlockHeight())
 }
 
 // TryAddTxOutItem add an outbound tx to block
@@ -141,7 +141,7 @@ func (tos *TxOutStorageV93) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi
 
 	// calculate the single block height to send all of these txout items,
 	// using the summed amount
-	outboundHeight := common.BlockHeight(ctx)
+	outboundHeight := ctx.BlockHeight()
 	if !toi.Chain.IsTHORChain() && !toi.InHash.IsEmpty() && !toi.InHash.Equals(common.BlankTxID) {
 		toi.Memo = outputs[0].Memo
 		targetHeight, err := tos.calcTxOutHeight(ctx, mgr.GetVersion(), toi)
@@ -190,7 +190,7 @@ func (tos *TxOutStorageV93) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, 
 		}
 		toi.ToAddress = newBCHAddress
 	}
-	return tos.addToBlockOut(ctx, mgr, toi, common.BlockHeight(ctx))
+	return tos.addToBlockOut(ctx, mgr, toi, ctx.BlockHeight())
 }
 
 func (tos *TxOutStorageV93) discoverOutbounds(ctx cosmos.Context, transactionFeeAsset cosmos.Uint, maxGasAsset common.Coin, toi TxOutItem, vaults Vaults) ([]TxOutItem, cosmos.Uint) {
@@ -495,7 +495,7 @@ func (tos *TxOutStorageV93) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem) 
 			if err != nil {
 				return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
 			}
-			voter.FinalisedHeight = common.BlockHeight(ctx)
+			voter.FinalisedHeight = ctx.BlockHeight()
 			voter.Actions = append(voter.Actions, outputs[i])
 			tos.keeper.SetObservedTxInVoter(ctx, voter)
 		}
@@ -558,7 +558,7 @@ func (tos *TxOutStorageV93) calcTxOutHeight(ctx cosmos.Context, version semver.V
 	// affect internal transactions (ie consolidation and migrate txs)
 	memo, _ := ParseMemo(version, toi.Memo) // ignore err
 	if !memo.IsType(TxRefund) && !memo.IsType(TxOutbound) {
-		return common.BlockHeight(ctx), nil
+		return ctx.BlockHeight(), nil
 	}
 
 	minTxOutVolumeThreshold, err := tos.keeper.GetMimir(ctx, constants.MinTxOutVolumeThreshold.String())
@@ -581,7 +581,7 @@ func (tos *TxOutStorageV93) calcTxOutHeight(ctx cosmos.Context, version semver.V
 
 	// if volume threshold is zero
 	if minVolumeThreshold.IsZero() || txOutDelayRate == 0 {
-		return common.BlockHeight(ctx), nil
+		return ctx.BlockHeight(), nil
 	}
 
 	// get txout item value in rune
@@ -590,20 +590,20 @@ func (tos *TxOutStorageV93) calcTxOutHeight(ctx cosmos.Context, version semver.V
 		pool, err := tos.keeper.GetPool(ctx, toi.Coin.Asset.GetLayer1Asset())
 		if err != nil {
 			ctx.Logger().Error("fail to get pool for appending txout item", "error", err)
-			return common.BlockHeight(ctx) + maxTxOutOffset, err
+			return ctx.BlockHeight() + maxTxOutOffset, err
 		}
 		runeValue = pool.AssetValueInRune(toi.Coin.Amount)
 	}
 
 	// sum value of scheduled txns (including this one)
 	sumValue := runeValue
-	for height := common.BlockHeight(ctx) + 1; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+	for height := ctx.BlockHeight() + 1; height <= ctx.BlockHeight()+txOutDelayMax; height++ {
 		value, err := tos.keeper.GetTxOutValue(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get tx out array from key value store", "error", err)
 			continue
 		}
-		if height > common.BlockHeight(ctx)+maxTxOutOffset && value.IsZero() {
+		if height > ctx.BlockHeight()+maxTxOutOffset && value.IsZero() {
 			// we've hit our max offset, and an empty block, we can assume the
 			// rest will be empty as well
 			break
@@ -627,7 +627,7 @@ func (tos *TxOutStorageV93) calcTxOutHeight(ctx cosmos.Context, version semver.V
 	if minBlocks > maxTxOutOffset {
 		minBlocks = maxTxOutOffset
 	}
-	targetBlock := common.BlockHeight(ctx) + minBlocks
+	targetBlock := ctx.BlockHeight() + minBlocks
 
 	// find targetBlock that has space for new txout item.
 	count := int64(0)
@@ -706,9 +706,9 @@ func (tos *TxOutStorageV93) nativeTxOut(ctx cosmos.Context, mgr Manager, toi TxO
 
 	observedTx := ObservedTx{
 		ObservedPubKey: active[0].PubKey,
-		BlockHeight:    common.BlockHeight(ctx),
+		BlockHeight:    ctx.BlockHeight(),
 		Tx:             tx,
-		FinaliseHeight: common.BlockHeight(ctx),
+		FinaliseHeight: ctx.BlockHeight(),
 	}
 	m, err := processOneTxIn(ctx, mgr.GetVersion(), tos.keeper, observedTx, tos.keeper.GetModuleAccAddress(AsgardName))
 	if err != nil {
@@ -790,7 +790,7 @@ func (tos *TxOutStorageV93) deductVaultPendingOutboundBalance(ctx cosmos.Context
 	// outstanding tx, the vault need to send out if there is , deduct it from
 	// their balance
 	signingPeriod := tos.constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	startHeight := common.BlockHeight(ctx) - signingPeriod
+	startHeight := ctx.BlockHeight() - signingPeriod
 	if startHeight < 1 {
 		startHeight = 1
 	}
@@ -802,12 +802,12 @@ func (tos *TxOutStorageV93) deductVaultPendingOutboundBalance(ctx cosmos.Context
 	if maxTxOutOffset <= 0 || err != nil {
 		maxTxOutOffset = tos.constAccessor.GetInt64Value(constants.MaxTxOutOffset)
 	}
-	for height := startHeight; height <= common.BlockHeight(ctx)+txOutDelayMax; height++ {
+	for height := startHeight; height <= ctx.BlockHeight()+txOutDelayMax; height++ {
 		blockOut, err := tos.keeper.GetTxOut(ctx, height)
 		if err != nil {
 			ctx.Logger().Error("fail to get block tx out", "error", err)
 		}
-		if height > common.BlockHeight(ctx)+maxTxOutOffset && len(blockOut.TxArray) == 0 {
+		if height > ctx.BlockHeight()+maxTxOutOffset && len(blockOut.TxArray) == 0 {
 			// we've hit our max offset, and an empty block, we can assume the
 			// rest will be empty as well
 			break

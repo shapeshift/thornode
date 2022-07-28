@@ -93,7 +93,7 @@ func (h BondHandler) handleV81(ctx cosmos.Context, msg MsgBond) error {
 			Ed25519:   common.EmptyPubKey,
 		}
 		// white list the given bep address
-		nodeAccount = NewNodeAccount(msg.NodeAddress, NodeWhiteListed, emptyPubKeySet, "", cosmos.ZeroUint(), msg.BondAddress, common.BlockHeight(ctx))
+		nodeAccount = NewNodeAccount(msg.NodeAddress, NodeWhiteListed, emptyPubKeySet, "", cosmos.ZeroUint(), msg.BondAddress, ctx.BlockHeight())
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("new_node",
 				cosmos.NewAttribute("address", msg.NodeAddress.String()),
@@ -191,7 +191,7 @@ func (h BondHandler) handleV86(ctx cosmos.Context, msg MsgBond) error {
 			Ed25519:   common.EmptyPubKey,
 		}
 		// white list the given bep address
-		nodeAccount = NewNodeAccount(msg.NodeAddress, NodeWhiteListed, emptyPubKeySet, "", cosmos.ZeroUint(), msg.BondAddress, common.BlockHeight(ctx))
+		nodeAccount = NewNodeAccount(msg.NodeAddress, NodeWhiteListed, emptyPubKeySet, "", cosmos.ZeroUint(), msg.BondAddress, ctx.BlockHeight())
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("new_node",
 				cosmos.NewAttribute("address", msg.NodeAddress.String()),
@@ -292,7 +292,7 @@ func (h BondHandler) handleV87(ctx cosmos.Context, msg MsgBond) error {
 			Ed25519:   common.EmptyPubKey,
 		}
 		// white list the given bep address
-		nodeAccount = NewNodeAccount(msg.NodeAddress, NodeWhiteListed, emptyPubKeySet, "", cosmos.ZeroUint(), msg.BondAddress, common.BlockHeight(ctx))
+		nodeAccount = NewNodeAccount(msg.NodeAddress, NodeWhiteListed, emptyPubKeySet, "", cosmos.ZeroUint(), msg.BondAddress, ctx.BlockHeight())
 		ctx.EventManager().EmitEvent(
 			cosmos.NewEvent("new_node",
 				cosmos.NewAttribute("address", msg.NodeAddress.String()),

@@ -76,7 +76,7 @@ func withdrawV84(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 	}
 
 	cv := mgr.GetConstants()
-	height := common.BlockHeight(ctx)
+	height := ctx.BlockHeight()
 	if height < (lp.LastAddHeight + cv.GetInt64Value(constants.LiquidityLockUpBlocks)) {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawWithin24Hours
 	}
@@ -179,7 +179,7 @@ func withdrawV84(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 
 	ctx.Logger().Info("pool after withdraw", "pool unit", pool.GetPoolUnits(), "balance RUNE", pool.BalanceRune, "balance asset", pool.BalanceAsset)
 
-	lp.LastWithdrawHeight = common.BlockHeight(ctx)
+	lp.LastWithdrawHeight = ctx.BlockHeight()
 	maxPts := cosmos.NewUint(uint64(MaxWithdrawBasisPoints))
 	lp.RuneDepositValue = common.SafeSub(lp.RuneDepositValue, common.GetSafeShare(msg.BasisPoints, maxPts, lp.RuneDepositValue))
 	lp.AssetDepositValue = common.SafeSub(lp.AssetDepositValue, common.GetSafeShare(msg.BasisPoints, maxPts, lp.AssetDepositValue))
@@ -298,7 +298,7 @@ func calcAsymWithdrawalV1(s, t, a cosmos.Uint) cosmos.Uint {
 
 // calculate percentage (in basis points) of the amount of impermanent loss protection
 func calcImpLossProtectionAmtV1(ctx cosmos.Context, lastDepositHeight, target int64) int64 {
-	age := common.BlockHeight(ctx) - lastDepositHeight
+	age := ctx.BlockHeight() - lastDepositHeight
 	if age < 17280 { // set minimum age to 1 day (17280 blocks)
 		return 0
 	}

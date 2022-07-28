@@ -19,7 +19,6 @@ import (
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 
@@ -215,7 +214,7 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 		poolCycle = am.mgr.GetConstants().GetInt64Value(constants.PoolCycle)
 	}
 	// Enable a pool every poolCycle
-	if common.BlockHeight(ctx)%poolCycle == 0 && !am.mgr.Keeper().RagnarokInProgress(ctx) {
+	if ctx.BlockHeight()%poolCycle == 0 && !am.mgr.Keeper().RagnarokInProgress(ctx) {
 		maxAvailablePools, err := am.mgr.Keeper().GetMimir(ctx, constants.MaxAvailablePools.String())
 		if maxAvailablePools < 0 || err != nil {
 			maxAvailablePools = am.mgr.GetConstants().GetInt64Value(constants.MaxAvailablePools)

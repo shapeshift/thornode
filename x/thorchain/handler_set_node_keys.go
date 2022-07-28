@@ -114,7 +114,7 @@ func (h SetNodeKeysHandler) handleV57(ctx cosmos.Context, msg MsgSetNodeKeys) (*
 		cost = nodeAccount.Bond
 	}
 	// Here make sure THORNode don't change the node account's bond
-	nodeAccount.UpdateStatus(NodeStandby, common.BlockHeight(ctx))
+	nodeAccount.UpdateStatus(NodeStandby, ctx.BlockHeight())
 	nodeAccount.PubKeySet = msg.PubKeySetSet
 	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 	nodeAccount.ValidatorConsPubKey = msg.ValidatorConsPubKey
