@@ -41,7 +41,7 @@ import (
 
 const (
 	maxAsgardAddresses   = 100
-	maxGasLimit          = 200000
+	maxGasLimit          = 400000
 	ethBlockRewardAndFee = 3 * 1e18
 )
 
