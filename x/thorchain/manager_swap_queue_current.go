@@ -210,16 +210,16 @@ func (vm *SwapQv94) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualD
 			}
 		}
 
-		poolAsset := sourceAsset
-		if poolAsset.IsRune() {
-			poolAsset = targetAsset
+		nonRuneAsset := sourceAsset
+		if nonRuneAsset.IsRune() {
+			nonRuneAsset = targetAsset
 		}
-		pool := pools[poolAsset]
+		pool := pools[nonRuneAsset]
 		if pool.IsEmpty() || !pool.IsAvailable() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 			continue
 		}
 		virtualDepthMult := int64(1)
-		if poolAsset.IsSyntheticAsset() {
+		if nonRuneAsset.IsSyntheticAsset() {
 			virtualDepthMult = synthVirtualDepthMult
 		}
 		vm.getLiquidityFeeAndSlip(ctx, pool, item.msg.Tx.Coins[0], &items[i], virtualDepthMult)
@@ -230,8 +230,8 @@ func (vm *SwapQv94) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualD
 		}
 		// double swap , thus need to convert source coin to RUNE and calculate fee and slip again
 		runeCoin := common.NewCoin(common.RuneAsset(), pool.AssetValueInRune(item.msg.Tx.Coins[0].Amount))
-		poolAsset = targetAsset
-		pool = pools[poolAsset]
+		nonRuneAsset = targetAsset
+		pool = pools[nonRuneAsset]
 		if pool.IsEmpty() || !pool.IsAvailable() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 			continue
 		}
