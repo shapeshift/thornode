@@ -7,7 +7,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/gaia"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoin"
@@ -18,11 +17,12 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 // LoadChains returns chain clients from chain configuration
 func LoadChains(thorKeys *thorclient.Keys,
-	cfg []config.ChainConfiguration,
+	cfg map[common.Chain]config.BifrostChainConfiguration,
 	server *tss.TssServer,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,

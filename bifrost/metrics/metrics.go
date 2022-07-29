@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 // MetricName
@@ -42,7 +42,7 @@ const (
 // Metrics used to provide promethus metrics
 type Metrics struct {
 	logger zerolog.Logger
-	cfg    config.MetricsConfiguration
+	cfg    config.BifrostMetricsConfiguration
 	s      *http.Server
 }
 
@@ -158,7 +158,7 @@ var (
 )
 
 // NewMetrics create a new instance of Metrics
-func NewMetrics(cfg config.MetricsConfiguration) (*Metrics, error) {
+func NewMetrics(cfg config.BifrostMetricsConfiguration) (*Metrics, error) {
 	// Add chain metrics
 	for _, chain := range cfg.Chains {
 		AddChainMetrics(chain, counters, counterVecs, gauges, histograms)

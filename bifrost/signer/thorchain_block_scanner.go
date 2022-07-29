@@ -11,11 +11,11 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
+	"gitlab.com/thorchain/thornode/config"
 	ttypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -25,7 +25,7 @@ type ThorchainBlockScan struct {
 	stopChan       chan struct{}
 	txOutChan      chan types.TxOut
 	keygenChan     chan ttypes.KeygenBlock
-	cfg            config.BlockScannerConfiguration
+	cfg            config.BifrostBlockScannerConfiguration
 	scannerStorage blockscanner.ScannerStorage
 	thorchain      *thorclient.ThorchainBridge
 	errCounter     *prometheus.CounterVec
@@ -33,7 +33,7 @@ type ThorchainBlockScan struct {
 }
 
 // NewThorchainBlockScan create a new instance of thorchain block scanner
-func NewThorchainBlockScan(cfg config.BlockScannerConfiguration, scanStorage blockscanner.ScannerStorage, thorchain *thorclient.ThorchainBridge, m *metrics.Metrics, pubkeyMgr pubkeymanager.PubKeyValidator) (*ThorchainBlockScan, error) {
+func NewThorchainBlockScan(cfg config.BifrostBlockScannerConfiguration, scanStorage blockscanner.ScannerStorage, thorchain *thorclient.ThorchainBridge, m *metrics.Metrics, pubkeyMgr pubkeymanager.PubKeyValidator) (*ThorchainBlockScan, error) {
 	if scanStorage == nil {
 		return nil, errors.New("scanStorage is nil")
 	}

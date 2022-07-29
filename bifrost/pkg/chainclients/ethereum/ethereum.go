@@ -27,7 +27,6 @@ import (
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
@@ -35,6 +34,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
@@ -48,7 +48,7 @@ const (
 // Client is a structure to sign and broadcast tx to Ethereum chain used by signer mostly
 type Client struct {
 	logger                  zerolog.Logger
-	cfg                     config.ChainConfiguration
+	cfg                     config.BifrostChainConfiguration
 	localPubKey             common.PubKey
 	client                  *ethclient.Client
 	kw                      *keySignWrapper
@@ -70,7 +70,7 @@ type Client struct {
 
 // NewClient create new instance of Ethereum client
 func NewClient(thorKeys *thorclient.Keys,
-	cfg config.ChainConfiguration,
+	cfg config.BifrostChainConfiguration,
 	server *tssp.TssServer,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
@@ -213,7 +213,7 @@ func (c *Client) IsBlockScannerHealthy() bool {
 }
 
 // GetConfig return the configurations used by ETH chain
-func (c *Client) GetConfig() config.ChainConfiguration {
+func (c *Client) GetConfig() config.BifrostChainConfiguration {
 	return c.cfg
 }
 

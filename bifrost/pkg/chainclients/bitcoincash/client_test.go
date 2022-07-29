@@ -18,7 +18,6 @@ import (
 	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
@@ -26,6 +25,7 @@ import (
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	ttypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -40,7 +40,7 @@ type BitcoinCashSuite struct {
 	client *Client
 	server *httptest.Server
 	bridge *thorclient.ThorchainBridge
-	cfg    config.ChainConfiguration
+	cfg    config.BifrostChainConfiguration
 	m      *metrics.Metrics
 	keys   *thorclient.Keys
 }
@@ -54,7 +54,7 @@ var m *metrics.Metrics
 func GetMetricForTest(c *C) *metrics.Metrics {
 	if m == nil {
 		var err error
-		m, err = metrics.NewMetrics(config.MetricsConfiguration{
+		m, err = metrics.NewMetrics(config.BifrostMetricsConfiguration{
 			Enabled:      false,
 			ListenPort:   9000,
 			ReadTimeout:  time.Second,
@@ -77,13 +77,13 @@ func (s *BitcoinCashSuite) SetUpSuite(c *C) {
 
 func (s *BitcoinCashSuite) SetUpTest(c *C) {
 	s.m = GetMetricForTest(c)
-	s.cfg = config.ChainConfiguration{
+	s.cfg = config.BifrostChainConfiguration{
 		ChainID:     "BCH",
 		UserName:    bob,
 		Password:    password,
 		DisableTLS:  true,
 		HTTPostMode: true,
-		BlockScanner: config.BlockScannerConfiguration{
+		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
 	}
@@ -92,7 +92,7 @@ func (s *BitcoinCashSuite) SetUpTest(c *C) {
 	c.Assert(os.Setenv("NET", "testnet"), IsNil)
 
 	thordir := filepath.Join(os.TempDir(), ns, ".thorcli")
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
 		SignerName:      bob,

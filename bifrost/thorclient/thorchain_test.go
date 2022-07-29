@@ -13,10 +13,10 @@ import (
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	stypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -24,7 +24,7 @@ func TestPackage(t *testing.T) { TestingT(t) }
 
 type ThorchainSuite struct {
 	server             *httptest.Server
-	cfg                config.ClientConfiguration
+	cfg                config.BifrostClientConfiguration
 	bridge             *ThorchainBridge
 	authAccountFixture string
 	nodeAccountFixture string
@@ -168,7 +168,7 @@ func (s *ThorchainSuite) TestSign(c *C) {
 }
 
 func (ThorchainSuite) TestNewThorchainBridge(c *C) {
-	testFunc := func(cfg config.ClientConfiguration, errChecker, sbChecker Checker) {
+	testFunc := func(cfg config.BifrostClientConfiguration, errChecker, sbChecker Checker) {
 		kb := ckeys.NewInMemory()
 		_, _, err := kb.NewMnemonic(cfg.SignerName, cKeys.English, cmd.THORChainHDPath, cfg.SignerPasswd, hd.Secp256k1)
 		c.Assert(err, IsNil)
@@ -176,14 +176,14 @@ func (ThorchainSuite) TestNewThorchainBridge(c *C) {
 		c.Assert(err, errChecker)
 		c.Assert(sb, sbChecker)
 	}
-	testFunc(config.ClientConfiguration{
+	testFunc(config.BifrostClientConfiguration{
 		ChainID:         "",
 		ChainHost:       "localhost",
 		ChainHomeFolder: "~/.thorcli",
 		SignerName:      "signer",
 		SignerPasswd:    "signerpassword",
 	}, NotNil, IsNil)
-	testFunc(config.ClientConfiguration{
+	testFunc(config.BifrostClientConfiguration{
 		ChainID:         "chainid",
 		ChainHost:       "",
 		ChainHomeFolder: "~/.thorcli",

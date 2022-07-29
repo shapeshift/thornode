@@ -32,20 +32,20 @@ import (
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
 // Binance is a structure to sign and broadcast tx to binance chain used by signer mostly
 type Binance struct {
 	logger                  zerolog.Logger
-	cfg                     config.ChainConfiguration
+	cfg                     config.BifrostChainConfiguration
 	cdc                     *codec.LegacyAmino
 	chainID                 string
 	isTestNet               bool
@@ -65,7 +65,7 @@ type Binance struct {
 }
 
 // NewBinance create new instance of binance client
-func NewBinance(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Binance, error) {
+func NewBinance(thorKeys *thorclient.Keys, cfg config.BifrostChainConfiguration, server *tssp.TssServer, thorchainBridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Binance, error) {
 	tssKm, err := tss.NewKeySign(server, thorchainBridge)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create tss signer: %w", err)
@@ -156,7 +156,7 @@ func (b *Binance) Stop() {
 }
 
 // GetConfig return the configuration used by Binance chain client
-func (b *Binance) GetConfig() config.ChainConfiguration {
+func (b *Binance) GetConfig() config.BifrostChainConfiguration {
 	return b.cfg
 }
 

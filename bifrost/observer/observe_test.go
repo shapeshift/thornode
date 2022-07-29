@@ -23,7 +23,6 @@ import (
 	txType "gitlab.com/thorchain/binance-sdk/types/tx"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
@@ -33,6 +32,7 @@ import (
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -104,7 +104,7 @@ func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 	blockHeightDiscoverBackoff, _ := time.ParseDuration("1s")
 	blockRetryInterval, _ := time.ParseDuration("10s")
 	httpRequestTimeout, _ := time.ParseDuration("30s")
-	s.b, err = binance.NewBinance(s.thorKeys, config.ChainConfiguration{RPCHost: server.URL, BlockScanner: config.BlockScannerConfiguration{
+	s.b, err = binance.NewBinance(s.thorKeys, config.BifrostChainConfiguration{RPCHost: server.URL, BlockScanner: config.BifrostBlockScannerConfiguration{
 		RPCHost:                    server.URL,
 		BlockScanProcessors:        1,
 		BlockHeightDiscoverBackoff: blockHeightDiscoverBackoff,
@@ -123,7 +123,7 @@ func (s *ObserverSuite) NewMockBinanceInstance(c *C, jsonData string) {
 
 func (s *ObserverSuite) SetUpSuite(c *C) {
 	var err error
-	s.m, err = metrics.NewMetrics(config.MetricsConfiguration{
+	s.m, err = metrics.NewMetrics(config.BifrostMetricsConfiguration{
 		Enabled:      false,
 		ListenPort:   9000,
 		ReadTimeout:  time.Second,
@@ -203,7 +203,7 @@ func (s *ObserverSuite) SetUpSuite(c *C) {
 	}))
 
 	s.thordir = filepath.Join(os.TempDir(), ns, ".thorcli")
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       server.Listener.Addr().String(),
 		ChainRPC:        server.Listener.Addr().String(),

@@ -10,11 +10,11 @@ import (
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -29,7 +29,7 @@ var _ = Suite(
 
 // SetUpSuite setup the test conditions
 func (s *ETHKeysignWrapperTestSuite) SetUpSuite(c *C) {
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:      "thorchain",
 		SignerName:   "bob",
 		SignerPasswd: "password",

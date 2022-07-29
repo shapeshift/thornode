@@ -22,7 +22,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum/types"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
@@ -32,6 +31,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	tokenlist "gitlab.com/thorchain/thornode/common/tokenlist"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
@@ -56,7 +56,7 @@ const (
 
 // ETHScanner is a scanner that understand how to interact with ETH chain ,and scan block , parse smart contract etc
 type ETHScanner struct {
-	cfg                  config.BlockScannerConfiguration
+	cfg                  config.BifrostBlockScannerConfiguration
 	logger               zerolog.Logger
 	db                   blockscanner.ScannerStorage
 	m                    *metrics.Metrics
@@ -85,7 +85,7 @@ type ETHScanner struct {
 }
 
 // NewETHScanner create a new instance of ETHScanner
-func NewETHScanner(cfg config.BlockScannerConfiguration,
+func NewETHScanner(cfg config.BifrostBlockScannerConfiguration,
 	storage blockscanner.ScannerStorage,
 	chainID *big.Int,
 	client *ethclient.Client,

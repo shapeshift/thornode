@@ -24,7 +24,6 @@ import (
 	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
@@ -33,6 +32,7 @@ import (
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -40,7 +40,7 @@ type BitcoinSignerSuite struct {
 	client *Client
 	server *httptest.Server
 	bridge *thorclient.ThorchainBridge
-	cfg    config.ChainConfiguration
+	cfg    config.BifrostChainConfiguration
 	m      *metrics.Metrics
 	db     *leveldb.DB
 	keys   *thorclient.Keys
@@ -58,13 +58,13 @@ func (s *BitcoinSignerSuite) SetUpSuite(c *C) {
 
 func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 	s.m = GetMetricForTest(c)
-	s.cfg = config.ChainConfiguration{
+	s.cfg = config.BifrostChainConfiguration{
 		ChainID:     "BTC",
 		UserName:    bob,
 		Password:    password,
 		DisableTLS:  true,
 		HTTPostMode: true,
-		BlockScanner: config.BlockScannerConfiguration{
+		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
 	}
@@ -73,7 +73,7 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 
 	ns := strconv.Itoa(time.Now().Nanosecond())
 	thordir := filepath.Join(os.TempDir(), ns, ".thorcli")
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
 		SignerName:      bob,

@@ -6,7 +6,7 @@ THORNode is following semantic version. MAJOR.MINOR.PATCH(0.77.1)
 
 The MAJOR version currently is updated per soft-fork.
 
-Minor version need to update when the network introduce some none backward compatible changes. 
+Minor version need to update when the network introduce some none backward compatible changes.
 
 Patch version, is backward compatible, usually changes only in bifrost
 
@@ -15,9 +15,7 @@ Patch version, is backward compatible, usually changes only in bifrost
 1. Create a milestone using the release version
 2. Tag issues & PRs using the milestone, so we can identify which PR is on which version
 3. PRs need to get approved by #thornode-team and #thorsec, once get approved, merge to `develop` branch
-4. Once all PRs for a version have been merged, create a release branch from `develop` such as: `release-1.92.0`. This allows future PRs to still land into `develop` while the release is happening. 
-
- 
+4. Once all PRs for a version have been merged, create a release branch from `develop` such as: `release-1.92.0`. This allows future PRs to still land into `develop` while the release is happening.
 
 ## Test release candidate
 

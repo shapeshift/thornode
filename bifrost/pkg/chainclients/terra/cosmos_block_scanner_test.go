@@ -14,11 +14,11 @@ import (
 	rpcclient "github.com/tendermint/tendermint/rpc/client/http"
 
 	"github.com/rs/zerolog/log"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/terra/wasm"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 
 	"gitlab.com/thorchain/thornode/cmd"
 	. "gopkg.in/check.v1"
@@ -72,7 +72,7 @@ var _ = Suite(&BlockScannerTestSuite{})
 func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 	s.m = GetMetricForTest(c)
 	c.Assert(s.m, NotNil)
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
 		SignerName:      "bob",
@@ -91,7 +91,7 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 }
 
 func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
-	cfg := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
+	cfg := config.BifrostBlockScannerConfiguration{ChainID: common.TERRAChain}
 	blockScanner := CosmosBlockScanner{cfg: cfg}
 
 	lunaToThorchain := int64(100)
@@ -167,7 +167,7 @@ func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
 }
 
 func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
-	cfg := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
+	cfg := config.BifrostBlockScannerConfiguration{ChainID: common.TERRAChain}
 	mockRPC := NewMockTmServiceClient()
 
 	blockScanner := CosmosBlockScanner{
@@ -183,7 +183,7 @@ func (s *BlockScannerTestSuite) TestGetBlock(c *C) {
 }
 
 func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
-	cfg := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
+	cfg := config.BifrostBlockScannerConfiguration{ChainID: common.TERRAChain}
 	mockTmServiceClient := NewMockTmServiceClient()
 
 	registry := s.bridge.GetContext().InterfaceRegistry

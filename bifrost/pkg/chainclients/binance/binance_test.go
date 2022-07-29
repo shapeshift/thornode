@@ -18,13 +18,13 @@ import (
 	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -45,7 +45,7 @@ var m *metrics.Metrics
 func GetMetricForTest(c *C) *metrics.Metrics {
 	if m == nil {
 		var err error
-		m, err = metrics.NewMetrics(config.MetricsConfiguration{
+		m, err = metrics.NewMetrics(config.BifrostMetricsConfiguration{
 			Enabled:      false,
 			ListenPort:   9000,
 			ReadTimeout:  time.Second,
@@ -67,7 +67,7 @@ func (s *BinancechainSuite) SetUpSuite(c *C) {
 	c.Assert(os.Setenv("NET", "testnet"), IsNil)
 
 	s.thordir = filepath.Join(os.TempDir(), ns, ".thorcli")
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
 		SignerName:      "bob",
@@ -105,9 +105,9 @@ func (s *BinancechainSuite) TestNewBinance(c *C) {
 		}
 	}))
 
-	b2, err2 := NewBinance(s.thorKeys, config.ChainConfiguration{
+	b2, err2 := NewBinance(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: server.URL,
-		BlockScanner: config.BlockScannerConfiguration{
+		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
 	}, nil, s.bridge, s.m)
@@ -207,9 +207,9 @@ func (s *BinancechainSuite) TestGetHeight(c *C) {
 		}
 	}))
 
-	b, err := NewBinance(s.thorKeys, config.ChainConfiguration{
+	b, err := NewBinance(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: server.URL,
-		BlockScanner: config.BlockScannerConfiguration{
+		BlockScanner: config.BifrostBlockScannerConfiguration{
 			RPCHost:          server.URL,
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
@@ -258,7 +258,7 @@ func (s *BinancechainSuite) TestSignTx(c *C) {
 		}
 	}))
 
-	b, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+	b, err := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       server.Listener.Addr().String(),
 		SignerName:      "bob",
@@ -266,9 +266,9 @@ func (s *BinancechainSuite) TestSignTx(c *C) {
 		ChainHomeFolder: s.thordir,
 	}, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
-	b2, err2 := NewBinance(s.thorKeys, config.ChainConfiguration{
+	b2, err2 := NewBinance(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: server.URL,
-		BlockScanner: config.BlockScannerConfiguration{
+		BlockScanner: config.BifrostBlockScannerConfiguration{
 			RPCHost:          server.URL,
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
@@ -302,7 +302,7 @@ func (s *BinancechainSuite) TestGetGasFee(c *C) {
 		}
 	}))
 
-	b, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+	b, err := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       server.Listener.Addr().String(),
 		SignerName:      "bob",
@@ -310,9 +310,9 @@ func (s *BinancechainSuite) TestGetGasFee(c *C) {
 		ChainHomeFolder: s.thordir,
 	}, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
-	b2, err2 := NewBinance(s.thorKeys, config.ChainConfiguration{
+	b2, err2 := NewBinance(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: server.URL,
-		BlockScanner: config.BlockScannerConfiguration{
+		BlockScanner: config.BifrostBlockScannerConfiguration{
 			RPCHost:          server.URL,
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},

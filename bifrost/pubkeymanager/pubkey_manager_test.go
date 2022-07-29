@@ -9,9 +9,9 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -95,7 +95,7 @@ func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
 		}
 	}))
 
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:   "thorchain",
 		ChainHost: server.URL[7:],
 	}

@@ -7,14 +7,14 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 type BlockHeightSuite struct {
 	server  *httptest.Server
 	bridge  *ThorchainBridge
-	cfg     config.ClientConfiguration
+	cfg     config.BifrostClientConfiguration
 	fixture string
 }
 

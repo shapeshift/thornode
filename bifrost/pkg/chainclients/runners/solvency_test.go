@@ -13,12 +13,12 @@ import (
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -28,7 +28,7 @@ func TestPackage(t *testing.T) { TestingT(t) }
 type SolvencyTestSuite struct {
 	sp   *DummySolvencyCheckProvider
 	m    *metrics.Metrics
-	cfg  config.ClientConfiguration
+	cfg  config.BifrostClientConfiguration
 	keys *thorclient.Keys
 }
 
@@ -38,7 +38,7 @@ func (s *SolvencyTestSuite) SetUpSuite(c *C) {
 	sp := &DummySolvencyCheckProvider{}
 	s.sp = sp
 
-	m, _ := metrics.NewMetrics(config.MetricsConfiguration{
+	m, _ := metrics.NewMetrics(config.BifrostMetricsConfiguration{
 		Enabled:      false,
 		ListenPort:   9090,
 		ReadTimeout:  time.Second,
@@ -47,7 +47,7 @@ func (s *SolvencyTestSuite) SetUpSuite(c *C) {
 	})
 	s.m = m
 
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
 		SignerName:      "bob",
@@ -88,7 +88,7 @@ func (s *SolvencyTestSuite) TestSolvencyCheck(c *C) {
 
 	server := httptest.NewServer(h)
 	defer server.Close()
-	bridge, _ := thorclient.NewThorchainBridge(config.ClientConfiguration{
+	bridge, _ := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       server.Listener.Addr().String(),
 		ChainRPC:        server.Listener.Addr().String(),

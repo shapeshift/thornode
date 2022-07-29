@@ -3,10 +3,10 @@ package chainclients
 import (
 	"math/big"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 // ChainClient is the interface that wraps basic chain client methods
@@ -31,7 +31,7 @@ type ChainClient interface {
 	GetChain() common.Chain
 	OnObservedTxIn(txIn types.TxInItem, blockHeight int64)
 	Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency)
-	GetConfig() config.ChainConfiguration
+	GetConfig() config.BifrostChainConfiguration
 	GetConfirmationCount(txIn stypes.TxIn) int64
 	ConfirmationCountReady(txIn stypes.TxIn) bool
 	IsBlockScannerHealthy() bool

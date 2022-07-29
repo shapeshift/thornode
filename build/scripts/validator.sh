@@ -12,10 +12,7 @@ fi
 SEEDS="${SEEDS:=none}"        # the hostname of multiple seeds set as tendermint seeds
 PEER="${PEER:=none}"          # the hostname of a seed node set as tendermint persistent peer
 PEER_API="${PEER_API:=$PEER}" # the hostname of a seed node API if different
-SIGNER_NAME="${SIGNER_NAME:=thorchain}"
-SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 BINANCE=${BINANCE:=$PEER:26660}
-CHAIN_ID=${CHAIN_ID:=thorchain}
 
 if [ ! -f ~/.thornode/config/genesis.json ]; then
   echo "Setting THORNode as Validator node"
@@ -35,22 +32,7 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
 
   if [ "$SEEDS" != "none" ]; then
     fetch_genesis_from_seeds $SEEDS
-
-    # add seeds tendermint config
-    seeds_list $SEEDS $CHAIN_ID
   fi
-
-  # enable telemetry through prometheus metrics endpoint
-  enable_telemetry
-
-  # set the minimum gas to 0 rune
-  set_minimum_gas
-
-  # enable internal traffic as well
-  enable_internal_traffic
-
-  # use external IP if available
-  [ -n "$EXTERNAL_IP" ] && external_address "$EXTERNAL_IP" "$NET"
 
   if [ "$NET" = "mocknet" ]; then
     # create a binance wallet and bond/register
@@ -84,9 +66,6 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
       sleep 5
     done
 
-    # use external IP if available
-    [ -n "$EXTERNAL_IP" ] && external_address "$EXTERNAL_IP" "$NET"
-
     sleep 10 # wait for thorchain to commit a block
     # set node version
     until printf "%s\n" "$SIGNER_PASSWD" | thornode tx thorchain set-version --node tcp://$PEER:26657 --from "$SIGNER_NAME" --keyring-backend=file --chain-id "$CHAIN_ID" --yes; do
@@ -101,15 +80,11 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
     echo "Your THORNode address: $NODE_ADDRESS"
     echo "Send your bond to that address"
   fi
-
-else
-
-  if [ "$SEEDS" != "none" ]; then
-    # add seeds tendermint config
-    seeds_list $SEEDS $CHAIN_ID
-  fi
 fi
+
+# render tendermint and cosmos configuration files
+thornode render-config
 
 export SIGNER_NAME
 export SIGNER_PASSWD
-exec "$@"
+exec thornode start
