@@ -12,12 +12,12 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 	. "gopkg.in/check.v1"
 )
@@ -153,7 +153,7 @@ func (s *UnstuckTestSuite) SetUpTest(c *C) {
 		}
 	}))
 	s.server = server
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:      "thorchain",
 		ChainHost:    server.Listener.Addr().String(),
 		SignerName:   "bob",
@@ -176,9 +176,9 @@ func (s *UnstuckTestSuite) TestUnstuckProcess(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
 	poolMgr := thorclient.NewPoolMgr(s.bridge)
-	e, err := NewClient(s.thorKeys, config.ChainConfiguration{
+	e, err := NewClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
-		BlockScanner: config.BlockScannerConfiguration{
+		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight:    1, // avoids querying thorchain for block height
 			HTTPRequestTimeout:  time.Second * 10,
 			SuggestedFeeVersion: 1,

@@ -13,12 +13,12 @@ import (
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
@@ -29,7 +29,7 @@ var m *metrics.Metrics
 type BlockScannerTestSuite struct {
 	m      *metrics.Metrics
 	bridge *thorclient.ThorchainBridge
-	cfg    config.ClientConfiguration
+	cfg    config.BifrostClientConfiguration
 	keys   *thorclient.Keys
 }
 
@@ -37,7 +37,7 @@ var _ = Suite(&BlockScannerTestSuite{})
 
 func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 	var err error
-	m, err = metrics.NewMetrics(config.MetricsConfiguration{
+	m, err = metrics.NewMetrics(config.BifrostMetricsConfiguration{
 		Enabled:      false,
 		ListenPort:   9090,
 		ReadTimeout:  time.Second,
@@ -47,7 +47,7 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 	c.Assert(m, NotNil)
 	c.Assert(err, IsNil)
 	thorchain.SetupConfigForTest()
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
 		SignerName:      "bob",
@@ -69,19 +69,19 @@ func (s *BlockScannerTestSuite) TearDownSuite(c *C) {
 
 func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
 	mss := NewMockScannerStorage()
-	cbs, err := NewBlockScanner(config.BlockScannerConfiguration{
+	cbs, err := NewBlockScanner(config.BifrostBlockScannerConfiguration{
 		RPCHost:          "",
 		StartBlockHeight: 1, // avoids querying thorchain for block height
 	}, mss, nil, nil, DummyFetcher{})
 	c.Check(cbs, IsNil)
 	c.Check(err, NotNil)
-	cbs, err = NewBlockScanner(config.BlockScannerConfiguration{
+	cbs, err = NewBlockScanner(config.BifrostBlockScannerConfiguration{
 		RPCHost:          "localhost",
 		StartBlockHeight: 1, // avoids querying thorchain for block height
 	}, mss, nil, nil, DummyFetcher{})
 	c.Check(cbs, IsNil)
 	c.Check(err, NotNil)
-	cbs, err = NewBlockScanner(config.BlockScannerConfiguration{
+	cbs, err = NewBlockScanner(config.BifrostBlockScannerConfiguration{
 		RPCHost:          "localhost",
 		StartBlockHeight: 1, // avoids querying thorchain for block height
 	}, mss, m, s.bridge, DummyFetcher{})
@@ -112,7 +112,7 @@ func (s *BlockScannerTestSuite) TestBlockScanner(c *C) {
 	mss := NewMockScannerStorage()
 	server := httptest.NewServer(h)
 	defer server.Close()
-	bridge, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+	bridge, err := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       server.Listener.Addr().String(),
 		ChainRPC:        server.Listener.Addr().String(),
@@ -122,7 +122,7 @@ func (s *BlockScannerTestSuite) TestBlockScanner(c *C) {
 	}, s.m, s.keys)
 	c.Assert(err, IsNil)
 
-	cbs, err := NewBlockScanner(config.BlockScannerConfiguration{
+	cbs, err := NewBlockScanner(config.BifrostBlockScannerConfiguration{
 		RPCHost:                    server.URL,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		BlockScanProcessors:        1,
@@ -167,7 +167,7 @@ func (s *BlockScannerTestSuite) TestBadBlock(c *C) {
 	mss := NewMockScannerStorage()
 	server := httptest.NewTLSServer(h)
 	defer server.Close()
-	bridge, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+	bridge, err := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       server.Listener.Addr().String(),
 		ChainRPC:        server.Listener.Addr().String(),
@@ -176,7 +176,7 @@ func (s *BlockScannerTestSuite) TestBadBlock(c *C) {
 		ChainHomeFolder: ".",
 	}, s.m, s.keys)
 	c.Assert(err, IsNil)
-	cbs, err := NewBlockScanner(config.BlockScannerConfiguration{
+	cbs, err := NewBlockScanner(config.BifrostBlockScannerConfiguration{
 		RPCHost:                    server.URL,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		BlockScanProcessors:        1,
@@ -207,7 +207,7 @@ func (s *BlockScannerTestSuite) TestBadConnection(c *C) {
 	mss := NewMockScannerStorage()
 	server := httptest.NewServer(h)
 	defer server.Close()
-	bridge, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+	bridge, err := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       server.Listener.Addr().String(),
 		ChainRPC:        server.Listener.Addr().String(),
@@ -217,7 +217,7 @@ func (s *BlockScannerTestSuite) TestBadConnection(c *C) {
 	}, s.m, s.keys)
 	c.Assert(err, IsNil)
 
-	cbs, err := NewBlockScanner(config.BlockScannerConfiguration{
+	cbs, err := NewBlockScanner(config.BifrostBlockScannerConfiguration{
 		RPCHost:                    "localhost:23450",
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		BlockScanProcessors:        1,
@@ -269,7 +269,7 @@ func (s *BlockScannerTestSuite) TestIsChainPaused(c *C) {
 	mss := NewMockScannerStorage()
 	server := httptest.NewServer(h)
 	defer server.Close()
-	bridge, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+	bridge, err := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       server.Listener.Addr().String(),
 		ChainRPC:        server.Listener.Addr().String(),
@@ -279,7 +279,7 @@ func (s *BlockScannerTestSuite) TestIsChainPaused(c *C) {
 	}, s.m, s.keys)
 	c.Assert(err, IsNil)
 
-	cbs, err := NewBlockScanner(config.BlockScannerConfiguration{
+	cbs, err := NewBlockScanner(config.BifrostBlockScannerConfiguration{
 		RPCHost:                    server.URL,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		BlockScanProcessors:        1,

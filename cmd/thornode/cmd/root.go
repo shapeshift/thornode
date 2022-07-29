@@ -32,6 +32,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/app"
 	"gitlab.com/thorchain/thornode/app/params"
+	"gitlab.com/thorchain/thornode/config"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/client/cli"
 )
@@ -54,6 +55,8 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 		Use:   appName,
 		Short: "THORChain Network",
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			config.Init()
+
 			if err := client.SetCmdClientContextHandler(initClientCtx, cmd); err != nil {
 				return err
 			}
@@ -70,6 +73,7 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome(appName)),
+		renderConfigCommand(),
 		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome(appName)),
 		genutilcli.MigrateGenesisCmd(),
 		genutilcli.GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome(appName)),
@@ -166,6 +170,19 @@ func txCommand() *cobra.Command {
 	cmd.PersistentFlags().String(flags.FlagChainID, "", "The network chain ID")
 
 	return cmd
+}
+
+func renderConfigCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:                        "render-config",
+		Short:                      "renders tendermint and cosmos config from thornode base config",
+		DisableFlagParsing:         true,
+		SuggestionsMinimumDistance: 2,
+		Run: func(cmd *cobra.Command, args []string) {
+			config.Init()
+			config.InitThornode(cmd.Context())
+		},
+	}
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts servertypes.AppOptions) servertypes.Application {

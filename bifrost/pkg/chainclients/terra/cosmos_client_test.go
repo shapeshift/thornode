@@ -19,13 +19,13 @@ import (
 	signingtypes "github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
 	btypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	. "gopkg.in/check.v1"
 )
 
@@ -45,7 +45,7 @@ var m *metrics.Metrics
 func GetMetricForTest(c *C) *metrics.Metrics {
 	if m == nil {
 		var err error
-		m, err = metrics.NewMetrics(config.MetricsConfiguration{
+		m, err = metrics.NewMetrics(config.BifrostMetricsConfiguration{
 			Enabled:      false,
 			ListenPort:   9000,
 			ReadTimeout:  time.Second,
@@ -68,7 +68,7 @@ func (s *CosmosTestSuite) SetUpSuite(c *C) {
 	c.Assert(os.Setenv("NET", "stagenet"), IsNil)
 
 	s.thordir = filepath.Join(os.TempDir(), ns, ".thorcli")
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
 		SignerName:      "bob",
@@ -97,7 +97,7 @@ func (s *CosmosTestSuite) TestGetAddress(c *C) {
 	mockAccountServiceClient := NewMockAccountServiceClient()
 
 	cc := CosmosClient{
-		cfg:           config.ChainConfiguration{ChainID: common.TERRAChain},
+		cfg:           config.BifrostChainConfiguration{ChainID: common.TERRAChain},
 		bankClient:    mockBankServiceClient,
 		accountClient: mockAccountServiceClient,
 	}
@@ -131,10 +131,10 @@ func (s *CosmosTestSuite) TestProcessOutboundTx(c *C) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 	}))
 
-	client, err := NewCosmosClient(s.thorKeys, config.ChainConfiguration{
+	client, err := NewCosmosClient(s.thorKeys, config.BifrostChainConfiguration{
 		ChainID: common.TERRAChain,
 		RPCHost: server.URL,
-		BlockScanner: config.BlockScannerConfiguration{
+		BlockScanner: config.BifrostBlockScannerConfiguration{
 			RPCHost:          server.URL,
 			StartBlockHeight: 1, // avoids querying thorchain for block height
 		},
@@ -189,8 +189,8 @@ func (s *CosmosTestSuite) TestSign(c *C) {
 	interfaceRegistry.RegisterImplementations((*types.Msg)(nil), &btypes.MsgSend{})
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 
-	clientConfig := config.ChainConfiguration{ChainID: common.TERRAChain}
-	scannerConfig := config.BlockScannerConfiguration{ChainID: common.TERRAChain}
+	clientConfig := config.BifrostChainConfiguration{ChainID: common.TERRAChain}
+	scannerConfig := config.BifrostBlockScannerConfiguration{ChainID: common.TERRAChain}
 	txConfig := tx.NewTxConfig(marshaler, []signingtypes.SignMode{signingtypes.SignMode_SIGN_MODE_DIRECT})
 
 	mockTmServiceClient := NewMockTmServiceClient()

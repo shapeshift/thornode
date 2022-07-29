@@ -10,12 +10,9 @@ if [ "$NET" = "mocknet" ] || [ "$NET" = "testnet" ]; then
   . "$(dirname "$0")/testnet/state.sh"
 fi
 
-SIGNER_NAME="${SIGNER_NAME:=thorchain}"
-SIGNER_PASSWD="${SIGNER_PASSWD:=password}"
 NODES="${NODES:=1}"
 SEED="${SEED:=thornode}" # the hostname of the master node
 ETH_HOST="${ETH_HOST:=http://ethereum:8545}"
-THOR_BLOCK_TIME="${THOR_BLOCK_TIME:=5s}"
 CHAIN_ID=${CHAIN_ID:=thorchain}
 
 # this is required as it need to run thornode init , otherwise tendermint related commant doesn't work
@@ -66,9 +63,6 @@ if [ "$SEED" = "$(hostname)" ]; then
       reserve 22000000000000000
       # deploy eth contract
       deploy_eth_contract $ETH_HOST
-
-      # override block time for faster smoke tests
-      block_time "$THOR_BLOCK_TIME"
     else
       echo "ETH Contract Address: $CONTRACT"
       set_eth_contract "$CONTRACT"
@@ -81,25 +75,13 @@ if [ "$SEED" = "$(hostname)" ]; then
       testnet_add_accounts
     fi
 
-    # enable telemetry through prometheus metrics endpoint
-    enable_telemetry
-
-    # set the minimum gas to 0 rune
-    set_minimum_gas
-
-    # enable internal traffic as well
-    enable_internal_traffic
-
-    # use external IP if available
-    [ -n "$EXTERNAL_IP" ] && external_address "$EXTERNAL_IP" "$NET"
-
     echo "Genesis content"
     cat ~/.thornode/config/genesis.json
     thornode validate-genesis --trace
   fi
 fi
 
-# setup peer connection
+# setup peer connection, typically only used for some mocknet configurations
 if [ "$SEED" != "$(hostname)" ]; then
   if [ ! -f ~/.thornode/config/genesis.json ]; then
     echo "Setting THORNode as peer not genesis"
@@ -108,10 +90,15 @@ if [ "$SEED" != "$(hostname)" ]; then
     fetch_genesis $SEED
     NODE_ID=$(fetch_node_id $SEED)
     echo "NODE ID: $NODE_ID"
-    peer_list "$NODE_ID" "$SEED"
+    export THOR_TENDERMINT_P2P_PERSISTENT_PEERS="$NODE_ID@$SEED:$PORT_P2P"
 
     cat ~/.thornode/config/genesis.json
   fi
 fi
 
-printf "%s\n%s\n" "$SIGNER_NAME" "$SIGNER_PASSWD" | exec "$@"
+# render tendermint and cosmos configuration files
+thornode render-config
+
+export SIGNER_NAME
+export SIGNER_PASSWD
+exec "$@"

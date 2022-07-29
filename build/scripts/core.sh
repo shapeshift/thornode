@@ -2,10 +2,25 @@
 
 set -o pipefail
 
+# default ulimit is set too low for thornode in some environments
+# trunk-ignore(shellcheck/SC3045): alpine sh ulimit supports -n
+ulimit -n 65535
+
 PORT_P2P=26656
 PORT_RPC=26657
 [ "$NET" = "mainnet" ] && PORT_P2P=27146 && PORT_RPC=27147
 [ "$NET" = "stagenet" ] && PORT_P2P=27146 && PORT_RPC=27147
+export PORT_P2P PORT_RPC
+
+# validate required environment
+if [ -z "$SIGNER_NAME" ]; then
+  echo "SIGNER_NAME must be set"
+  exit 1
+fi
+if [ -z "$SIGNER_PASSWD" ]; then
+  echo "SIGNER_PASSWD must be set"
+  exit 1
+fi
 
 # adds an account node into the genesis file
 add_node_account() {
@@ -52,67 +67,6 @@ init_chain() {
   done
 
   IFS=OLD_IFS
-
-  # thornode config chain-id thorchain
-  # thornode config output json
-  # thornode config indent true
-  # thornode config trust-node true
-}
-
-peer_list() {
-  PEERUSER="$1@$2:$PORT_P2P"
-  PEERSISTENT_PEER_TARGET='persistent_peers = ""'
-  sed -i -e "s/$PEERSISTENT_PEER_TARGET/persistent_peers = \"$PEERUSER\"/g" ~/.thornode/config/config.toml
-}
-
-block_time() {
-  sed -i -e "s/timeout_commit = \"5s\"/timeout_commit = \"$1\"/g" ~/.thornode/config/config.toml
-}
-
-seeds_list() {
-  EXPECTED_NETWORK=$(echo "$@" | awk '{print $NF}')
-  OLD_IFS=$IFS
-  IFS=","
-  SEED_LIST=""
-  for SEED in $1; do
-    RESULT=$(curl -sL --fail -m 2 "$SEED:$PORT_RPC/status") || continue
-    NODE_ID=$(echo "$RESULT" | jq -r .result.node_info.id)
-    NETWORK=$(echo "$RESULT" | jq -r .result.node_info.network)
-    # make sure the seeds are on the same network
-    if [ "$NETWORK" = "$EXPECTED_NETWORK" ]; then
-      SEED="$NODE_ID@$SEED:$PORT_P2P"
-      if [ -z "$SEED_LIST" ]; then
-        SEED_LIST=$SEED
-      else
-        SEED_LIST="$SEED_LIST,$SEED"
-      fi
-    fi
-  done
-  IFS=$OLD_IFS
-  sed -i -e "s/seeds =.*/seeds = \"$SEED_LIST\"/g" ~/.thornode/config/config.toml
-}
-
-enable_internal_traffic() {
-  ADDR='addr_book_strict = true'
-  ADDR_STRICT_FALSE='addr_book_strict = false'
-  sed -i -e "s/$ADDR/$ADDR_STRICT_FALSE/g" ~/.thornode/config/config.toml
-}
-
-external_address() {
-  IP=$1
-  NET=$2
-  ADDR="$IP:$PORT_P2P"
-  sed -i -e "s/external_address =.*/external_address = \"$ADDR\"/g" ~/.thornode/config/config.toml
-}
-
-enable_telemetry() {
-  sed -i -e "s/prometheus = false/prometheus = true/g" ~/.thornode/config/config.toml
-  sed -i -e "s/enabled = false/enabled = true/g" ~/.thornode/config/app.toml
-  sed -i -e "s/prometheus-retention-time = 0/prometheus-retention-time = 600/g" ~/.thornode/config/app.toml
-}
-
-set_minimum_gas() {
-  sed -i -e 's/minimum-gas-prices = ""/minimum-gas-prices = "0rune"/g' ~/.thornode/config/app.toml
 }
 
 set_eth_contract() {
@@ -126,17 +80,14 @@ fetch_genesis() {
     sleep 3
   done
   curl -s "$1:$PORT_RPC/genesis" | jq .result.genesis >~/.thornode/config/genesis.json
-  thornode validate-genesis --trace
 }
 
 fetch_genesis_from_seeds() {
   OLD_IFS=$IFS
   IFS=","
-  SEED_LIST=""
   for SEED in $1; do
     echo "Fetching genesis from seed $SEED"
     curl -sL --fail -m 30 "$SEED:$PORT_RPC/genesis" | jq .result.genesis >~/.thornode/config/genesis.json || continue
-    thornode validate-genesis
     break
   done
   IFS=$OLD_IFS

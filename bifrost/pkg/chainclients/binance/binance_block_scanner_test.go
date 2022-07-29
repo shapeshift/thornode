@@ -21,10 +21,10 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	btypes "gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 type BlockScannerTestSuite struct {
@@ -38,7 +38,7 @@ var _ = Suite(&BlockScannerTestSuite{})
 func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 	s.m = GetMetricForTest(c)
 	c.Assert(s.m, NotNil)
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
 		SignerName:      "bob",
@@ -56,8 +56,8 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 	s.keys = thorKeys
 }
 
-func getConfigForTest(rpcHost string) config.BlockScannerConfiguration {
-	return config.BlockScannerConfiguration{
+func getConfigForTest(rpcHost string) config.BifrostBlockScannerConfiguration {
+	return config.BifrostBlockScannerConfiguration{
 		RPCHost:                    rpcHost,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		BlockScanProcessors:        1,
@@ -437,7 +437,7 @@ func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
 	}))
 	// Close the server when test finishes
 	defer server.Close()
-	bridge, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+	bridge, err := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       server.Listener.Addr().String(),
 		SignerName:      "bob",
@@ -447,7 +447,7 @@ func (s *BlockScannerTestSuite) TestUpdateGasFees(c *C) {
 	c.Assert(err, IsNil)
 	// test against mock server
 	b := BinanceBlockScanner{
-		cfg: config.BlockScannerConfiguration{
+		cfg: config.BifrostBlockScannerConfiguration{
 			RPCHost: "http://" + server.Listener.Addr().String(),
 		},
 		http: &http.Client{

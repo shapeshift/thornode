@@ -14,10 +14,10 @@ import (
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
@@ -71,7 +71,7 @@ func (kts *KeyGenTestSuite) TestNewTssKenGen(c *C) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		c.Logf("requestUri:%s", req.RequestURI)
 	}))
-	b, err := thorclient.NewThorchainBridge(config.ClientConfiguration{
+	b, err := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:      "thorchain",
 		ChainHost:    server.Listener.Addr().String(),
 		SignerName:   "bob",

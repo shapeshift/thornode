@@ -25,13 +25,13 @@ import (
 	"google.golang.org/grpc"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/gaia/wasm"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 // SolvencyReporter is to report solvency info to THORNode
@@ -65,7 +65,7 @@ var (
 
 // CosmosBlockScanner is to scan the blocks
 type CosmosBlockScanner struct {
-	cfg              config.BlockScannerConfiguration
+	cfg              config.BifrostBlockScannerConfiguration
 	logger           zerolog.Logger
 	db               blockscanner.ScannerStorage
 	cdc              *codec.ProtoCodec
@@ -85,7 +85,7 @@ type CosmosBlockScanner struct {
 }
 
 // NewCosmosBlockScanner create a new instance of BlockScan
-func NewCosmosBlockScanner(cfg config.BlockScannerConfiguration,
+func NewCosmosBlockScanner(cfg config.BifrostBlockScannerConfiguration,
 	scanStorage blockscanner.ScannerStorage,
 	bridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,

@@ -14,7 +14,6 @@ import (
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
@@ -22,6 +21,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	ttypes "gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -30,7 +30,7 @@ import (
 // Signer will pull the tx out from thorchain and then forward it to chain
 type Signer struct {
 	logger                zerolog.Logger
-	cfg                   config.SignerConfiguration
+	cfg                   config.BifrostSignerConfiguration
 	wg                    *sync.WaitGroup
 	thorchainBridge       *thorclient.ThorchainBridge
 	stopChan              chan struct{}
@@ -48,7 +48,7 @@ type Signer struct {
 }
 
 // NewSigner create a new instance of signer
-func NewSigner(cfg config.SignerConfiguration,
+func NewSigner(cfg config.BifrostSignerConfiguration,
 	thorchainBridge *thorclient.ThorchainBridge,
 	thorKeys *thorclient.Keys,
 	pubkeyMgr pubkeymanager.PubKeyValidator,

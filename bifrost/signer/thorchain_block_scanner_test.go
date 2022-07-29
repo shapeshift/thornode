@@ -16,11 +16,11 @@ import (
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/cmd"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -116,7 +116,7 @@ func (s *ThorchainBlockScanSuite) SetUpSuite(c *C) {
 	s.thordir = filepath.Join(os.TempDir(), ns, ".thorcli")
 	splitted := strings.SplitAfter(server.URL, ":")
 	s.rpcHost = splitted[len(splitted)-1]
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost:" + s.rpcHost,
 		SignerName:      "bob",
@@ -156,7 +156,7 @@ func (s *ThorchainBlockScanSuite) TearDownSuite(c *C) {
 }
 
 func (s *ThorchainBlockScanSuite) TestProcess(c *C) {
-	cfg := config.BlockScannerConfiguration{
+	cfg := config.BifrostBlockScannerConfiguration{
 		RPCHost:                    "127.0.0.1:" + s.rpcHost,
 		ChainID:                    "ThorChain",
 		StartBlockHeight:           1,

@@ -28,7 +28,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
@@ -38,6 +37,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
@@ -59,7 +59,7 @@ const (
 // Client observes dogecoin chain and allows to sign and broadcast tx
 type Client struct {
 	logger                  zerolog.Logger
-	cfg                     config.ChainConfiguration
+	cfg                     config.BifrostChainConfiguration
 	m                       *metrics.Metrics
 	client                  *rpcclient.Client
 	chain                   common.Chain
@@ -87,7 +87,7 @@ type Client struct {
 }
 
 // NewClient generates a new Client
-func NewClient(thorKeys *thorclient.Keys, cfg config.ChainConfiguration, server *tssp.TssServer, bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Client, error) {
+func NewClient(thorKeys *thorclient.Keys, cfg config.BifrostChainConfiguration, server *tssp.TssServer, bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Client, error) {
 	client, err := rpcclient.New(&rpcclient.ConnConfig{
 		Host:         cfg.RPCHost,
 		User:         cfg.UserName,
@@ -194,7 +194,7 @@ func (c *Client) Stop() {
 }
 
 // GetConfig - get the chain configuration
-func (c *Client) GetConfig() config.ChainConfiguration {
+func (c *Client) GetConfig() config.BifrostChainConfiguration {
 	return c.cfg
 }
 

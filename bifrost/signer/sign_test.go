@@ -22,7 +22,6 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
@@ -32,6 +31,7 @@ import (
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -43,7 +43,7 @@ var m *metrics.Metrics
 func GetMetricForTest(c *C) *metrics.Metrics {
 	if m == nil {
 		var err error
-		m, err = metrics.NewMetrics(config.MetricsConfiguration{
+		m, err = metrics.NewMetrics(config.BifrostMetricsConfiguration{
 			Enabled:      false,
 			ListenPort:   9000,
 			ReadTimeout:  time.Second,
@@ -136,7 +136,7 @@ func (s *SignSuite) SetUpSuite(c *C) {
 	s.thordir = filepath.Join(os.TempDir(), ns, ".thorcli")
 	splitted := strings.SplitAfter(server.URL, ":")
 	s.rpcHost = splitted[len(splitted)-1]
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost:" + s.rpcHost,
 		SignerName:      "bob",
@@ -187,8 +187,8 @@ func (b *MockChainClient) SignTx(tai stypes.TxOutItem, height int64) ([]byte, er
 	return nil, nil
 }
 
-func (b *MockChainClient) GetConfig() config.ChainConfiguration {
-	return config.ChainConfiguration{}
+func (b *MockChainClient) GetConfig() config.BifrostChainConfiguration {
+	return config.BifrostChainConfiguration{}
 }
 
 func (b *MockChainClient) GetHeight() (int64, error) {
@@ -318,9 +318,9 @@ func (s *SignSuite) TestHandleYggReturn_Success_NotEnough(c *C) {
 }
 
 func (s *SignSuite) TestProcess(c *C) {
-	cfg := config.SignerConfiguration{
+	cfg := config.BifrostSignerConfiguration{
 		SignerDbPath: filepath.Join(os.TempDir(), "/var/data/bifrost/signer"),
-		BlockScanner: config.BlockScannerConfiguration{
+		BlockScanner: config.BifrostBlockScannerConfiguration{
 			RPCHost:                    "127.0.0.1:" + s.rpcHost,
 			ChainID:                    "ThorChain",
 			StartBlockHeight:           1,

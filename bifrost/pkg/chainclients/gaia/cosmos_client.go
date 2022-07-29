@@ -28,7 +28,6 @@ import (
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
@@ -37,6 +36,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 )
@@ -52,7 +52,7 @@ var CosmosSuccessCodes = map[uint32]bool{
 // CosmosClient is a structure to sign and broadcast tx to Cosmos chain used by signer mostly
 type CosmosClient struct {
 	logger              zerolog.Logger
-	cfg                 config.ChainConfiguration
+	cfg                 config.BifrostChainConfiguration
 	chainID             string
 	txConfig            client.TxConfig
 	txClient            txtypes.ServiceClient
@@ -74,7 +74,7 @@ type CosmosClient struct {
 // NewCosmosClient creates a new instance of a Cosmos-based chain client
 func NewCosmosClient(
 	thorKeys *thorclient.Keys,
-	cfg config.ChainConfiguration,
+	cfg config.BifrostChainConfiguration,
 	server *tssp.TssServer,
 	thorchainBridge *thorclient.ThorchainBridge,
 	m *metrics.Metrics,
@@ -198,7 +198,7 @@ func (c *CosmosClient) Stop() {
 }
 
 // GetConfig return the configuration used by Cosmos chain client
-func (c *CosmosClient) GetConfig() config.ChainConfiguration {
+func (c *CosmosClient) GetConfig() config.BifrostChainConfiguration {
 	return c.cfg
 }
 

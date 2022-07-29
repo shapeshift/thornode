@@ -8,15 +8,15 @@ import (
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type KeygenSuite struct {
 	server  *httptest.Server
 	bridge  *ThorchainBridge
-	cfg     config.ClientConfiguration
+	cfg     config.BifrostClientConfiguration
 	fixture string
 	kb      ckeys.Keyring
 }

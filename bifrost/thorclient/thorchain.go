@@ -26,11 +26,11 @@ import (
 	rpchttp "github.com/tendermint/tendermint/rpc/client/http"
 
 	"gitlab.com/thorchain/thornode/app"
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
 	stypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -59,7 +59,7 @@ const (
 // ThorchainBridge will be used to send tx to THORChain
 type ThorchainBridge struct {
 	logger        zerolog.Logger
-	cfg           config.ClientConfiguration
+	cfg           config.BifrostClientConfiguration
 	keys          *Keys
 	errCounter    *prometheus.CounterVec
 	m             *metrics.Metrics
@@ -74,7 +74,7 @@ type ThorchainBridge struct {
 }
 
 // NewThorchainBridge create a new instance of ThorchainBridge
-func NewThorchainBridge(cfg config.ClientConfiguration, m *metrics.Metrics, k *Keys) (*ThorchainBridge, error) {
+func NewThorchainBridge(cfg config.BifrostClientConfiguration, m *metrics.Metrics, k *Keys) (*ThorchainBridge, error) {
 	// main module logger
 	logger := log.With().Str("module", "thorchain_client").Logger()
 
@@ -203,7 +203,7 @@ func (b *ThorchainBridge) getAccountNumberAndSequenceNumber() (uint64, uint64, e
 }
 
 // GetConfig return the configuration
-func (b *ThorchainBridge) GetConfig() config.ClientConfiguration {
+func (b *ThorchainBridge) GetConfig() config.BifrostClientConfiguration {
 	return b.cfg
 }
 

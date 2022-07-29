@@ -8,17 +8,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
-	"gitlab.com/thorchain/thornode/bifrost/config"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
 var m *metrics.Metrics
 
-func SetupThorchainForTest(c *C) (config.ClientConfiguration, cKeys.Info, cKeys.Keyring) {
+func SetupThorchainForTest(c *C) (config.BifrostClientConfiguration, cKeys.Info, cKeys.Keyring) {
 	thorchain.SetupConfigForTest()
-	cfg := config.ClientConfiguration{
+	cfg := config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
 		ChainHost:       "localhost",
 		ChainRPC:        "localhost",
@@ -41,7 +41,7 @@ func SetupThorchainForTest(c *C) (config.ClientConfiguration, cKeys.Info, cKeys.
 func GetMetricForTest(c *C) *metrics.Metrics {
 	if m == nil {
 		var err error
-		m, err = metrics.NewMetrics(config.MetricsConfiguration{
+		m, err = metrics.NewMetrics(config.BifrostMetricsConfiguration{
 			Enabled:      false,
 			ListenPort:   9000,
 			ReadTimeout:  time.Second,
