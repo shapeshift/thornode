@@ -1147,6 +1147,24 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	return nil
 }
 
+// get the total bond of the bottom 2/3rds active nodes
+func getEffectiveSecurityBond(nas NodeAccounts) cosmos.Uint {
+	amt := cosmos.ZeroUint()
+	sort.SliceStable(nas, func(i, j int) bool {
+		return nas[i].Bond.LT(nas[j].Bond)
+	})
+	t := len(nas) * 2 / 3
+	if len(nas)%3 == 0 {
+		t -= 1
+	}
+	for i, na := range nas {
+		if i <= t {
+			amt = amt.Add(na.Bond)
+		}
+	}
+	return amt
+}
+
 // In the case where the max gas of the chain of a queued outbound tx has changed
 // Update the ObservedTxVoter so the network can still match the outbound with
 // the observed inbound

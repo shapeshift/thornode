@@ -50,6 +50,8 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.95.0")):
+		return h.validateV95(ctx, msg)
 	case version.GTE(semver.MustParse("1.93.0")):
 		return h.validateV93(ctx, msg)
 	case version.GTE(semver.MustParse("0.76.0")):
@@ -59,7 +61,7 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	}
 }
 
-func (h AddLiquidityHandler) validateV93(ctx cosmos.Context, msg MsgAddLiquidity) error {
+func (h AddLiquidityHandler) validateV95(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if err := msg.ValidateBasicV93(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
@@ -121,12 +123,12 @@ func (h AddLiquidityHandler) validateV93(ctx cosmos.Context, msg MsgAddLiquidity
 	if !ensureLiquidityNoLargerThanBond {
 		return nil
 	}
-	totalBondRune, err := h.getTotalActiveBond(ctx)
+	securityBond, err := h.getEffectiveSecurityBond(ctx)
 	if err != nil {
-		return ErrInternal(err, "fail to get total bond RUNE")
+		return ErrInternal(err, "fail to get security bond RUNE")
 	}
-	if totalLiquidityRUNE.GT(totalBondRune) {
-		ctx.Logger().Info("total liquidity RUNE is more than total Bond", "rune", totalLiquidityRUNE.String(), "bond", totalBondRune.String())
+	if totalLiquidityRUNE.GT(securityBond) {
+		ctx.Logger().Info("total liquidity RUNE is more than effective security bond", "rune", totalLiquidityRUNE.String(), "bond", securityBond.String())
 		return errAddLiquidityRUNEMoreThanBond
 	}
 
@@ -533,20 +535,13 @@ func (h AddLiquidityHandler) addLiquidityV90(ctx cosmos.Context,
 	return nil
 }
 
-// getTotalActiveBond
-func (h AddLiquidityHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
-	nodeAccounts, err := h.mgr.Keeper().ListValidatorsWithBond(ctx)
+// get the total bond of the bottom 2/3rds active validators
+func (h AddLiquidityHandler) getEffectiveSecurityBond(ctx cosmos.Context) (cosmos.Uint, error) {
+	nodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), err
 	}
-	total := cosmos.ZeroUint()
-	for _, na := range nodeAccounts {
-		if na.Status != NodeActive {
-			continue
-		}
-		total = total.Add(na.Bond)
-	}
-	return total, nil
+	return getEffectiveSecurityBond(nodeAccounts), nil
 }
 
 // getTotalLiquidityRUNE we have in all pools
