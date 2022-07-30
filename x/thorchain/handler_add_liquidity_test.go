@@ -48,6 +48,10 @@ func (m *MockAddLiquidityKeeper) ListValidatorsWithBond(_ cosmos.Context) (NodeA
 	return NodeAccounts{m.activeNodeAccount}, nil
 }
 
+func (m *MockAddLiquidityKeeper) ListActiveValidators(_ cosmos.Context) (NodeAccounts, error) {
+	return NodeAccounts{m.activeNodeAccount}, nil
+}
+
 func (m *MockAddLiquidityKeeper) GetNodeAccount(_ cosmos.Context, addr cosmos.AccAddress) (NodeAccount, error) {
 	if m.activeNodeAccount.NodeAddress.Equals(addr) {
 		return m.activeNodeAccount, nil
