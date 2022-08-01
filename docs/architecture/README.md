@@ -49,7 +49,7 @@ None
 
 ### Proposed
 
-None
+- [004 - Keyshare Backups](./adr-004-keyshare-backups.md)
 
 ### On Pause
 
