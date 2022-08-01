@@ -32,9 +32,7 @@ func NewCoin(asset Asset, amount cosmos.Uint) Coin {
 // NewCoins create a new Coins structure
 func NewCoins(coins ...Coin) Coins {
 	result := make(Coins, len(coins))
-	for i, c := range coins {
-		result[i] = c
-	}
+	copy(result, coins)
 	return result
 }
 
