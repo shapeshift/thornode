@@ -89,13 +89,12 @@ format:
 lint:
 	@./scripts/lint.sh
 	@go run tools/analyze/main.go ./common/... ./constants/... ./x/...
-ifdef CI_MERGE_REQUEST_TARGET_BRANCH_NAME
-	./scripts/trunk check --no-progress --monitor=false --upstream origin/$(CI_MERGE_REQUEST_TARGET_BRANCH_NAME)
-else
-ifndef CI_PROJECT_ID
-	./scripts/trunk check --no-fix --upstream origin/develop
-endif
-endif
+	@./scripts/trunk check --no-fix --upstream origin/develop
+
+lint-ci:
+	@./scripts/lint.sh
+	@go run tools/analyze/main.go ./common/... ./constants/... ./x/...
+	@./scripts/trunk check --all --no-progress --monitor=false
 
 clean:
 	rm -rf ~/.thor*

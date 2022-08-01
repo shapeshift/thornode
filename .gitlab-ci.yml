@@ -74,10 +74,10 @@ lint:
     - testnet-multichain
     - chaosnet-multichain
   before_script:
-    - git fetch origin develop $CI_MERGE_REQUEST_TARGET_BRANCH_NAME
+    - git fetch origin develop
     - ./scripts/trunk check download
   script:
-    - make lint
+    - make lint-ci
 
 build-thornode:
   stage: build
