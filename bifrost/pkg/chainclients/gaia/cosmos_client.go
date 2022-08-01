@@ -571,8 +571,11 @@ func (c *CosmosClient) ReportSolvency(blockHeight int64) error {
 }
 
 func (c *CosmosClient) ShouldReportSolvency(height int64) bool {
-	// Block time on Cosmos-based chains generally hovers around 6 seconds (10 blocks/min).
-	return height%10 == 0
+	// Block time on Cosmos-based chains generally hovers around 6 seconds (10
+	// blocks/min). Since the last fee is used as a buffer we also want to ensure that is
+	// non-zero (enough blocks have been seen) before checking insolvency to avoid false
+	// positives.
+	return height%10 == 0 && !c.cosmosScanner.lastFee.IsZero()
 }
 
 // OnObservedTxIn update the signer cache (in case we haven't already)
