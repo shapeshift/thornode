@@ -363,10 +363,11 @@ services:
   # ------------------------------ bitcoin ------------------------------
 
   bitcoin:
+    user: root
     profiles:
       - mocknet
       - mocknet-cluster
-    image: registry.gitlab.com/thorchain/devops/node-launcher:bitcoin-daemon-22.0
+    image: registry.gitlab.com/thorchain/devops/node-launcher:bitcoin-daemon-23.0-glibc
     restart: unless-stopped
     environment:
       BLOCK_TIME: ${BLOCK_TIME:-1}
@@ -393,10 +394,11 @@ services:
   # ------------------------------ dogecoin ------------------------------
 
   dogecoin:
+    user: root
     profiles:
       - mocknet
       - mocknet-cluster
-    image: registry.gitlab.com/thorchain/devops/node-launcher:dogecoin-daemon-1.14.5
+    image: registry.gitlab.com/thorchain/devops/node-launcher:dogecoin-daemon-1.14.6
     restart: unless-stopped
     environment:
       BLOCK_TIME: ${BLOCK_TIME:-1}
