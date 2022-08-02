@@ -137,7 +137,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		}
 		// when the utxo is signed yggdrasil / asgard , even amount is less than minSpendableUTXOAmountSats
 		// it is ok to spend it
-		if item.Amount <= minUTXOAmt && !isSelfTx && !isYggdrasil {
+		if item.Amount < minUTXOAmt && !isSelfTx && !isYggdrasil {
 			continue
 		}
 		if isYggdrasil || item.Confirmations >= MinUTXOConfirmation || isSelfTx {
