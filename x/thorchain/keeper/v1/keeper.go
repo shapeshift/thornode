@@ -329,6 +329,21 @@ func (k KVStore) MintToModule(ctx cosmos.Context, module string, coin common.Coi
 		return fmt.Errorf("fail to mint assets: %w", err)
 	}
 
+	if k.GetVersion().GTE(semver.MustParse("1.95.0")) {
+		// check if we've exceeded max rune supply cap. If we have, there could
+		// be an issue (infinite mint bug/exploit), or maybe runway rune
+		// hyperinflation. In any case, pause everything and allow the
+		// community time to find a solution to the issue.
+		coin := k.coinKeeper.GetSupply(ctx, common.RuneAsset().Native())
+		maxAmt, _ := k.GetMimir(ctx, "MaxRuneSupply")
+		if maxAmt > 0 && coin.Amount.GT(cosmos.NewInt(maxAmt)) {
+			k.SetMimir(ctx, "HaltTrading", 1)
+			k.SetMimir(ctx, "HaltChainGlobal", 1)
+			k.SetMimir(ctx, "PauseLP", 1)
+			k.SetMimir(ctx, "HaltTHORChain", 1)
+		}
+	}
+
 	return nil
 }
 
