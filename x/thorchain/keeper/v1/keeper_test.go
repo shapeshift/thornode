@@ -131,3 +131,41 @@ func (KeeperTestSuit) TestKeeperVersion(c *C) {
 	coins = k.GetBalance(ctx, GetRandomBech32Addr())
 	c.Check(coins, HasLen, 0)
 }
+
+func (KeeperTestSuit) TestMaxMint(c *C) {
+	ctx, k := setupKeeperForTest(c)
+
+	max := int64(200000000_00000000)
+	k.SetMimir(ctx, "MaxRuneSupply", max)
+
+	// check value is zero first
+	val, err := k.GetMimir(ctx, "HaltTrading")
+	c.Assert(err, IsNil)
+	c.Check(val, Equals, int64(-1))
+
+	// max NOT hit
+	err = k.MintToModule(ctx, ModuleName, common.NewCoin(common.RuneAsset(), cosmos.NewUint(5_00000000)))
+	c.Assert(err, IsNil)
+	val, err = k.GetMimir(ctx, "HaltTrading")
+	c.Assert(err, IsNil)
+	c.Check(val, Equals, int64(-1))
+
+	// max hit
+	err = k.MintToModule(ctx, ModuleName, common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(max*2))))
+	c.Assert(err, IsNil)
+	val, err = k.GetMimir(ctx, "HaltTrading")
+	c.Assert(err, IsNil)
+	c.Check(val, Equals, int64(1))
+
+	val, err = k.GetMimir(ctx, "HaltChainGlobal")
+	c.Assert(err, IsNil)
+	c.Check(val, Equals, int64(1))
+
+	val, err = k.GetMimir(ctx, "PauseLP")
+	c.Assert(err, IsNil)
+	c.Check(val, Equals, int64(1))
+
+	val, err = k.GetMimir(ctx, "HaltTHORChain")
+	c.Assert(err, IsNil)
+	c.Check(val, Equals, int64(1))
+}
