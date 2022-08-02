@@ -8,12 +8,12 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type SwapQueueV94Suite struct{}
+type SwapQueueV95Suite struct{}
 
-var _ = Suite(&SwapQueueV94Suite{})
+var _ = Suite(&SwapQueueV95Suite{})
 
-func (s SwapQueueV94Suite) TestGetTodoNum(c *C) {
-	queue := newSwapQv94(keeper.KVStoreDummy{})
+func (s SwapQueueV95Suite) TestGetTodoNum(c *C) {
+	queue := newSwapQv95(keeper.KVStoreDummy{})
 
 	c.Check(queue.getTodoNum(50, 10, 100), Equals, int64(25))     // halves it
 	c.Check(queue.getTodoNum(11, 10, 100), Equals, int64(5))      // halves it
@@ -24,7 +24,7 @@ func (s SwapQueueV94Suite) TestGetTodoNum(c *C) {
 	c.Check(queue.getTodoNum(200, 10, 100), Equals, int64(100))   // does max 100
 }
 
-func (s SwapQueueV94Suite) TestScoreMsgs(c *C) {
+func (s SwapQueueV95Suite) TestScoreMsgs(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	pool := NewPool()
@@ -37,8 +37,14 @@ func (s SwapQueueV94Suite) TestScoreMsgs(c *C) {
 	pool.BalanceRune = cosmos.NewUint(73708333 * common.One)
 	pool.BalanceAsset = cosmos.NewUint(1000 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
+	pool = NewPool()
+	pool.Asset = common.ETHAsset
+	pool.BalanceRune = cosmos.NewUint(1000 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(1000 * common.One)
+	pool.Status = PoolStaged
+	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	queue := newSwapQv94(k)
+	queue := newSwapQv95(k)
 
 	// check that we sort by liquidity ok
 	msgs := []*MsgSwap{
@@ -93,6 +99,15 @@ func (s SwapQueueV94Suite) TestScoreMsgs(c *C) {
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
+
+		// synthetics can be redeemed on unavailable pools, should score
+		NewMsgSwap(common.Tx{
+			ID:    GetRandomTxHash(),
+			Coins: common.Coins{common.NewCoin(common.ETHAsset.GetSyntheticAsset(), cosmos.NewUint(3*common.One))},
+		}, common.RuneAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
+			"", "", nil,
+			MarketOrder,
+			GetRandomBech32Addr()),
 	}
 
 	swaps := make(swapItems, len(msgs))
@@ -106,15 +121,16 @@ func (s SwapQueueV94Suite) TestScoreMsgs(c *C) {
 	swaps, err := queue.scoreMsgs(ctx, swaps, 1)
 	c.Assert(err, IsNil)
 	swaps = swaps.Sort()
-	c.Check(swaps, HasLen, 7)
+	c.Check(swaps, HasLen, 8)
 	c.Check(swaps[0].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(151*common.One)), Equals, true, Commentf("%d", swaps[0].msg.Tx.Coins[0].Amount.Uint64()))
 	c.Check(swaps[1].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(150*common.One)), Equals, true, Commentf("%d", swaps[1].msg.Tx.Coins[0].Amount.Uint64()))
 	// 50 BNB is worth more than 100 RUNE
 	c.Check(swaps[2].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(50*common.One)), Equals, true, Commentf("%d", swaps[2].msg.Tx.Coins[0].Amount.Uint64()))
-	c.Check(swaps[3].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(100*common.One)), Equals, true, Commentf("%d", swaps[3].msg.Tx.Coins[0].Amount.Uint64()))
-	c.Check(swaps[4].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(10*common.One)), Equals, true, Commentf("%d", swaps[4].msg.Tx.Coins[0].Amount.Uint64()))
-	c.Check(swaps[5].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(2*common.One)), Equals, true, Commentf("%d", swaps[5].msg.Tx.Coins[0].Amount.Uint64()))
-	c.Check(swaps[6].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(1*common.One)), Equals, true, Commentf("%d", swaps[6].msg.Tx.Coins[0].Amount.Uint64()))
+	c.Check(swaps[3].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(3*common.One)), Equals, true, Commentf("%d", swaps[3].msg.Tx.Coins[0].Amount.Uint64()))
+	c.Check(swaps[4].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(100*common.One)), Equals, true, Commentf("%d", swaps[4].msg.Tx.Coins[0].Amount.Uint64()))
+	c.Check(swaps[5].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(10*common.One)), Equals, true, Commentf("%d", swaps[5].msg.Tx.Coins[0].Amount.Uint64()))
+	c.Check(swaps[6].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(2*common.One)), Equals, true, Commentf("%d", swaps[6].msg.Tx.Coins[0].Amount.Uint64()))
+	c.Check(swaps[7].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(1*common.One)), Equals, true, Commentf("%d", swaps[7].msg.Tx.Coins[0].Amount.Uint64()))
 
 	// check that slip is taken into account
 	msgs = []*MsgSwap{
