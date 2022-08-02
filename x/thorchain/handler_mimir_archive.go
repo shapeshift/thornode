@@ -10,6 +10,19 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
+func (h MimirHandler) validateV78(ctx cosmos.Context, msg MsgMimir) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+	if !mimirValidKey(msg.Key) || len(msg.Key) > 64 {
+		return cosmos.ErrUnknownRequest("invalid mimir key")
+	}
+	if !h.isAdmin(msg.Signer) && !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	}
+	return nil
+}
+
 func (h MimirHandler) handleV87(ctx cosmos.Context, msg MsgMimir) error {
 	if h.isAdmin(msg.Signer) {
 		if msg.Value < 0 {

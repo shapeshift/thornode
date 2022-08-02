@@ -127,4 +127,8 @@ func (s *HandlerMimirSuite) TestMimirHandle(c *C) {
 	mvalue, err = keeper.GetMimir(ctx, "node-mimir")
 	c.Assert(err, IsNil)
 	c.Assert(mvalue, Equals, int64(0))
+
+	result, err = handler.Run(ctx, NewMsgMimir("node-mimir-1", 0, na2.NodeAddress))
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
 }

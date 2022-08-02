@@ -13,7 +13,10 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-var mimirValidKey = regexp.MustCompile(`^[a-zA-Z-]+$`).MatchString
+var (
+	mimirValidKey    = regexp.MustCompile(`^[a-zA-Z-]+$`).MatchString
+	mimirValidKeyV95 = regexp.MustCompile(constants.MimirKeyRegex).MatchString
+)
 
 // MimirHandler is to handle admin messages
 type MimirHandler struct {
@@ -47,10 +50,14 @@ func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, err
 
 func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.78.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.95.0")):
+		return h.validateV95(ctx, msg)
+	case version.GTE(semver.MustParse("0.78.0")):
 		return h.validateV78(ctx, msg)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
 func (h MimirHandler) isAdmin(acc cosmos.AccAddress) bool {
@@ -63,11 +70,11 @@ func (h MimirHandler) isAdmin(acc cosmos.AccAddress) bool {
 	return false
 }
 
-func (h MimirHandler) validateV78(ctx cosmos.Context, msg MsgMimir) error {
+func (h MimirHandler) validateV95(ctx cosmos.Context, msg MsgMimir) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
-	if !mimirValidKey(msg.Key) || len(msg.Key) > 64 {
+	if !mimirValidKeyV95(msg.Key) || len(msg.Key) > 64 {
 		return cosmos.ErrUnknownRequest("invalid mimir key")
 	}
 	if !h.isAdmin(msg.Signer) && !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
