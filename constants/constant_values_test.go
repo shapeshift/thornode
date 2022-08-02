@@ -1,6 +1,8 @@
 package constants
 
 import (
+	"regexp"
+
 	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 )
@@ -38,4 +40,13 @@ func (ConstantsTestSuite) TestGetConstantValues(c *C) {
 	ver := semver.MustParse("0.0.9")
 	c.Assert(GetConstantValues(ver), IsNil)
 	c.Assert(GetConstantValues(SWVersion), NotNil)
+}
+
+func (ConstantsTestSuite) TestAllConstantName(c *C) {
+	keyRegex := regexp.MustCompile(MimirKeyRegex).MatchString
+	for key := range nameToString {
+		if !keyRegex(key.String()) {
+			c.Errorf("key:%s can't be used to set mimir", key)
+		}
+	}
 }
