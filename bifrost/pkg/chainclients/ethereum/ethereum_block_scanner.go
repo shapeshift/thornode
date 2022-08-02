@@ -145,7 +145,7 @@ func NewETHScanner(cfg config.BifrostBlockScannerConfiguration,
 		client:               client,
 		db:                   storage,
 		m:                    m,
-		gasPrice:             big.NewInt(0),
+		gasPrice:             big.NewInt(initialGasPrice),
 		lastReportedGasPrice: 0,
 		gasPriceChanged:      false,
 		blockMetaAccessor:    blockMetaAccessor,
@@ -255,6 +255,9 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 
 		// gas price to 1e8
 		tcGasPrice := new(big.Int).Div(gasPrice, big.NewInt(common.One*100)).Uint64()
+		if tcGasPrice == 0 {
+			tcGasPrice = 1
+		}
 
 		// skip posting if the fee has not changed
 		if tcGasPrice == e.lastReportedGasPrice {

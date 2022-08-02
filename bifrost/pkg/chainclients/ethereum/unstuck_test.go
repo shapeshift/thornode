@@ -181,7 +181,7 @@ func (s *UnstuckTestSuite) TestUnstuckProcess(c *C) {
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight:    1, // avoids querying thorchain for block height
 			HTTPRequestTimeout:  time.Second * 10,
-			SuggestedFeeVersion: 1,
+			SuggestedFeeVersion: 2,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
