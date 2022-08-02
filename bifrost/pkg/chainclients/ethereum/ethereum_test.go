@@ -251,7 +251,7 @@ func (s *EthereumSuite) TestConvertSigningAmount(c *C) {
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight:    1, // avoids querying thorchain for block height
 			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			SuggestedFeeVersion: 2,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -285,7 +285,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight:    1, // avoids querying thorchain for block height
 			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			SuggestedFeeVersion: 2,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err2, IsNil)
@@ -295,9 +295,9 @@ func (s *EthereumSuite) TestClient(c *C) {
 	c.Check(e2.GetChain(), Equals, common.ETHChain)
 	height, err := e2.GetHeight()
 	c.Assert(err, IsNil)
-	c.Check(height, Equals, int64(7))
+	c.Check(height, Equals, int64(6))
 	gasPrice := e2.GetGasPrice()
-	c.Check(gasPrice.Uint64(), Equals, uint64(0))
+	c.Check(gasPrice.Uint64(), Equals, uint64(initialGasPrice))
 
 	acct, err := e2.GetAccount(types2.GetRandomPubKey(), nil)
 	c.Assert(err, IsNil)
@@ -368,7 +368,7 @@ func (s *EthereumSuite) TestGetAccount(c *C) {
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight:    1, // avoids querying thorchain for block height
 			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			SuggestedFeeVersion: 2,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -392,7 +392,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight:    1, // avoids querying thorchain for block height
 			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			SuggestedFeeVersion: 2,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -619,7 +619,7 @@ func (s *EthereumSuite) TestGetAsgardAddresses(c *C) {
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight:    1, // avoids querying thorchain for block height
 			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			SuggestedFeeVersion: 2,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -640,7 +640,7 @@ func (s *EthereumSuite) TestGetConfirmationCount(c *C) {
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			StartBlockHeight:    1, // avoids querying thorchain for block height
 			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			SuggestedFeeVersion: 2,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)

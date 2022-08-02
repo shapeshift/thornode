@@ -77,7 +77,7 @@ bifrost:
       block_scanner:
         <<: *default-block-scanner
         chain_id: ETH
-        suggested_fee_version: 1
+        suggested_fee_version: 2
     doge:
       <<: *default-chain
       chain_id: DOGE

@@ -70,7 +70,7 @@ func getConfigForTest(rpcHost string) config.BifrostBlockScannerConfiguration {
 		MaxHTTPRequestRetry:        3,
 		BlockHeightDiscoverBackoff: time.Second,
 		BlockRetryInterval:         time.Second,
-		SuggestedFeeVersion:        1,
+		SuggestedFeeVersion:        2,
 	}
 }
 
@@ -653,7 +653,7 @@ func (s *BlockScannerTestSuite) TestGasPriceV2(c *C) {
 	// empty blocks should not count
 	bs.updateGasPriceV2([]*big.Int{})
 	c.Assert(len(bs.gasCache), Equals, 39)
-	c.Assert(bs.gasPrice.Cmp(big.NewInt(0)), Equals, 0)
+	c.Assert(bs.gasPrice.Cmp(big.NewInt(initialGasPrice)), Equals, 0)
 
 	// now we should get the average of the 25th percentile gas (2)
 	bs.updateGasPriceV2([]*big.Int{big.NewInt(1), big.NewInt(2), big.NewInt(3), big.NewInt(4)})
