@@ -18,7 +18,6 @@ import (
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/snapshots"
 	"github.com/cosmos/cosmos-sdk/store"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
 	"github.com/cosmos/cosmos-sdk/x/auth/types"
@@ -26,6 +25,7 @@ import (
 	genutilcli "github.com/cosmos/cosmos-sdk/x/genutil/client/cli"
 	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	tmcli "github.com/tendermint/tendermint/libs/cli"
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
@@ -93,6 +93,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		queryCommand(),
 		txCommand(),
 		cli.GetUtilCmd(),
+		compactCommand(),
 		keys.Commands(app.DefaultNodeHome(appName)),
 	)
 }
@@ -108,7 +109,6 @@ func addModuleInitFlags(startCmd *cobra.Command) {
 			return fmt.Errorf("fail to bind flags,err: %w", err)
 		}
 
-		_, err := server.GetPruningOptionsFromFlags(serverCtx.Viper)
 		filterModules := serverCtx.Viper.GetString("filter-modules")
 		if zw, ok := serverCtx.Logger.(server.ZeroLogWrapper); ok {
 			serverCtx.Logger = app.ThornodeLogWrapper{
@@ -117,7 +117,7 @@ func addModuleInitFlags(startCmd *cobra.Command) {
 			}
 			return server.SetCmdServerContext(startCmd, serverCtx)
 		}
-		return err
+		return nil
 	}
 }
 
@@ -185,6 +185,23 @@ func renderConfigCommand() *cobra.Command {
 	}
 }
 
+func compactCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:                        "compact",
+		Short:                      "force leveldb compaction",
+		DisableFlagParsing:         true,
+		SuggestionsMinimumDistance: 2,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			data := filepath.Join(app.DefaultNodeHome(appName), "data")
+			db, err := dbm.NewGoLevelDB("application", data)
+			if err != nil {
+				return err
+			}
+			return db.DB().CompactRange(util.Range{})
+		},
+	}
+}
+
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts servertypes.AppOptions) servertypes.Application {
 	var cache sdk.MultiStorePersistentCache
 
@@ -197,13 +214,17 @@ func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer, appOpts serverty
 		skipUpgradeHeights[int64(h)] = true
 	}
 
-	pruningOpts := storetypes.NewPruningOptionsFromString(storetypes.PruningOptionNothing)
 	snapshotDir := filepath.Join(cast.ToString(appOpts.Get(flags.FlagHome)), "data", "snapshots")
 	snapshotDB, err := sdk.NewLevelDB("metadata", snapshotDir)
 	if err != nil {
 		panic(err)
 	}
 	snapshotStore, err := snapshots.NewStore(snapshotDB, snapshotDir)
+	if err != nil {
+		panic(err)
+	}
+
+	pruningOpts, err := server.GetPruningOptionsFromFlags(appOpts)
 	if err != nil {
 		panic(err)
 	}
