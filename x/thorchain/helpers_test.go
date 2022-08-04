@@ -914,3 +914,53 @@ func (s *HelperSuite) TestSecurityBond(c *C) {
 	}
 	c.Assert(getEffectiveSecurityBond(nas).Uint64(), Equals, uint64(100), Commentf("%d", getEffectiveSecurityBond(nas).Uint64()))
 }
+
+func (s *HelperSuite) TestGetHardBondCap(c *C) {
+	nas := make(NodeAccounts, 0)
+	c.Assert(getHardBondCap(nas).Uint64(), Equals, uint64(0), Commentf("%d", getHardBondCap(nas).Uint64()))
+
+	nas = NodeAccounts{
+		NodeAccount{Bond: cosmos.NewUint(10)},
+	}
+	c.Assert(getHardBondCap(nas).Uint64(), Equals, uint64(10), Commentf("%d", getHardBondCap(nas).Uint64()))
+
+	nas = NodeAccounts{
+		NodeAccount{Bond: cosmos.NewUint(10)},
+		NodeAccount{Bond: cosmos.NewUint(20)},
+	}
+	c.Assert(getHardBondCap(nas).Uint64(), Equals, uint64(20), Commentf("%d", getHardBondCap(nas).Uint64()))
+
+	nas = NodeAccounts{
+		NodeAccount{Bond: cosmos.NewUint(10)},
+		NodeAccount{Bond: cosmos.NewUint(20)},
+		NodeAccount{Bond: cosmos.NewUint(30)},
+	}
+	c.Assert(getHardBondCap(nas).Uint64(), Equals, uint64(20), Commentf("%d", getHardBondCap(nas).Uint64()))
+
+	nas = NodeAccounts{
+		NodeAccount{Bond: cosmos.NewUint(10)},
+		NodeAccount{Bond: cosmos.NewUint(20)},
+		NodeAccount{Bond: cosmos.NewUint(30)},
+		NodeAccount{Bond: cosmos.NewUint(40)},
+	}
+	c.Assert(getHardBondCap(nas).Uint64(), Equals, uint64(30), Commentf("%d", getHardBondCap(nas).Uint64()))
+
+	nas = NodeAccounts{
+		NodeAccount{Bond: cosmos.NewUint(10)},
+		NodeAccount{Bond: cosmos.NewUint(20)},
+		NodeAccount{Bond: cosmos.NewUint(30)},
+		NodeAccount{Bond: cosmos.NewUint(40)},
+		NodeAccount{Bond: cosmos.NewUint(50)},
+	}
+	c.Assert(getHardBondCap(nas).Uint64(), Equals, uint64(40), Commentf("%d", getHardBondCap(nas).Uint64()))
+
+	nas = NodeAccounts{
+		NodeAccount{Bond: cosmos.NewUint(10)},
+		NodeAccount{Bond: cosmos.NewUint(20)},
+		NodeAccount{Bond: cosmos.NewUint(30)},
+		NodeAccount{Bond: cosmos.NewUint(40)},
+		NodeAccount{Bond: cosmos.NewUint(50)},
+		NodeAccount{Bond: cosmos.NewUint(60)},
+	}
+	c.Assert(getHardBondCap(nas).Uint64(), Equals, uint64(40), Commentf("%d", getHardBondCap(nas).Uint64()))
+}

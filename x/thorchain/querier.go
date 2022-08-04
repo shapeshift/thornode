@@ -476,6 +476,11 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	}
 	bp.Adjust(nodeAcc.Bond)
 
+	active, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get all active node account: %w", err)
+	}
+
 	result := NewQueryNodeAccount(nodeAcc)
 	result.SlashPoints = slashPts
 	result.Jail = jail
@@ -496,20 +501,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 			return nil, fmt.Errorf("no active vaults")
 		}
 
-		// Determine current bond-weighted hard cap
-		constAccessor := mgr.GetConstants()
-
-		minBondInRune, err := mgr.Keeper().GetMimir(ctx, constants.MinimumBondInRune.String())
-		if minBondInRune < 0 || err != nil {
-			minBondInRune = constAccessor.GetInt64Value(constants.MinimumBondInRune)
-		}
-
-		validatorMaxRewardRatio, err := mgr.Keeper().GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
-		if validatorMaxRewardRatio < 0 || err != nil {
-			validatorMaxRewardRatio = constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
-		}
-
-		bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
+		bondHardCap := getHardBondCap(active)
 		totalEffectiveBond, err := getTotalEffectiveBond(ctx, mgr, bondHardCap)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get total effective bond: %w", err)
@@ -630,6 +622,11 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
 	}
 
+	active, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get all active node account: %w", err)
+	}
+
 	network, err := mgr.Keeper().GetNetwork(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get network: %w", err)
@@ -643,23 +640,10 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		return nil, fmt.Errorf("no active vaults")
 	}
 
-	// Determine current bond-weighted hard cap
-	constAccessor := mgr.GetConstants()
-
-	minBondInRune, err := mgr.Keeper().GetMimir(ctx, constants.MinimumBondInRune.String())
-	if minBondInRune < 0 || err != nil {
-		minBondInRune = constAccessor.GetInt64Value(constants.MinimumBondInRune)
-	}
-
-	validatorMaxRewardRatio, err := mgr.Keeper().GetMimir(ctx, constants.ValidatorMaxRewardRatio.String())
-	if validatorMaxRewardRatio < 0 || err != nil {
-		validatorMaxRewardRatio = constAccessor.GetInt64Value(constants.ValidatorMaxRewardRatio)
-	}
-
-	bondHardCap := cosmos.NewUint(uint64(validatorMaxRewardRatio)).MulUint64(uint64(minBondInRune))
+	bondHardCap := getHardBondCap(active)
 	totalEffectiveBond, err := getTotalEffectiveBond(ctx, mgr, bondHardCap)
 	if err != nil {
-		return nil, fmt.Errorf("failed to calculate total effective bond: %w", err)
+		return nil, fmt.Errorf("fail to get total effective bond: %w", err)
 	}
 
 	lastChurnHeight := vaults[0].BlockHeight

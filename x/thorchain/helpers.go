@@ -1165,6 +1165,21 @@ func getEffectiveSecurityBond(nas NodeAccounts) cosmos.Uint {
 	return amt
 }
 
+// find the bond size the highest of the bottom 2/3rds node bonds
+func getHardBondCap(nas NodeAccounts) cosmos.Uint {
+	if len(nas) == 0 {
+		return cosmos.ZeroUint()
+	}
+	sort.SliceStable(nas, func(i, j int) bool {
+		return nas[i].Bond.LT(nas[j].Bond)
+	})
+	i := len(nas) * 2 / 3
+	if len(nas)%3 == 0 {
+		i -= 1
+	}
+	return nas[i].Bond
+}
+
 // In the case where the max gas of the chain of a queued outbound tx has changed
 // Update the ObservedTxVoter so the network can still match the outbound with
 // the observed inbound
