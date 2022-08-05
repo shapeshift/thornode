@@ -118,7 +118,7 @@ func (s SwapQueueV95Suite) TestScoreMsgs(c *C) {
 			slip: cosmos.ZeroUint(),
 		}
 	}
-	swaps, err := queue.scoreMsgs(ctx, swaps, 1)
+	swaps, err := queue.scoreMsgs(ctx, swaps, 10_000)
 	c.Assert(err, IsNil)
 	swaps = swaps.Sort()
 	c.Check(swaps, HasLen, 8)
@@ -222,7 +222,7 @@ func (s SwapQueueV95Suite) TestScoreMsgs(c *C) {
 			slip: cosmos.ZeroUint(),
 		}
 	}
-	swaps, err = queue.scoreMsgs(ctx, swaps, 1)
+	swaps, err = queue.scoreMsgs(ctx, swaps, 10_000)
 	c.Assert(err, IsNil)
 	swaps = swaps.Sort()
 	c.Assert(swaps, HasLen, 11)

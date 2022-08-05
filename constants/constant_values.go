@@ -61,6 +61,7 @@ const (
 	MaxSwapsPerBlock
 	MaxSynthPerAssetDepth
 	VirtualMultSynths
+	VirtualMultSynthsBasisPoints
 	MinSlashPointsForBadValidator
 	FullImpLossProtectionBlocks
 	BondLockupPeriod
@@ -135,6 +136,7 @@ var nameToString = map[ConstantName]string{
 	MinSwapsPerBlock:                   "MinSwapsPerBlock",
 	MaxSwapsPerBlock:                   "MaxSwapsPerBlock",
 	VirtualMultSynths:                  "VirtualMultSynths",
+	VirtualMultSynthsBasisPoints:       "VirtualMultSynthsBasisPoints",
 	MaxSynthPerAssetDepth:              "MaxSynthPerAssetDepth",
 	MinSlashPointsForBadValidator:      "MinSlashPointsForBadValidator",
 	FullImpLossProtectionBlocks:        "FullImpLossProtectionBlocks",
