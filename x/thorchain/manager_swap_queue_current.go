@@ -138,9 +138,9 @@ func (vm *SwapQv95) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	if maxSwapsPerBlock < 0 || err != nil {
 		maxSwapsPerBlock = mgr.GetConstants().GetInt64Value(constants.MaxSwapsPerBlock)
 	}
-	synthVirtualDepthMult, err := vm.k.GetMimir(ctx, constants.VirtualMultSynths.String())
+	synthVirtualDepthMult, err := vm.k.GetMimir(ctx, constants.VirtualMultSynthsBasisPoints.String())
 	if synthVirtualDepthMult < 1 || err != nil {
-		synthVirtualDepthMult = mgr.GetConstants().GetInt64Value(constants.VirtualMultSynths)
+		synthVirtualDepthMult = mgr.GetConstants().GetInt64Value(constants.VirtualMultSynthsBasisPoints)
 	}
 
 	swaps, err := vm.FetchQueue(ctx)
@@ -222,7 +222,7 @@ func (vm *SwapQv95) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualD
 		if !pool.IsAvailable() && !sourceAsset.IsSyntheticAsset() {
 			continue
 		}
-		virtualDepthMult := int64(1)
+		virtualDepthMult := int64(10_000)
 		if nonRuneAsset.IsSyntheticAsset() {
 			virtualDepthMult = synthVirtualDepthMult
 		}
@@ -239,7 +239,7 @@ func (vm *SwapQv95) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualD
 		if pool.IsEmpty() || !pool.IsAvailable() || pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
 			continue
 		}
-		virtualDepthMult = int64(1)
+		virtualDepthMult = int64(10_000)
 		if targetAsset.IsSyntheticAsset() {
 			virtualDepthMult = synthVirtualDepthMult
 		}
@@ -262,8 +262,8 @@ func (vm *SwapQv95) getLiquidityFeeAndSlip(ctx cosmos.Context, pool Pool, source
 		X = pool.BalanceAsset
 	}
 
-	X = X.MulUint64(uint64(virtualDepthMult))
-	Y = Y.MulUint64(uint64(virtualDepthMult))
+	X = common.GetUncappedShare(cosmos.NewUint(uint64(virtualDepthMult)), cosmos.NewUint(10_000), X)
+	Y = common.GetUncappedShare(cosmos.NewUint(uint64(virtualDepthMult)), cosmos.NewUint(10_000), Y)
 
 	swapper, err := GetSwapper(vm.k.GetVersion())
 	if err != nil {
