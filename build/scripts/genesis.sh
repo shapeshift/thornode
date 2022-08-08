@@ -13,13 +13,15 @@ fi
 NODES="${NODES:=1}"
 SEED="${SEED:=thornode}" # the hostname of the master node
 ETH_HOST="${ETH_HOST:=http://ethereum:8545}"
+AVAX_HOST="${AVAX_HOST:=http://avalanche:9650}"
+THOR_BLOCK_TIME="${THOR_BLOCK_TIME:=5s}"
 CHAIN_ID=${CHAIN_ID:=thorchain}
 
-# this is required as it need to run thornode init , otherwise tendermint related commant doesn't work
+# this is required as it need to run thornode init, otherwise tendermint related command doesn't work
 if [ "$SEED" = "$(hostname)" ]; then
   if [ ! -f ~/.thornode/config/priv_validator_key.json ]; then
     init_chain
-    # remove the original generate genesis file , as below will init chain again
+    # remove the original generate genesis file, as below will init chain again
     rm -rf ~/.thornode/config/genesis.json
   fi
 fi
@@ -61,8 +63,18 @@ if [ "$SEED" = "$(hostname)" ]; then
       add_account tthor1qk8c8sfrmfm0tkncs0zxeutc8v5mx3pjj07k4u rune 200000000000000 # pig
 
       reserve 22000000000000000
+
       # deploy eth contract
       deploy_eth_contract $ETH_HOST
+
+      # deploy avax contract
+      deploy_avax_contract $AVAX_HOST
+
+      # sets hardcoded contract address for Local EVM fork testing
+      # set_manual_avax_contract
+
+      # override block time for faster smoke tests
+      block_time "$THOR_BLOCK_TIME"
     else
       echo "ETH Contract Address: $CONTRACT"
       set_eth_contract "$CONTRACT"

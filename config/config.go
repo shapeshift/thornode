@@ -178,6 +178,18 @@ func Init() {
 		"ETH_START_BLOCK_HEIGHT",
 	))
 	assert(viper.BindEnv(
+		"bifrost.chains.AVAX.rpc_host",
+		"AVAX_HOST",
+	))
+	assert(viper.BindEnv(
+		"bifrost.chains.AVAX.block_scanner.rpc_host",
+		"AVAX_HOST",
+	))
+	assert(viper.BindEnv(
+		"bifrost.chains.AVAX.block_scanner.start_block_height",
+		"AVAX_START_BLOCK_HEIGHT",
+	))
+	assert(viper.BindEnv(
 		"bifrost.chains.DOGE.rpc_host",
 		"DOGE_HOST",
 	))
@@ -258,6 +270,7 @@ func Init() {
 	assert(viper.BindEnv("bifrost.chains.DOGE.disabled", "DOGE_DISABLED"))
 	assert(viper.BindEnv("bifrost.chains.LTC.disabled", "LTC_DISABLED"))
 	assert(viper.BindEnv("bifrost.chains.ETH.block_scanner.suggested_fee_version", "ETH_SUGGESTED_FEE_VERSION"))
+	assert(viper.BindEnv("bifrost.chains.AVAX.block_scanner.gas_cache_size", "AVAX_GAS_CACHE_SIZE"))
 
 	// always override from environment
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -657,6 +670,7 @@ type BifrostBlockScannerConfiguration struct {
 	DBPath                     string        `mapstructure:"db_path"`
 	ChainID                    common.Chain  `mapstructure:"chain_id"`
 	SuggestedFeeVersion        int           `mapstructure:"suggested_fee_version"`
+	GasCacheSize               int           `mapstructure:"gas_cache_size"`
 }
 
 func (b *BifrostBlockScannerConfiguration) Validate() {

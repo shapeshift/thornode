@@ -79,14 +79,33 @@ func (pubKey PubKey) String() string {
 	return string(pubKey)
 }
 
+// EVMPubkeyToAddress converts a pubkey of an EVM chain to the corresponding address
+func (pubKey PubKey) EVMPubkeyToAddress() (Address, error) {
+	// retrieve compressed pubkey bytes from bechh32 encoded str
+	pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, string(pubKey))
+	if err != nil {
+		return NoAddress, err
+	}
+	// parse compressed bytes removing 5 first bytes (amino encoding) to get uncompressed
+	pub, err := secp256k1.ParsePubKey(pk.Bytes(), secp256k1.S256())
+	if err != nil {
+		return NoAddress, err
+	}
+	str := strings.ToLower(eth.PubkeyToAddress(*pub.ToECDSA()).String())
+	return NewAddress(str)
+}
+
 // GetAddress will return an address for the given chain
 func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 	if pubKey.IsEmpty() {
 		return NoAddress, nil
 	}
 	chainNetwork := GetCurrentChainNetwork()
+	if chain.IsEVM() {
+		return pubKey.EVMPubkeyToAddress()
+	}
 	switch chain {
-	case BNBChain, TERRAChain, GAIAChain:
+	case BNBChain, TERRAChain, GAIAChain, THORChain:
 		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, string(pubKey))
 		if err != nil {
 			return NoAddress, err
@@ -95,29 +114,6 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 		if err != nil {
 			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err: %w", err)
 		}
-		return NewAddress(str)
-	case THORChain:
-		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, string(pubKey))
-		if err != nil {
-			return NoAddress, err
-		}
-		str, err := ConvertAndEncode(chain.AddressPrefix(chainNetwork), pk.Address().Bytes())
-		if err != nil {
-			return NoAddress, fmt.Errorf("fail to bech32 encode the address, err: %w", err)
-		}
-		return NewAddress(str)
-	case ETHChain, AVAXChain:
-		// retrieve compressed pubkey bytes from bechh32 encoded str
-		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, string(pubKey))
-		if err != nil {
-			return NoAddress, err
-		}
-		// parse compressed bytes removing 5 first bytes (amino encoding) to get uncompressed
-		pub, err := secp256k1.ParsePubKey(pk.Bytes(), secp256k1.S256())
-		if err != nil {
-			return NoAddress, err
-		}
-		str := strings.ToLower(eth.PubkeyToAddress(*pub.ToECDSA()).String())
 		return NewAddress(str)
 	case BTCChain:
 		pk, err := cosmos.GetPubKeyFromBech32(cosmos.Bech32PubKeyTypeAccPub, string(pubKey))

@@ -369,11 +369,40 @@ func fuzzyAssetMatchV83(ctx cosmos.Context, keeper keeper.Keeper, origAsset comm
 
 func externalAssetMatch(version semver.Version, chain common.Chain, hint string) string {
 	switch {
+	case version.GTE(semver.MustParse("1.95.0")):
+		return externalAssetMatchV95(version, chain, hint)
 	case version.GTE(semver.MustParse("1.93.0")):
 		return externalAssetMatchV93(version, chain, hint)
 	default:
 		return hint
 	}
+}
+
+func externalAssetMatchV95(version semver.Version, chain common.Chain, hint string) string {
+	if len(hint) == 0 {
+		return hint
+	}
+	if chain.IsEVM() {
+		// find all potential matches
+		matches := []string{}
+		for _, token := range tokenlist.GetEVMTokenList(chain, version).Tokens {
+			if strings.HasSuffix(strings.ToLower(token.Address), strings.ToLower(hint)) {
+				matches = append(matches, token.Address)
+				if len(matches) > 1 {
+					break
+				}
+			}
+		}
+		// if we only have one match, lets go with it, otherwise leave the
+		// user's input alone. It may still work, if it doesn't, should get the
+		// gas asset instead of the erc20 desired.
+		if len(matches) == 1 {
+			return matches[0]
+		}
+
+		return hint
+	}
+	return hint
 }
 
 func externalAssetMatchV93(version semver.Version, chain common.Chain, hint string) string {

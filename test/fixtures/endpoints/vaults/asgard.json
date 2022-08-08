@@ -50,7 +50,7 @@
       "tthorpub1addwnpepqt8j3lmacayajv4uwey7mrzf87zwj8jmhd3922j9dhjm79tcjtm52pwj7rq",
       "tthorpub1addwnpepqwuxxttdzav8ukwdpq5za69tfmq7ax99tjnzr7f7w94h6hpvdsr267ds6gw"
     ],
-    "chains": ["BCH", "BNB", "BTC", "ETH", "LTC", "THOR"],
+    "chains": ["BCH", "BNB", "BTC", "ETH", "LTC", "THOR", "AVAX"],
     "inbound_tx_count": 120,
     "outbound_tx_count": 94,
     "pending_tx_block_heights": [267190, 267190, 267190],
@@ -76,6 +76,10 @@
       {
         "chain": "ETH",
         "address": "0x2b2376f47d46c5ce513cdf73c7d2e71bf3be8f53"
+      },
+      {
+        "chain": "AVAX",
+        "contract": "0x2b2376f47d46c5ce513cdf73c7d2e71bf3be8f53"
       },
       {
         "chain": "LTC",
@@ -298,7 +302,7 @@
       "tthorpub1addwnpepqv04qarz0n4ppcuthux9png363cepmg83ej2t2lphdjpzxgu5lhzvr93vqg",
       "tthorpub1addwnpepqvfxu5clq0cupuvep6gqr0yzylthu6hzqf6tlz52eu0gw9qwetv57e05puz"
     ],
-    "chains": ["BCH", "BNB", "BTC", "ETH", "LTC", "THOR"],
+    "chains": ["BCH", "BNB", "BTC", "ETH", "LTC", "THOR", "AVAX"],
     "inbound_tx_count": 94,
     "outbound_tx_count": 6,
     "routers": [
@@ -322,6 +326,10 @@
       },
       {
         "chain": "ETH",
+        "address": "0x73293276442cbcf843484476497eb83d2ea13684"
+      },
+      {
+        "chain": "AVAX",
         "address": "0x73293276442cbcf843484476497eb83d2ea13684"
       },
       {

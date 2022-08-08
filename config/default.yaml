@@ -78,6 +78,13 @@ bifrost:
         <<: *default-block-scanner
         chain_id: ETH
         suggested_fee_version: 2
+    avax:
+      <<: *default-chain
+      chain_id: AVAX
+      block_scanner:
+        <<: *default-block-scanner
+        chain_id: AVAX
+        gas_cache_size: 40
     doge:
       <<: *default-chain
       chain_id: DOGE
