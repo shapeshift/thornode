@@ -597,7 +597,7 @@
   "vaults": [
     {
       "block_height": "24",
-      "chains": ["THOR", "BTC", "LTC", "BCH", "BNB", "ETH"],
+      "chains": ["THOR", "BTC", "LTC", "BCH", "BNB", "ETH", "AVAX"],
       "coins": [
         {
           "amount": "1000000000000000",
@@ -620,6 +620,10 @@
         {
           "chain": "ETH",
           "contract": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
+        },
+        {
+          "chain": "AVAX",
+          "contract": "0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25"
         }
       ],
       "inbound_tx_count": "4",

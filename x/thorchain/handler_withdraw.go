@@ -200,6 +200,7 @@ func (h WithdrawLiquidityHandler) handleV94(ctx cosmos.Context, msg MsgWithdrawL
 
 	if !assetAmt.IsZero() {
 		coin := common.NewCoin(msg.Asset, assetAmt)
+		// TODO: this might be an issue for single sided/AVAX->ETH, ETH -> AVAX
 		if !msg.Asset.IsNativeRune() && !lp.AssetAddress.IsChain(msg.Asset.Chain) {
 			if err := h.swapV93(ctx, msg, coin, lp.AssetAddress); err != nil {
 				return nil, err

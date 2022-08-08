@@ -71,6 +71,27 @@ func (c Chain) IsTHORChain() bool {
 	return c.Equals(THORChain)
 }
 
+// GetEVMChains returns all "EVM" chains connected to THORChain
+// "EVM" is defined, in thornode's context, as a chain that:
+// - uses 0x as an address prefix
+// - has a "Router" Smart Contract
+func GetEVMChains() []Chain {
+	return []Chain{ETHChain, AVAXChain}
+}
+
+// IsEVM returns true if given chain is an EVM chain.
+// See working definition of an "EVM" chain in the
+// `GetEVMChains` function description
+func (c Chain) IsEVM() bool {
+	evmChains := GetEVMChains()
+	for _, evm := range evmChains {
+		if c.Equals(evm) {
+			return true
+		}
+	}
+	return false
+}
+
 // IsEmpty is to determinate whether the chain is empty
 func (c Chain) IsEmpty() bool {
 	return strings.TrimSpace(c.String()) == ""
@@ -112,6 +133,8 @@ func (c Chain) GetGasAsset() Asset {
 		return ETHAsset
 	case TERRAChain:
 		return LUNAAsset
+	case AVAXChain:
+		return AVAXAsset
 	case GAIAChain:
 		return ATOMAsset
 	default:
@@ -141,6 +164,9 @@ func (c Chain) IsValidAddress(addr Address) bool {
 
 // AddressPrefix return the address prefix used by the given network (testnet/mainnet)
 func (c Chain) AddressPrefix(cn ChainNetwork) string {
+	if c.IsEVM() {
+		return "0x"
+	}
 	switch cn {
 	case MockNet:
 		switch c {
@@ -150,8 +176,6 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return "terra"
 		case GAIAChain:
 			return "cosmos"
-		case ETHChain:
-			return "0x"
 		case THORChain:
 			// TODO update this to use testnet address prefix
 			return types.GetConfig().GetBech32AccountAddrPrefix()
@@ -170,8 +194,6 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return "terra"
 		case GAIAChain:
 			return "cosmos"
-		case ETHChain:
-			return "0x"
 		case THORChain:
 			// TODO update this to use testnet address prefix
 			return types.GetConfig().GetBech32AccountAddrPrefix()
@@ -190,8 +212,6 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 			return "terra"
 		case GAIAChain:
 			return "cosmos"
-		case ETHChain:
-			return "0x"
 		case THORChain:
 			return types.GetConfig().GetBech32AccountAddrPrefix()
 		case BTCChain:

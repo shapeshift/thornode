@@ -31,6 +31,8 @@ func DexAggregators(version semver.Version) []Aggregator {
 			{common.ETHChain, `0x2a7813412b8da8d18Ce56FE763B9eb264D8e28a8`},
 			// RangoThorchainOutputAggUniV3
 			{common.ETHChain, `0xbB8De86F3b041B3C084431dcf3159fE4827c5F0D`},
+			// Pangolin Aggregator
+			{common.AVAXChain, `0x5afcA2485AE7f03158B7cb4558DA79f091b56256`},
 		}
 	case version.GTE(semver.MustParse("1.93.0")):
 		return []Aggregator{

@@ -74,6 +74,11 @@ set_eth_contract() {
   mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }
 
+set_avax_contract() {
+  jq --arg AVAX_CONTRACT "$1" '.app_state.thorchain.chain_contracts += [{"chain": "AVAX", "router": $AVAX_CONTRACT}]' ~/.thornode/config/genesis.json >/tmp/genesis.json
+  mv /tmp/genesis.json ~/.thornode/config/genesis.json
+}
+
 fetch_genesis() {
   echo "Fetching genesis from $1:$PORT_RPC"
   until curl -s "$1:$PORT_RPC" &>/dev/null; do

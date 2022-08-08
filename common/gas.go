@@ -11,10 +11,12 @@ import (
 type Gas Coins
 
 var (
-	bnbSingleTxFee = cosmos.NewUint(37500)
-	bnbMultiTxFee  = cosmos.NewUint(30000)
-	ethTransferFee = cosmos.NewUint(21000)
-	ethGasPerByte  = cosmos.NewUint(68)
+	bnbSingleTxFee  = cosmos.NewUint(37500)
+	bnbMultiTxFee   = cosmos.NewUint(30000)
+	ethTransferFee  = cosmos.NewUint(21000)
+	avaxTransferFee = cosmos.NewUint(21000)
+	ethGasPerByte   = cosmos.NewUint(68)
+	avaxGasPerByte  = cosmos.NewUint(68)
 )
 
 // BNBGasFeeSingleton fee charged by Binance for transfer with a single coin
@@ -56,11 +58,27 @@ func GetETHGasFee(gasPrice *big.Int, msgLen uint64) Gas {
 	}
 }
 
+// GetAVAXGasFee return the gas for AVAX
+func GetAVAXGasFee(gasPrice *big.Int, msgLen uint64) Gas {
+	gasBytes := avaxGasPerByte.MulUint64(msgLen)
+	return Gas{
+		{Asset: AVAXAsset, Amount: avaxTransferFee.Add(gasBytes).Mul(cosmos.NewUintFromBigInt(gasPrice))},
+	}
+}
+
 // MakeETHGas return the gas for ETH
 func MakeETHGas(gasPrice *big.Int, gas uint64) Gas {
 	gasAmt := cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice)).QuoUint64(One * 100)
 	return Gas{
 		{Asset: ETHAsset, Amount: gasAmt},
+	}
+}
+
+// MakeAVAXGas return the gas for AVAX
+func MakeAVAXGas(gasPrice *big.Int, gas uint64) Gas {
+	gasAmt := cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice)).QuoUint64(One * 100)
+	return Gas{
+		{Asset: AVAXAsset, Amount: gasAmt},
 	}
 }
 

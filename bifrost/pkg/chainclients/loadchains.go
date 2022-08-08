@@ -6,14 +6,15 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/gaia"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/terra"
 
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/avalanche"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoincash"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/litecoin"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/terra"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
@@ -91,6 +92,13 @@ func LoadChains(thorKeys *thorclient.Keys,
 				continue
 			}
 			chains[common.TERRAChain] = terra
+		case common.AVAXChain:
+			avax, err := avalanche.NewAvalancheClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
+			if err != nil {
+				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
+				continue
+			}
+			chains[common.AVAXChain] = avax
 		case common.GAIAChain:
 			gaia, err := gaia.NewCosmosClient(thorKeys, chain, server, thorchainBridge, m)
 			if err != nil {

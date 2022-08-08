@@ -228,9 +228,10 @@ func getBCHAddressV83(address bchutil.Address, cfg *bchchaincfg.Params) (Address
 }
 
 func (addr Address) IsChain(chain Chain) bool {
-	switch chain {
-	case ETHChain:
+	if chain.IsEVM() {
 		return strings.HasPrefix(addr.String(), "0x")
+	}
+	switch chain {
 	case BNBChain:
 		prefix, _, _ := bech32.Decode(addr.String())
 		return prefix == "bnb" || prefix == "tbnb"
@@ -317,7 +318,7 @@ func (addr Address) IsChain(chain Chain) bool {
 }
 
 func (addr Address) GetChain() Chain {
-	for _, chain := range []Chain{ETHChain, BNBChain, THORChain, BTCChain, LTCChain, BCHChain, DOGEChain, TERRAChain, GAIAChain} {
+	for _, chain := range []Chain{ETHChain, BNBChain, THORChain, BTCChain, LTCChain, BCHChain, DOGEChain, TERRAChain, GAIAChain, AVAXChain} {
 		if addr.IsChain(chain) {
 			return chain
 		}
@@ -333,9 +334,11 @@ func (addr Address) GetNetwork(ver semver.Version, chain Chain) ChainNetwork {
 		}
 		return MainNet
 	}
-	switch chain {
-	case ETHChain:
+	// EVM addresses don't have different prefixes per network
+	if chain.IsEVM() {
 		return currentNetwork
+	}
+	switch chain {
 	case BNBChain:
 		prefix, _, _ := bech32.Decode(addr.String())
 		if strings.EqualFold(prefix, "bnb") {

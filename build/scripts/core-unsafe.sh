@@ -33,6 +33,27 @@ deploy_eth_contract() {
   set_eth_contract "$CONTRACT"
 }
 
+deploy_avax_contract() {
+  echo "Deploying AVAX contracts"
+  echo "$1/ext/bc/C/rpc"
+  until curl -s "$1/ext/bc/C/rpc" &>/dev/null; do
+    echo "Waiting for AVAX node to be available ($1)"
+    sleep 1
+  done
+  python3 scripts/avax/avax-tool.py --avalanche "$1" deploy >/tmp/avax_contract.log 2>&1
+  cat /tmp/avax_contract.log
+  AVAX_CONTRACT=$(grep </tmp/avax_contract.log "AVAX Router Contract Address" | awk '{print $NF}')
+  echo "AVAX Contract Address: $AVAX_CONTRACT"
+
+  set_avax_contract "$AVAX_CONTRACT"
+}
+
+# If the AVAX Contract Needs to be manually set (if using a Local EVM fork for example), use this func
+set_manual_avax_contract() {
+  jq '.app_state.thorchain.chain_contracts += [{"chain": "AVAX", "router": "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc"}]' ~/.thornode/config/genesis.json >/tmp/genesis.json
+  mv /tmp/genesis.json ~/.thornode/config/genesis.json
+}
+
 gen_bnb_address() {
   if [ ! -f ~/.bond/private_key.txt ]; then
     echo "Generating BNB address"

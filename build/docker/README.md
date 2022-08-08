@@ -117,6 +117,28 @@ thornode tx thorchain mimir CHURNINTERVAL 1000 --from dog $TX_FLAGS
 thornode tx thorchain mimir NUMBEROFNEWNODESPERCHURN 1 --from dog $TX_FLAGS
 ```
 
+## Local Mainnet Fork of EVM Chain
+
+Using hardhat, you can run a mainnet fork locally of any EVM chain and use it the mocknet stack. This allows you to interact with all of the DEXes, smart contracts
+and Liquidity Pools deployed mainnet in your local mocknet environment. This simplifies testing EVM chain clients, routers, and aggregators.
+
+This guide will go over how to fork AVAX C-Chain locally, and use it in the mocknet stack.
+
+1. Spin up the local mocknet fork from your hardhat repo: (e.g. https://gitlab.com/thorchain/chains/avalanche)
+2.
+
+```bash
+npx hardhat node --fork https://api.avax.network/ext/bc/C/rpc
+```
+
+2. Deploy any Router/Aggregator Contracts to your local mocknet fork using hardhat
+3.
+4. Point Bifröst at your local EVM node, and be sure to pass in a starting block height close to the tip, otherwise Bifröst will scan every block from 0:
+
+```bash
+AVAX_HOST=http://host.docker.internal:8545/ext/bc/C/rpc AVAX_START_BLOCK_HEIGHT=16467608 make reset-mocknet
+```
+
 ## Bootstrap Mocknet Data
 
 You can leverage the [Heimdall](https://gitlab.com/thorchain/heimdall) repo to bootstrap local vaults with a subset of smoke test data. Checkout the repo and run:

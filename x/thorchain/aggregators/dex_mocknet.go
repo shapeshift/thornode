@@ -14,6 +14,8 @@ func DexAggregators(version semver.Version) []Aggregator {
 		return []Aggregator{
 			// mocknet mock aggregator
 			{common.ETHChain, `0x69800327b38A4CeF30367Dec3f64c2f2386f3848`},
+			// mocknet avax aggregator
+			{common.AVAXChain, `0x1429859428C0aBc9C2C47C8Ee9FBaf82cFA0F20f`},
 		}
 	}
 	return nil

@@ -19,5 +19,12 @@
     "address": "0x3fd2D4cE97B082d4BcE3f9fee2A3D60668D2f473",
     "router": "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44",
     "halted": false
+  },
+  {
+    "chain": "AVAX",
+    "pub_key": "tthorpub1addwnpepq2mza4j4vplyjw295pkq8j2dan627lz6vufeu22pjx5vnnyjted5vwq3e3d",
+    "address": "0x3fd2D4cE97B082d4BcE3f9fee2A3D60668D2f473",
+    "router": "0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25",
+    "halted": false
   }
 ]
