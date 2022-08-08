@@ -33,13 +33,13 @@ describe("AvaxAggregator", function () {
 
       const usdceContract = await ethers.getContractAt("IERC20", USDCE_ADDRESS);
       const balanceOfUsdce = await usdceContract.balanceOf(admin);
-      console.log('usdcebal', balanceOfUsdce)
+      console.log("usdcebal", balanceOfUsdce);
 
       let avaxBal = await ethers.provider.getBalance(admin);
-      console.log('adminavaxbal', avaxBal)
+      console.log("adminavaxbal", avaxBal);
 
       avaxBal = await ethers.provider.getBalance(asgard1);
-      console.log('routeravaxbal', avaxBal)
+      console.log("routeravaxbal", avaxBal);
     });
   });
 });

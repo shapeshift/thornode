@@ -11,8 +11,8 @@ async function main() {
   console.log("AvaxRouter deployed to:", avaxRouter.address);
 
   await hre.ethernal.push({
-    name: 'AvaxRouter',
-    address: avaxRouter.address
+    name: "AvaxRouter",
+    address: avaxRouter.address,
   });
 
   const AvaxAggregator = await ethers.getContractFactory("AvaxAggregator");
@@ -23,8 +23,8 @@ async function main() {
   await avaxAggregator.deployed();
 
   await hre.ethernal.push({
-    name: 'AvaxAggregator',
-    address: avaxAggregator.address
+    name: "AvaxAggregator",
+    address: avaxAggregator.address,
   });
   console.log("AvaxAggregator deployed to:", avaxAggregator.address);
 }

@@ -124,7 +124,7 @@ describe("AvaxAggregator", function () {
         0,
         deadline
       );
-      tx.wait()
+      tx.wait();
 
       expect(await usdceToken.balanceOf(wallet2)).to.equal("140000000000");
       expect(await ethers.provider.getBalance(wallet2)).lt(initialAvaxBalance);
