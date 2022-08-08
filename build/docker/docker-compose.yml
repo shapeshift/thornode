@@ -349,7 +349,7 @@ services:
     profiles:
       - mocknet
       - mocknet-cluster
-    image: registry.gitlab.com/thorchain/devops/node-launcher:gaia-daemon-7.0.2
+    image: registry.gitlab.com/thorchain/devops/node-launcher:gaia-daemon-7.0.3
     volumes:
       - "./mocknet:/mocknet"
       - "./mocknet/gaia/genesis.json:/root/.gaia/config/genesis.json"
