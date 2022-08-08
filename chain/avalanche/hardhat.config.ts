@@ -14,14 +14,14 @@ const FORK_FUJI = false;
 const FORK_MAINNET = true;
 const forkingData = FORK_FUJI
   ? {
-    url: "https://api.avax-test.network/ext/bc/C/rpc",
-  }
+      url: "https://api.avax-test.network/ext/bc/C/rpc",
+    }
   : FORK_MAINNET
-    ? {
+  ? {
       url: "https://api.avax.network/ext/bc/C/rpc",
       blockNumber: 16343472,
     }
-    : undefined;
+  : undefined;
 
 task(
   "accounts",
