@@ -49,6 +49,8 @@ func (h BondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.95.0")):
+		return h.validateV95(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.0")):
 		return h.validateV88(ctx, msg)
 	case version.GTE(semver.MustParse("0.81.0")):
@@ -58,7 +60,7 @@ func (h BondHandler) validate(ctx cosmos.Context, msg MsgBond) error {
 	}
 }
 
-func (h BondHandler) validateV88(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) validateV95(ctx cosmos.Context, msg MsgBond) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -117,24 +119,11 @@ func (h BondHandler) validateV88(ctx cosmos.Context, msg MsgBond) error {
 		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
 	}
 
-	// Attemping to set Operator Fee. If the Node has no bond address yet it will have no fee set, continue
+	// Attempting to set Operator Fee. If the Node has no bond address yet, it will have no fee set, continue
 	if msg.OperatorFee > -1 && !nodeAccount.BondAddress.IsEmpty() {
-
 		// Only Node Operator can set fee
 		if !msg.BondAddress.Equals(nodeAccount.BondAddress) {
 			return cosmos.ErrUnknownRequest("only node operator can set fee")
-		}
-
-		nodeOpAddr, err := nodeAccount.BondAddress.AccAddress()
-		if err != nil {
-			return ErrInternal(err, fmt.Sprintf("fail to parse node account bond address(%s)", nodeAccount.BondAddress))
-		}
-
-		// Can't increase operator fee after a (non-operator) provider has bonded
-		if msg.OperatorFee > bp.NodeOperatorFee.BigInt().Int64() {
-			if bp.HasProviderBonded(nodeOpAddr) {
-				return cosmos.ErrUnknownRequest("can't increase operator fee after a provider has bonded")
-			}
 		}
 	}
 
@@ -162,6 +151,8 @@ func (h BondHandler) validateV88(ctx cosmos.Context, msg MsgBond) error {
 func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.95.0")):
+		return h.handleV95(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.0")):
 		return h.handleV88(ctx, msg)
 	case version.GTE(semver.MustParse("1.87.0")):
@@ -174,7 +165,7 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	return errBadVersion
 }
 
-func (h BondHandler) handleV88(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) handleV95(ctx cosmos.Context, msg MsgBond) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -235,6 +226,8 @@ func (h BondHandler) handleV88(ctx cosmos.Context, msg MsgBond) error {
 		p := NewBondProvider(nodeOpBondAddr)
 		p.Bond = originalBond
 		bp.Providers = append(bp.Providers, p)
+		defaultNodeOperationFee := fetchConfigInt64(ctx, h.mgr, constants.NodeOperatorFee)
+		bp.NodeOperatorFee = cosmos.NewUint(uint64(defaultNodeOperationFee))
 	}
 
 	// if bonder is node operator, add additional bonding address
@@ -260,7 +253,7 @@ func (h BondHandler) handleV88(ctx cosmos.Context, msg MsgBond) error {
 	}
 
 	// Update operator fee (-1 means operator fee is not being set)
-	if msg.OperatorFee > -1 {
+	if msg.OperatorFee > -1 && msg.OperatorFee < 10000 {
 		bp.NodeOperatorFee = cosmos.NewUint(uint64(msg.OperatorFee))
 	}
 
