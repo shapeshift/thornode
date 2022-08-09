@@ -52,7 +52,7 @@ class MockBitcoin(HttpClient):
     def create_wallet(self):
         wallets = self.call("listwallets")
         if len(wallets) == 0:
-            self.call("createwallet", "")
+            self.call("createwallet", "", "false", "false", "", "false", "false")
 
     def scan_blocks(self):
         while True:
