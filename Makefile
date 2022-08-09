@@ -191,6 +191,13 @@ stop-mocknet:
 build-mocknet:
 	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard build
 
+bootstrap-mocknet:
+	@docker run ${SMOKE_DOCKER_OPTS} \
+		-e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} \
+		-v ${PWD}/test/smoke:/app \
+		registry.gitlab.com/thorchain/thornode:smoke \
+		python scripts/smoke.py --bootstrap-only=True
+
 ps-mocknet:
 	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard images
 	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard ps
