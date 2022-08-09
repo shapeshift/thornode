@@ -269,13 +269,13 @@ func (HandlerBondSuite) TestBondProvider_OperatorFee(c *C) {
 	// Check that a bond provider for the operator + new provider was added
 	c.Assert(len(bp.Providers), Equals, 2)
 
-	// try to increase operator fee after provider has bonded, should fail
+	// try to increase operator fee after provider has bonded, should success , because bond providers should trust each other
 	bp.Providers[1].Bond = cosmos.NewUint(100)
 	bp.NodeOperatorFee = cosmos.NewUint(5000)
 	c.Assert(k.SetBondProviders(ctx, bp), IsNil)
 	msg = NewMsgBond(txIn, standbyNodeAddr, amt, operatorBondAddress, providerAccAddr, operatorAccAddress, 6000)
 	err = handler.validate(ctx, *msg)
-	c.Assert(err.Error(), Equals, "can't increase operator fee after a provider has bonded: unknown request")
+	c.Assert(err, IsNil)
 
 	// Should be able to decrease operator fee after provider has bonded
 	msg = NewMsgBond(txIn, standbyNodeAddr, amt, operatorBondAddress, providerAccAddr, operatorAccAddress, 4000)
