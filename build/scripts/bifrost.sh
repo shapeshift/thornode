@@ -22,9 +22,9 @@ if [ -n "$PEER" ]; then
     SEED_ID=$(curl -m 10 -sL --fail "http://$SEED:6040/p2pid") || continue
     SEED="/ip4/$SEED/tcp/5040/ipfs/$SEED_ID"
     if [ -z "$SEED_LIST" ]; then
-      SEED_LIST="\"$SEED\""
+      SEED_LIST="${SEED}"
     else
-      SEED_LIST="$SEED_LIST,\"$SEED\""
+      SEED_LIST="${SEED_LIST},${SEED}"
     fi
   done
   IFS=$OLD_IFS

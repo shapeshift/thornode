@@ -273,7 +273,7 @@ services:
       - "../scripts:/docker/scripts"
       - bifrost-cat:/var/data/bifrost
       - thornode-cat:/root/.thornode
-    command: ["bifrost", "-c", "/etc/bifrost/config.json"]
+    command: ["bifrost"]
 
   bifrost-dog:
     <<: *bifrost
@@ -291,7 +291,7 @@ services:
       - "../scripts:/docker/scripts"
       - bifrost-dog:/var/data/bifrost
       - thornode-dog:/root/.thornode
-    command: ["bifrost", "-c", "/etc/bifrost/config.json"]
+    command: ["bifrost"]
 
   bifrost-fox:
     <<: *bifrost
@@ -309,7 +309,7 @@ services:
       - "../scripts:/docker/scripts"
       - bifrost-fox:/var/data/bifrost
       - thornode-fox:/root/.thornode
-    command: ["bifrost", "-c", "/etc/bifrost/config.json"]
+    command: ["bifrost"]
 
   bifrost-pig:
     <<: *bifrost
@@ -327,7 +327,7 @@ services:
       - "../scripts:/docker/scripts"
       - bifrost-pig:/var/data/bifrost
       - thornode-pig:/root/.thornode
-    command: ["bifrost", "-c", "/etc/bifrost/config.json"]
+    command: ["bifrost"]
 
   ######################################################################################
   # Mock Clients
