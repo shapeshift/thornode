@@ -346,6 +346,7 @@ func InitThornode(ctx context.Context) {
 
 	// dynamically set rpc listen address
 	config.Thornode.Tendermint.RPC.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", rpcPort)
+	config.Thornode.Tendermint.P2P.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", p2pPort)
 
 	// set the Tendermint external address
 	if os.Getenv("EXTERNAL_IP") != "" {
