@@ -40,6 +40,7 @@ const (
 	prefixVault                  kvTypes.DbPrefix = "vault/"
 	prefixVaultAsgardIndex       kvTypes.DbPrefix = "vault_asgard_index/"
 	prefixNetwork                kvTypes.DbPrefix = "network/"
+	prefixPOL                    kvTypes.DbPrefix = "pol/"
 	prefixObservingAddresses     kvTypes.DbPrefix = "observing_addresses/"
 	prefixTss                    kvTypes.DbPrefix = "tss/"
 	prefixTssKeysignFailure      kvTypes.DbPrefix = "tssKeysignFailure/"

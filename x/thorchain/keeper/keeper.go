@@ -171,6 +171,8 @@ type KeeperReserveContributors interface {
 type KeeperNetwork interface {
 	GetNetwork(ctx cosmos.Context) (Network, error)
 	SetNetwork(ctx cosmos.Context, data Network) error
+	GetPOL(ctx cosmos.Context) (ProtocolOwnedLiquidity, error)
+	SetPOL(ctx cosmos.Context, data ProtocolOwnedLiquidity) error
 }
 
 type KeeperTss interface {

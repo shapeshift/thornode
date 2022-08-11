@@ -35,6 +35,7 @@ var (
 	ParseUint                    = sdk.ParseUint
 	NewInt                       = sdk.NewInt
 	NewDec                       = sdk.NewDec
+	ZeroInt                      = sdk.ZeroInt
 	ZeroUint                     = sdk.ZeroUint
 	ZeroDec                      = sdk.ZeroDec
 	OneUint                      = sdk.OneUint
@@ -80,6 +81,7 @@ type (
 	Context    = sdk.Context
 	Route      = sdk.Route
 	Uint       = sdk.Uint
+	Int        = sdk.Int
 	Coin       = sdk.Coin
 	Coins      = sdk.Coins
 	AccAddress = sdk.AccAddress

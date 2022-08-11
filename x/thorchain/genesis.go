@@ -108,6 +108,7 @@ func DefaultGenesisState() GenesisState {
 		LastSignedHeight:    0,
 		LastChainHeights:    make([]LastChainHeight, 0),
 		Network:             NewNetwork(),
+		POL:                 NewProtocolOwnedLiquidity(),
 		MsgSwaps:            make([]MsgSwap, 0),
 		NetworkFees:         make([]NetworkFee, 0),
 		ChainContracts:      make([]ChainContract, 0),
@@ -189,6 +190,10 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		}
 	}
 	if err := keeper.SetNetwork(ctx, data.Network); err != nil {
+		panic(err)
+	}
+
+	if err := keeper.SetPOL(ctx, data.POL); err != nil {
 		panic(err)
 	}
 
@@ -381,6 +386,11 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		panic(err)
 	}
 
+	pol, err := k.GetPOL(ctx)
+	if err != nil {
+		panic(err)
+	}
+
 	vaults := make(Vaults, 0)
 	iterVault := k.GetVaultIterator(ctx)
 	defer iterVault.Close()
@@ -454,6 +464,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		LastSignedHeight:   lastSignedHeight,
 		LastChainHeights:   lastChainHeights,
 		Network:            network,
+		POL:                pol,
 		MsgSwaps:           swapMsgs,
 		NetworkFees:        networkFees,
 		ChainContracts:     chainContracts,

@@ -65,6 +65,10 @@ func NewConstantValue010() *ConstantVals {
 			ValidatorMaxRewardRatio:            1,                  // the ratio to MinimumBondInRune at which validators stop receiving rewards proportional to their bond
 			PoolDepthForYggFundingMin:          500_000_00000000,   // the minimum pool depth in RUNE required for ygg funding
 			MaxNodeToChurnOutForLowVersion:     1,                  // the maximum number of nodes to churn out for low version per churn
+			POLMaxNetworkDeposit:               0,                  // Maximum amount of rune deposited into the pools
+			POLMaxPoolMovement:                 100,                // Maximum amount of rune to enter/exit a pool per iteration. This is in basis points of the pool
+			POLSynthUtilization:                0,                  // target synth utilization for POL (basis points)
+			POLBuffer:                          0,                  // buffer around the POL synth utilization (basis points added to/subtracted from POLSynthUtilization basis points)
 			RagnarokProcessNumOfLPPerIteration: 200,                // the number of LP to be processed per iteration during ragnarok pool
 			MinimumL1OutboundFeeUSD:            1000000,            // Minimum fee in USD to charge for LP swap, default to $0.01 , nodes need to vote it to a larger value
 		},

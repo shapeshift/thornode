@@ -22,6 +22,8 @@ type MockAddLiquidityKeeper struct {
 	activeNodeAccount NodeAccount
 	failGetPool       bool
 	lp                LiquidityProvider
+	pol               ProtocolOwnedLiquidity
+	polAddress        common.Address
 }
 
 func (m *MockAddLiquidityKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
@@ -41,6 +43,19 @@ func (m *MockAddLiquidityKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool
 
 func (m *MockAddLiquidityKeeper) SetPool(_ cosmos.Context, pool Pool) error {
 	m.currentPool = pool
+	return nil
+}
+
+func (m *MockAddLiquidityKeeper) GetModuleAddress(mod string) (common.Address, error) {
+	return m.polAddress, nil
+}
+
+func (m *MockAddLiquidityKeeper) GetPOL(_ cosmos.Context) (ProtocolOwnedLiquidity, error) {
+	return m.pol, nil
+}
+
+func (m *MockAddLiquidityKeeper) SetPOL(_ cosmos.Context, pol ProtocolOwnedLiquidity) error {
+	m.pol = pol
 	return nil
 }
 
@@ -102,6 +117,8 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 			RuneDepositValue:  cosmos.ZeroUint(),
 			AssetDepositValue: cosmos.ZeroUint(),
 		},
+		pol:        NewProtocolOwnedLiquidity(),
+		polAddress: runeAddr,
 	}
 	mgr.K = k
 	// happy path
@@ -142,6 +159,10 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler(c *C) {
 	c.Assert(postLiquidityPool.BalanceRune.String(), Equals, "10000000000")
 	c.Assert(postLiquidityPool.PendingInboundAsset.String(), Equals, "0")
 	c.Assert(postLiquidityPool.PendingInboundRune.String(), Equals, "0")
+
+	pol, err := mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Check(pol.RuneDeposited.Uint64(), Equals, uint64(100*common.One))
 }
 
 func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandler_NoPool_ShouldCreateNewPool(c *C) {
@@ -459,6 +480,18 @@ func (p *AddLiquidityTestKeeper) GetPool(ctx cosmos.Context, asset common.Asset)
 
 func (p *AddLiquidityTestKeeper) SetPool(ctx cosmos.Context, ps Pool) error {
 	p.store[ps.Asset.String()] = ps
+	return nil
+}
+
+func (p *AddLiquidityTestKeeper) GetModuleAddress(_ string) (common.Address, error) {
+	return common.NoAddress, nil
+}
+
+func (p *AddLiquidityTestKeeper) GetPOL(_ cosmos.Context) (ProtocolOwnedLiquidity, error) {
+	return NewProtocolOwnedLiquidity(), nil
+}
+
+func (p *AddLiquidityTestKeeper) SetPOL(_ cosmos.Context, pol ProtocolOwnedLiquidity) error {
 	return nil
 }
 

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
+	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -359,6 +361,8 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 ) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.95.0")):
+		return h.addLiquidityV95(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	case version.GTE(semver.MustParse("1.90.0")):
 		return h.addLiquidityV90(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	case version.GTE(semver.MustParse("0.79.0")):
@@ -368,7 +372,7 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	}
 }
 
-func (h AddLiquidityHandler) addLiquidityV90(ctx cosmos.Context,
+func (h AddLiquidityHandler) addLiquidityV95(ctx cosmos.Context,
 	asset common.Asset,
 	addRuneAmount, addAssetAmount cosmos.Uint,
 	runeAddr, assetAddr common.Address,
@@ -531,6 +535,31 @@ func (h AddLiquidityHandler) addLiquidityV90(ctx cosmos.Context,
 	evt := NewEventAddLiquidity(asset, liquidityUnits, su.RuneAddress, pendingRuneAmt, pendingAssetAmt, runeTxID, assetTxID, su.AssetAddress)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
 		return ErrInternal(err, "fail to emit add liquidity event")
+	}
+
+	// if its the POL is adding, track rune added
+	polAddress, err := h.mgr.Keeper().GetModuleAddress(ReserveName)
+	if err != nil {
+		return err
+	}
+
+	if polAddress.Equals(su.RuneAddress) {
+		pol, err := h.mgr.Keeper().GetPOL(ctx)
+		if err != nil {
+			return err
+		}
+		pol.RuneDeposited = pol.RuneDeposited.Add(pendingRuneAmt)
+
+		if err := h.mgr.Keeper().SetPOL(ctx, pol); err != nil {
+			return err
+		}
+
+		ctx.Logger().Info("POL deposit", "pool", pool.Asset, "rune", pendingRuneAmt)
+		telemetry.IncrCounterWithLabels(
+			[]string{"thornode", "pol", "pool", "rune_deposited"},
+			telem(pendingRuneAmt),
+			[]metrics.Label{telemetry.NewLabel("pool", pool.Asset.String())},
+		)
 	}
 	return nil
 }

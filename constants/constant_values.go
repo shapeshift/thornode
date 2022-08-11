@@ -79,6 +79,10 @@ const (
 	ValidatorMaxRewardRatio
 	PoolDepthForYggFundingMin
 	MaxNodeToChurnOutForLowVersion
+	POLMaxNetworkDeposit
+	POLMaxPoolMovement
+	POLSynthUtilization
+	POLBuffer
 	RagnarokProcessNumOfLPPerIteration
 	SwapOutDexAggregationDisabled
 	MinimumL1OutboundFeeUSD
@@ -155,6 +159,10 @@ var nameToString = map[ConstantName]string{
 	PoolDepthForYggFundingMin:          "PoolDepthForYggFundingMin",
 	MaxNodeToChurnOutForLowVersion:     "MaxNodeToChurnOutForLowVersion",
 	SwapOutDexAggregationDisabled:      "SwapOutDexAggregationDisabled",
+	POLMaxNetworkDeposit:               "POLMaxNetworkDeposit",
+	POLMaxPoolMovement:                 "POLMaxPoolMovement",
+	POLSynthUtilization:                "POLSynthUtilization",
+	POLBuffer:                          "POLBuffer",
 	RagnarokProcessNumOfLPPerIteration: "RagnarokProcessNumOfLPPerIteration",
 	MinimumL1OutboundFeeUSD:            "MinimumL1OutboundFeeUSD",
 }
