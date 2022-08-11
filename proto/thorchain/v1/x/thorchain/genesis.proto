@@ -8,6 +8,7 @@ import "thorchain/v1/x/thorchain/types/type_chain_contract.proto";
 import "thorchain/v1/x/thorchain/types/type_network_fee.proto";
 import "thorchain/v1/x/thorchain/types/msg_swap.proto";
 import "thorchain/v1/x/thorchain/types/type_network.proto";
+import "thorchain/v1/x/thorchain/types/type_pol.proto";
 import "thorchain/v1/x/thorchain/types/type_reserve_contributor.proto";
 import "thorchain/v1/x/thorchain/types/type_vault.proto";
 import "thorchain/v1/x/thorchain/types/type_tx_out.proto";
@@ -49,4 +50,5 @@ message GenesisState {
   repeated mimir mimirs = 24 [(gogoproto.nullable) = false];
   int64 store_version = 25;
   repeated types.BondProviders bond_providers = 26 [(gogoproto.nullable) = false];
+  types.ProtocolOwnedLiquidity POL = 27 [(gogoproto.nullable) = false];
 }

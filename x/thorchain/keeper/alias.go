@@ -59,6 +59,7 @@ type (
 	NodeMimirs               = types.NodeMimirs
 	NodeStatus               = types.NodeStatus
 	Network                  = types.Network
+	ProtocolOwnedLiquidity   = types.ProtocolOwnedLiquidity
 	VaultStatus              = types.VaultStatus
 	NetworkFee               = types.NetworkFee
 	ObservedNetworkFeeVoter  = types.ObservedNetworkFeeVoter

@@ -58,6 +58,8 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryInboundAddresses(ctx, path[1:], req, mgr)
 		case q.QueryNetwork.Key:
 			return queryNetwork(ctx, mgr)
+		case q.QueryPOL.Key:
+			return queryPOL(ctx, mgr)
 		case q.QueryBalanceModule.Key:
 			return queryBalanceModule(ctx, path[1:], mgr)
 		case q.QueryVaultsAsgard.Key:
@@ -378,6 +380,34 @@ func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	res, err := json.MarshalIndent(result, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal network data to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryPOL(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
+	data, err := mgr.Keeper().GetPOL(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to get POL", "error", err)
+		return nil, fmt.Errorf("fail to get POL: %w", err)
+	}
+	polValue, err := polPoolValue(ctx, mgr)
+	if err != nil {
+		ctx.Logger().Error("fail to fetch POL value", "error", err)
+		return nil, fmt.Errorf("fail to fetch POL value: %w", err)
+	}
+	pnl := data.PnL(polValue)
+	result := openapi.POLResponse{
+		RuneDeposited:  data.RuneDeposited.String(),
+		RuneWithdrawn:  data.RuneWithdrawn.String(),
+		Value:          polValue.String(),
+		Pnl:            pnl.String(),
+		CurrentDeposit: data.CurrentDeposit().String(),
+	}
+
+	res, err := json.MarshalIndent(result, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal protocol owned liquidity data to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
 	}
 	return res, nil

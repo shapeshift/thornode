@@ -25,6 +25,8 @@ type MockWithdrawKeeper struct {
 	failAddEvents         bool
 	lp                    LiquidityProvider
 	keeper                keeper.Keeper
+	pol                   ProtocolOwnedLiquidity
+	polAddress            common.Address
 }
 
 func (mfp *MockWithdrawKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
@@ -50,6 +52,19 @@ func (mfp *MockWithdrawKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, 
 
 func (mfp *MockWithdrawKeeper) SetPool(_ cosmos.Context, pool Pool) error {
 	mfp.currentPool = pool
+	return nil
+}
+
+func (mfp *MockWithdrawKeeper) GetModuleAddress(mod string) (common.Address, error) {
+	return mfp.polAddress, nil
+}
+
+func (mfp *MockWithdrawKeeper) GetPOL(_ cosmos.Context) (ProtocolOwnedLiquidity, error) {
+	return mfp.pol, nil
+}
+
+func (mfp *MockWithdrawKeeper) SetPOL(_ cosmos.Context, pol ProtocolOwnedLiquidity) error {
+	mfp.pol = pol
 	return nil
 }
 
@@ -86,6 +101,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 	SetupConfigForTest()
 	ctx, keeper := setupKeeperForTest(c)
 	activeNodeAccount := GetRandomValidatorNode(NodeActive)
+	runeAddr := GetRandomRUNEAddress()
 	k := &MockWithdrawKeeper{
 		keeper:            keeper,
 		activeNodeAccount: activeNodeAccount,
@@ -106,11 +122,12 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 			RuneDepositValue:  cosmos.ZeroUint(),
 			AssetDepositValue: cosmos.ZeroUint(),
 		},
+		pol:        NewProtocolOwnedLiquidity(),
+		polAddress: runeAddr,
 	}
 	ver := GetCurrentVersion()
 	constAccessor := constants.GetConstantValues(ver)
 	// Happy path , this is a round trip , first we provide liquidity, then we withdraw
-	runeAddr := GetRandomRUNEAddress()
 	addHandler := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
 	err := addHandler.addLiquidity(ctx,
 		common.BNBAsset,
@@ -128,6 +145,10 @@ func (HandlerWithdrawSuite) TestWithdrawHandler(c *C) {
 	msgWithdraw := NewMsgWithdrawLiquidity(GetRandomTx(), runeAddr, cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset, common.EmptyAsset, activeNodeAccount.NodeAddress)
 	_, err = withdrawHandler.Run(ctx, msgWithdraw)
 	c.Assert(err, IsNil)
+
+	pol, err := k.GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Check(pol.RuneWithdrawn.Uint64(), Equals, uint64(100*common.One))
 
 	// Bad version should fail
 	_, err = withdrawHandler.Run(ctx, msgWithdraw)

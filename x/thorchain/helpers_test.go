@@ -865,6 +865,55 @@ func (s *HelperSuite) TestUpdateTxOutGas(c *C) {
 	c.Assert(didUpdate, Equals, true)
 }
 
+func (s *HelperSuite) TestPOLPoolValue(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	polAddress, err := mgr.Keeper().GetModuleAddress(ReserveName)
+	c.Assert(err, IsNil)
+
+	btcPool := NewPool()
+	btcPool.Asset = common.BTCAsset
+	btcPool.BalanceRune = cosmos.NewUint(2000 * common.One)
+	btcPool.BalanceAsset = cosmos.NewUint(20 * common.One)
+	btcPool.LPUnits = cosmos.NewUint(1600)
+	c.Assert(mgr.Keeper().SetPool(ctx, btcPool), IsNil)
+
+	coin := common.NewCoin(common.BTCAsset.GetSyntheticAsset(), cosmos.NewUint(10*common.One))
+	c.Assert(mgr.Keeper().MintToModule(ctx, ModuleName, coin), IsNil)
+
+	lps := LiquidityProviders{
+		{
+			Asset:             btcPool.Asset,
+			RuneAddress:       GetRandomBNBAddress(),
+			AssetAddress:      GetRandomBTCAddress(),
+			LastAddHeight:     5,
+			Units:             btcPool.LPUnits.QuoUint64(2),
+			PendingRune:       cosmos.ZeroUint(),
+			PendingAsset:      cosmos.ZeroUint(),
+			AssetDepositValue: cosmos.ZeroUint(),
+			RuneDepositValue:  cosmos.ZeroUint(),
+		},
+		{
+			Asset:             btcPool.Asset,
+			RuneAddress:       polAddress,
+			AssetAddress:      common.NoAddress,
+			LastAddHeight:     10,
+			Units:             btcPool.LPUnits.QuoUint64(2),
+			PendingRune:       cosmos.ZeroUint(),
+			PendingAsset:      cosmos.ZeroUint(),
+			AssetDepositValue: cosmos.ZeroUint(),
+			RuneDepositValue:  cosmos.ZeroUint(),
+		},
+	}
+	for _, lp := range lps {
+		mgr.Keeper().SetLiquidityProvider(ctx, lp)
+	}
+
+	value, err := polPoolValue(ctx, mgr)
+	c.Assert(err, IsNil)
+	c.Check(value.Uint64(), Equals, uint64(150023441162), Commentf("%d", value.Uint64()))
+}
+
 func (s *HelperSuite) TestSecurityBond(c *C) {
 	nas := make(NodeAccounts, 0)
 	c.Assert(getEffectiveSecurityBond(nas).Uint64(), Equals, uint64(0), Commentf("%d", getEffectiveSecurityBond(nas).Uint64()))

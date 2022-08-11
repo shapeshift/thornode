@@ -37,6 +37,7 @@ var (
 	NewPool                    = types.NewPool
 	NewJail                    = types.NewJail
 	NewNetwork                 = types.NewNetwork
+	NewProtocolOwnedLiquidity  = types.NewProtocolOwnedLiquidity
 	NewObservedTx              = types.NewObservedTx
 	NewTssVoter                = types.NewTssVoter
 	NewBanVoter                = types.NewBanVoter
@@ -110,6 +111,7 @@ type (
 	SolvencyVoter            = types.SolvencyVoter
 	NodeMimir                = types.NodeMimir
 	NodeMimirs               = types.NodeMimirs
+	ProtocolOwnedLiquidity   = types.ProtocolOwnedLiquidity
 
 	ProtoInt64        = types.ProtoInt64
 	ProtoUint64       = types.ProtoUint64

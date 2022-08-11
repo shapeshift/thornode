@@ -259,6 +259,24 @@ paths:
               schema:
                 $ref: "#/components/schemas/NetworkResponse"
 
+  # ------------------------------ POL ------------------------------
+
+  /thorchain/pol:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+    get:
+      description: Returns protocol owned liquidity overview statistics.
+      operationId: pol
+      tags:
+        - POL
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/POLResponse"
+
   /thorchain/inbound_addresses:
     parameters:
       - $ref: "#/components/parameters/queryHeight"
@@ -1333,6 +1351,36 @@ components:
           type: string
           example: "66369401654835"
           description: total of burned ERC20 RUNE
+
+    POLResponse:
+      type: object
+      required:
+        - rune_deposited
+        - rune_withdrawn
+        - value
+        - pnl
+        - current_deposit
+      properties:
+        rune_deposited:
+          type: string
+          example: "857134475040"
+          description: total amount of RUNE deposited into the pools
+        rune_withdrawn:
+          type: string
+          example: "0"
+          description: total amount of RUNE withdrawn from the pools
+        value:
+          type: string
+          example: "21999180112172346"
+          description: total value of protocol's LP position in RUNE value
+        pnl:
+          type: string
+          example: "21999180112172346"
+          description: profit and loss of protocol owned liquidity
+        current_deposit:
+          type: string
+          example: "21999180112172346"
+          description: current amount of rune deposited
 
     InboundAddressesResponse:
       type: array

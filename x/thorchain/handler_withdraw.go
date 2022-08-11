@@ -88,6 +88,8 @@ func (h WithdrawLiquidityHandler) validateV80(ctx cosmos.Context, msg MsgWithdra
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.95.0")):
+		return h.handleV95(ctx, msg)
 	case version.GTE(semver.MustParse("1.94.0")):
 		return h.handleV94(ctx, msg)
 	case version.GTE(semver.MustParse("1.93.0")):
@@ -109,7 +111,7 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleV94(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV95(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -216,6 +218,31 @@ func (h WithdrawLiquidityHandler) handleV94(ctx cosmos.Context, msg MsgWithdrawL
 		coin := common.NewCoin(common.RuneAsset(), runeAmt)
 		if err := transfer(coin, lp.RuneAddress); err != nil {
 			return nil, err
+		}
+
+		// if its the POL withdrawing, track rune withdrawn
+		polAddress, err := h.mgr.Keeper().GetModuleAddress(ReserveName)
+		if err != nil {
+			return nil, err
+		}
+
+		if polAddress.Equals(lp.RuneAddress) {
+			pol, err := h.mgr.Keeper().GetPOL(ctx)
+			if err != nil {
+				return nil, err
+			}
+			pol.RuneWithdrawn = pol.RuneWithdrawn.Add(runeAmt)
+
+			if err := h.mgr.Keeper().SetPOL(ctx, pol); err != nil {
+				return nil, err
+			}
+
+			ctx.Logger().Info("POL withdrawn", "pool", msg.Asset, "rune", runeAmt)
+			telemetry.IncrCounterWithLabels(
+				[]string{"thornode", "pol", "pool", "rune_withdrawn"},
+				telem(runeAmt),
+				[]metrics.Label{telemetry.NewLabel("pool", msg.Asset.String())},
+			)
 		}
 	}
 

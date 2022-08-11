@@ -479,6 +479,39 @@ func fetchConfigInt64(ctx cosmos.Context, mgr Manager, key constants.ConstantNam
 	return val
 }
 
+// polPoolValue - calculates how much the POL is worth in rune
+func polPoolValue(ctx cosmos.Context, mgr Manager) (cosmos.Uint, error) {
+	total := cosmos.ZeroUint()
+
+	polAddress, err := mgr.Keeper().GetModuleAddress(ReserveName)
+	if err != nil {
+		return total, err
+	}
+
+	pools, err := mgr.Keeper().GetPools(ctx)
+	if err != nil {
+		return total, err
+	}
+	for _, pool := range pools {
+		if pool.Asset.IsSyntheticAsset() {
+			continue
+		}
+		if pool.BalanceRune.IsZero() {
+			continue
+		}
+		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
+		pool.CalcUnits(mgr.GetVersion(), synthSupply)
+		lp, err := mgr.Keeper().GetLiquidityProvider(ctx, pool.Asset, polAddress)
+		if err != nil {
+			return total, err
+		}
+		share := common.GetSafeShare(lp.Units, pool.GetPoolUnits(), pool.BalanceRune)
+		total = total.Add(share.MulUint64(2))
+	}
+
+	return total, nil
+}
+
 func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
 	version := mgr.GetVersion()
 	if version.GTE(semver.MustParse("0.73.0")) {
@@ -946,6 +979,14 @@ func telem(input cosmos.Uint) float32 {
 	return float32(i) / 100000000
 }
 
+func telemInt(input cosmos.Int) float32 {
+	if !input.BigInt().IsInt64() {
+		return 0
+	}
+	i := input.Int64()
+	return float32(i) / 100000000
+}
+
 func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	// capture panics
 	defer func() {
@@ -964,6 +1005,20 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	telemetry.SetGauge(float32(network.TotalBondUnits.Uint64()), "thornode", "network", "total_bond_units")
 	telemetry.SetGauge(telem(network.BurnedBep2Rune), "thornode", "network", "rune", "burned", "bep2")
 	telemetry.SetGauge(telem(network.BurnedErc20Rune), "thornode", "network", "rune", "burned", "erc20")
+
+	// emit protocol owned liquidity data
+	pol, err := mgr.Keeper().GetPOL(ctx)
+	if err != nil {
+		return err
+	}
+	telemetry.SetGauge(telem(pol.RuneDeposited), "thornode", "pol", "rune_deposited")
+	telemetry.SetGauge(telem(pol.RuneWithdrawn), "thornode", "pol", "rune_withdrawn")
+	telemetry.SetGauge(telemInt(pol.CurrentDeposit()), "thornode", "pol", "current_deposit")
+	polValue, err := polPoolValue(ctx, mgr)
+	if err == nil {
+		telemetry.SetGauge(telem(polValue), "thornode", "pol", "value")
+		telemetry.SetGauge(telemInt(pol.PnL(polValue)), "thornode", "pol", "pnl")
+	}
 
 	// emit module balances
 	for _, name := range []string{ReserveName, AsgardName, BondName} {

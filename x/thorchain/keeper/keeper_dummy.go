@@ -317,6 +317,14 @@ func (k KVStoreDummy) AddBondFeeToReserve(_ cosmos.Context, _ cosmos.Uint) error
 func (k KVStoreDummy) GetNetwork(_ cosmos.Context) (Network, error)              { return Network{}, kaboom }
 func (k KVStoreDummy) SetNetwork(_ cosmos.Context, _ Network) error              { return kaboom }
 
+func (k KVStoreDummy) GetPOL(_ cosmos.Context) (ProtocolOwnedLiquidity, error) {
+	return ProtocolOwnedLiquidity{}, kaboom
+}
+
+func (k KVStoreDummy) SetPOL(_ cosmos.Context, _ ProtocolOwnedLiquidity) error {
+	return kaboom
+}
+
 func (k KVStoreDummy) SetTssKeysignFailVoter(_ cosmos.Context, tss TssKeysignFailVoter) {
 }
 
