@@ -33,8 +33,8 @@ endif
 all: lint install
 
 # ------------------------------ Generate ------------------------------
-#
-SMOKE_PROTO_DIR="./test/smoke/thornode_proto"
+
+SMOKE_PROTO_DIR=test/smoke/thornode_proto
 
 protob:
 	@./scripts/protocgen.sh
@@ -60,6 +60,9 @@ smoke-protob-docker:
 	@docker run --rm -v $(shell pwd):/app -w /app \
 		registry.gitlab.com/thorchain/thornode:builder-v2@sha256:eda7a8670a92b3178b2f947f692794c19e307073cdef4ad2a28ccf8dba2a7054 \
 		sh -c 'make smoke-protob'
+
+$(SMOKE_PROTO_DIR):
+	@$(MAKE) smoke-protob-docker
 
 openapi:
 	@docker run --rm \
@@ -191,7 +194,7 @@ stop-mocknet:
 build-mocknet:
 	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard build
 
-bootstrap-mocknet:
+bootstrap-mocknet: $(SMOKE_PROTO_DIR)
 	@docker run ${SMOKE_DOCKER_OPTS} \
 		-e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} \
 		-v ${PWD}/test/smoke:/app \

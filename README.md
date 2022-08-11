@@ -156,8 +156,8 @@ make reset-mocknet-cluster
 make cli-mocknet
 > thornode tx thorchain mimir CHURNINTERVAL 1000 --from dog $TX_FLAGS
 
-# bootstrap vaults from the `heimdall` repo
-make bootstrap
+# bootstrap vaults from smoke test add liquidity transactions
+make mocknet-bootstrap
 
 # verify vault balances
 curl -s localhost:1317/thorchain/vaults/asgard | jq '.[0].coins'
