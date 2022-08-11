@@ -145,6 +145,8 @@ type KeeperLiquidityFees interface {
 	AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee cosmos.Uint) error
 	GetTotalLiquidityFees(ctx cosmos.Context, height uint64) (cosmos.Uint, error)
 	GetPoolLiquidityFees(ctx cosmos.Context, height uint64, asset common.Asset) (cosmos.Uint, error)
+	GetRollingPoolLiquidityFee(ctx cosmos.Context, asset common.Asset) (uint64, error)
+	ResetRollingPoolLiquidityFee(ctx cosmos.Context, asset common.Asset)
 }
 
 type KeeperVault interface {

@@ -286,6 +286,12 @@ func (k KVStoreDummy) GetPoolLiquidityFees(_ cosmos.Context, _ uint64, _ common.
 	return cosmos.ZeroUint(), kaboom
 }
 
+func (k KVStoreDummy) GetRollingPoolLiquidityFee(ctx cosmos.Context, asset common.Asset) (uint64, error) {
+	return 0, kaboom
+}
+
+func (k KVStoreDummy) ResetRollingPoolLiquidityFee(ctx cosmos.Context, asset common.Asset) {}
+
 func (k KVStoreDummy) GetChains(_ cosmos.Context) (common.Chains, error)  { return nil, kaboom }
 func (k KVStoreDummy) SetChains(_ cosmos.Context, _ common.Chains)        {}
 func (k KVStoreDummy) GetVaultIterator(_ cosmos.Context) cosmos.Iterator  { return nil }

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/blang/semver"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -29,7 +31,30 @@ func (k KVStore) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee 
 
 	// update pool liquidity
 	k.setUint64(ctx, k.GetKey(ctx, prefixPoolLiquidityFee, fmt.Sprintf("%d-%s", currentHeight, asset.String())), poolFees.Uint64())
+	if k.GetVersion().GTE(semver.MustParse("1.95.0")) {
+		currentValue, err := k.GetRollingPoolLiquidityFee(ctx, asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get existing rolling pool liquidity fee", "error", err)
+			return nil
+		}
+		key := k.GetKey(ctx, prefixRollingPoolLiquidityFee, asset.String())
+		k.setUint64(ctx, key, currentValue+poolFees.Uint64())
+	}
 	return nil
+}
+
+// GetRollingPoolLiquidityFee get the given rolling liquidity fee from key value store
+func (k KVStore) GetRollingPoolLiquidityFee(ctx cosmos.Context, asset common.Asset) (uint64, error) {
+	key := k.GetKey(ctx, prefixRollingPoolLiquidityFee, asset.String())
+	var record uint64
+	_, err := k.getUint64(ctx, key, &record)
+	return record, err
+}
+
+// ResetRollingPoolLiquidityFee set the given pool's rolling liquidity fee to zero
+func (k KVStore) ResetRollingPoolLiquidityFee(ctx cosmos.Context, asset common.Asset) {
+	key := k.GetKey(ctx, prefixRollingPoolLiquidityFee, asset.String())
+	k.setUint64(ctx, key, 0)
 }
 
 func (k KVStore) getLiquidityFees(ctx cosmos.Context, key string) (cosmos.Uint, error) {

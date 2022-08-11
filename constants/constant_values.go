@@ -86,6 +86,7 @@ const (
 	RagnarokProcessNumOfLPPerIteration
 	SwapOutDexAggregationDisabled
 	MinimumL1OutboundFeeUSD
+	MinimumPoolLiquidityFee
 )
 
 var nameToString = map[ConstantName]string{
@@ -165,6 +166,7 @@ var nameToString = map[ConstantName]string{
 	POLBuffer:                          "POLBuffer",
 	RagnarokProcessNumOfLPPerIteration: "RagnarokProcessNumOfLPPerIteration",
 	MinimumL1OutboundFeeUSD:            "MinimumL1OutboundFeeUSD",
+	MinimumPoolLiquidityFee:            "MinimumPoolLiquidityFee",
 }
 
 // String implement fmt.stringer
