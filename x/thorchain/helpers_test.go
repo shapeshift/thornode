@@ -387,13 +387,13 @@ func (s *HelperSuite) TestEnableNextPool(c *C) {
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
 	pool = NewPool()
-	pool.Asset = common.BTCAsset
-	pool.Status = PoolStaged
+	pool.Asset = common.BTCAsset // gas pool should be enabled by default
+	pool.Status = PoolAvailable
 	pool.BalanceRune = cosmos.NewUint(50 * common.One)
 	pool.BalanceAsset = cosmos.NewUint(50 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	ethAsset, err := common.NewAsset("ETH.ETH")
+	ethAsset, err := common.NewAsset("BNB.ETH")
 	c.Assert(err, IsNil)
 	pool = NewPool()
 	pool.Asset = ethAsset
@@ -495,6 +495,84 @@ func (s *HelperSuite) TestAbandonPool(c *C) {
 		count++
 	}
 	c.Assert(count, Equals, 0)
+}
+
+func (s *HelperSuite) TestDemotePoolWithLowLiquidityFees(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	mgr := NewDummyMgrWithKeeper(k)
+	usdAsset, err := common.NewAsset("BNB.TUSDB")
+	c.Assert(err, IsNil)
+	pool := NewPool()
+	pool.Asset = usdAsset
+	pool.Status = PoolStaged
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	c.Assert(k.SetPool(ctx, pool), IsNil)
+
+	poolBNB := NewPool()
+	poolBNB.Asset = common.BNBAsset
+	poolBNB.Status = PoolAvailable
+	poolBNB.BalanceRune = cosmos.NewUint(100000 * common.One)
+	poolBNB.BalanceAsset = cosmos.NewUint(100000 * common.One)
+	c.Assert(k.SetPool(ctx, poolBNB), IsNil)
+
+	bnbETH, err := common.NewAsset("BNB.ETH-1C9")
+	c.Assert(err, IsNil)
+	poolLoki := NewPool()
+	poolLoki.Asset = bnbETH
+	poolLoki.Status = PoolAvailable
+	poolLoki.BalanceRune = cosmos.NewUint(100000 * common.One)
+	poolLoki.BalanceAsset = cosmos.NewUint(100000 * common.One)
+	c.Assert(k.SetPool(ctx, poolLoki), IsNil)
+
+	vault := GetRandomVault()
+	vault.Coins = common.Coins{
+		common.NewCoin(usdAsset, cosmos.NewUint(100*common.One)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
+	}
+	c.Assert(k.SetVault(ctx, vault), IsNil)
+
+	runeAddr := GetRandomRUNEAddress()
+	bnbAddr := GetRandomBNBAddress()
+	lp := LiquidityProvider{
+		Asset:        usdAsset,
+		RuneAddress:  runeAddr,
+		AssetAddress: bnbAddr,
+		Units:        cosmos.ZeroUint(),
+		PendingRune:  cosmos.ZeroUint(),
+		PendingAsset: cosmos.ZeroUint(),
+	}
+	k.SetLiquidityProvider(ctx, lp)
+	k.SetMimir(ctx, constants.MinimumPoolLiquidityFee.String(), 100000000)
+	// cycle pools
+	c.Assert(cyclePools(ctx, 100, 1, 100*common.One, mgr), IsNil)
+
+	// check pool was deleted
+	pool, err = k.GetPool(ctx, usdAsset)
+	c.Assert(err, IsNil)
+	c.Assert(pool.BalanceRune.IsZero(), Equals, true)
+	c.Assert(pool.BalanceAsset.IsZero(), Equals, true)
+
+	// check vault remove pool asset
+	vault, err = k.GetVault(ctx, vault.PubKey)
+	c.Assert(err, IsNil)
+	c.Assert(vault.HasAsset(usdAsset), Equals, false)
+	c.Assert(vault.CoinLength(), Equals, 1)
+
+	// check that liquidity provider got removed
+	count := 0
+	iterator := k.GetLiquidityProviderIterator(ctx, usdAsset)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		count++
+	}
+	c.Assert(count, Equals, 0)
+	afterBNBPool, err := k.GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	c.Assert(afterBNBPool.Status == PoolAvailable, Equals, true)
+	afterBNBEth, err := k.GetPool(ctx, bnbETH)
+	c.Assert(err, IsNil)
+	c.Assert(afterBNBEth.Status == PoolStaged, Equals, true)
 }
 
 func (s *HelperSuite) TestDollarInRune(c *C) {

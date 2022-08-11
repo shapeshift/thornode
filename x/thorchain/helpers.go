@@ -514,18 +514,21 @@ func polPoolValue(ctx cosmos.Context, mgr Manager) (cosmos.Uint, error) {
 
 func cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
 	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.73.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.95.0")):
+		return cyclePoolsV95(ctx, maxAvailablePools, minRunePoolDepth, stagedPoolCost, mgr)
+	case version.GTE(semver.MustParse("0.73.0")):
 		return cyclePoolsV73(ctx, maxAvailablePools, minRunePoolDepth, stagedPoolCost, mgr)
 	}
 	return errBadVersion
 }
 
-func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
+func cyclePoolsV95(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
 	var availblePoolCount int64
 	onDeck := NewPool()        // currently staged pool that could get promoted
 	choppingBlock := NewPool() // currently available pool that is on the chopping block to being demoted
 	minRuneDepth := cosmos.NewUint(uint64(minRunePoolDepth))
-
+	minPoolLiquidityFee := fetchConfigInt64(ctx, mgr, constants.MinimumPoolLiquidityFee)
 	// quick func to check the validity of a pool
 	validPool := func(pool Pool) bool {
 		if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() || pool.BalanceRune.LT(minRuneDepth) {
@@ -558,26 +561,29 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &pool); err != nil {
 			return err
 		}
-
+		if pool.Asset.IsGasAsset() {
+			continue
+		}
 		switch pool.Status {
 		case PoolAvailable:
 			// any available pools that have no asset, no rune, or less than
 			// min rune, moves back to staged status
-			if validPool(pool) {
+			if validPool(pool) &&
+				poolMeetTradingVolumeCriteria(ctx, mgr, pool, cosmos.NewUint(uint64(minPoolLiquidityFee))) {
 				availblePoolCount += 1
-			} else if !pool.Asset.IsGasAsset() {
+			} else {
 				pool.Status = PoolStaged
 				if err := setPool(pool); err != nil {
 					return err
 				}
 			}
+			// reset the pool rolling liquidity fee to zero
+			mgr.Keeper().ResetRollingPoolLiquidityFee(ctx, pool.Asset)
 			if pool.BalanceRune.LT(choppingBlock.BalanceRune) || choppingBlock.IsEmpty() {
 				// omit pools that are gas assets from being on the chopping
 				// block, removing these pool requires a chain ragnarok, and
 				// cannot be handled individually
-				if !pool.Asset.IsGasAsset() {
-					choppingBlock = pool
-				}
+				choppingBlock = pool
 			}
 		case PoolStaged:
 			// deduct staged pool rune fee
@@ -660,6 +666,20 @@ func cyclePoolsV73(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stag
 	}
 
 	return nil
+}
+
+func poolMeetTradingVolumeCriteria(ctx cosmos.Context, mgr Manager, pool Pool, minPoolLiquidityFee cosmos.Uint) bool {
+	if minPoolLiquidityFee.IsZero() {
+		return true
+	}
+	blockPoolLiquidityFee, err := mgr.Keeper().GetRollingPoolLiquidityFee(ctx, pool.Asset)
+	if err != nil {
+		ctx.Logger().Error("fail to get rolling pool liquidity from key value store", "error", err)
+		// when we failed to get rolling liquidity fee from key value store for some reason, return true here
+		// thus the pool will not be demoted
+		return true
+	}
+	return cosmos.NewUint(blockPoolLiquidityFee).GTE(minPoolLiquidityFee)
 }
 
 func removeAssetFromVault(ctx cosmos.Context, asset common.Asset, mgr Manager) {

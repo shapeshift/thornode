@@ -71,6 +71,7 @@ func NewConstantValue010() *ConstantVals {
 			POLBuffer:                          0,                  // buffer around the POL synth utilization (basis points added to/subtracted from POLSynthUtilization basis points)
 			RagnarokProcessNumOfLPPerIteration: 200,                // the number of LP to be processed per iteration during ragnarok pool
 			MinimumL1OutboundFeeUSD:            1000000,            // Minimum fee in USD to charge for LP swap, default to $0.01 , nodes need to vote it to a larger value
+			MinimumPoolLiquidityFee:            0,                  // Minimum liquidity fee made by the pool,active pool fail to meet this within a PoolCycle will be demoted
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,
