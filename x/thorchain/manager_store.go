@@ -75,6 +75,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV92_USDCBalance(ctx, smgr.mgr)
 	case 94:
 		migrateStoreV94(ctx, smgr.mgr)
+	case 95:
+		migrateStoreV95(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
@@ -263,4 +265,16 @@ func migrateStoreV94(ctx cosmos.Context, mgr *Mgrs) {
 	}
 	// remove LUNA pool
 	mgr.Keeper().RemovePool(ctx, common.LUNAAsset)
+}
+
+func migrateStoreV95(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v95", "error", err)
+		}
+	}()
+
+	if err := mgr.Keeper().SetPOL(ctx, NewProtocolOwnedLiquidity()); err != nil {
+		panic(err)
+	}
 }

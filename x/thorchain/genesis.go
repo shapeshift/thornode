@@ -193,10 +193,6 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		panic(err)
 	}
 
-	if err := keeper.SetPOL(ctx, data.POL); err != nil {
-		panic(err)
-	}
-
 	for i, item := range data.MsgSwaps {
 		if err := keeper.SetSwapQueueItem(ctx, item, i); err != nil {
 			panic(err)
