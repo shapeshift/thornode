@@ -129,7 +129,7 @@ test-watch:
 	@gow -c test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
 test-sync-mainnet:
-	@TAG=mainnet BRANCH=mainnet $(MAKE) docker-gitlab-build
+	@BUILDTAG=mainnet BRANCH=mainnet $(MAKE) docker-gitlab-build
 	@docker run --rm -e CHAIN_ID=thorchain-mainnet-v1 -e NET=mainnet registry.gitlab.com/thorchain/thornode:mainnet
 
 # ------------------------------ Docker Build ------------------------------
