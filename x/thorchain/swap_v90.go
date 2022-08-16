@@ -256,7 +256,7 @@ func (s *SwapperV90) swapOne(ctx cosmos.Context,
 	)
 
 	// Check if pool exists
-	if !keeper.PoolExist(ctx, asset) {
+	if !keeper.PoolExist(ctx, asset.GetLayer1Asset()) {
 		err := fmt.Errorf("pool %s doesn't exist", asset)
 		return cosmos.ZeroUint(), evt, err
 	}
@@ -266,7 +266,7 @@ func (s *SwapperV90) swapOne(ctx cosmos.Context,
 		pool = p
 	} else {
 		// Get our pool from the KVStore
-		pool, err = keeper.GetPool(ctx, asset)
+		pool, err = keeper.GetPool(ctx, asset.GetLayer1Asset())
 		if err != nil {
 			return cosmos.ZeroUint(), evt, ErrInternal(err, fmt.Sprintf("fail to get pool(%s)", asset))
 		}
