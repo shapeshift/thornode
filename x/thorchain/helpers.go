@@ -210,7 +210,7 @@ func subsidizePoolWithSlashBondV92(ctx cosmos.Context, ygg Vault, yggTotalStolen
 	}
 
 	for _, f := range subsidize {
-		pool, err := mgr.Keeper().GetPool(ctx, f.asset)
+		pool, err := mgr.Keeper().GetPool(ctx, f.asset.GetLayer1Asset())
 		if err != nil {
 			ctx.Logger().Error("fail to get pool", "asset", f.asset, "error", err)
 			continue
