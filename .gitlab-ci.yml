@@ -1,7 +1,7 @@
 image: registry.gitlab.com/thorchain/thornode:builder-v2@sha256:eda7a8670a92b3178b2f947f692794c19e307073cdef4ad2a28ccf8dba2a7054
 
 workflow:
-  rules:
+  rules: &rules
     - if: $CI_MERGE_REQUEST_IID
     - if: $CI_COMMIT_TAG
     - if: $CI_COMMIT_REF_PROTECTED == "true"
@@ -173,18 +173,25 @@ smoke-test:
   after_script:
     - ./scripts/docker_logs.sh
 
-gosec-sast:
-  stage: test
-
-secret_detection:
-  stage: test
-
 include:
   - template: Security/SAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
 
+# NOTE: The following included jobs have internal rule definitions that need to be
+# overwritten for them to trigger on merge requests. We overwrite all with the default
+# workflow rule set.
+
+gosec-sast:
+  stage: test
+  rules: *rules
+
+secret_detection:
+  stage: test
+  rules: *rules
+
 semgrep:
   stage: test
+  rules: *rules
   image: returntocorp/semgrep-agent:v1
   script: semgrep-agent --gitlab-json > gl-sast-report.json || true
   variables:
