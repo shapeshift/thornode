@@ -153,6 +153,9 @@ func main() {
 
 	// ensure we have a protocol for chain RPC Hosts
 	for _, chainCfg := range cfg.Chains {
+		if chainCfg.Disabled {
+			continue
+		}
 		if len(chainCfg.RPCHost) == 0 {
 			log.Fatal().Err(err).Stringer("chain", chainCfg.ChainID).Msg("missing chain RPC host")
 			return
