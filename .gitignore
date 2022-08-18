@@ -11,7 +11,6 @@ vendor
 .vendor-new
 observe
 *balances.json
-*.pb.go
 openapi/openapi.json
 openapi/gen/
 test/smoke/thornode_proto
