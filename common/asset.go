@@ -227,3 +227,8 @@ func ERC20RuneAsset() Asset {
 	}
 	return RuneERC20Asset
 }
+
+// Replace pool name "." with a "-" for Mimir key checking.
+func (a Asset) MimirString() string {
+	return a.Chain.String() + "-" + a.Symbol.String()
+}

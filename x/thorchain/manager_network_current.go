@@ -3,7 +3,6 @@ package thorchain
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -326,7 +325,9 @@ func (vm *NetworkMgrV95) POLCycle(ctx cosmos.Context, mgr Manager) error {
 
 	pool := pools[int(ctx.BlockHeight()%int64(len(pools)))]
 
-	val, err := mgr.Keeper().GetMimir(ctx, fmt.Sprintf("POL-%s", pool.Asset))
+	// The POL key for the ETH.ETH pool would be POL-ETH-ETH .
+	key := "POL-" + pool.Asset.MimirString()
+	val, err := mgr.Keeper().GetMimir(ctx, key)
 	if err != nil {
 		ctx.Logger().Error("fail to manage POL in pool", "pool", pool.Asset.String(), "error", err)
 		return nil
@@ -392,19 +393,22 @@ func (mv *NetworkMgrV95) fetchPOLPools(ctx cosmos.Context, mgr Manager) Pools {
 			continue
 		}
 
-		val, err := mgr.Keeper().GetMimir(ctx, fmt.Sprintf("POL-%s", pool.Asset))
+		// The POL key for the ETH.ETH pool would be POL-ETH-ETH .
+		key := "POL-" + pool.Asset.MimirString()
+		val, err := mgr.Keeper().GetMimir(ctx, key)
 		if err != nil {
 			ctx.Logger().Error("fail to manage POL in pool", "pool", pool.Asset.String(), "error", err)
 			continue
 		}
 
+		// -1 is unset default behaviour; 0 is off (paused); 1 is on; 2 (elsewhere) is forced withdraw.
 		switch val {
 		case -1:
-			continue
+			continue // unset default behaviour:  pause POL movements
 		case 0:
-			// POL is enabled
+			continue // off behaviour:  pause POL movements
 		case 1:
-			continue // pause POL movements
+			// on behaviour:  POL is enabled
 		}
 
 		pools = append(pools, pool)
@@ -1184,7 +1188,8 @@ func (vm *NetworkMgrV95) checkPoolRagnarok(ctx cosmos.Context, mgr Manager) erro
 	}
 
 	for _, pool := range pools {
-		k := fmt.Sprintf("RAGNAROK-%s", strings.ReplaceAll(pool.Asset.String(), ".", "-"))
+		// The Ragnarok key for the TERRA.UST pool would be RAGNAROK-TERRA-UST .
+		k := "RAGNAROK-" + pool.Asset.MimirString()
 		v, err := vm.k.GetMimir(ctx, k)
 		if err != nil {
 			ctx.Logger().Error("fail to get mimir value", "mimir", k, "error", err)
