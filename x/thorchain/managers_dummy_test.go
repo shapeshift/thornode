@@ -15,6 +15,7 @@ type DummyMgr struct {
 	networkMgr    NetworkManager
 	validatorMgr  ValidatorManager
 	obMgr         ObserverManager
+	poolMgr       PoolManager
 	swapQ         SwapQueue
 	slasher       Slasher
 	yggManager    YggManager
@@ -30,6 +31,7 @@ func NewDummyMgrWithKeeper(k keeper.Keeper) *DummyMgr {
 		networkMgr:    NewNetworkMgrDummy(),
 		validatorMgr:  NewValidatorDummyMgr(),
 		obMgr:         NewDummyObserverManager(),
+		poolMgr:       NewDummyPoolManager(),
 		slasher:       NewDummySlasher(),
 		yggManager:    NewDummyYggManger(),
 		// TODO add dummy swap queue
@@ -46,6 +48,7 @@ func NewDummyMgr() *DummyMgr {
 		networkMgr:    NewNetworkMgrDummy(),
 		validatorMgr:  NewValidatorDummyMgr(),
 		obMgr:         NewDummyObserverManager(),
+		poolMgr:       NewDummyPoolManager(),
 		slasher:       NewDummySlasher(),
 		yggManager:    NewDummyYggManger(),
 		// TODO add dummy swap queue
@@ -61,6 +64,7 @@ func (m DummyMgr) TxOutStore() TxOutStore                 { return m.txOutStore 
 func (m DummyMgr) NetworkMgr() NetworkManager             { return m.networkMgr }
 func (m DummyMgr) ValidatorMgr() ValidatorManager         { return m.validatorMgr }
 func (m DummyMgr) ObMgr() ObserverManager                 { return m.obMgr }
+func (m DummyMgr) PoolMgr() PoolManager                   { return m.poolMgr }
 func (m DummyMgr) SwapQ() SwapQueue                       { return m.swapQ }
 func (m DummyMgr) Slasher() Slasher                       { return m.slasher }
 func (m DummyMgr) YggManager() YggManager                 { return m.yggManager }

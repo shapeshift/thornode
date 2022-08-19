@@ -36,6 +36,7 @@ type Manager interface {
 	NetworkMgr() NetworkManager
 	ValidatorMgr() ValidatorManager
 	ObMgr() ObserverManager
+	PoolMgr() PoolManager
 	SwapQ() SwapQueue
 	Slasher() Slasher
 	YggManager() YggManager
@@ -99,6 +100,11 @@ type NetworkManager interface {
 	RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNode common.PubKeys) error
 }
 
+// PoolManager interface define the contract of PoolManager
+type PoolManager interface {
+	EndBlock(ctx cosmos.Context, mgr Manager) error
+}
+
 // SwapQueue interface define the contract of Swap Queue
 type SwapQueue interface {
 	EndBlock(ctx cosmos.Context, mgr Manager) error
@@ -130,6 +136,7 @@ type Mgrs struct {
 	networkMgr     NetworkManager
 	validatorMgr   ValidatorManager
 	obMgr          ObserverManager
+	poolMgr        PoolManager
 	swapQ          SwapQueue
 	slasher        Slasher
 	yggManager     YggManager
@@ -199,6 +206,11 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to get vault manager: %w", err)
 	}
 
+	mgr.poolMgr, err = GetPoolManager(v, mgr.K)
+	if err != nil {
+		return fmt.Errorf("fail to get pool manager: %w", err)
+	}
+
 	mgr.validatorMgr, err = GetValidatorManager(v, mgr.K, mgr.networkMgr, mgr.txOutStore, mgr.eventMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get validator manager: %w", err)
@@ -240,6 +252,9 @@ func (mgr *Mgrs) TxOutStore() TxOutStore { return mgr.txOutStore }
 
 // VaultMgr return a valid NetworkManager
 func (mgr *Mgrs) NetworkMgr() NetworkManager { return mgr.networkMgr }
+
+// PoolMgr return a valid PoolManager
+func (mgr *Mgrs) PoolMgr() PoolManager { return mgr.poolMgr }
 
 // ValidatorMgr return an implementation of ValidatorManager
 func (mgr *Mgrs) ValidatorMgr() ValidatorManager { return mgr.validatorMgr }
@@ -359,6 +374,17 @@ func GetValidatorManager(version semver.Version, keeper keeper.Keeper, networkMg
 func GetObserverManager(version semver.Version) (ObserverManager, error) {
 	if version.GTE(semver.MustParse("0.1.0")) {
 		return newObserverMgrV1(), nil
+	}
+	return nil, errInvalidVersion
+}
+
+// GetPoolManager return an implementation of PoolManager
+func GetPoolManager(version semver.Version, keeper keeper.Keeper) (PoolManager, error) {
+	switch {
+	case version.GTE(semver.MustParse("1.95.0")):
+		return newPoolMgrV95(keeper), nil
+	case version.GTE(semver.MustParse("0.73.0")):
+		return newPoolMgrV73(keeper), nil
 	}
 	return nil, errInvalidVersion
 }

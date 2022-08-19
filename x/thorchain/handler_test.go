@@ -25,6 +25,7 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -166,7 +167,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 	c.Assert(bk.MintCoins(ctx, ModuleName, cosmos.Coins{
 		cosmos.NewCoin(common.RuneAsset().Native(), cosmos.NewInt(200_000_000_00000000)),
 	}), IsNil)
-	k := keeper.NewKeeper(marshaler, bk, ak, keyThorchain)
+	k := kv1.NewKVStore(marshaler, bk, ak, keyThorchain, GetCurrentVersion())
 	FundModule(c, ctx, k, ModuleName, 1000000*common.One)
 	FundModule(c, ctx, k, AsgardName, common.One)
 	FundModule(c, ctx, k, ReserveName, 10000*common.One)
