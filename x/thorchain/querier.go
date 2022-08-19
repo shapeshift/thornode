@@ -1210,11 +1210,13 @@ func queryConstantValues(ctx cosmos.Context, path []string, req abci.RequestQuer
 }
 
 func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	v, hasV := mgr.Keeper().GetVersionWithCtx(ctx)
+	if !hasV {
+		// re-compute version if not stored
+		v = mgr.Keeper().GetLowestActiveVersion(ctx)
+	}
 	ver := QueryVersion{
-		// Querier needs to use GetLowestActiveVersion for historical version information
-		// (for efficiency, only for a query which needs it),
-		// since not recreating all managers with BeginBlock in managers.go .
-		Current: mgr.Keeper().GetLowestActiveVersion(ctx),
+		Current: v,
 		Next:    mgr.Keeper().GetMinJoinVersion(ctx),
 		Querier: constants.SWVersion,
 	}

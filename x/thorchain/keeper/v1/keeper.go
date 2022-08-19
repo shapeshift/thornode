@@ -71,6 +71,7 @@ const (
 	prefixSolvencyVoter           kvTypes.DbPrefix = "solvency_voter/"
 	prefixTHORName                kvTypes.DbPrefix = "thorname/"
 	prefixRollingPoolLiquidityFee kvTypes.DbPrefix = "rolling_pool_liquidity_fee/"
+	prefixVersion                 kvTypes.DbPrefix = "version/"
 )
 
 func dbError(ctx cosmos.Context, wrapper string, err error) error {

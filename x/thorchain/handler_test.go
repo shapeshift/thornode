@@ -114,8 +114,21 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 	os.Setenv("NET", "mocknet")
 	mgr := NewManagers(k, marshaler, bk, ak, keyThorchain)
 	constants.SWVersion = GetCurrentVersion()
+
+	_, hasVerStored := k.GetVersionWithCtx(ctx)
+	c.Assert(hasVerStored, Equals, false,
+		Commentf("version should not be stored until BeginBlock"))
+
 	c.Assert(mgr.BeginBlock(ctx), IsNil)
 	mgr.gasMgr.BeginBlock(mgr)
+
+	verStored, hasVerStored := k.GetVersionWithCtx(ctx)
+	c.Assert(hasVerStored, Equals, true,
+		Commentf("version should be stored"))
+	verComputed := k.GetLowestActiveVersion(ctx)
+	c.Assert(verStored.String(), Equals, verComputed.String(),
+		Commentf("stored version should match computed version"))
+
 	return ctx, mgr
 }
 
