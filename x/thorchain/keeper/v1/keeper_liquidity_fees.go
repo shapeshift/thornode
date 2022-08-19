@@ -38,7 +38,11 @@ func (k KVStore) AddToLiquidityFees(ctx cosmos.Context, asset common.Asset, fee 
 			return nil
 		}
 		key := k.GetKey(ctx, prefixRollingPoolLiquidityFee, asset.String())
-		k.setUint64(ctx, key, currentValue+poolFees.Uint64())
+		if k.GetVersion().GTE(semver.MustParse("1.96.0")) {
+			k.setUint64(ctx, key, currentValue+fee.Uint64())
+		} else {
+			k.setUint64(ctx, key, currentValue+poolFees.Uint64())
+		}
 	}
 	return nil
 }
