@@ -137,7 +137,7 @@ thor:
     halt_height: 0
     min_retain_blocks: 0
     telemetry:
-      enabled: true
+      enabled: false
       prometheus_retention_time: 600
     api:
       enable: true
