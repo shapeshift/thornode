@@ -789,6 +789,9 @@ func (vm *NetworkMgrV95) ragnarokChain(ctx cosmos.Context, chain common.Chain, n
 		ctx.Logger().Error("can't get active nodes", "error", err)
 		return err
 	}
+	if chain.IsTHORChain() {
+		return fmt.Errorf("can't ragnarok THORChain")
+	}
 	if len(nas) == 0 {
 		return fmt.Errorf("can't find any active nodes")
 	}
@@ -1019,6 +1022,9 @@ func (vm *NetworkMgrV95) getTotalProvidedLiquidityRune(ctx cosmos.Context) (Pool
 		var pool Pool
 		if err := vm.k.Cdc().Unmarshal(iterator.Value(), &pool); err != nil {
 			return nil, cosmos.ZeroUint(), fmt.Errorf("fail to unmarhsl pool: %w", err)
+		}
+		if pool.Asset.IsNative() {
+			continue
 		}
 		if !pool.BalanceRune.IsZero() {
 			totalProvidedLiquidity = totalProvidedLiquidity.Add(pool.BalanceRune)

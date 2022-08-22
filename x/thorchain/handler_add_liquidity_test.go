@@ -278,11 +278,6 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 			expectedResult: errAddLiquidityFailValidation,
 		},
 		{
-			name:           "synth asset from memo should fail",
-			msg:            NewMsgAddLiquidity(GetRandomTx(), bnbSynthAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
-			expectedResult: errAddLiquidityFailValidation,
-		},
-		{
 			name:           "synth asset from coins should fail",
 			msg:            NewMsgAddLiquidity(tx, common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomBNBAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errAddLiquidityFailValidation,
@@ -785,4 +780,142 @@ func (HandlerAddLiquiditySuite) TestAssetOnlyProvidedLiquidity(c *C) {
 	pool, err := k.GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
 	c.Assert(pool.LPUnits.Uint64(), Equals, uint64(12500000000), Commentf("%d", pool.LPUnits.Uint64()))
+}
+
+func (HandlerAddLiquiditySuite) TestSynthValidate(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	asset := common.BTCAsset.GetSyntheticAsset()
+
+	c.Assert(mgr.Keeper().SetPool(ctx, Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(10 * common.One),
+		Asset:        asset,
+		LPUnits:      cosmos.ZeroUint(),
+		SynthUnits:   cosmos.ZeroUint(),
+		Status:       PoolAvailable,
+	}), IsNil)
+
+	handler := NewAddLiquidityHandler(mgr)
+
+	addr := GetRandomTHORAddress()
+	signer := GetRandomBech32Addr()
+	addTxHash := GetRandomTxHash()
+
+	tx := common.NewTx(
+		addTxHash,
+		addr,
+		addr,
+		common.Coins{common.NewCoin(asset, cosmos.NewUint(1000*common.One))},
+		BNBGasFeeSingleton,
+		fmt.Sprintf("add:%s", asset.String()),
+	)
+
+	// happy path
+	msg := NewMsgAddLiquidity(tx, asset, cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), addr, addr, common.NoAddress, cosmos.ZeroUint(), signer)
+	err := handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+	msg = NewMsgAddLiquidity(tx, asset, cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), common.NoAddress, addr, common.NoAddress, cosmos.ZeroUint(), signer)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	// don't allow non-gas assets
+	busd, err := common.NewAsset("BNB.BUSD-BD1")
+	c.Assert(err, IsNil)
+	msg = NewMsgAddLiquidity(tx, busd.GetSyntheticAsset(), cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), addr, common.NoAddress, common.NoAddress, cosmos.ZeroUint(), signer)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+
+	// address mismatch
+	msg = NewMsgAddLiquidity(tx, asset, cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), addr, common.NoAddress, common.NoAddress, cosmos.ZeroUint(), signer)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+	msg = NewMsgAddLiquidity(tx, asset, cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), common.NoAddress, common.NoAddress, common.NoAddress, cosmos.ZeroUint(), signer)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+
+	// don't allow rune
+	msg = NewMsgAddLiquidity(tx, asset, cosmos.NewUint(1000*common.One), cosmos.ZeroUint(), common.NoAddress, addr, common.NoAddress, cosmos.ZeroUint(), signer)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+	msg = NewMsgAddLiquidity(tx, asset, cosmos.NewUint(1000*common.One), cosmos.NewUint(1000*common.One), common.NoAddress, addr, common.NoAddress, cosmos.ZeroUint(), signer)
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+}
+
+func (HandlerAddLiquiditySuite) TestAddSynthNoLPs(c *C) {
+	// there is an odd case where its possible in a synth vault to have a
+	// balance asset of non-zero BUT have no LPs yet. Testing this edge case.
+	ctx, k := setupKeeperForTest(c)
+	txID := GetRandomTxHash()
+
+	asset := common.BTCAsset.GetSyntheticAsset()
+
+	pool := NewPool()
+	pool.Asset = asset
+	pool.Status = PoolAvailable
+	pool.BalanceRune = cosmos.NewUint(0)
+	pool.BalanceAsset = cosmos.NewUint(10 * common.One)
+	c.Assert(k.SetPool(ctx, pool), IsNil)
+
+	coin := common.NewCoin(asset, pool.BalanceAsset)
+	c.Assert(k.MintToModule(ctx, ModuleName, coin), IsNil)
+	c.Assert(k.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
+
+	addr := GetRandomTHORAddress()
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
+	h := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
+	addCoin := common.NewCoin(asset, cosmos.NewUint(10*common.One))
+	c.Assert(k.MintToModule(ctx, ModuleName, addCoin), IsNil)
+	c.Assert(k.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(addCoin)), IsNil)
+	err := h.addLiquidity(ctx, asset, cosmos.ZeroUint(), addCoin.Amount, common.NoAddress, addr, txID, false, constAccessor)
+	c.Assert(err, IsNil)
+
+	su, err := k.GetLiquidityProvider(ctx, asset, addr)
+	c.Assert(err, IsNil)
+	c.Check(su.Units.Uint64(), Equals, uint64(10*common.One), Commentf("%d", su.Units.Uint64()))
+
+	pool, err = k.GetPool(ctx, asset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(0), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(20*common.One), Commentf("%d", pool.BalanceAsset.Uint64()))
+	c.Check(pool.LPUnits.Uint64(), Equals, uint64(10*common.One), Commentf("%d", pool.LPUnits.Uint64()))
+}
+
+func (HandlerAddLiquiditySuite) TestAddSynth(c *C) {
+	ctx, k := setupKeeperForTest(c)
+	txID := GetRandomTxHash()
+
+	asset := common.BTCAsset.GetSyntheticAsset()
+
+	pool := NewPool()
+	pool.Asset = asset
+	pool.Status = PoolAvailable
+	pool.BalanceRune = cosmos.NewUint(0)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.LPUnits = cosmos.NewUint(100)
+	c.Assert(k.SetPool(ctx, pool), IsNil)
+
+	coin := common.NewCoin(asset, pool.BalanceAsset)
+	c.Assert(k.MintToModule(ctx, ModuleName, coin), IsNil)
+	c.Assert(k.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
+
+	addr := GetRandomTHORAddress()
+	constAccessor := constants.GetConstantValues(GetCurrentVersion())
+	h := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
+	addCoin := common.NewCoin(asset, cosmos.NewUint(100*common.One))
+	c.Assert(k.MintToModule(ctx, ModuleName, addCoin), IsNil)
+	c.Assert(k.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(addCoin)), IsNil)
+	err := h.addLiquidity(ctx, asset, cosmos.ZeroUint(), addCoin.Amount, common.NoAddress, addr, txID, false, constAccessor)
+	c.Assert(err, IsNil)
+
+	su, err := k.GetLiquidityProvider(ctx, asset, addr)
+	c.Assert(err, IsNil)
+	c.Check(su.Units.Uint64(), Equals, uint64(100), Commentf("%d", su.Units.Uint64()))
+
+	pool, err = k.GetPool(ctx, asset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(0), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(200*common.One), Commentf("%d", pool.BalanceAsset.Uint64()))
+	c.Check(pool.LPUnits.Uint64(), Equals, uint64(200), Commentf("%d", pool.LPUnits.Uint64()))
 }

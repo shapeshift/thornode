@@ -1045,6 +1045,8 @@ class ThorchainState:
         self.bch_estimate_size = 417
         self.ltc_estimate_size = 255
         self.doge_estimate_size = 417
+        if pool.lp_units == 0 and pool.synth_units() == 0:
+            self.btc_estimate_size = 188
         if pool.lp_units == 0 and pool.synth_units() == 0 and pool.synth_balance == 0:
             if pool.asset.is_bnb():
                 gas_amt = gas.amount

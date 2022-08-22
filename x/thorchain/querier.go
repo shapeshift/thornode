@@ -30,6 +30,14 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryPool(ctx, path[1:], req, mgr)
 		case q.QueryPools.Key:
 			return queryPools(ctx, req, mgr)
+		case q.QueryBucket.Key:
+			return queryBucket(ctx, path[1:], req, mgr)
+		case q.QueryBuckets.Key:
+			return queryBuckets(ctx, req, mgr)
+		case q.QueryBucketLiquidityProviders.Key:
+			return queryLiquidityProviders(ctx, path[1:], req, mgr)
+		case q.QueryBucketLiquidityProvider.Key:
+			return queryLiquidityProvider(ctx, path[1:], req, mgr)
 		case q.QueryLiquidityProviders.Key:
 			return queryLiquidityProviders(ctx, path[1:], req, mgr)
 		case q.QueryLiquidityProvider.Key:
@@ -744,6 +752,7 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 	if len(path) == 0 {
 		return nil, errors.New("asset not provided")
 	}
+	path[0] = strings.Replace(path[0], "_", "/", 1)
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to get parse asset", "error", err)
@@ -770,6 +779,7 @@ func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQ
 	if len(path) < 2 {
 		return nil, errors.New("asset/lp not provided")
 	}
+	path[0] = strings.Replace(path[0], "_", "/", 1)
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to get parse asset", "error", err)
@@ -793,6 +803,78 @@ func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQ
 	return res, nil
 }
 
+func queryBuckets(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	buckets := make([]openapi.Bucket, 0)
+	iterator := mgr.Keeper().GetPoolIterator(ctx)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var bucket Pool
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &bucket); err != nil {
+			return nil, fmt.Errorf("fail to unmarshal bucket: %w", err)
+		}
+		// ignore bucket if no liquidity provider units
+		if bucket.LPUnits.IsZero() {
+			continue
+		}
+
+		if !bucket.Asset.IsVaultAsset() {
+			continue
+		}
+
+		p := openapi.Bucket{
+			BalanceAsset: bucket.BalanceAsset.String(),
+			Asset:        bucket.Asset.String(),
+			LPUnits:      bucket.LPUnits.String(),
+			Status:       bucket.Status.String(),
+		}
+		buckets = append(buckets, p)
+	}
+	res, err := json.MarshalIndent(buckets, "", "	")
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal buckets result to json: %w", err)
+	}
+	return res, nil
+}
+
+// nolint: unparam
+func queryBucket(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("asset not provided")
+	}
+	path[0] = strings.Replace(path[0], "_", "/", 1)
+	asset, err := common.NewAsset(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to parse asset", "error", err)
+		return nil, fmt.Errorf("could not parse asset: %w", err)
+	}
+
+	if !asset.IsVaultAsset() {
+		return nil, fmt.Errorf("given asset is a pool asset: %s", asset)
+	}
+
+	bucket, err := mgr.Keeper().GetPool(ctx, asset)
+	if err != nil {
+		ctx.Logger().Error("fail to get bucket", "error", err)
+		return nil, fmt.Errorf("could not get bucket: %w", err)
+	}
+	if bucket.IsEmpty() {
+		return nil, fmt.Errorf("bucket: %s doesn't exist", path[0])
+	}
+
+	b := openapi.Bucket{
+		BalanceAsset: bucket.BalanceAsset.String(),
+		Asset:        bucket.Asset.String(),
+		LPUnits:      bucket.LPUnits.String(),
+		Status:       bucket.Status.String(),
+	}
+
+	res, err := json.MarshalIndent(b, "", "	")
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal result to JSON: %w", err)
+	}
+	return res, nil
+}
+
 // nolint: unparam
 func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	if len(path) == 0 {
@@ -804,7 +886,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		return nil, fmt.Errorf("could not parse asset: %w", err)
 	}
 
-	pool, err := mgr.Keeper().GetPool(ctx, asset.GetLayer1Asset())
+	pool, err := mgr.Keeper().GetPool(ctx, asset)
 	if err != nil {
 		ctx.Logger().Error("fail to get pool", "error", err)
 		return nil, fmt.Errorf("could not get pool: %w", err)
@@ -846,6 +928,10 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		}
 		// ignore pool if no liquidity provider units
 		if pool.LPUnits.IsZero() {
+			continue
+		}
+
+		if pool.Asset.IsVaultAsset() {
 			continue
 		}
 

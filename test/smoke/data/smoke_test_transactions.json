@@ -408,58 +408,6 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "ADD:BNB/BNB:PROVIDER-1",
-        "coins": [
-            {
-                "asset": "BNB/BNB",
-                "amount": 10000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
-        "memo": "ADD:BNB/BNB",
-        "coins": [
-            {
-                "asset": "BNB/BNB",
-                "amount": 10000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
-        "memo": "ADD:BNB/BNB",
-        "coins": [
-            {
-                "asset": "THOR.RUNE",
-                "amount": 10000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
-        "memo": "SWAP:THOR.RUNE:PROVIDER-1",
-        "coins": [
-            {
-                "asset": "BNB/BNB",
-                "amount": 10000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "THOR",
-        "from_address": "PROVIDER-1",
-        "to_address": "VAULT",
         "memo": "SWAP:THOR.RUNE:PROVIDER-1",
         "coins": [
             {

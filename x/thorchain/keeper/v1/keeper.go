@@ -267,8 +267,12 @@ func (k KVStore) getStrings(ctx cosmos.Context, key string, record *[]string) (b
 
 // GetRuneBalanceOfModule get the RUNE balance
 func (k KVStore) GetRuneBalanceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
+	return k.GetBalanceOfModule(ctx, moduleName, common.RuneNative.Native())
+}
+
+func (k KVStore) GetBalanceOfModule(ctx cosmos.Context, moduleName, denom string) cosmos.Uint {
 	addr := k.accountKeeper.GetModuleAddress(moduleName)
-	coin := k.coinKeeper.GetBalance(ctx, addr, common.RuneNative.Native())
+	coin := k.coinKeeper.GetBalance(ctx, addr, denom)
 	return cosmos.NewUintFromBigInt(coin.Amount.BigInt())
 }
 

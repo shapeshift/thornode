@@ -251,6 +251,7 @@ func (s *SwapV91Suite) TestSwap(c *C) {
 
 func (s *SwapV91Suite) TestSynthSwap_RuneSynthRune(c *C) {
 	ctx, mgr := setupManagerForTest(c)
+
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
 	pool.BalanceRune = cosmos.NewUint(1111 * common.One)

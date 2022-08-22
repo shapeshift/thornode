@@ -185,6 +185,34 @@ func (s *QuerierSuite) TestVaultss(c *C) {
 	c.Assert(err, NotNil)
 }
 
+func (s *QuerierSuite) TestBucket(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	querier := NewQuerier(mgr, s.kb)
+	path := []string{"buckets"}
+
+	poolBNB := NewPool()
+	poolBNB.Asset = common.BNBAsset.GetSyntheticAsset()
+	poolBNB.LPUnits = cosmos.NewUint(100)
+
+	poolBTC := NewPool()
+	poolBTC.Asset = common.BTCAsset
+	poolBTC.LPUnits = cosmos.NewUint(1000)
+
+	err := mgr.Keeper().SetPool(ctx, poolBNB)
+	c.Assert(err, IsNil)
+
+	err = mgr.Keeper().SetPool(ctx, poolBTC)
+	c.Assert(err, IsNil)
+
+	res, err := querier(ctx, path, abci.RequestQuery{})
+	c.Assert(err, IsNil)
+
+	var out Pools
+	err = json.Unmarshal(res, &out)
+	c.Assert(err, IsNil)
+	c.Assert(len(out), Equals, 1)
+}
+
 func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
 	ctx, keeper := setupKeeperForTest(c)
 

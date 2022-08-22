@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"fmt"
+
 	"github.com/armon/go-metrics"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/hashicorp/go-multierror"
@@ -134,6 +136,37 @@ func (h WithdrawLiquidityHandler) handleV94(ctx cosmos.Context, msg MsgWithdrawL
 	)
 
 	return &cosmos.Result{}, nil
+}
+
+func (h WithdrawLiquidityHandler) validateV80(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return errWithdrawFailValidation
+	}
+	if msg.Asset.IsSyntheticAsset() {
+		ctx.Logger().Error("asset cannot be synth", "error", errWithdrawFailValidation)
+		return errWithdrawFailValidation
+	}
+
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
+	if err != nil {
+		errMsg := fmt.Sprintf("fail to get pool(%s)", msg.Asset)
+		return ErrInternal(err, errMsg)
+	}
+
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
+		return multierror.Append(errInvalidPoolStatus, err)
+	}
+
+	// when ragnarok kicks off,  all pool will be set PoolStaged , the ragnarok tx's hash will be common.BlankTxID
+	if pool.Status != PoolAvailable && !msg.WithdrawalAsset.IsEmpty() && !msg.Tx.ID.Equals(common.BlankTxID) {
+		return fmt.Errorf("cannot specify a withdrawal asset while the pool is not available")
+	}
+
+	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
+		return fmt.Errorf("unable to withdraw liquidity while chain is halted or paused LP actions")
+	}
+
+	return nil
 }
 
 func (h WithdrawLiquidityHandler) handleV93(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {

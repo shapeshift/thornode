@@ -22,6 +22,7 @@ type Keeper interface {
 	GetStoreVersion(ctx cosmos.Context) int64
 	SetStoreVersion(ctx cosmos.Context, ver int64)
 	GetRuneBalanceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint
+	GetBalanceOfModule(ctx cosmos.Context, moduleName, denom string) cosmos.Uint
 	SendFromModuleToModule(ctx cosmos.Context, from, to string, coin common.Coins) error
 	SendFromAccountToModule(ctx cosmos.Context, from cosmos.AccAddress, to string, coin common.Coins) error
 	SendFromModuleToAccount(ctx cosmos.Context, from string, to cosmos.AccAddress, coin common.Coins) error

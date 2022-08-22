@@ -121,6 +121,10 @@ func (a Asset) IsSyntheticAsset() bool {
 	return a.Synth
 }
 
+func (a Asset) IsVaultAsset() bool {
+	return a.IsSyntheticAsset()
+}
+
 // Native return native asset, only relevant on THORChain
 func (a Asset) Native() string {
 	if a.IsRune() {
@@ -160,6 +164,12 @@ func (a Asset) IsRune() bool {
 // IsNativeRune is a helper function, return true only when the asset represent NATIVE RUNE
 func (a Asset) IsNativeRune() bool {
 	return a.IsRune() && a.Chain.IsTHORChain()
+}
+
+// IsNative is a helper function, returns true when the asset is a native
+// asset to THORChain (ie rune, a synth, etc)
+func (a Asset) IsNative() bool {
+	return a.GetChain().IsTHORChain()
 }
 
 // IsBNB is a helper function, return true only when the asset represent BNB

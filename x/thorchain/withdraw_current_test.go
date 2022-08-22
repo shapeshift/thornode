@@ -418,7 +418,7 @@ func (WithdrawSuiteV91) TestWithdraw(c *C) {
 			name: "nothing-to-withdraw",
 			msg: MsgWithdrawLiquidity{
 				WithdrawAddress: runeAddress,
-				BasisPoints:     cosmos.NewUint(0),
+				BasisPoints:     cosmos.ZeroUint(),
 				Asset:           common.BNBAsset,
 				Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
 				Signer:          accountAddr,
@@ -560,9 +560,9 @@ func (WithdrawSuiteV91) TestWithdrawPendingRuneOrAsset(c *C) {
 		AssetAddress:       GetRandomBNBAddress(),
 		LastAddHeight:      1024,
 		LastWithdrawHeight: 0,
-		Units:              cosmos.NewUint(0),
+		Units:              cosmos.ZeroUint(),
 		PendingRune:        cosmos.NewUint(1024),
-		PendingAsset:       cosmos.NewUint(0),
+		PendingAsset:       cosmos.ZeroUint(),
 		PendingTxID:        GetRandomTxHash(),
 	}
 	mgr.Keeper().SetLiquidityProvider(ctx, lp)
@@ -587,8 +587,8 @@ func (WithdrawSuiteV91) TestWithdrawPendingRuneOrAsset(c *C) {
 		AssetAddress:       GetRandomBNBAddress(),
 		LastAddHeight:      1024,
 		LastWithdrawHeight: 0,
-		Units:              cosmos.NewUint(0),
-		PendingRune:        cosmos.NewUint(0),
+		Units:              cosmos.ZeroUint(),
+		PendingRune:        cosmos.ZeroUint(),
 		PendingAsset:       cosmos.NewUint(1024),
 		PendingTxID:        GetRandomTxHash(),
 	}
@@ -789,7 +789,7 @@ func TestCalcImpLossV91(t *testing.T) {
 			},
 			withdrawBasisPoint:    10000,
 			protectionBasisPoints: 10000,
-			expectedILP:           cosmos.NewUint(0),
+			expectedILP:           cosmos.ZeroUint(),
 			expectedDepositValue:  cosmos.NewUint(10000000000),
 			expectedRedeemValue:   cosmos.NewUint(10000000000),
 		},
@@ -867,4 +867,106 @@ func TestCalcImpLossV91(t *testing.T) {
 func getUintFromString(input string) cosmos.Uint {
 	result, _ := cosmos.ParseUint(input)
 	return result
+}
+
+func (WithdrawSuiteV91) TestWithdrawSynth(c *C) {
+	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
+	ctx, mgr := setupManagerForTest(c)
+	asset := common.BTCAsset.GetSyntheticAsset()
+
+	coin := common.NewCoin(asset, cosmos.NewUint(100*common.One))
+	c.Assert(mgr.Keeper().MintToModule(ctx, ModuleName, coin), IsNil)
+	c.Assert(mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
+
+	pool := Pool{
+		BalanceRune:  cosmos.ZeroUint(),
+		BalanceAsset: coin.Amount,
+		Asset:        asset,
+		LPUnits:      cosmos.NewUint(200 * common.One),
+		Status:       PoolAvailable,
+	}
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+	lp := LiquidityProvider{
+		Asset:              asset,
+		RuneAddress:        common.NoAddress,
+		AssetAddress:       GetRandomRUNEAddress(),
+		LastAddHeight:      0,
+		LastWithdrawHeight: 0,
+		Units:              cosmos.NewUint(100 * common.One),
+		PendingRune:        cosmos.ZeroUint(),
+		PendingAsset:       cosmos.ZeroUint(),
+		PendingTxID:        GetRandomTxHash(),
+	}
+	mgr.Keeper().SetLiquidityProvider(ctx, lp)
+	msg := MsgWithdrawLiquidity{
+		WithdrawAddress: lp.AssetAddress,
+		BasisPoints:     cosmos.NewUint(MaxWithdrawBasisPoints / 2),
+		Asset:           asset,
+		Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+		WithdrawalAsset: common.EmptyAsset,
+		Signer:          accountAddr,
+	}
+	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV91(ctx, msg, mgr)
+	c.Assert(err, IsNil)
+	c.Check(assetAmt.Uint64(), Equals, uint64(25*common.One), Commentf("%d", assetAmt.Uint64()))
+	c.Check(runeAmt.IsZero(), Equals, true)
+	c.Check(unitsLeft.Uint64(), Equals, uint64(50*common.One), Commentf("%d", unitsLeft.Uint64()))
+	c.Check(gas.IsZero(), Equals, true)
+
+	pool, err = mgr.Keeper().GetPool(ctx, asset)
+	c.Assert(err, IsNil)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(0), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(75*common.One), Commentf("%d", pool.BalanceAsset.Uint64()))
+	c.Check(pool.LPUnits.Uint64(), Equals, uint64(150*common.One), Commentf("%d", pool.LPUnits.Uint64())) // LP units did decreased
+}
+
+func (WithdrawSuiteV91) TestWithdrawSynthSingleLP(c *C) {
+	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
+	ctx, mgr := setupManagerForTest(c)
+	asset := common.BTCAsset.GetSyntheticAsset()
+
+	coin := common.NewCoin(asset, cosmos.NewUint(30*common.One))
+	c.Assert(mgr.Keeper().MintToModule(ctx, ModuleName, coin), IsNil)
+	c.Assert(mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
+
+	pool := Pool{
+		BalanceRune:  cosmos.ZeroUint(),
+		BalanceAsset: coin.Amount,
+		Asset:        asset,
+		LPUnits:      cosmos.NewUint(200 * common.One),
+		Status:       PoolAvailable,
+	}
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+	lp := LiquidityProvider{
+		Asset:              asset,
+		RuneAddress:        common.NoAddress,
+		AssetAddress:       GetRandomRUNEAddress(),
+		LastAddHeight:      0,
+		LastWithdrawHeight: 0,
+		Units:              cosmos.NewUint(200 * common.One),
+		PendingRune:        cosmos.ZeroUint(),
+		PendingAsset:       cosmos.ZeroUint(),
+		PendingTxID:        GetRandomTxHash(),
+	}
+	mgr.Keeper().SetLiquidityProvider(ctx, lp)
+	msg := MsgWithdrawLiquidity{
+		WithdrawAddress: lp.AssetAddress,
+		BasisPoints:     cosmos.NewUint(MaxWithdrawBasisPoints),
+		Asset:           asset,
+		Tx:              common.Tx{ID: "28B40BF105A112389A339A64BD1A042E6140DC9082C679586C6CF493A9FDE3FE"},
+		WithdrawalAsset: common.EmptyAsset,
+		Signer:          accountAddr,
+	}
+	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV91(ctx, msg, mgr)
+	c.Assert(err, IsNil)
+	c.Check(assetAmt.Uint64(), Equals, coin.Amount.Uint64(), Commentf("%d", assetAmt.Uint64()))
+	c.Check(runeAmt.IsZero(), Equals, true)
+	c.Check(unitsLeft.Uint64(), Equals, uint64(200*common.One), Commentf("%d", unitsLeft.Uint64()))
+	c.Check(gas.IsZero(), Equals, true)
+
+	pool, err = mgr.Keeper().GetPool(ctx, asset)
+	c.Check(err, IsNil)
+	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(0), Commentf("%d", pool.BalanceRune.Uint64()))
+	c.Check(pool.BalanceAsset.Uint64(), Equals, uint64(0), Commentf("%d", pool.BalanceAsset.Uint64()))
+	c.Check(pool.LPUnits.Uint64(), Equals, uint64(0), Commentf("%d", pool.LPUnits.Uint64())) // LP units did decreased
 }

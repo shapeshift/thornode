@@ -273,11 +273,6 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_Validation(c *C) {
 			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxWithdrawBasisPoints+100)), common.BNBAsset, common.EmptyAsset, GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errWithdrawFailValidation,
 		},
-		{
-			name:           "synth asset should fail",
-			msg:            NewMsgWithdrawLiquidity(GetRandomTx(), GetRandomRUNEAddress(), cosmos.NewUint(uint64(MaxWithdrawBasisPoints)), common.BNBAsset.GetSyntheticAsset(), common.EmptyAsset, GetRandomValidatorNode(NodeActive).NodeAddress),
-			expectedResult: errWithdrawFailValidation,
-		},
 	}
 	for _, tc := range testCases {
 		withdrawHandler := NewWithdrawLiquidityHandler(NewDummyMgrWithKeeper(k))

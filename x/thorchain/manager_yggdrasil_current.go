@@ -313,6 +313,9 @@ func (ymgr YggMgrV79) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 	// calculate total liquidity provided rune in our pools
 	totalLiquidityRune := cosmos.ZeroUint()
 	for _, pool := range pools {
+		if pool.Asset.IsNative() {
+			continue
+		}
 		totalLiquidityRune = totalLiquidityRune.Add(pool.BalanceRune)
 	}
 	if totalLiquidityRune.IsZero() {
@@ -340,6 +343,9 @@ func (ymgr YggMgrV79) calcTargetYggCoins(pools []Pool, ygg Vault, yggBond, total
 	counter := cosmos.ZeroUint()
 	for _, pool := range pools {
 		if !pool.IsAvailable() {
+			continue
+		}
+		if pool.Asset.IsNative() {
 			continue
 		}
 		// Don't send an asset out to Yggs if the pool has less than PoolDepthForYggFundingMin

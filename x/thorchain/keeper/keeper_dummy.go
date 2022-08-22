@@ -45,6 +45,10 @@ func (k KVStoreDummy) GetRuneBalanceOfModule(ctx cosmos.Context, moduleName stri
 	return cosmos.ZeroUint()
 }
 
+func (k KVStoreDummy) GetBalanceOfModule(ctx cosmos.Context, moduleName, denom string) cosmos.Uint {
+	return cosmos.ZeroUint()
+}
+
 func (k KVStoreDummy) SendFromModuleToModule(ctx cosmos.Context, from, to string, coins common.Coins) error {
 	return kaboom
 }
