@@ -65,7 +65,7 @@ func (h TssKeysignHandler) validateV70(ctx cosmos.Context, msg MsgTssKeysignFail
 	if !strings.EqualFold(m.ID, msg.ID) {
 		return cosmos.ErrUnknownRequest("invalid keysign fail message")
 	}
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
 		shouldAccept := false
 		vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
 		if err != nil {

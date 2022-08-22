@@ -890,3 +890,43 @@ func (s *HelperSuite) TestGetHardBondCap(c *C) {
 	}
 	c.Assert(getHardBondCap(nas).Uint64(), Equals, uint64(40), Commentf("%d", getHardBondCap(nas).Uint64()))
 }
+
+func (HandlerSuite) TestIsSignedByActiveNodeAccounts(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	r := isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{})
+	c.Check(r, Equals, false,
+		Commentf("empty signers should return false"))
+
+	nodeAddr := GetRandomBech32Addr()
+	r = isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{nodeAddr})
+	c.Check(r, Equals, false,
+		Commentf("empty node account should return false"))
+
+	nodeAccount1 := GetRandomValidatorNode(NodeWhiteListed)
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
+	r = isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{nodeAccount1.NodeAddress})
+	c.Check(r, Equals, false,
+		Commentf("non-active node account should return false"))
+
+	nodeAccount1.Status = NodeActive
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
+	r = isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{nodeAccount1.NodeAddress})
+	c.Check(r, Equals, true,
+		Commentf("active node account should return true"))
+
+	r = isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{nodeAccount1.NodeAddress, nodeAddr})
+	c.Check(r, Equals, false,
+		Commentf("should return false if any signer is not an active validator"))
+
+	nodeAccount1.Type = NodeTypeVault
+	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
+	r = isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{nodeAccount1.NodeAddress})
+	c.Check(r, Equals, false,
+		Commentf("non-validator node should return false"))
+
+	asgardAddr := mgr.Keeper().GetModuleAccAddress(AsgardName)
+	r = isSignedByActiveNodeAccounts(ctx, mgr.Keeper(), []cosmos.AccAddress{asgardAddr})
+	c.Check(r, Equals, true,
+		Commentf("asgard module address should return true"))
+}

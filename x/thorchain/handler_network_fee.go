@@ -52,7 +52,7 @@ func (h NetworkFeeHandler) validateV1(ctx cosmos.Context, msg MsgNetworkFee) err
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(errNotAuthorized.Error())
 	}
 	return nil

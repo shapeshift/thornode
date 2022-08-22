@@ -228,26 +228,6 @@ func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool 
 	}
 }
 
-func (HandlerSuite) TestIsSignedByActiveNodeAccounts(c *C) {
-	ctx, mgr := setupManagerForTest(c)
-	nodeAddr := GetRandomBech32Addr()
-	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{}), Equals, false)
-	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAddr}), Equals, false)
-	nodeAccount1 := GetRandomValidatorNode(NodeWhiteListed)
-	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
-	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
-
-	// Update node to be active, check should succeed
-	nodeAccount1.Status = NodeActive
-	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
-	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, true)
-
-	// Update node to be a vault node, check should fail
-	nodeAccount1.Type = NodeTypeVault
-	c.Assert(mgr.Keeper().SetNodeAccount(ctx, nodeAccount1), IsNil)
-	c.Check(isSignedByActiveNodeAccounts(ctx, mgr, []cosmos.AccAddress{nodeAccount1.NodeAddress}), Equals, false)
-}
-
 func (HandlerSuite) TestHandleTxInWithdrawLiquidityMemo(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 

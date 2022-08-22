@@ -55,7 +55,7 @@ func (h NodePauseChainHandler) validateV1(ctx cosmos.Context, msg MsgNodePauseCh
 		return err
 	}
 
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
 	}
 

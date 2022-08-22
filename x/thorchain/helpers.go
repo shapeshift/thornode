@@ -431,23 +431,16 @@ func refundBondV92(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 	return nil
 }
 
-func isSignedByActiveNodeAccounts(ctx cosmos.Context, mgr Manager, signers []cosmos.AccAddress) bool {
-	version := mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
-		return isSignedByActiveNodeAccountsV1(ctx, mgr, signers)
-	}
-	return false
-}
-
-func isSignedByActiveNodeAccountsV1(ctx cosmos.Context, mgr Manager, signers []cosmos.AccAddress) bool {
+// isSignedByActiveNodeAccounts check if all signers are active validator nodes
+func isSignedByActiveNodeAccounts(ctx cosmos.Context, k keeper.Keeper, signers []cosmos.AccAddress) bool {
 	if len(signers) == 0 {
 		return false
 	}
 	for _, signer := range signers {
-		if signer.Equals(mgr.Keeper().GetModuleAccAddress(AsgardName)) {
+		if signer.Equals(k.GetModuleAccAddress(AsgardName)) {
 			continue
 		}
-		nodeAccount, err := mgr.Keeper().GetNodeAccount(ctx, signer)
+		nodeAccount, err := k.GetNodeAccount(ctx, signer)
 		if err != nil {
 			ctx.Logger().Error("unauthorized account", "address", signer.String(), "error", err)
 			return false
@@ -457,11 +450,15 @@ func isSignedByActiveNodeAccountsV1(ctx cosmos.Context, mgr Manager, signers []c
 			return false
 		}
 		if nodeAccount.Status != NodeActive {
-			ctx.Logger().Error("unauthorized account, node account not active", "address", signer.String(), "status", nodeAccount.Status)
+			ctx.Logger().Error("unauthorized account, node account not active",
+				"address", signer.String(),
+				"status", nodeAccount.Status)
 			return false
 		}
 		if nodeAccount.Type != NodeTypeValidator {
-			ctx.Logger().Error("unauthorized account, node account must be a validator", "address", signer.String(), "type", nodeAccount.Type)
+			ctx.Logger().Error("unauthorized account, node account must be a validator",
+				"address", signer.String(),
+				"type", nodeAccount.Type)
 			return false
 		}
 	}

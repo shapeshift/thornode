@@ -62,7 +62,7 @@ func (h SolvencyHandler) validateV70(ctx cosmos.Context, msg MsgSolvency) error 
 	if !m.Id.Equals(msg.Id) {
 		return cosmos.ErrUnknownRequest("invalid solvency message")
 	}
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr, msg.GetSigners()) {
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
 	}
 	return nil
