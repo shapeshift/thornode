@@ -30,8 +30,10 @@ func NewCommonOutboundTxHandler(mgr Manager) CommonOutboundTxHandler {
 	}
 }
 
-func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, tx ObservedTx) error {
-	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
+func (h CommonOutboundTxHandler) slashV96(ctx cosmos.Context, tx ObservedTx) error {
+	toSlash := make(common.Coins, len(tx.Tx.Coins))
+	copy(toSlash, tx.Tx.Coins)
+	toSlash = toSlash.Adds(tx.Tx.Gas.ToCoins())
 
 	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{ // nolint
 		telemetry.NewLabel("reason", "failed_outbound"),
@@ -44,6 +46,8 @@ func (h CommonOutboundTxHandler) slash(ctx cosmos.Context, tx ObservedTx) error 
 func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.96.0")):
+		return h.handleV96(ctx, tx, inTxID)
 	case version.GTE(semver.MustParse("1.94.0")):
 		return h.handleV94(ctx, tx, inTxID)
 	case version.GTE(semver.MustParse("1.92.0")):
@@ -60,7 +64,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxI
 	return nil, errBadVersion
 }
 
-func (h CommonOutboundTxHandler) handleV94(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
+func (h CommonOutboundTxHandler) handleV96(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
 	voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
@@ -193,7 +197,7 @@ func (h CommonOutboundTxHandler) handleV94(ctx cosmos.Context, tx ObservedTx, in
 			}
 		}
 
-		if err := h.slash(ctx, tx); err != nil {
+		if err := h.slashV96(ctx, tx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}

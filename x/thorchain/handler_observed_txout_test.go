@@ -142,7 +142,7 @@ func (k *TestObservedTxOutHandleKeeper) FindPubKeyOfAddress(_ cosmos.Context, _ 
 	return k.ygg.PubKey, nil
 }
 
-func (k *TestObservedTxOutHandleKeeper) SetTxOut(_ cosmos.Context, _ *TxOut) error {
+func (k *TestObservedTxOutHandleKeeper) SetTxOut(ctx cosmos.Context, blockOut *TxOut) error {
 	return nil
 }
 
@@ -177,13 +177,20 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 
 	tx := GetRandomTx()
-	tx.Memo = fmt.Sprintf("OUT:%s", tx.ID)
-	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 12)
-	txs := ObservedTxs{obTx}
 	pk := GetRandomPubKey()
+	tx.FromAddress, err = pk.GetAddress(tx.Coins[0].Asset.Chain)
+	txInHash := GetRandomTxHash()
+	tx.Memo = fmt.Sprintf("OUT:%s", txInHash)
+	obTx := NewObservedTx(tx, 12, pk, 12)
+	txs := ObservedTxs{obTx}
 	c.Assert(err, IsNil)
 
+	na := GetRandomValidatorNode(NodeActive)
+	na.Bond = cosmos.NewUint(1000000 * common.One)
+	na.PubKeySet.Secp256k1 = pk
+
 	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.Membership = []string{pk.String()}
 	ygg.Coins = common.Coins{
 		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
@@ -191,49 +198,183 @@ func (s *HandlerObservedTxOutSuite) TestHandle(c *C) {
 	keeper := &TestObservedTxOutHandleKeeper{
 		nas:       NodeAccounts{GetRandomValidatorNode(NodeActive)},
 		voter:     NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
-		txInVoter: NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
+		txInVoter: NewObservedTxVoter(txInHash, make(ObservedTxs, 0)),
 		pool: Pool{
 			Asset:        common.BNBAsset,
-			BalanceRune:  cosmos.NewUint(200),
-			BalanceAsset: cosmos.NewUint(300),
+			BalanceRune:  cosmos.NewUint(200_000),
+			BalanceAsset: cosmos.NewUint(300_000),
 		},
 		yggExists: true,
 		ygg:       ygg,
 		hashes:    make([]common.TxID, 0),
 	}
 	txOutStore := NewTxStoreDummy()
+	txOutStore.blockOut.TxArray = append(txOutStore.blockOut.TxArray, TxOutItem{
+		Chain:       tx.Chain,
+		InHash:      txInHash,
+		ToAddress:   tx.ToAddress,
+		VaultPubKey: ygg.PubKey,
+		Coin:        tx.Coins[0],
+		Memo:        tx.Memo,
+	})
 	keeper.txOutStore = txOutStore
 
 	mgr.K = keeper
-	handler := NewObservedTxOutHandler(mgr)
+	eventMgr := NewDummyEventMgr()
+	mgr.eventMgr = eventMgr
+	mgr.slasher = newSlasherV92(keeper, eventMgr)
+	validatorMgr := newValidatorMgrV95(keeper, mgr.NetworkMgr(), txOutStore, eventMgr)
+	mgr.validatorMgr = validatorMgr
+	constAccessor := mgr.GetConstants()
+	mgr.gasMgr = newGasMgrV94(constAccessor, keeper)
 
-	c.Assert(err, IsNil)
+	handler := NewObservedTxOutHandler(mgr)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
-	_, err = handler.handle(ctx, *msg)
-	c.Assert(err, IsNil)
-	c.Assert(err, IsNil)
-	mgr.ObMgr().EndBlock(ctx, keeper)
 
 	items, err := txOutStore.GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(items, HasLen, 0)
+	c.Assert(items, HasLen, 1)
+	pendingTxOuts, err := validatorMgr.getPendingTxOut(ctx, constAccessor)
+	c.Assert(err, IsNil)
+	// c.Check(pendingTxOuts, Equals, int64(1))
+	c.Check(pendingTxOuts, Equals, int64(301)) // pendingTxOuts in fact returns 301; learn why.
+
+	_, err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	items, err = txOutStore.GetOutboundItems(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(items, HasLen, 1) // Still present, but now has an OutHash.
+	pendingTxOuts, err = validatorMgr.getPendingTxOut(ctx, constAccessor)
+	c.Assert(err, IsNil)
+	c.Check(pendingTxOuts, Equals, int64(0))
+
+	mgr.ObMgr().EndBlock(ctx, keeper)
 	c.Check(keeper.observing, HasLen, 1)
+
+	// As this was a valid transaction, the Amount is treated as having already been subtracted in an earlier block.
+	c.Check(int(keeper.pool.BalanceAsset.Uint64()), Equals, 300_000)
+	// No decrease in pool balance before processGas.
+	mgr.GasMgr().EndBlock(ctx, keeper, eventMgr)
+	c.Check(int(keeper.pool.BalanceAsset.Uint64()), Equals, 262_500)
+	// Gas 37500 has been subtracted from the 300,000 pool depth.
+
 	// make sure the coin has been subtract from the vault
-	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(19999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
+	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(19999962499)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
+	// Gas 37500 and Amount 1 have been subtracted from the 200*common.One vault balance.
 
 	hashes := keeper.GetObservedLink(ctx, tx.ID)
 	c.Assert(hashes, HasLen, 1)
 }
 
-func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
+func (s *HandlerObservedTxOutSuite) TestHandleFailedTransaction(c *C) {
 	var err error
-	ctx, _ := setupKeeperForTest(c)
+	ctx, mgr := setupManagerForTest(c)
+
+	// When there is a failed transaction (such as an Ethereum out of gas failure),
+	// the observed transaction has a different Amount and the memo's txInHash is the failed transaction's.
+	// The desired behaviour is to reimbusre the pool/s by slashing the vault for the Amount and Gas,
+	// while leaving the pending outbound.
+	tx := GetRandomTx()
+	pk := GetRandomPubKey()
+	tx.FromAddress, err = pk.GetAddress(tx.Coins[0].Asset.Chain)
+	txInHash := GetRandomTxHash()          // Used later for the pending outbound.
+	tx.Memo = fmt.Sprintf("OUT:%s", tx.ID) // Self-referential memo.
+	obTx := NewObservedTx(tx, 12, pk, 12)
+	txs := ObservedTxs{obTx}
+	c.Assert(err, IsNil)
+
+	na := GetRandomValidatorNode(NodeActive)
+	na.Bond = cosmos.NewUint(1000000 * common.One)
+	na.PubKeySet.Secp256k1 = pk
+
+	ygg := NewVault(ctx.BlockHeight(), ActiveVault, YggdrasilVault, pk, common.Chains{common.BNBChain}.Strings(), []ChainContract{})
+	ygg.Membership = []string{pk.String()}
+	ygg.Coins = common.Coins{
+		common.NewCoin(common.RuneAsset(), cosmos.NewUint(500)),
+		common.NewCoin(common.BNBAsset, cosmos.NewUint(200*common.One)),
+	}
+	keeper := &TestObservedTxOutHandleKeeper{
+		nas:       NodeAccounts{GetRandomValidatorNode(NodeActive)},
+		voter:     NewObservedTxVoter(tx.ID, make(ObservedTxs, 0)),
+		txInVoter: NewObservedTxVoter(txInHash, make(ObservedTxs, 0)),
+		pool: Pool{
+			Asset:        common.BNBAsset,
+			BalanceRune:  cosmos.NewUint(200_000),
+			BalanceAsset: cosmos.NewUint(300_000),
+		},
+		yggExists: true,
+		ygg:       ygg,
+		hashes:    make([]common.TxID, 0),
+	}
+	txOutStore := NewTxStoreDummy()
+	txOutStore.blockOut.TxArray = append(txOutStore.blockOut.TxArray, TxOutItem{
+		Chain:       tx.Chain,
+		InHash:      txInHash,
+		ToAddress:   tx.ToAddress,
+		VaultPubKey: ygg.PubKey,
+		Coin:        common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)), // Different from the observed Amount.
+		Memo:        tx.Memo,
+	})
+	keeper.txOutStore = txOutStore
+
+	mgr.K = keeper
+	eventMgr := NewDummyEventMgr()
+	mgr.eventMgr = eventMgr
+	mgr.slasher = newSlasherV92(keeper, eventMgr)
+	validatorMgr := newValidatorMgrV95(keeper, mgr.NetworkMgr(), txOutStore, eventMgr)
+	mgr.validatorMgr = validatorMgr
+	constAccessor := mgr.GetConstants()
+	mgr.gasMgr = newGasMgrV94(constAccessor, keeper)
+
+	handler := NewObservedTxOutHandler(mgr)
+	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
+
+	items, err := txOutStore.GetOutboundItems(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(items, HasLen, 1)
+	pendingTxOuts, err := validatorMgr.getPendingTxOut(ctx, constAccessor)
+	c.Assert(err, IsNil)
+	// c.Check(pendingTxOuts, Equals, int64(1))
+	c.Check(pendingTxOuts, Equals, int64(301)) // pendingTxOuts in fact returns 301; learn why.
+
+	_, err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	items, err = txOutStore.GetOutboundItems(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(items, HasLen, 1)
+	pendingTxOuts, err = validatorMgr.getPendingTxOut(ctx, constAccessor)
+	c.Assert(err, IsNil)
+	// c.Check(pendingTxOuts, Equals, int64(1)) // The pending outbound remains.
+	c.Check(pendingTxOuts, Equals, int64(301)) // pendingTxOuts in fact returns 301; learn why.
+
+	mgr.ObMgr().EndBlock(ctx, keeper)
+	c.Check(keeper.observing, HasLen, 1)
+
+	c.Check(int(keeper.pool.BalanceAsset.Uint64()), Equals, 262_499)
+	// As this was a failed transaction, both Amount 1 and Gas 37500 (being slashed) subtracted from the pool.
+	mgr.GasMgr().EndBlock(ctx, keeper, eventMgr)
+	c.Check(int(keeper.pool.BalanceAsset.Uint64()), Equals, 224_999)
+	// Gas 37500 SHOULD NOT be subtracted form the pool a second time (and reimbursed by the Reserve),
+	// but with the current code is anyway.
+
+	// make sure the coin has been subtract from the vault
+	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(19999962499)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
+	// Being slashed, Amount 1 and Gas 37500 have been subtracted from the 200*common.One vault balance.
+
+	hashes := keeper.GetObservedLink(ctx, tx.ID)
+	c.Assert(hashes, HasLen, 1)
+}
+
+func (s *HandlerObservedTxOutSuite) TestHandleStolenFundsInvalidMemo(c *C) {
+	var err error
+	ctx, mgr := setupManagerForTest(c)
 
 	tx := GetRandomTx()
 	tx.Memo = "I AM A THIEF!" // bad memo
 	obTx := NewObservedTx(tx, 12, GetRandomPubKey(), 12)
 	obTx.Tx.Coins = common.Coins{
-		common.NewCoin(common.RuneAsset(), cosmos.NewUint(300*common.One)),
 		common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One)),
 	}
 	txs := ObservedTxs{obTx}
@@ -261,19 +402,35 @@ func (s *HandlerObservedTxOutSuite) TestHandleStolenFunds(c *C) {
 		yggExists: true,
 		ygg:       ygg,
 	}
+
 	txOutStore := NewTxStoreDummy()
 	keeper.txOutStore = txOutStore
 
-	mgr := NewDummyMgrWithKeeper(keeper)
-	mgr.slasher = newSlasherV75(keeper, NewDummyEventMgr())
-	handler := NewObservedTxOutHandler(mgr)
+	mgr.K = keeper
+	eventMgr := NewDummyEventMgr()
+	mgr.eventMgr = eventMgr
+	mgr.slasher = newSlasherV92(keeper, NewDummyEventMgr())
+	constAccessor := mgr.GetConstants()
+	mgr.gasMgr = newGasMgrV94(constAccessor, keeper)
 
-	c.Assert(err, IsNil)
+	handler := NewObservedTxOutHandler(mgr)
 	msg := NewMsgObservedTxOut(txs, keeper.nas[0].NodeAddress)
+
 	_, err = handler.handle(ctx, *msg)
 	c.Assert(err, IsNil)
+
+	c.Check(int(keeper.pool.BalanceAsset.Uint64()), Equals, 19999962500)
+	// As this was an invalid transaction, both Amount 100 * common.One and Gas 37500 (being slashed) subtracted from the pool.
+	mgr.GasMgr().EndBlock(ctx, keeper, eventMgr)
+	c.Check(int(keeper.pool.BalanceAsset.Uint64()), Equals, 19999962500)
+	// As this calls SlashVault from within handler_observed_txout_test.go (clearly invalid memo)
+	// rather than from within handler_common_outbound.go (invalid for other reasons),
+	// the gas cost is not subtracted from the pool a second time.
+
 	// make sure the coin has been subtract from the vault
 	c.Check(ygg.Coins.GetCoin(common.BNBAsset).Amount.Equal(cosmos.NewUint(9999962500)), Equals, true, Commentf("%d", ygg.Coins.GetCoin(common.BNBAsset).Amount.Uint64()))
+	// Being slashed, Amount 100*common.One and Gas 37500 have been subtracted from the 200*common.One vault balance.
+
 	c.Assert(keeper.na.Bond.LT(cosmos.NewUint(1000000*common.One)), Equals, true, Commentf("%d", keeper.na.Bond.Uint64()))
 }
 

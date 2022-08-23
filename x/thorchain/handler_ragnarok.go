@@ -56,14 +56,20 @@ func (h RagnarokHandler) validateV1(ctx cosmos.Context, msg MsgRagnarok) error {
 func (h RagnarokHandler) handle(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Result, error) {
 	ctx.Logger().Info("receive MsgRagnarok", "request tx hash", msg.Tx.Tx.ID)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.65.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.96.0")):
+		return h.handleV96(ctx, msg)
+	case version.GTE(semver.MustParse("0.65.0")):
 		return h.handleV65(ctx, msg)
+	default:
+		return nil, errBadVersion
 	}
-	return nil, errBadVersion
 }
 
-func (h RagnarokHandler) slashV1(ctx cosmos.Context, tx ObservedTx) error {
-	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
+func (h RagnarokHandler) slashV96(ctx cosmos.Context, tx ObservedTx) error {
+	toSlash := make(common.Coins, len(tx.Tx.Coins))
+	copy(toSlash, tx.Tx.Coins)
+	toSlash = toSlash.Adds(tx.Tx.Gas.ToCoins())
 
 	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
 		telemetry.NewLabel("reason", "failed_ragnarok"),
@@ -73,7 +79,7 @@ func (h RagnarokHandler) slashV1(ctx cosmos.Context, tx ObservedTx) error {
 	return h.mgr.Slasher().SlashVault(ctx, tx.ObservedPubKey, toSlash, h.mgr)
 }
 
-func (h RagnarokHandler) handleV65(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Result, error) {
+func (h RagnarokHandler) handleV96(ctx cosmos.Context, msg MsgRagnarok) (*cosmos.Result, error) {
 	// for ragnarok on thorchain ,
 	if msg.Tx.Tx.Chain.Equals(common.THORChain) {
 		return &cosmos.Result{}, nil
@@ -142,7 +148,7 @@ func (h RagnarokHandler) handleV65(ctx cosmos.Context, msg MsgRagnarok) (*cosmos
 	}
 
 	if shouldSlash {
-		if err := h.slashV1(ctx, msg.Tx); err != nil {
+		if err := h.slashV96(ctx, msg.Tx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}

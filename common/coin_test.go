@@ -41,16 +41,42 @@ func (s CoinSuite) TestDistinct(c *C) {
 }
 
 func (s CoinSuite) TestAdds(c *C) {
-	coins := Coins{
+	oldCoins := Coins{
 		NewCoin(BNBAsset, cosmos.NewUint(1000)),
+		NewCoin(BCHAsset, cosmos.NewUint(1000)),
 	}
-	newCoins := coins.Adds(NewCoins(
+	newCoins := oldCoins.Adds(NewCoins(
 		NewCoin(BNBAsset, cosmos.NewUint(1000)),
 		NewCoin(BTCAsset, cosmos.NewUint(1000)),
 	))
-	c.Assert(len(newCoins), Equals, 2)
+
+	c.Assert(len(newCoins), Equals, 3)
+	c.Assert(len(oldCoins), Equals, 2)
+	// oldCoins asset types are unchanged, while newCoins has all types.
+
 	c.Check(newCoins.GetCoin(BNBAsset).Amount.Uint64(), Equals, uint64(2000))
+	c.Check(newCoins.GetCoin(BCHAsset).Amount.Uint64(), Equals, uint64(1000))
 	c.Check(newCoins.GetCoin(BTCAsset).Amount.Uint64(), Equals, uint64(1000))
+	// For newCoins, the amount adding works as expected.
+
+	c.Check(oldCoins.GetCoin(BNBAsset).Amount.Uint64(), Equals, uint64(2000))
+	// The oldCounts amount is also increased for the matching asset,
+	// since type Coins is a slice (copies of slices referencing the same values).
+
+	newerCoins := make(Coins, len(oldCoins))
+	copy(newerCoins, oldCoins)
+	newerCoins = newerCoins.Adds(NewCoins(
+		NewCoin(BNBAsset, cosmos.NewUint(4000)),
+	))
+	c.Check(newerCoins.GetCoin(BNBAsset).Amount.Uint64(), Equals, uint64(6000))
+	c.Check(oldCoins.GetCoin(BNBAsset).Amount.Uint64(), Equals, uint64(2000))
+	// Having used make(Coins, len()) and copy(), oldCoins is unchanged.
+
+	newAmount := oldCoins.GetCoin(BNBAsset).Amount.Add(NewCoin(BNBAsset, cosmos.NewUint(7000)).Amount)
+	c.Check(newAmount.Uint64(), Equals, uint64(9000))
+	c.Check(oldCoins.GetCoin(BNBAsset).Amount.Uint64(), Equals, uint64(2000))
+	// When Add alone is used with .Amount and no sanitisation,
+	// the newAmount is as expected while the oldCoins amount is unaffected.
 }
 
 func (s CoinSuite) TestNoneEmpty(c *C) {

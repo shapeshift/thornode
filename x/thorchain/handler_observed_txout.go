@@ -66,6 +66,8 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.96.0")):
+		return h.handleV96(ctx, msg)
 	case version.GTE(semver.MustParse("1.89.0")):
 		return h.handleV89(ctx, msg)
 	case version.GTE(semver.MustParse("0.58.0")):
@@ -129,7 +131,7 @@ func (h ObservedTxOutHandler) preflightV89(ctx cosmos.Context, voter ObservedTxV
 }
 
 // Handle a message to observe outbound tx
-func (h ObservedTxOutHandler) handleV89(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
+func (h ObservedTxOutHandler) handleV96(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -179,7 +181,9 @@ func (h ObservedTxOutHandler) handleV89(ctx cosmos.Context, msg MsgObservedTxOut
 				ctx.Logger().Error("fail to get vault", "error", err)
 				continue
 			}
-			toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
+			toSlash := make(common.Coins, len(tx.Tx.Coins))
+			copy(toSlash, tx.Tx.Coins)
+			toSlash = toSlash.Adds(tx.Tx.Gas.ToCoins())
 
 			slashCtx := ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{
 				telemetry.NewLabel("reason", "sent_extra_funds"),

@@ -7,6 +7,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
@@ -52,8 +53,10 @@ func (h ConsolidateHandler) validateV1(ctx cosmos.Context, msg MsgConsolidate) e
 	return msg.ValidateBasic()
 }
 
-func (h ConsolidateHandler) slash(ctx cosmos.Context, tx ObservedTx) error {
-	toSlash := tx.Tx.Coins.Adds(tx.Tx.Gas.ToCoins())
+func (h ConsolidateHandler) slashV96(ctx cosmos.Context, tx ObservedTx) error {
+	toSlash := make(common.Coins, len(tx.Tx.Coins))
+	copy(toSlash, tx.Tx.Coins)
+	toSlash = toSlash.Adds(tx.Tx.Gas.ToCoins())
 
 	ctx = ctx.WithContext(context.WithValue(ctx.Context(), constants.CtxMetricLabels, []metrics.Label{ // nolint
 		telemetry.NewLabel("reason", "failed_consolidation"),
@@ -65,13 +68,17 @@ func (h ConsolidateHandler) slash(ctx cosmos.Context, tx ObservedTx) error {
 
 func (h ConsolidateHandler) handle(ctx cosmos.Context, msg MsgConsolidate) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.96.0")):
+		return h.handleV96(ctx, msg)
+	case version.GTE(semver.MustParse("0.1.0")):
 		return h.handleV1(ctx, msg)
+	default:
+		return nil, errBadVersion
 	}
-	return nil, errBadVersion
 }
 
-func (h ConsolidateHandler) handleV1(ctx cosmos.Context, msg MsgConsolidate) (*cosmos.Result, error) {
+func (h ConsolidateHandler) handleV96(ctx cosmos.Context, msg MsgConsolidate) (*cosmos.Result, error) {
 	shouldSlash := false
 
 	// ensure transaction is sending to/from same address
@@ -90,7 +97,7 @@ func (h ConsolidateHandler) handleV1(ctx cosmos.Context, msg MsgConsolidate) (*c
 
 	if shouldSlash {
 		ctx.Logger().Info("slash vault, invalid consolidation", "tx", msg.ObservedTx.Tx)
-		if err := h.slash(ctx, msg.ObservedTx); err != nil {
+		if err := h.slashV96(ctx, msg.ObservedTx); err != nil {
 			return nil, ErrInternal(err, "fail to slash account")
 		}
 	}
