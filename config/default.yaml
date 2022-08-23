@@ -22,6 +22,9 @@ bifrost:
   thorchain:
     chain_id: thorchain
     chain_host: localhost:1317
+    chain_rpc: ""
+    chain_home_folder: ""
+    signer_name: ""
   back_off:
     initial_interval: 500ms
     randomization_factor: 0.5
@@ -47,6 +50,8 @@ bifrost:
     rendezvous: asgard
     p2p_port: 5040
     info_address: ":6040"
+    bootstrap_peers: ""
+    external_ip: ""
   chains:
     bnb:
       chain_id: BNB
@@ -146,9 +151,16 @@ thor:
       snapshot_interval: 0
       snapshot_keep_recent: 2
   tendermint:
+    log:
+      level: info
+      format: plain
     rpc:
+      listen_address: "<set-dynamically>"
       cors_allowed_origin: "*"
     p2p:
+      listen_address: "<set-dynamically>"
+      seeds: "<set-dynamically>"
+      external_address: ""
       persistent_peers: ""
       addr_book_strict: false
       max_num_inbound_peers: 40
@@ -164,3 +176,5 @@ thor:
       trust_height: 0
       trust_hash: ""
       trust_period: "360h0m0s"
+    instrumentation:
+      prometheus: true

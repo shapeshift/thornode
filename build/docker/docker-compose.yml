@@ -96,12 +96,6 @@ services:
     command:
       - thornode
       - start
-      - --log_level
-      - info
-      - --log_format
-      - plain
-      - --rpc.laddr
-      - tcp://0.0.0.0:26657
 
   # ------------------------------ bifrost ------------------------------
 

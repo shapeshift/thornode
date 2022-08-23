@@ -75,15 +75,11 @@ func GetBifrost() Bifrost {
 // corresponding environment variables.
 func Init() {
 	// Environment variables prefixed with `THORNODE` will be read by viper in cosmos-sdk
-	// initialization and overwrite configuration we apply in this package. In order to
-	// force consistency, we will explicitly disallow the use of these variables.
+	// initialization and overwrite configuration we apply in this package.
 	for _, env := range os.Environ() {
 		envKey := strings.Split(env, "=")[0]
-		if strings.HasPrefix(envKey, "THORNODE_") &&
-			// allow THORNODE_PORT and THORNODE_SERVICE since they are set by Kubernetes
-			!strings.HasPrefix(envKey, "THORNODE_PORT") &&
-			!strings.HasPrefix(envKey, "THORNODE_SERVICE") {
-			log.Fatal().Msgf("environment variable %s is not allowed", env)
+		if strings.HasPrefix(envKey, "THORNODE_") {
+			log.Warn().Msgf("environment variable %s could overwrite config", env)
 		}
 	}
 
@@ -525,9 +521,6 @@ type Thornode struct {
 	AutoStateSync struct {
 		Enabled bool `mapstructure:"enabled"`
 
-		// SnapshotInterval is the interval at which we expect snapshots to exist.
-		SnapshotInterval int64 `mapstructure:"snapshot_interval"`
-
 		// BlockBuffer is the number of blocks in the past we will automatically reference
 		// for the trust state from one of the configured RPC endpoints.
 		BlockBuffer int64 `mapstructure:"block_buffer"`
@@ -574,6 +567,11 @@ type Thornode struct {
 		Consensus struct {
 			TimeoutCommit time.Duration `mapstructure:"timeout_commit"`
 		} `mapstructure:"consensus"`
+
+		Log struct {
+			Level  string `mapstructure:"level"`
+			Format string `mapstructure:"format"`
+		} `mapstructure:"log"`
 
 		RPC struct {
 			ListenAddress     string `mapstructure:"listen_address"`
@@ -644,10 +642,10 @@ type BifrostChainConfiguration struct {
 	HTTPostMode         bool                             `mapstructure:"http_post_mode"` // Bitcoin core only supports HTTP POST mode
 	DisableTLS          bool                             `mapstructure:"disable_tls"`    // Bitcoin core does not provide TLS by default
 	BlockScanner        BifrostBlockScannerConfiguration `mapstructure:"block_scanner"`
-	BackOff             BifrostBackOff
-	OptToRetire         bool `mapstructure:"opt_to_retire"` // don't emit support for this chain during keygen process
-	ParallelMempoolScan int  `mapstructure:"parallel_mempool_scan"`
-	Disabled            bool `mapstructure:"disabled"`
+	BackOff             BifrostBackOff                   `mapstructure:"back_off"`
+	OptToRetire         bool                             `mapstructure:"opt_to_retire"` // don't emit support for this chain during keygen process
+	ParallelMempoolScan int                              `mapstructure:"parallel_mempool_scan"`
+	Disabled            bool                             `mapstructure:"disabled"`
 }
 
 func (b *BifrostChainConfiguration) Validate() {
@@ -688,7 +686,7 @@ type BifrostClientConfiguration struct {
 	ChainHomeFolder string       `mapstructure:"chain_home_folder"`
 	SignerName      string       `mapstructure:"signer_name"`
 	SignerPasswd    string
-	BackOff         BifrostBackOff
+	BackOff         BifrostBackOff `mapstructure:"back_off"`
 }
 
 type BifrostMetricsConfiguration struct {

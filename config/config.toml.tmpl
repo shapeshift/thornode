@@ -47,10 +47,10 @@ db_backend = "goleveldb"
 db_dir = "data"
 
 # Output level for logging, including package level options
-log_level = "info"
+log_level = "{{ .Log.Level }}"
 
 # Output format: 'plain' (colored text) or 'json'
-log_format = "plain"
+log_format = "{{ .Log.Format }}"
 
 ##### additional base config options #####
 
