@@ -112,17 +112,29 @@ Emergency changes to the protocol may be difficult to coordinate, since there is
 
 ## Setup
 
-Ensure you have a recent version of go (ie `1.16`) and enabled go modules
-And have `GOBIN` in your `PATH`
+Install dependencies, you may skip packages you already have.
+```bash
+apt-get update
+apt-get install -y git make golang-go protobuf-compiler
+```
+Install [Docker and Docker Compose V2](https://docs.docker.com/engine/install/).
+
+Ensure you have a recent version of go ([scripts/check-build-env.sh](https://gitlab.com/thorchain/thornode/-/blob/develop/scripts/check-build-env.sh#L7-9)) and enabled go modules.<br/>
+Add `GOBIN` to your `PATH`.
 
 ```bash
 export GOBIN=$GOPATH/bin
 ```
 
-Install Docker and Docker Compose V2.
+
 
 ### Automated Install Locally
 
+Clone repo 
+```bash
+git clone https://gitlab.com/thorchain/thornode.git
+cd thornode
+```
 Install via this `make` command.
 
 ```bash
