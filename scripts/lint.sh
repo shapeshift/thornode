@@ -8,6 +8,12 @@ die() {
 
 ./scripts/check-build-env.sh
 
+# check docs version
+version=$(cat version)
+if ! grep "^  version: ${version}" openapi/openapi.yaml; then
+  die "docs version (openapi/openapi.yaml) does not match version file ${version}"
+fi
+
 # Check that no .pb.go files were added.
 if git ls-files '*.go' | grep -q '.pb.go$'; then
   die "Do not add generated protobuf .pb.go files"
