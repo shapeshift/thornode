@@ -409,7 +409,7 @@ services:
     profiles:
       - mocknet
       - mocknet-cluster
-    image: ethereum/client-go:v1.10.21
+    image: ethereum/client-go:v1.10.23
     restart: unless-stopped
     environment:
       ETH_BLOCK_TIME: ${ETH_BLOCK_TIME:-5}
@@ -443,7 +443,7 @@ services:
       - mocknet
       - mocknet-cluster
     restart: unless-stopped
-    image: registry.gitlab.com/thorchain/devops/node-launcher:avalanche-daemon-1.7.14
+    image: registry.gitlab.com/thorchain/devops/node-launcher:avalanche-daemon-1.7.17
     volumes:
       - "./mocknet/avax:/mocknet"
     command:
