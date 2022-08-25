@@ -59,7 +59,7 @@ func (kg *KeyGen) getVersion() semver.Version {
 	return kg.currentVersion
 }
 
-func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, types.Blame, error) {
+func (kg *KeyGen) GenerateNewKey(keygenBlockHeight int64, pKeys common.PubKeys) (common.PubKeySet, types.Blame, error) {
 	// No need to do key gen
 	if len(pKeys) == 0 {
 		return common.EmptyPubKeySet, types.Blame{}, nil
@@ -72,15 +72,11 @@ func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, types.
 		Keys: keys,
 	}
 	currentVersion := kg.getVersion()
-	// get current THORChain block height
-	blockHeight, err := kg.bridge.GetBlockHeight()
-	if err != nil {
-		return common.EmptyPubKeySet, types.Blame{}, fmt.Errorf("fail to get current thorchain block height: %w", err)
-	}
-
-	// this is just round the block height to the nearest 10
-	keyGenReq.BlockHeight = blockHeight / 10 * 10
 	keyGenReq.Version = currentVersion.String()
+
+	// Use the churn try's block to choose the same leader for every node in an Asgard,
+	// since a successful keygen requires every node in the Asgard to take part.
+	keyGenReq.BlockHeight = keygenBlockHeight
 
 	ch := make(chan bool, 1)
 	defer close(ch)
@@ -88,6 +84,7 @@ func (kg *KeyGen) GenerateNewKey(pKeys common.PubKeys) (common.PubKeySet, types.
 	defer timer.Stop()
 
 	var resp keygen.Response
+	var err error
 	go func() {
 		resp, err = kg.server.Keygen(keyGenReq)
 		ch <- true

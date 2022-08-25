@@ -282,7 +282,7 @@ func (s *Signer) processKeygen(ch <-chan ttypes.KeygenBlock) {
 					s.pubkeyMgr.AddPubKey(pk, false)
 				}
 				keygenStart := time.Now()
-				pubKey, blame, err := s.tssKeygen.GenerateNewKey(keygenReq.GetMembers())
+				pubKey, blame, err := s.tssKeygen.GenerateNewKey(keygenBlock.Height, keygenReq.GetMembers())
 				if !blame.IsEmpty() {
 					err := fmt.Errorf("reason: %s, nodes %+v", blame.FailReason, blame.BlameNodes)
 					s.logger.Error().Err(err).Msg("Blame")
