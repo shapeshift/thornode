@@ -24,6 +24,8 @@ type MockBankServiceClient interface {
 	DenomMetadata(ctx context.Context, in *btypes.QueryDenomMetadataRequest, opts ...grpc.CallOption) (*btypes.QueryDenomMetadataResponse, error)
 	// DenomsMetadata queries the client metadata for all registered coin denominations.
 	DenomsMetadata(ctx context.Context, in *btypes.QueryDenomsMetadataRequest, opts ...grpc.CallOption) (*btypes.QueryDenomsMetadataResponse, error)
+	// SpendableBalances queries the spenable balance of all coins for a single account.
+	SpendableBalances(ctx context.Context, in *btypes.QuerySpendableBalancesRequest, opts ...grpc.CallOption) (*btypes.QuerySpendableBalancesResponse, error)
 }
 
 type mockBankServiceClient struct{}
@@ -62,5 +64,9 @@ func (c *mockBankServiceClient) DenomMetadata(ctx context.Context, in *btypes.Qu
 }
 
 func (c *mockBankServiceClient) DenomsMetadata(ctx context.Context, in *btypes.QueryDenomsMetadataRequest, opts ...grpc.CallOption) (*btypes.QueryDenomsMetadataResponse, error) {
+	return nil, nil
+}
+
+func (c *mockBankServiceClient) SpendableBalances(ctx context.Context, in *btypes.QuerySpendableBalancesRequest, opts ...grpc.CallOption) (*btypes.QuerySpendableBalancesResponse, error) {
 	return nil, nil
 }

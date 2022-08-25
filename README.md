@@ -133,7 +133,7 @@ export PATH=/opt/homebrew/opt/make/libexec/gnubin:/opt/homebrew/opt/gnu-sed/libe
 
 Install [Docker and Docker Compose V2](https://docs.docker.com/engine/install/).
 
-Ensure you have a recent version of go ([scripts/check-build-env.sh](https://gitlab.com/thorchain/thornode/-/blob/develop/scripts/check-build-env.sh#L7-9)) and enabled go modules.<br/>
+Ensure you have a recent version of go ([scripts/check-env.sh](https://gitlab.com/thorchain/thornode/-/blob/develop/scripts/check-env.sh#L46-48)) and enabled go modules.<br/>
 Add `GOBIN` to your `PATH`.
 
 ```bash
