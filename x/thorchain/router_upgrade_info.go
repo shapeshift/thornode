@@ -11,5 +11,6 @@ var (
 	ethNewRouter = `0xD37BbE5744D730a1d98d8DC97c42F0Ca46aD7146`
 
 	avaxOldRouter = ``
-	avaxNewRouter = ``
+	// https://snowtrace.io/address/0x8F66c4AE756BEbC49Ec8B81966DD8bba9f127549#code
+	avaxNewRouter = `0x8F66c4AE756BEbC49Ec8B81966DD8bba9f127549`
 )
