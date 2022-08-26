@@ -141,8 +141,8 @@ AVAX_HOST=http://host.docker.internal:8545/ext/bc/C/rpc AVAX_START_BLOCK_HEIGHT=
 
 ## Bootstrap Mocknet Data
 
-You can leverage the [Heimdall](https://gitlab.com/thorchain/heimdall) repo to bootstrap local vaults with a subset of smoke test data. Checkout the repo and run:
+You can leverage the smoke tests to bootstrap local vaults with a subset of test data. Run: 
 
 ```bash
-make bootstrap
+make bootstrap-mocknet
 ```
