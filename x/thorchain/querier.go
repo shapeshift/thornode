@@ -1354,6 +1354,13 @@ func queryMimirValues(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 		if err != nil {
 			return nil, fmt.Errorf("fail to get mimir, err: %w", err)
 		}
+		// v from GetMimir is of type int64.
+		if v == -1 {
+			// This key has node votes but no node consensus or Admin-set value,
+			// so do not display its unset status in the Mimir endpoint.
+			delete(values, k)
+			continue
+		}
 		values[k] = v
 	}
 
