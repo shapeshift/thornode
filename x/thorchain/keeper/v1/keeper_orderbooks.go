@@ -77,25 +77,20 @@ func (k KVStore) RemoveOrderBookItem(ctx cosmos.Context, txID common.TxID) error
 ///-------------------------- Order Book Processor --------------------------///
 // The Order Book Processor tracks a list of pairs to be processed in the next
 // block to check for any limit orders that are available to be executed. This
-// is stored as a uint64.
-// **NOTE** using a uint64 to store this data puts a max pool size of 64 pools.
-// If the network needs to beyond 64 pools, change this to be a string, each
-// character representing a pool and which directions need to be processed
-// (none,->, <-, <->). For now, uint64 stores data more efficient, creating
-// less chain bloat.
+// is stored as an array of bools.
 
 // SetOrderBookProcessor - writes a list of pairs to process
-func (k KVStore) SetOrderBookProcessor(ctx cosmos.Context, record uint64) error {
+func (k KVStore) SetOrderBookProcessor(ctx cosmos.Context, record []bool) error {
 	key := k.GetKey(ctx, prefixOrderBookProcessor, "")
-	k.setUint64(ctx, key, record)
+	k.setBools(ctx, key, record)
 	return nil
 }
 
 // GetOrderBookProcessor - get a list of asset pairs to process
-func (k KVStore) GetOrderBookProcessor(ctx cosmos.Context) (uint64, error) {
+func (k KVStore) GetOrderBookProcessor(ctx cosmos.Context) ([]bool, error) {
 	key := k.GetKey(ctx, prefixOrderBookProcessor, "")
-	var record uint64
-	_, err := k.getUint64(ctx, key, &record)
+	var record []bool
+	_, err := k.getBools(ctx, key, &record)
 	return record, err
 }
 

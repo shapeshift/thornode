@@ -17,6 +17,7 @@ type DummyMgr struct {
 	obMgr         ObserverManager
 	poolMgr       PoolManager
 	swapQ         SwapQueue
+	orderBook     OrderBook
 	slasher       Slasher
 	yggManager    YggManager
 }
@@ -35,6 +36,7 @@ func NewDummyMgrWithKeeper(k keeper.Keeper) *DummyMgr {
 		slasher:       NewDummySlasher(),
 		yggManager:    NewDummyYggManger(),
 		// TODO add dummy swap queue
+		// TODO add dummy order book
 	}
 }
 
@@ -52,6 +54,7 @@ func NewDummyMgr() *DummyMgr {
 		slasher:       NewDummySlasher(),
 		yggManager:    NewDummyYggManger(),
 		// TODO add dummy swap queue
+		// TODO add dummy order book
 	}
 }
 
@@ -68,3 +71,4 @@ func (m DummyMgr) PoolMgr() PoolManager                   { return m.poolMgr }
 func (m DummyMgr) SwapQ() SwapQueue                       { return m.swapQ }
 func (m DummyMgr) Slasher() Slasher                       { return m.slasher }
 func (m DummyMgr) YggManager() YggManager                 { return m.yggManager }
+func (m DummyMgr) OrderBookMgr() OrderBook                { return m.orderBook }

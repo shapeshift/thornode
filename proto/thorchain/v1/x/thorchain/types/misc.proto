@@ -20,3 +20,7 @@ message ProtoAccAddresses {
 message ProtoStrings {
   repeated string value = 1;
 }
+
+message ProtoBools {
+  repeated bool value = 1;
+}

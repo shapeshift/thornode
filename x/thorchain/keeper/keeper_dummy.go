@@ -417,13 +417,13 @@ func (k KVStoreDummy) RemoveOrderBookIndex(_ cosmos.Context, _ MsgSwap) error {
 	return kaboom
 }
 
-func (k KVStoreDummy) SetOrderBookProcessor(ctx cosmos.Context, record uint64) error {
+func (k KVStoreDummy) SetOrderBookProcessor(ctx cosmos.Context, record []bool) error {
 	return kaboom
 }
 
 // GetOrderBookProcessor - get a list of asset pairs to process
-func (k KVStoreDummy) GetOrderBookProcessor(ctx cosmos.Context) (uint64, error) {
-	return 0, kaboom
+func (k KVStoreDummy) GetOrderBookProcessor(ctx cosmos.Context) ([]bool, error) {
+	return nil, kaboom
 }
 
 func (k KVStoreDummy) GetMimir(_ cosmos.Context, key string) (int64, error) { return 0, kaboom }

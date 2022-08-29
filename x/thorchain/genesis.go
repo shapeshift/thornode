@@ -193,8 +193,13 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 		panic(err)
 	}
 
-	for i, item := range data.MsgSwaps {
-		if err := keeper.SetSwapQueueItem(ctx, item, i); err != nil {
+	// FORK TODO: uncomment this on next fork
+	// if err := keeper.SetPOL(ctx, data.POL); err != nil {
+	// panic(err)
+	// }
+
+	for _, item := range data.MsgSwaps {
+		if err := keeper.SetOrderBookItem(ctx, item); err != nil {
 			panic(err)
 		}
 	}
@@ -400,7 +405,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 	}
 
 	swapMsgs := make([]MsgSwap, 0)
-	iterMsgSwap := k.GetSwapQueueIterator(ctx)
+	iterMsgSwap := k.GetOrderBookItemIterator(ctx)
 	defer iterMsgSwap.Close()
 	for ; iterMsgSwap.Valid(); iterMsgSwap.Next() {
 		var m MsgSwap

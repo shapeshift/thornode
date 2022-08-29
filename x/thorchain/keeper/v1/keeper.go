@@ -292,6 +292,35 @@ func (k KVStore) getUint(ctx cosmos.Context, key string, record *cosmos.Uint) (b
 	return true, nil
 }
 
+func (k KVStore) setBools(ctx cosmos.Context, key string, record []bool) {
+	store := ctx.KVStore(k.storeKey)
+	value := ProtoBools{Value: record}
+	buf := k.cdc.MustMarshal(&value)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getBools(ctx cosmos.Context, key string, record *[]bool) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+
+	var value ProtoBools
+	bz := store.Get([]byte(key))
+	if bz == nil {
+		return false, nil
+	}
+	if err := k.cdc.Unmarshal(bz, &value); err != nil {
+		return false, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	if record == nil {
+		return false, nil
+	}
+	*record = value.Value
+	return true, nil
+}
+
 // GetRuneBalanceOfModule get the RUNE balance
 func (k KVStore) GetRuneBalanceOfModule(ctx cosmos.Context, moduleName string) cosmos.Uint {
 	return k.GetBalanceOfModule(ctx, moduleName, common.RuneNative.Native())

@@ -258,6 +258,8 @@ require (
 	nhooyr.io/websocket v1.8.6 // indirect
 )
 
+require github.com/jinzhu/copier v0.3.5
+
 require golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57 // indirect
 
 replace (

@@ -327,6 +327,9 @@ type (
 	NoOpMemo              = mem.NoOpMemo
 	ConsolidateMemo       = mem.ConsolidateMemo
 	ManageTHORNameMemo    = mem.ManageTHORNameMemo
+
+	// Proto
+	ProtoStrings = types.ProtoStrings
 )
 
 var _ codec.ProtoMarshaler = &types.LiquidityProvider{}

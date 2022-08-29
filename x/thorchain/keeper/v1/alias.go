@@ -119,4 +119,5 @@ type (
 	ProtoAccAddresses = types.ProtoAccAddresses
 	ProtoStrings      = types.ProtoStrings
 	ProtoUint         = common.ProtoUint
+	ProtoBools        = types.ProtoBools
 )

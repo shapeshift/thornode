@@ -132,6 +132,9 @@ func (s *SwapperV95) Swap(ctx cosmos.Context,
 	}
 	swapEvents = append(swapEvents, swapEvt)
 	if !swapTarget.IsZero() && assetAmount.LT(swapTarget) {
+		// **NOTE** this error string is utilized by the order book manager to
+		// catch the error. DO NOT change this error string without updating
+		// the order book manager as well
 		return cosmos.ZeroUint(), swapEvents, fmt.Errorf("emit asset %s less than price limit %s", assetAmount, swapTarget)
 	}
 	if target.IsRune() {
