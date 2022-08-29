@@ -221,7 +221,13 @@ func (s *Signer) processTransactions() {
 							s.logger.Error().Err(err).Msg("fail to update tx out store item with retry #")
 						}
 						cancel()
-						continue
+						return
+						// The 'item' for loop should not be items[0],
+						// because problems which return 'nil, nil' should be skipped over instead of blocking others.
+						// When signAndBroadcast returns an error (such as from a keysign timeout),
+						// a 'return' and not a 'continue' should be used so that nodes can all restart the list,
+						// for when the keysign failure was from a loss of list synchrony.
+						// Otherwise, out-of-sync lists would cycle one timeout at a time, maybe never resynchronising.
 					}
 					cancel()
 
