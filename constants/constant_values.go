@@ -85,6 +85,8 @@ const (
 	POLBuffer
 	RagnarokProcessNumOfLPPerIteration
 	SwapOutDexAggregationDisabled
+	SynthYieldBasisPoints
+	SynthYieldCycle
 	MinimumL1OutboundFeeUSD
 	MinimumPoolLiquidityFee
 )
@@ -165,6 +167,8 @@ var nameToString = map[ConstantName]string{
 	POLSynthUtilization:                "POLSynthUtilization",
 	POLBuffer:                          "POLBuffer",
 	RagnarokProcessNumOfLPPerIteration: "RagnarokProcessNumOfLPPerIteration",
+	SynthYieldBasisPoints:              "SynthYieldBasisPoints",
+	SynthYieldCycle:                    "SynthYieldCycle",
 	MinimumL1OutboundFeeUSD:            "MinimumL1OutboundFeeUSD",
 	MinimumPoolLiquidityFee:            "MinimumPoolLiquidityFee",
 }

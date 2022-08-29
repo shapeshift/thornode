@@ -169,3 +169,12 @@ func (PoolTestSuite) TestReimbursementAndDisbursement(c *C) {
 	c.Check(p.RuneDisbursementForAssetAdd(cosmos.NewUint(1*common.One)).Equal(cosmos.NewUint(0*common.One)), Equals, true)
 	c.Check(p.AssetDisbursementForRuneAdd(cosmos.NewUint(1*common.One)).Equal(cosmos.NewUint(0*common.One)), Equals, true)
 }
+
+func (PoolTestSuite) TestLUVI(c *C) {
+	p := NewPool()
+	p.BalanceRune = cosmos.NewUint(100)
+	p.BalanceAsset = cosmos.NewUint(50)
+	p.LPUnits = cosmos.NewUint(75)
+	p.SynthUnits = cosmos.NewUint(12)
+	c.Check(p.GetLUVI().String(), Equals, "812766415156")
+}

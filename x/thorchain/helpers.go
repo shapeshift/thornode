@@ -490,7 +490,7 @@ func polPoolValue(ctx cosmos.Context, mgr Manager) (cosmos.Uint, error) {
 		return total, err
 	}
 	for _, pool := range pools {
-		if pool.Asset.IsSyntheticAsset() {
+		if pool.Asset.IsNative() {
 			continue
 		}
 		if pool.BalanceRune.IsZero() {

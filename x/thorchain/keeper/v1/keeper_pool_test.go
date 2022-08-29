@@ -4,6 +4,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
 type KeeperPoolSuite struct{}
@@ -33,4 +34,14 @@ func (s *KeeperPoolSuite) TestPool(c *C) {
 	p, err := k.GetPool(ctx, common.BTCAsset)
 	c.Check(err, IsNil)
 	c.Check(p.Valid(), NotNil)
+}
+
+func (s *KeeperPoolSuite) TestPoolLUVI(c *C) {
+	luvi := cosmos.NewUint(12345)
+
+	ctx, k := setupKeeperForTest(c)
+	k.SetPoolLUVI(ctx, common.BTCAsset, luvi)
+	luvi2, err := k.GetPoolLUVI(ctx, common.BTCAsset)
+	c.Assert(err, IsNil)
+	c.Assert(luvi.Uint64(), Equals, luvi2.Uint64())
 }

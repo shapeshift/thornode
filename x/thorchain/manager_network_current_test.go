@@ -426,6 +426,89 @@ func (s *NetworkManagerV96TestSuite) TestRecoverPoolDeficit(c *C) {
 	c.Assert(pool.BalanceRune.String(), Equals, pools[0].BalanceRune.Sub(lpDeficit).String())
 }
 
+func (s *NetworkManagerV96TestSuite) TestSynthCycle(c *C) {
+	var err error
+	ctx, mgr := setupManagerForTest(c)
+	net := newNetworkMgrV96(mgr.Keeper(), mgr.TxOutStore(), mgr.EventMgr())
+
+	// mint synths
+	coin := common.NewCoin(common.BTCAsset.GetSyntheticAsset(), cosmos.NewUint(10*common.One))
+	c.Assert(mgr.Keeper().MintToModule(ctx, ModuleName, coin), IsNil)
+	c.Assert(mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
+
+	spool := NewPool()
+	spool.Asset = common.BTCAsset.GetSyntheticAsset()
+	spool.BalanceAsset = coin.Amount
+	spool.LPUnits = cosmos.NewUint(100)
+	c.Assert(mgr.Keeper().SetPool(ctx, spool), IsNil)
+
+	// first pool
+	pool := NewPool()
+	pool.Asset = common.BTCAsset
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.LPUnits = cosmos.NewUint(100)
+	pool.CalcUnits(mgr.GetVersion(), coin.Amount)
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+
+	// run the cycle to generate a saved LUVI score (since we're blank now, no previous LUVI)
+	c.Assert(net.synthYieldCycle(ctx, mgr, 5000), IsNil)
+	luvi, err := mgr.Keeper().GetPoolLUVI(ctx, pool.Asset)
+	c.Assert(err, IsNil)
+	c.Assert(luvi.String(), Equals, "95238095238095238095", Commentf("%s", luvi.String()))
+
+	pool.BalanceRune = cosmos.NewUint(200 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(200 * common.One)
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+
+	c.Assert(net.synthYieldCycle(ctx, mgr, 5000), IsNil)
+
+	bal := mgr.Keeper().GetBalanceOfModule(ctx, AsgardName, spool.Asset.Native())
+	c.Assert(bal.Uint64(), Equals, coin.Amount.Uint64()+257142857, Commentf("%d != %d", bal.Uint64(), coin.Amount.Uint64()+257142857))
+
+	spool, err = mgr.Keeper().GetPool(ctx, spool.Asset)
+	c.Assert(err, IsNil)
+	c.Assert(spool.BalanceAsset.Uint64(), Equals, bal.Uint64())
+
+	luvi, err = mgr.Keeper().GetPoolLUVI(ctx, pool.Asset)
+	c.Assert(err, IsNil)
+	c.Assert(luvi.String(), Equals, "196078431372549019607", Commentf("%s", luvi.String()))
+}
+
+func (s *NetworkManagerV96TestSuite) TestCalcSynthYield(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	net := newNetworkMgrV96(mgr.Keeper(), mgr.TxOutStore(), mgr.EventMgr())
+
+	// mint synths
+	coin := common.NewCoin(common.BTCAsset.GetSyntheticAsset(), cosmos.NewUint(10*common.One))
+	c.Assert(mgr.Keeper().MintToModule(ctx, ModuleName, coin), IsNil)
+	c.Assert(mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
+
+	spool := NewPool()
+	spool.Asset = common.BTCAsset.GetSyntheticAsset()
+	spool.BalanceAsset = coin.Amount
+	spool.LPUnits = cosmos.NewUint(100)
+	c.Assert(mgr.Keeper().SetPool(ctx, spool), IsNil)
+
+	// first pool
+	pool := NewPool()
+	pool.Asset = common.BTCAsset
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.LPUnits = cosmos.NewUint(100)
+	pool.Status = PoolAvailable
+	pool.CalcUnits(mgr.GetVersion(), coin.Amount)
+	luvi := pool.GetLUVI()
+	mgr.Keeper().SetPoolLUVI(ctx, pool.Asset, luvi)
+
+	pool.BalanceRune = cosmos.NewUint(200 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(200 * common.One)
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+
+	earnings := net.calcSynthYield(ctx, mgr, 5000, spool)
+	c.Assert(earnings.Uint64(), Equals, uint64(257142857), Commentf("%d", earnings.Uint64()))
+}
+
 func (s *NetworkManagerV96TestSuite) TestRagnarokPool(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	ctx = ctx.WithBlockHeight(100000)

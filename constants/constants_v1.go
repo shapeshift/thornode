@@ -70,6 +70,8 @@ func NewConstantValue010() *ConstantVals {
 			POLSynthUtilization:                0,                  // target synth utilization for POL (basis points)
 			POLBuffer:                          0,                  // buffer around the POL synth utilization (basis points added to/subtracted from POLSynthUtilization basis points)
 			RagnarokProcessNumOfLPPerIteration: 200,                // the number of LP to be processed per iteration during ragnarok pool
+			SynthYieldBasisPoints:              5000,               // amount of the yield the capital earns the synth holder receives
+			SynthYieldCycle:                    0,                  // number of blocks when the network pays out rewards to yield bearing synths
 			MinimumL1OutboundFeeUSD:            1000000,            // Minimum fee in USD to charge for LP swap, default to $0.01 , nodes need to vote it to a larger value
 			MinimumPoolLiquidityFee:            0,                  // Minimum liquidity fee made by the pool,active pool fail to meet this within a PoolCycle will be demoted
 		},

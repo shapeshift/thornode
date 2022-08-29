@@ -77,3 +77,15 @@ func (k KVStore) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 func (k KVStore) RemovePool(ctx cosmos.Context, asset common.Asset) {
 	k.del(ctx, k.GetKey(ctx, prefixPool, asset.String()))
 }
+
+func (k KVStore) SetPoolLUVI(ctx cosmos.Context, asset common.Asset, luvi cosmos.Uint) {
+	key := k.GetKey(ctx, prefixPoolLUVI, asset.String())
+	k.setUint(ctx, key, luvi)
+}
+
+func (k KVStore) GetPoolLUVI(ctx cosmos.Context, asset common.Asset) (cosmos.Uint, error) {
+	key := k.GetKey(ctx, prefixPoolLUVI, asset.String())
+	record := cosmos.ZeroUint()
+	_, err := k.getUint(ctx, key, &record)
+	return record, err
+}

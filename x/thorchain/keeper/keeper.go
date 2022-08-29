@@ -74,6 +74,8 @@ type KeeperPool interface {
 	SetPool(ctx cosmos.Context, pool Pool) error
 	PoolExist(ctx cosmos.Context, asset common.Asset) bool
 	RemovePool(ctx cosmos.Context, asset common.Asset)
+	SetPoolLUVI(ctx cosmos.Context, asset common.Asset, luvi cosmos.Uint)
+	GetPoolLUVI(ctx cosmos.Context, asset common.Asset) (cosmos.Uint, error)
 }
 
 type KeeperLastHeight interface {

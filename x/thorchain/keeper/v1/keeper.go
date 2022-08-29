@@ -28,6 +28,7 @@ const (
 	prefixObservedTxOut           kvTypes.DbPrefix = "observed_tx_out/"
 	prefixObservedLink            kvTypes.DbPrefix = "ob_link/"
 	prefixPool                    kvTypes.DbPrefix = "pool/"
+	prefixPoolLUVI                kvTypes.DbPrefix = "luvi/"
 	prefixTxOut                   kvTypes.DbPrefix = "txout/"
 	prefixTotalLiquidityFee       kvTypes.DbPrefix = "total_liquidity_fee/"
 	prefixPoolLiquidityFee        kvTypes.DbPrefix = "pool_liquidity_fee/"
@@ -260,6 +261,32 @@ func (k KVStore) getStrings(ctx cosmos.Context, key string, record *[]string) (b
 	bz := store.Get([]byte(key))
 	if err := k.cdc.Unmarshal(bz, &value); err != nil {
 		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+	*record = value.Value
+	return true, nil
+}
+
+func (k KVStore) setUint(ctx cosmos.Context, key string, record cosmos.Uint) {
+	store := ctx.KVStore(k.storeKey)
+	value := ProtoUint{Value: record}
+	buf := k.cdc.MustMarshal(&value)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getUint(ctx cosmos.Context, key string, record *cosmos.Uint) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	var value ProtoUint
+	bz := store.Get([]byte(key))
+	if err := k.cdc.Unmarshal(bz, &value); err != nil {
+		return false, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
 	}
 	*record = value.Value
 	return true, nil

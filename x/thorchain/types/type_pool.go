@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -216,4 +217,18 @@ func (m Pool) AssetDisbursementForRuneAdd(amt cosmos.Uint) cosmos.Uint {
 	denom := m.BalanceRune.Add(amt)
 	outAmt := common.GetUncappedShare(m.BalanceAsset, denom, amt)
 	return cosmos.RoundToDecimal(outAmt, m.Decimals)
+}
+
+func (m Pool) GetLUVI() cosmos.Uint {
+	bigInt := &big.Int{}
+	balRune := m.BalanceRune.MulUint64(1e12).BigInt()
+	balAsset := m.BalanceAsset.MulUint64(1e12).BigInt()
+	num := bigInt.Mul(balRune, balAsset)
+	num = bigInt.Sqrt(num)
+	denom := m.GetPoolUnits().BigInt()
+	if len(denom.Bits()) == 0 {
+		return cosmos.ZeroUint()
+	}
+	result := bigInt.Quo(num, denom)
+	return cosmos.NewUintFromBigInt(result)
 }

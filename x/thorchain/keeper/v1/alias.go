@@ -1,6 +1,7 @@
 package keeperv1
 
 import (
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -117,4 +118,5 @@ type (
 	ProtoUint64       = types.ProtoUint64
 	ProtoAccAddresses = types.ProtoAccAddresses
 	ProtoStrings      = types.ProtoStrings
+	ProtoUint         = common.ProtoUint
 )

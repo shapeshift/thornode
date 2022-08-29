@@ -164,6 +164,12 @@ func (k KVStoreDummy) GetPools(_ cosmos.Context) (Pools, error)        { return 
 func (k KVStoreDummy) SetPool(_ cosmos.Context, _ Pool) error          { return kaboom }
 func (k KVStoreDummy) PoolExist(_ cosmos.Context, _ common.Asset) bool { return false }
 func (k KVStoreDummy) RemovePool(_ cosmos.Context, _ common.Asset)     {}
+
+func (k KVStoreDummy) SetPoolLUVI(ctx cosmos.Context, asset common.Asset, luvi cosmos.Uint) {}
+func (k KVStoreDummy) GetPoolLUVI(ctx cosmos.Context, asset common.Asset) (cosmos.Uint, error) {
+	return cosmos.ZeroUint(), kaboom
+}
+
 func (k KVStoreDummy) GetLiquidityProviderIterator(_ cosmos.Context, _ common.Asset) cosmos.Iterator {
 	return nil
 }
