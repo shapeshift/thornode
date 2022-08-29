@@ -32,7 +32,7 @@ func (smgr *StoreMgr) Iterator(ctx cosmos.Context) error {
 	version := smgr.mgr.GetVersion()
 
 	if version.LT(semver.MustParse("1.90.0")) {
-		version = smgr.mgr.Keeper().GetLowestActiveVersion(ctx) // TODO remove me on fork
+		version = smgr.mgr.Keeper().GetLowestActiveVersion(ctx) // TODO remove me on hard fork
 	}
 
 	if version.Major > constants.SWVersion.Major || version.Minor > constants.SWVersion.Minor {

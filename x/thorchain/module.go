@@ -163,29 +163,47 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	ctx.Logger().Debug("Begin Block", "height", req.Header.Height)
 	version := am.mgr.GetVersion()
-	if version.LT(semver.MustParse("1.90.0")) {
-		_ = am.mgr.Keeper().GetLowestActiveVersion(ctx) // TODO: remove me on fork
-	}
+	if version.LT(semver.MustParse("1.96.0")) { // TODO: leave only the else path after hard fork
+		if version.LT(semver.MustParse("1.90.0")) {
+			_ = am.mgr.Keeper().GetLowestActiveVersion(ctx)
+		}
 
-	localVer := semver.MustParse(constants.SWVersion.String())
-	if version.Major > localVer.Major || version.Minor > localVer.Minor {
-		panic(fmt.Sprintf("Unsupported Version: update your binary (your version: %s, network consensus version: %s)", constants.SWVersion.String(), version.String()))
-	}
+		localVer := semver.MustParse(constants.SWVersion.String())
+		if version.Major > localVer.Major || version.Minor > localVer.Minor {
+			panic(fmt.Sprintf("Unsupported Version: update your binary (your version: %s, network consensus version: %s)", constants.SWVersion.String(), version.String()))
+		}
 
-	// Does a kvstore migration
-	smgr := newStoreMgr(am.mgr)
-	if err := smgr.Iterator(ctx); err != nil {
-		os.Exit(10) // halt the chain if unsuccessful
-	}
+		// Does a kvstore migration
+		smgr := newStoreMgr(am.mgr)
+		if err := smgr.Iterator(ctx); err != nil {
+			os.Exit(10) // halt the chain if unsuccessful
+		}
 
-	am.mgr.Keeper().ClearObservingAddresses(ctx)
-	if err := am.mgr.BeginBlock(ctx); err != nil {
-		ctx.Logger().Error("fail to get managers", "error", err)
+		am.mgr.Keeper().ClearObservingAddresses(ctx)
+		if err := am.mgr.BeginBlock(ctx); err != nil {
+			ctx.Logger().Error("fail to get managers", "error", err)
+		}
+	} else {
+		// Check/Update the network version before checking the local version or checking whether to do a new-version store migration
+		if err := am.mgr.BeginBlock(ctx); err != nil {
+			ctx.Logger().Error("fail to get managers", "error", err)
+		}
+
+		localVer := semver.MustParse(constants.SWVersion.String())
+		if version.Major > localVer.Major || version.Minor > localVer.Minor {
+			panic(fmt.Sprintf("Unsupported Version: update your binary (your version: %s, network consensus version: %s)", constants.SWVersion.String(), version.String()))
+		}
+
+		// Does a kvstore migration
+		smgr := newStoreMgr(am.mgr)
+		if err := smgr.Iterator(ctx); err != nil {
+			os.Exit(10) // halt the chain if unsuccessful
+		}
+
+		am.mgr.Keeper().ClearObservingAddresses(ctx)
 	}
 	am.mgr.GasMgr().BeginBlock(am.mgr)
-
 	am.mgr.Slasher().BeginBlock(ctx, req, am.mgr.GetConstants())
-
 	if err := am.mgr.ValidatorMgr().BeginBlock(ctx, am.mgr.GetConstants(), existingValidators); err != nil {
 		ctx.Logger().Error("Fail to begin block on validator", "error", err)
 	}
@@ -195,7 +213,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	ctx.Logger().Debug("End Block", "height", req.Height)
 	if am.mgr.GetVersion().LT(semver.MustParse("1.90.0")) {
-		_ = am.mgr.Keeper().GetLowestActiveVersion(ctx) // TODO: remove me on fork
+		_ = am.mgr.Keeper().GetLowestActiveVersion(ctx) // TODO: remove me on hard fork
 	}
 	if err := am.mgr.SwapQ().EndBlock(ctx, am.mgr); err != nil {
 		ctx.Logger().Error("fail to process swap queue", "error", err)

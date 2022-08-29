@@ -23,7 +23,7 @@ func NewExternalHandler(mgr Manager) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error) {
 		ctx = ctx.WithEventManager(cosmos.NewEventManager())
 		if mgr.GetVersion().LT(semver.MustParse("1.90.0")) {
-			_ = mgr.Keeper().GetLowestActiveVersion(ctx) // TODO: remove me on fork
+			_ = mgr.Keeper().GetLowestActiveVersion(ctx) // TODO: remove me on hard fork
 		}
 		handlerMap := getHandlerMapping(mgr)
 		legacyMsg, ok := msg.(legacytx.LegacyMsg)
@@ -85,7 +85,7 @@ func NewInternalHandler(mgr Manager) cosmos.Handler {
 	return func(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error) {
 		version := mgr.GetVersion()
 		if version.LT(semver.MustParse("1.90.0")) {
-			version = mgr.Keeper().GetLowestActiveVersion(ctx) // TODO remove me on fork
+			version = mgr.Keeper().GetLowestActiveVersion(ctx) // TODO remove me on hard fork
 		}
 		handlerMap := getInternalHandlerMapping(mgr)
 		legacyMsg, ok := msg.(legacytx.LegacyMsg)
