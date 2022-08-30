@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/blang/semver"
 	"github.com/ethereum/go-ethereum"
@@ -19,6 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/sync/semaphore"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
@@ -443,36 +445,58 @@ func (e *ETHScanner) extractTxs(block *etypes.Block) (stypes.TxIn, error) {
 		MemPool:  false,
 	}
 
-	for _, tx := range block.Transactions() {
-		if tx.To() == nil {
-			continue
+	sem := semaphore.NewWeighted(e.cfg.Concurrency)
+	mu := sync.Mutex{}
+	wg := sync.WaitGroup{}
+
+	processTx := func(tx *etypes.Transaction) {
+		defer wg.Done()
+		if err := sem.Acquire(context.Background(), 1); err != nil {
+			e.logger.Err(err).Msg("fail to acquire semaphore")
+			return
 		}
+		defer sem.Release(1)
+
+		if tx.To() == nil {
+			return
+		}
+
 		// just try to remove the transaction hash from key value store
 		// it doesn't matter whether the transaction is ours or not , success or failure
 		// as long as the transaction id matches
 		if err := e.blockMetaAccessor.RemoveSignedTxItem(tx.Hash().String()); err != nil {
 			e.logger.Err(err).Msgf("fail to remove signed tx item, hash:%s", tx.Hash().String())
 		}
+
 		txInItem, err := e.fromTxToTxIn(tx)
 		if err != nil {
 			e.logger.Error().Err(err).Str("hash", tx.Hash().Hex()).Msg("fail to get one tx from server")
-			continue
+			return
 		}
 		if txInItem == nil {
-			continue
+			return
 		}
 		// sometimes if a transaction failed due to gas problem , it will have no `to` address
 		if len(txInItem.To) == 0 {
-			continue
+			return
 		}
 		if len([]byte(txInItem.Memo)) > constants.MaxMemoSize {
-			continue
+			return
 		}
 		txInItem.BlockHeight = block.Number().Int64()
+		mu.Lock()
 		txInbound.TxArray = append(txInbound.TxArray, *txInItem)
+		mu.Unlock()
 		e.logger.Debug().Str("hash", tx.Hash().Hex()).Msgf("%s got %d tx", e.cfg.ChainID, 1)
-
 	}
+
+	// process txs in parallel
+	for _, tx := range block.Transactions() {
+		wg.Add(1)
+		go processTx(tx)
+	}
+	wg.Wait()
+
 	if len(txInbound.TxArray) == 0 {
 		e.logger.Info().Int64("block", int64(block.NumberU64())).Msg("no tx need to be processed in this block")
 		return stypes.TxIn{}, nil

@@ -1,6 +1,7 @@
 package avalanche
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	_ "embed"
 
@@ -33,6 +35,7 @@ import (
 	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
+	"golang.org/x/sync/semaphore"
 )
 
 // SolvencyReporter is to report solvency info to THORNode
@@ -258,9 +261,20 @@ func (a *AvalancheScanner) getTxIn(block *etypes.Block) (stypes.TxIn, error) {
 		MemPool:  false,
 	}
 
-	for _, tx := range block.Transactions() {
+	sem := semaphore.NewWeighted(a.cfg.Concurrency)
+	mu := sync.Mutex{}
+	wg := sync.WaitGroup{}
+
+	processTx := func(tx *etypes.Transaction) {
+		defer wg.Done()
+		if err := sem.Acquire(context.Background(), 1); err != nil {
+			a.logger.Err(err).Msg("fail to acquire semaphore")
+			return
+		}
+		defer sem.Release(1)
+
 		if tx.To() == nil {
-			continue
+			return
 		}
 		// just try to remove the transaction hash from key value store
 		// it doesn't matter whether the transaction is ours or not , success or failure
@@ -272,21 +286,31 @@ func (a *AvalancheScanner) getTxIn(block *etypes.Block) (stypes.TxIn, error) {
 		txInItem, err := a.getTxInItem(tx)
 		if err != nil {
 			a.logger.Error().Err(err).Str("hash", tx.Hash().Hex()).Msg("fail to get one tx from server")
-			continue
+			return
 		}
 		if txInItem == nil {
-			continue
+			return
 		}
 		// sometimes if a transaction failed due to gas problem , it will have no `to` address
 		if len(txInItem.To) == 0 {
-			continue
+			return
 		}
 		if len([]byte(txInItem.Memo)) > constants.MaxMemoSize {
-			continue
+			return
 		}
 		txInItem.BlockHeight = block.Number().Int64()
+		mu.Lock()
 		txInbound.TxArray = append(txInbound.TxArray, *txInItem)
+		mu.Unlock()
 	}
+
+	// process txs in parallel
+	for _, tx := range block.Transactions() {
+		wg.Add(1)
+		go processTx(tx)
+	}
+	wg.Wait()
+
 	if len(txInbound.TxArray) == 0 {
 		a.logger.Debug().Int64("block", int64(block.NumberU64())).Msg("no tx need to be processed in this block")
 		return stypes.TxIn{}, nil

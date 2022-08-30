@@ -82,6 +82,7 @@ bifrost:
       chain_id: ETH
       block_scanner:
         <<: *default-block-scanner
+        concurrency: 1
         chain_id: ETH
         suggested_fee_version: 2
     avax:
@@ -89,6 +90,7 @@ bifrost:
       chain_id: AVAX
       block_scanner:
         <<: *default-block-scanner
+        concurrency: 1
         chain_id: AVAX
         gas_cache_size: 40
     doge:

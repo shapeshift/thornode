@@ -671,6 +671,7 @@ type BifrostBlockScannerConfiguration struct {
 	ChainID                    common.Chain  `mapstructure:"chain_id"`
 	SuggestedFeeVersion        int           `mapstructure:"suggested_fee_version"`
 	GasCacheSize               int           `mapstructure:"gas_cache_size"`
+	Concurrency                int64         `mapstructure:"concurrency"`
 }
 
 func (b *BifrostBlockScannerConfiguration) Validate() {

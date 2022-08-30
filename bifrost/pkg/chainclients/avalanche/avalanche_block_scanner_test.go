@@ -118,6 +118,7 @@ func getConfigForTest(rpcHost string) config.BifrostBlockScannerConfiguration {
 		BlockRetryInterval:         time.Second,
 		SuggestedFeeVersion:        1,
 		GasCacheSize:               100,
+		Concurrency:                1,
 	}
 }
 
