@@ -47,8 +47,8 @@ func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos
 func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
-	case version.GTE(semver.MustParse("1.95.0")):
-		return h.validateV95(ctx, msg)
+	case version.GTE(semver.MustParse("1.96.0")):
+		return h.validateV96(ctx, msg)
 	case version.GTE(semver.MustParse("0.80.0")):
 		return h.validateV80(ctx, msg)
 	default:
@@ -56,7 +56,7 @@ func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLi
 	}
 }
 
-func (h WithdrawLiquidityHandler) validateV95(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
+func (h WithdrawLiquidityHandler) validateV96(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return errWithdrawFailValidation
 	}

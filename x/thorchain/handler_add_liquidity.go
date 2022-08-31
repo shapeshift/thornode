@@ -52,6 +52,8 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.96.0")):
+		return h.validateV96(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
 		return h.validateV95(ctx, msg)
 	case version.GTE(semver.MustParse("1.93.0")):
@@ -63,7 +65,7 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	}
 }
 
-func (h AddLiquidityHandler) validateV95(ctx cosmos.Context, msg MsgAddLiquidity) error {
+func (h AddLiquidityHandler) validateV96(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if err := msg.ValidateBasicV93(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
@@ -152,8 +154,8 @@ func (h AddLiquidityHandler) validateV95(ctx cosmos.Context, msg MsgAddLiquidity
 func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
-	case version.GTE(semver.MustParse("1.95.0")):
-		return h.handleV95(ctx, msg)
+	case version.GTE(semver.MustParse("1.96.0")):
+		return h.handleV96(ctx, msg)
 	case version.GTE(semver.MustParse("1.93.0")):
 		return h.handleV93(ctx, msg)
 	case version.GTE(semver.MustParse("0.63.0")):
@@ -163,7 +165,7 @@ func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) err
 	}
 }
 
-func (h AddLiquidityHandler) handleV95(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
+func (h AddLiquidityHandler) handleV96(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
 	// check if we need to swap before adding asset
 	if h.needsSwap(msg) {
 		return h.swapV93(ctx, msg)
@@ -389,6 +391,8 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 ) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.96.0")):
+		return h.addLiquidityV96(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	case version.GTE(semver.MustParse("1.95.0")):
 		return h.addLiquidityV95(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	case version.GTE(semver.MustParse("1.90.0")):
@@ -400,7 +404,7 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	}
 }
 
-func (h AddLiquidityHandler) addLiquidityV95(ctx cosmos.Context,
+func (h AddLiquidityHandler) addLiquidityV96(ctx cosmos.Context,
 	asset common.Asset,
 	addRuneAmount, addAssetAmount cosmos.Uint,
 	runeAddr, assetAddr common.Address,
