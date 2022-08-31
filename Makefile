@@ -124,9 +124,19 @@ test-race:
 test-watch:
 	@gow -c test ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
+# ------------------------------ Test Sync ------------------------------
+
 test-sync-mainnet:
 	@BUILDTAG=mainnet BRANCH=mainnet $(MAKE) docker-gitlab-build
 	@docker run --rm -e CHAIN_ID=thorchain-mainnet-v1 -e NET=mainnet registry.gitlab.com/thorchain/thornode:mainnet
+
+test-sync-stagenet:
+	@BUILDTAG=stagenet BRANCH=stagenet $(MAKE) docker-gitlab-build
+	@docker run --rm -e CHAIN_ID=thorchain-stagenet-v2 -e NET=stagenet registry.gitlab.com/thorchain/thornode:stagenet
+
+test-sync-testnet:
+	@BUILDTAG=testnet BRANCH=testnet $(MAKE) docker-gitlab-build
+	@docker run --rm -e CHAIN_ID=thorchain-testnet-v2 -e NET=testnet registry.gitlab.com/thorchain/thornode:testnet
 
 # ------------------------------ Docker Build ------------------------------
 

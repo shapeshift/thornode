@@ -27,6 +27,11 @@ import (
 // Config
 // -------------------------------------------------------------------------------------
 
+const (
+	MaxSeedRetries   = 3
+	SeedRetryBackoff = time.Second * 5
+)
+
 var (
 	//go:embed default.yaml
 	defaultConfig []byte
@@ -383,82 +388,96 @@ func thornodeSeeds() string {
 
 	// default to endpoint provided seeds if not provided
 	seedEndpoints := map[string]string{
-		"mainnet":  "https://seed.thorchain.info",
-		"stagenet": "https://stagenet-seed.ninerealms.com",
-		"testnet":  "https://testnet.seed.thorchain.info",
+		"mainnet": "https://seed.thorchain.info",
+		"testnet": "https://testnet.seed.thorchain.info",
 	}
-	if endpoint, ok := seedEndpoints[os.Getenv("NET")]; ok && seedIPs == "" {
-		log.Info().Msg("seeds not provided, initializing automatically...")
+	switch os.Getenv("NET") {
+	case "stagenet":
+		seedIPs = "stagenet-seed.ninerealms.com"
+	default:
+		if endpoint, ok := seedEndpoints[os.Getenv("NET")]; ok && seedIPs == "" {
+			log.Info().Msg("seeds not provided, initializing automatically...")
 
-		// trunk-ignore(golangci-lint/gosec): variable url is safe here
-		res, err := http.Get(endpoint)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to get seeds")
-			return ""
+			// trunk-ignore(golangci-lint/gosec): variable url is safe here
+			res, err := http.Get(endpoint)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to get seeds")
+				return ""
+			}
+
+			// unmarshal seeds response
+			var seedsResponse []string
+			dec := json.NewDecoder(res.Body)
+			err = dec.Decode(&seedsResponse)
+			if err != nil {
+				log.Error().Err(err).Msg("failed to unmarshal seeds response")
+				return ""
+			}
+
+			// set seeds to lookup ids
+			seedIPs = strings.Join(seedsResponse, ",")
 		}
-
-		// unmarshal seeds response
-		var seedsResponse []string
-		dec := json.NewDecoder(res.Body)
-		err = dec.Decode(&seedsResponse)
-		if err != nil {
-			log.Error().Err(err).Msg("failed to unmarshal seeds response")
-			return ""
-		}
-
-		// set seeds to lookup ids
-		seedIPs = strings.Join(seedsResponse, ",")
 	}
 
 	// initialize seed with their node id if the network matches
 	wg := sync.WaitGroup{}
 	mu := sync.Mutex{}
 	seeds := []string{}
-	for _, seed := range strings.Split(seedIPs, ",") {
-		wg.Add(1)
-		go func(seedIP string) {
-			defer wg.Done()
 
-			// get node status
-			res, err := http.Get(fmt.Sprintf("http://%s:%d/status", seedIP, rpcPort))
-			if err != nil {
-				log.Error().Err(err).Msg("failed to get node status")
-				return
-			}
+	for try := 0; try < MaxSeedRetries; try++ {
+		for _, seed := range strings.Split(seedIPs, ",") {
+			wg.Add(1)
+			go func(seedIP string) {
+				defer wg.Done()
 
-			// decode status response
-			type status struct {
-				Result struct {
-					NodeInfo struct {
-						ID      string `json:"id"`
-						Network string `json:"network"`
-					} `json:"node_info"`
-				} `json:"result"`
-			}
-			var s status
-			dec := json.NewDecoder(res.Body)
-			err = dec.Decode(&s)
-			if err != nil {
-				log.Error().Err(err).Msg("failed to decode node status")
-				return
-			}
+				// get node status
+				res, err := http.Get(fmt.Sprintf("http://%s:%d/status", seedIP, rpcPort))
+				if err != nil {
+					log.Error().Err(err).Msg("failed to get node status")
+					return
+				}
 
-			// skip if the node is not on the same network
-			if s.Result.NodeInfo.Network != os.Getenv("CHAIN_ID") {
-				log.Error().
-					Str("network", s.Result.NodeInfo.Network).
-					Str("expected", os.Getenv("CHAIN_ID")).
-					Msg("node is not on the same network")
-				return
-			}
+				// decode status response
+				type status struct {
+					Result struct {
+						NodeInfo struct {
+							ID      string `json:"id"`
+							Network string `json:"network"`
+						} `json:"node_info"`
+					} `json:"result"`
+				}
+				var s status
+				dec := json.NewDecoder(res.Body)
+				err = dec.Decode(&s)
+				if err != nil {
+					log.Error().Err(err).Msg("failed to decode node status")
+					return
+				}
 
-			// update seeds
-			mu.Lock()
-			seeds = append(seeds, fmt.Sprintf("%s@%s:%d", s.Result.NodeInfo.ID, seedIP, p2pPort))
-			mu.Unlock()
-		}(seed)
+				// skip if the node is not on the same network
+				if s.Result.NodeInfo.Network != os.Getenv("CHAIN_ID") {
+					log.Error().
+						Str("network", s.Result.NodeInfo.Network).
+						Str("expected", os.Getenv("CHAIN_ID")).
+						Msg("node is not on the same network")
+					return
+				}
+
+				// update seeds
+				mu.Lock()
+				seeds = append(seeds, fmt.Sprintf("%s@%s:%d", s.Result.NodeInfo.ID, seedIP, p2pPort))
+				mu.Unlock()
+			}(seed)
+		}
+		wg.Wait()
+
+		// retry a few times if we have no seeds
+		if len(seeds) > 0 {
+			break
+		}
+		log.Info().Msg("retrying to fetch seeds...")
+		time.Sleep(SeedRetryBackoff)
 	}
-	wg.Wait()
 
 	log.Info().Msgf("found %d p2p seeds", len(seeds))
 	return strings.Join(seeds, ",")
