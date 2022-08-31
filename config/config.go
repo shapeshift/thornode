@@ -74,15 +74,6 @@ func GetBifrost() Bifrost {
 // loaded from values defined in defaults.yaml in this package, then overridden the
 // corresponding environment variables.
 func Init() {
-	// Environment variables prefixed with `THORNODE` will be read by viper in cosmos-sdk
-	// initialization and overwrite configuration we apply in this package.
-	for _, env := range os.Environ() {
-		envKey := strings.Split(env, "=")[0]
-		if strings.HasPrefix(envKey, "THORNODE_") {
-			log.Warn().Msgf("environment variable %s could overwrite config", env)
-		}
-	}
-
 	assert := func(err error) {
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to bind env")
@@ -333,6 +324,15 @@ func InitBifrost() {
 }
 
 func InitThornode(ctx context.Context) {
+	// Environment variables prefixed with `THORNODE` will be read by viper in cosmos-sdk
+	// initialization and overwrite configuration we apply in this package.
+	for _, env := range os.Environ() {
+		envKey := strings.Split(env, "=")[0]
+		if strings.HasPrefix(envKey, "THORNODE_") {
+			log.Warn().Msgf("environment variable %s could overwrite config", env)
+		}
+	}
+
 	// if auto statesync enable, find latest snapshot height and hash that should exist
 	if config.Thornode.AutoStateSync.Enabled {
 		thornodeAutoStateSync(ctx)

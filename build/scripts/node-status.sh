@@ -114,6 +114,18 @@ if [ "$VALIDATOR" = "true" ]; then
     GAIA_PROGRESS=$(calc_progress "$GAIA_SYNC_HEIGHT" "$GAIA_HEIGHT")
   fi
 
+  # calculate AVAX chain sync progress
+  if [ -n "$AVALANCHE_DAEMON_SERVICE_PORT_RPC" ]; then
+    AVAX_HEIGHT_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' "https://api.avax.network/ext/bc/C/rpc")
+    AVAX_SYNC_HEIGHT_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' "http://avalanche-daemon:$AVALANCHE_DAEMON_SERVICE_PORT_RPC/ext/bc/C/rpc")
+    AVAX_HEIGHT=$(printf "%.0f" "$(echo "$AVAX_HEIGHT_RESULT" | jq -r ".result")")
+    if [ -n "$AVAX_SYNC_HEIGHT_RESULT" ]; then
+      AVAX_SYNC_HEIGHT=$(printf "%.0f" "$(echo "$AVAX_SYNC_HEIGHT_RESULT" | jq -r ".result")")
+    else
+      AVAX_SYNC_HEIGHT=0
+    fi
+    AVAX_PROGRESS=$(calc_progress "$AVAX_SYNC_HEIGHT" "$AVAX_HEIGHT")
+  fi
 fi
 
 # calculate THOR chain sync progress
@@ -193,5 +205,8 @@ if [ "$VALIDATOR" = "true" ] && [ -n "$TERRA_DAEMON_SERVICE_PORT_RPC" ]; then
 fi
 if [ "$VALIDATOR" = "true" ] && [ -n "$GAIA_DAEMON_SERVICE_PORT_RPC" ]; then
   printf "%-10s %-10s %-14s %-10s\n" GAIA "$GAIA_PROGRESS" "$(format_int $((GAIA_SYNC_HEIGHT - GAIA_HEIGHT)))" "$(format_int "$GAIA_HEIGHT")"
+fi
+if [ "$VALIDATOR" = "true" ] && [ -n "$AVALANCHE_DAEMON_SERVICE_PORT_RPC" ]; then
+  printf "%-10s %-10s %-14s %-10s\n" AVAX "$AVAX_PROGRESS" "$(format_int $((AVAX_SYNC_HEIGHT - AVAX_HEIGHT)))" "$(format_int "$AVAX_HEIGHT")"
 fi
 exit 0
