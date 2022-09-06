@@ -81,7 +81,7 @@ func (s OrderBookV94Suite) TestScoreMsgs(c *C) {
 			GetRandomBech32Addr()),
 
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000001"),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(150*common.One))},
 		}, common.RuneAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
@@ -89,7 +89,7 @@ func (s OrderBookV94Suite) TestScoreMsgs(c *C) {
 			GetRandomBech32Addr()),
 
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000002"),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(151*common.One))},
 		}, common.RuneAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
@@ -119,72 +119,74 @@ func (s OrderBookV94Suite) TestScoreMsgs(c *C) {
 	c.Check(swaps[6].msg.Tx.Coins[0].Amount.Equal(cosmos.NewUint(1*common.One)), Equals, true, Commentf("%d", swaps[6].msg.Tx.Coins[0].Amount.Uint64()))
 
 	// check that slip is taken into account
+	// Do not use GetRandomTxHash for these TxIDs,
+	// else items with the same score will have pseudorandom order and sometimes fail unit tests.
 	msgs = []*MsgSwap{
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000003"),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(2*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000004"),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000005"),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(1*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000009"),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(100*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000007"),
 			Coins: common.Coins{common.NewCoin(common.BNBAsset, cosmos.NewUint(10*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000008"),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(2*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000006"),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(50*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000010"),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(1*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000013"),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(100*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
 			MarketOrder,
 			GetRandomBech32Addr()),
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000012"),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One))},
 		}, common.RuneAsset(), GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
@@ -192,7 +194,7 @@ func (s OrderBookV94Suite) TestScoreMsgs(c *C) {
 			GetRandomBech32Addr()),
 
 		NewMsgSwap(common.Tx{
-			ID:    GetRandomTxHash(),
+			ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000011"),
 			Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One))},
 		}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 			"", "", nil,
@@ -266,14 +268,14 @@ func (s OrderBookV94Suite) TestFetchQueue(c *C) {
 	c.Check(mgr.Keeper().SetPool(ctx, pool), IsNil)
 
 	market := NewMsgSwap(common.Tx{
-		ID:    GetRandomTxHash(),
+		ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000014"),
 		Coins: common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(2*common.One))},
 	}, common.BNBAsset, GetRandomBNBAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(),
 		"", "", nil,
 		MarketOrder,
 		GetRandomBech32Addr())
 	limit1 := NewMsgSwap(common.Tx{
-		ID:    GetRandomTxHash(),
+		ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000015"),
 		Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(1*common.One))},
 	}, common.BNBAsset, GetRandomBNBAddress(), cosmos.NewUint(80*common.One), common.NoAddress, cosmos.ZeroUint(),
 		"", "", nil,
@@ -281,7 +283,7 @@ func (s OrderBookV94Suite) TestFetchQueue(c *C) {
 		GetRandomBech32Addr())
 
 	limit2 := NewMsgSwap(common.Tx{
-		ID:    GetRandomTxHash(),
+		ID:    common.TxID("0000000000000000000000000000000000000000000000000000000000000016"),
 		Coins: common.Coins{common.NewCoin(common.BTCAsset, cosmos.NewUint(1*common.One))},
 	}, common.BNBAsset, GetRandomBNBAddress(), cosmos.NewUint(100*common.One), common.NoAddress, cosmos.ZeroUint(),
 		"", "", nil,
