@@ -99,10 +99,6 @@ lint-ci:
 	@go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 	@./scripts/trunk check --all --no-progress --monitor=false
 
-clean:
-	rm -rf ~/.thor*
-	rm -f ${GOBIN}/{generate,thornode,bifrost}
-
 # ------------------------------ Testing ------------------------------
 
 test-coverage:
