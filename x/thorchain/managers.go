@@ -190,9 +190,12 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to create keeper: %w", err)
 	}
 
-	if v.GTE(semver.MustParse("1.96.0")) { // TODO remove version check after fork
-		// store the version for contextual lookups
-		mgr.Keeper().SetVersionWithCtx(ctx, v)
+	if v.GTE(semver.MustParse("1.96.0")) { // TODO remove version checks after fork
+		storedVer, hasStoredVer := mgr.Keeper().GetVersionWithCtx(ctx)
+		if !hasStoredVer || v.GT(storedVer) {
+			// store the version for contextual lookups if it has been upgraded
+			mgr.Keeper().SetVersionWithCtx(ctx, v)
+		}
 	}
 
 	mgr.gasMgr, err = GetGasManager(v, mgr.K)
