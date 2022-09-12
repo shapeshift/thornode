@@ -48,8 +48,10 @@ var routerContractABI string
 var erc20ContractABI string
 
 const (
-	BlockCacheSize  = 6000
-	MaxContractGas  = 80000
+	BlockCacheSize           = 6000
+	MaxContractGas           = 80000
+	GasPriceResolution int64 = 250000000000 // wei per gas unit (250 gwei)
+
 	avaxToken       = "0x0000000000000000000000000000000000000000"
 	defaultDecimals = 18 // on AVAX, consolidate all decimals to 18, in Wei
 	tenGwei         = 10000000000
@@ -393,7 +395,19 @@ func (a *AvalancheScanner) updateGasPrice(prices []*big.Int) {
 	std.Sqrt(std)
 
 	// mean + 3x standard deviation of the 25th percentile fee over blocks
-	a.gasPrice = mean.Add(mean, std.Mul(std, big.NewInt(3)))
+	mean.Add(mean, std.Mul(std, big.NewInt(3)))
+
+	// round the price up to avoid fee noise
+	resolution := big.NewInt(GasPriceResolution)
+	if mean.Cmp(resolution) != 1 {
+		a.gasPrice = resolution
+	} else {
+		mean.Sub(mean, big.NewInt(1))
+		mean.Quo(mean, big.NewInt(GasPriceResolution))
+		mean.Add(mean, big.NewInt(1))
+		mean.Mul(mean, big.NewInt(GasPriceResolution))
+		a.gasPrice = mean
+	}
 
 	// record metrics
 	gasPriceFloat, _ := new(big.Float).SetInt64(a.gasPrice.Int64()).Float64()
@@ -410,19 +424,21 @@ func (a *AvalancheScanner) reportNetworkFee(height int64) {
 		return
 	}
 
-	// gas price to 1e8
-	tcGasPrice := new(big.Int).Div(gasPrice, big.NewInt(common.One*100)).Uint64()
-
-	// skip posting if the fee has not changed
-	if tcGasPrice == a.lastReportedGasPrice {
+	// skip fee if less than 1 resolution away from the last
+	feeDelta := new(big.Int).Sub(gasPrice, big.NewInt(int64(a.lastReportedGasPrice)))
+	feeDelta.Abs(feeDelta)
+	if feeDelta.Cmp(big.NewInt(GasPriceResolution)) != 1 {
 		return
 	}
 
+	// gas price to 1e8
+	tcGasPrice := new(big.Int).Div(gasPrice, big.NewInt(common.One*100))
+
 	// post to thorchain
-	if _, err := a.bridge.PostNetworkFee(height, common.AVAXChain, MaxContractGas, tcGasPrice); err != nil {
+	if _, err := a.bridge.PostNetworkFee(height, common.AVAXChain, MaxContractGas, tcGasPrice.Uint64()); err != nil {
 		a.logger.Err(err).Msg("fail to post AVAX chain single transfer fee to THORNode")
 	} else {
-		a.lastReportedGasPrice = tcGasPrice
+		a.lastReportedGasPrice = gasPrice.Uint64()
 	}
 }
 

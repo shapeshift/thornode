@@ -29,9 +29,9 @@ class MockDogecoin(HttpClient):
         "a96e62ed3955e65be32703f12d87b6b5cf26039ecfa948dc5107a495418e5330",
         "9294f4d108465fd293f7fe299e6923ef71a77f2cb1eb6d4394839c64ec25d5c0",
     ]
-    default_gas = 100000
+    default_gas = 500000
     block_stats = {
-        "tx_rate": 1000,
+        "tx_rate": default_gas,
         "tx_size": 1000,
     }
 
@@ -73,9 +73,13 @@ class MockDogecoin(HttpClient):
                 if total_vsize > 0:
                     amt = total - 10000
                     avg_fee_rate = int(amt * Coin.ONE / total_vsize)
-                    if avg_fee_rate < 1000:
-                        avg_fee_rate = 1000
-                    self.block_stats["tx_rate"] = avg_fee_rate
+                    if avg_fee_rate < MockDogecoin.default_gas:
+                        avg_fee_rate = MockDogecoin.default_gas
+                    self.block_stats["tx_rate"] = (
+                        avg_fee_rate
+                        // MockDogecoin.default_gas
+                        * MockDogecoin.default_gas
+                    )
             except Exception:
                 continue
             finally:

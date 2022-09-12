@@ -47,6 +47,9 @@ const (
 	// reciprocal of the gas price precision.
 	GasPriceFactor = uint64(1e9)
 
+	// GasPriceResolution is the resolution at which the gas price will be rounded up to.
+	GasPriceResolution = uint64(100000) // uatom per gas unit
+
 	// GasLimit is the default gas limit we will use for all outbound transactions.
 	GasLimit = 200000
 
@@ -226,14 +229,29 @@ func (c *CosmosBlockScanner) updateGasCache(tx ctypes.FeeTx) {
 }
 
 func (c *CosmosBlockScanner) averageFee() ctypes.Uint {
+	// avoid divide by zero
 	if len(c.feeCache) == 0 {
 		return ctypes.NewUint(0)
 	}
+
+	// compute mean
 	sum := ctypes.NewUint(0)
 	for _, val := range c.feeCache {
 		sum = sum.Add(val)
 	}
-	return sum.Quo(ctypes.NewUint(uint64(len(c.feeCache))))
+	mean := sum.Quo(ctypes.NewUint(uint64(len(c.feeCache))))
+
+	// round the price up to avoid fee noise
+	resolution := ctypes.NewUint(GasPriceResolution)
+	if mean.LTE(resolution) {
+		return resolution
+	}
+	mean = mean.Sub(ctypes.NewUint(1))
+	mean = mean.Quo(resolution)
+	mean = mean.Add(ctypes.NewUint(1))
+	mean = mean.Mul(resolution)
+
+	return mean
 }
 
 func (c *CosmosBlockScanner) updateGasFees(height int64) error {
@@ -246,8 +264,9 @@ func (c *CosmosBlockScanner) updateGasFees(height int64) error {
 			return errors.New("suggested gas fee was zero")
 		}
 
-		// don't update gas fee equal to the last one we sent
-		if gasFee.Equal(c.lastFee) {
+		// skip fee if less than 1 resolution away from the last
+		feeDelta := ctypes.MaxUint(c.lastFee, gasFee).Sub(ctypes.MinUint(c.lastFee, gasFee))
+		if feeDelta.LTE(ctypes.NewUint(GasPriceResolution)) {
 			return nil
 		}
 

@@ -1483,7 +1483,7 @@ class ThorchainState:
         :returns: (int) liquidity fee
 
         """
-        return int(float((x ** 2) * Y) / float((x + X) ** 2))
+        return int(float((x**2) * Y) / float((x + X) ** 2))
 
     def _calc_swap_slip(self, X, x):
         """

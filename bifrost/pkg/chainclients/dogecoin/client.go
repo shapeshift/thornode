@@ -54,6 +54,7 @@ const (
 	DefaultFeePerKB      = 0.01
 	DefaultCoinbaseValue = 10000
 	MaxMempoolScanPerTry = 500
+	FeeResolution        = uint64(500_000) // sats per byte
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
@@ -719,17 +720,24 @@ func (c *Client) sendNetworkFee(blockResult *btcjson.GetBlockVerboseTxResult) er
 		feeRateSats = avgFeeRate
 	}
 
-	c.logger.Info().Int64("height", height).Uint64("lastFeeRate", c.lastFeeRate).Uint64("avgFeeRate", avgFeeRate).Msg("sendNetworkFee")
-	// Only send the fee if it has changed
-	if c.lastFeeRate != feeRateSats {
-		txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
-		if err != nil {
-			c.logger.Error().Err(err).Msg("failed to post network fee to thornode")
-			return fmt.Errorf("fail to post network fee to thornode: %w", err)
-		}
-		c.lastFeeRate = feeRateSats
-		c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
+	// round to prevent fee observation noise
+	feeRateSats = ((feeRateSats / FeeResolution) + 1) * FeeResolution
+
+	// skip fee if less than 1 resolution away from the last
+	feeDelta := new(big.Int).Sub(big.NewInt(int64(feeRateSats)), big.NewInt(int64(c.lastFeeRate)))
+	feeDelta.Abs(feeDelta)
+	if c.lastFeeRate != 0 && feeDelta.Cmp(big.NewInt(int64(FeeResolution))) != 1 {
+		return nil
 	}
+
+	c.logger.Info().Int64("height", height).Uint64("lastFeeRate", c.lastFeeRate).Uint64("avgFeeRate", avgFeeRate).Uint64("feeRateSats", feeRateSats).Msg("sendNetworkFee")
+	txid, err := c.bridge.PostNetworkFee(height, common.DOGEChain, uint64(EstimateAverageTxSize), feeRateSats)
+	if err != nil {
+		c.logger.Error().Err(err).Msg("failed to post network fee to thornode")
+		return fmt.Errorf("fail to post network fee to thornode: %w", err)
+	}
+	c.lastFeeRate = feeRateSats
+	c.logger.Debug().Str("txid", txid.String()).Msg("send network fee to THORNode successfully")
 	return nil
 }
 

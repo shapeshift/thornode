@@ -95,7 +95,7 @@ class MockGaia(HttpClient):
         + "win sell dress",
     }
     block_stats = {
-        "tx_rate": 2000000,
+        "tx_rate": 200000,
         "tx_size": 1,
     }
     gas_price_factor = 1000000000
@@ -171,7 +171,7 @@ class MockGaia(HttpClient):
                 if len(fee_cache) != 100:
                     continue
                 if (height - 1) % 10 == 0:
-                    tx_rate = int(sum(fee_cache) / 100)
+                    tx_rate = int(sum(fee_cache) / 100) // 100000 * 100000
                     self.block_stats["tx_rate"] = tx_rate
             except Exception:
                 continue
