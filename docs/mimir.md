@@ -93,6 +93,8 @@
 `TNSFeePerBlock`: TNS cost per block to retain ownership of a name
 `ArtificialRagnarokBlockHeight`: Triggers a chain shutodwn and ragnarok
 `NativeTransactionFee`: The rune fee for a native transaction (gas cost in 1e8 notation)
+`HALTSIGNING<chain>`: Halt signing in a specific chain
+`HALTSIGNING`: Halt signing globally
 
 ### Router Upgrading (DO NOT TOUCH!)
 
