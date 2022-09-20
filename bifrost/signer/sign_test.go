@@ -67,10 +67,6 @@ type SignSuite struct {
 
 var _ = Suite(&SignSuite{})
 
-type MockCheckTransactionChain struct {
-	chainclients.DummyChain
-}
-
 func (s *SignSuite) SetUpSuite(c *C) {
 	thorchain.SetupConfigForTest()
 	s.m = GetMetricForTest(c)

@@ -27,8 +27,6 @@ import (
 
 const maxTxArrayLen = 100
 
-type SignerCacheUpdater func(hash string) error
-
 // Observer observer service
 type Observer struct {
 	logger              zerolog.Logger

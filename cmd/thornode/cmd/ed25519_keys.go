@@ -15,7 +15,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	bech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" // nolint
+	bech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32"
 	"github.com/cosmos/go-bip39"
 	"github.com/decred/dcrd/dcrec/edwards"
 	"github.com/spf13/cobra"

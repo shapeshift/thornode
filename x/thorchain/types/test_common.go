@@ -238,7 +238,6 @@ func SetupConfigForTest() {
 	})
 }
 
-// nolint: deadcode unused
 // create a codec used only for testing
 func MakeTestCodec() *codec.LegacyAmino {
 	cdc := codec.NewLegacyAmino()

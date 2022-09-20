@@ -41,25 +41,16 @@ const (
 	Failed
 )
 
-// TxInStatusItem represent the TxIn item status
-type TxInStatusItem struct {
-	TxIn   TxIn       `json:"tx_in"`
-	Status TxInStatus `json:"status"`
-}
-
 // IsEmpty return true only when every field in TxInItem is empty
 func (t TxInItem) IsEmpty() bool {
-	if t.BlockHeight == 0 &&
+	return t.BlockHeight == 0 &&
 		t.Tx == "" &&
 		t.Memo == "" &&
 		t.Sender == "" &&
 		t.To == "" &&
 		t.Coins.IsEmpty() &&
 		t.Gas.IsEmpty() &&
-		t.ObservedVaultPubKey.IsEmpty() {
-		return true
-	}
-	return false
+		t.ObservedVaultPubKey.IsEmpty()
 }
 
 // CacheHash calculate the has used for signer cache
@@ -71,9 +62,6 @@ func (t TxInItem) CacheHash(chain common.Chain, inboundHash string) string {
 // GetTotalTransactionValue return the total value of the requested asset
 func (t TxIn) GetTotalTransactionValue(asset common.Asset, excludeFrom []common.Address) cosmos.Uint {
 	total := cosmos.ZeroUint()
-	if len(t.TxArray) == 0 {
-		return total
-	}
 	for _, item := range t.TxArray {
 		fromAsgard := false
 		for _, fromAddress := range excludeFrom {
@@ -101,9 +89,6 @@ func (t TxIn) GetTotalTransactionValue(asset common.Asset, excludeFrom []common.
 // GetTotalGas return the total gas
 func (t TxIn) GetTotalGas() cosmos.Uint {
 	total := cosmos.ZeroUint()
-	if len(t.TxArray) == 0 {
-		return total
-	}
 	for _, item := range t.TxArray {
 		if item.Gas == nil {
 			continue

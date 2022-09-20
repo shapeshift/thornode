@@ -852,7 +852,6 @@ func queryBuckets(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte,
 	return res, nil
 }
 
-// nolint: unparam
 func queryBucket(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	if len(path) == 0 {
 		return nil, errors.New("asset not provided")
@@ -891,7 +890,6 @@ func queryBucket(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *
 	return res, nil
 }
 
-// nolint: unparam
 func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	if len(path) == 0 {
 		return nil, errors.New("asset not provided")

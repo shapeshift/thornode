@@ -42,7 +42,6 @@ func FundAccount(c *C, ctx cosmos.Context, k KVStore, addr cosmos.AccAddress, am
 	c.Assert(k.MintAndSendToAccount(ctx, addr, coin), IsNil)
 }
 
-// nolint: deadcode unused
 // create a codec used only for testing
 func makeTestCodec() *codec.LegacyAmino {
 	cdc := codec.NewLegacyAmino()

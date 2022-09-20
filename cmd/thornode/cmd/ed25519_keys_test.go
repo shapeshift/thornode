@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
-	bech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" // nolint
+	bech32 "github.com/cosmos/cosmos-sdk/types/bech32/legacybech32"
 	"github.com/decred/dcrd/dcrec/edwards"
 	"github.com/tendermint/tendermint/crypto/ed25519"
 	. "gopkg.in/check.v1"

@@ -10,7 +10,7 @@ type SetTx struct {
 	Tx   struct {
 		Msg        []cosmos.Msg               `json:"msg"`
 		Fee        legacytypes.StdFee         `json:"fee"`
-		Signatures []legacytypes.StdSignature `json:"signatures"` // nolint
+		Signatures []legacytypes.StdSignature `json:"signatures"`
 		Memo       string                     `json:"memo"`
 	} `json:"tx"`
 }

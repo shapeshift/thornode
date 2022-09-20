@@ -13,7 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" // nolint
+	"github.com/cosmos/cosmos-sdk/types/bech32/legacybech32"
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/hashicorp/go-multierror"
