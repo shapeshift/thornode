@@ -89,6 +89,14 @@ func IsVaultSolvent(account common.Account, vault types.Vault, currentGasFee cos
 	logger := log.Logger
 	for _, c := range account.Coins {
 		asgardCoin := vault.GetCoin(c.Asset)
+
+		// ETH.RUNE will be burned on the way in , so the wallet will not have any, thus exclude it from solvency check
+		// (Even though also ignored later in handler_solvency.go, avoid chain bloat and disagreement-slash-points
+		// for solvent situations.  Note that BNB.RUNE is not burnt on switching the way ETH.RUNE is.)
+		if c.Asset.Equals(common.ERC20RuneAsset()) {
+			continue
+		}
+
 		// when wallet has more coins or equal exactly as asgard , then the vault is solvent
 		if c.Amount.GTE(asgardCoin.Amount) {
 			continue
