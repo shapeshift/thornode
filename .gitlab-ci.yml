@@ -181,10 +181,6 @@ include:
 # overwritten for them to trigger on merge requests. We overwrite all with the default
 # workflow rule set.
 
-gosec-sast:
-  stage: test
-  rules: *rules
-
 secret_detection:
   stage: test
   rules: *rules
