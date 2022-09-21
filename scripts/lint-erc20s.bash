@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Ethereum tokens
-git show origin/develop:common/tokenlist/ethtokens/eth_mainnet_V93.json |
+git show origin/develop:common/tokenlist/ethtokens/eth_mainnet_V95.json |
   jq -r '.tokens[] | .address | ascii_downcase' | sort -n | uniq -u >/tmp/orig_erc20_token_list.txt
 
-jq -r '.tokens[] | .address | ascii_downcase' <common/tokenlist/ethtokens/eth_mainnet_V93.json |
+jq -r '.tokens[] | .address | ascii_downcase' <common/tokenlist/ethtokens/eth_mainnet_V95.json |
   uniq -u >/tmp/modified_erc20_token_list.txt
 
 cat /tmp/orig_erc20_token_list.txt /tmp/modified_erc20_token_list.txt |
