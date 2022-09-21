@@ -22,12 +22,12 @@ GOBIN?=${GOPATH}/bin
 BINARIES=./cmd/thornode ./cmd/bifrost ./tools/generate
 
 # image build settings
-BRANCH?=$(shell git rev-parse --abbrev-ref HEAD | sed -e 's/master/mocknet/g')
+BRANCH?=$(shell git rev-parse --abbrev-ref HEAD)
 GITREF=$(shell git rev-parse --short HEAD)
-BUILDTAG?=$(shell git rev-parse --abbrev-ref HEAD | sed -e 's/master/mocknet/g;s/develop/mocknet/g;s/testnet-multichain/testnet/g')
+BUILDTAG?=$(shell git rev-parse --abbrev-ref HEAD)
 ifdef CI_COMMIT_BRANCH # pull branch name from CI, if available
-	BRANCH=$(shell echo ${CI_COMMIT_BRANCH} | sed 's/master/mocknet/g')
-	BUILDTAG=$(shell echo ${CI_COMMIT_BRANCH} | sed -e 's/master/mocknet/g;s/develop/mocknet/g;s/testnet-multichain/testnet/g')
+	BRANCH=$(shell echo ${CI_COMMIT_BRANCH})
+	BUILDTAG=$(shell echo ${CI_COMMIT_BRANCH})
 endif
 
 all: lint install
