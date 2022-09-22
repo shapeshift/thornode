@@ -167,12 +167,13 @@ func (vm *NetworkMgrV96) calcSynthYield(ctx cosmos.Context, mgr Manager, yieldPt
 		return cosmos.ZeroUint()
 	}
 
-	mgr.Keeper().SetPoolLUVI(ctx, bucket.Asset.GetLayer1Asset(), currentLUVI)
-
 	// skip if LUVI has decreased
 	if currentLUVI.LTE(lastLUVI) {
 		return cosmos.ZeroUint()
 	}
+
+	// Only update LUVI if it has net increased, otherwise synth vaults syphon yield from LPers
+	mgr.Keeper().SetPoolLUVI(ctx, bucket.Asset.GetLayer1Asset(), currentLUVI)
 
 	// sanity check, ensure LUVI has been updated, so we don't repeat yield due to a bug
 	luvi, err := mgr.Keeper().GetPoolLUVI(ctx, bucket.Asset.GetLayer1Asset())
