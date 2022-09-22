@@ -11,6 +11,31 @@ import (
 
 func DexAggregators(version semver.Version) []Aggregator {
 	switch {
+	case version.GTE(semver.MustParse("1.97.0")):
+		return []Aggregator{
+			// TSAggregatorGeneric
+			{common.ETHChain, `0xd31f7e39afECEc4855fecc51b693F9A0Cec49fd2`},
+			// TSAggregatorUniswapV2
+			{common.ETHChain, `0x86904eb2b3c743400d03f929f2246efa80b91215`},
+			// TSAggregatorUniswapV3 100
+			{common.ETHChain, `0xbd68cbe6c247e2c3a0e36b8f0e24964914f26ee8`},
+			// TSAggregatorUniswapV3 500
+			{common.ETHChain, `0xe4ddca21881bac219af7f217703db0475d2a9f02`},
+			// TSAggregatorUniswapV3 3000
+			{common.ETHChain, `0x11733abf0cdb43298f7e949c930188451a9a9ef2`},
+			// TSAggregatorUniswapV3 10000
+			{common.ETHChain, `0xb33874810e5395eb49d8bd7e912631db115d5a03`},
+			// TSAggregator2LegUniswapV2 USDC
+			{common.ETHChain, `0x3660dE6C56cFD31998397652941ECe42118375DA`},
+			// TSAggregator SUSHIswap
+			{common.ETHChain, `0xbf365e79aa44a2164da135100c57fdb6635ae870`},
+			// RangoThorchainOutputAggUniV2
+			{common.ETHChain, `0x2a7813412b8da8d18Ce56FE763B9eb264D8e28a8`},
+			// RangoThorchainOutputAggUniV3
+			{common.ETHChain, `0xbB8De86F3b041B3C084431dcf3159fE4827c5F0D`},
+			// PangolinAggregator
+			{common.AVAXChain, `0x7a68c37D8AFA3078f3Ad51D98eA23Fe57a8Ae21a`},
+		}
 	case version.GTE(semver.MustParse("1.96.0")):
 		return []Aggregator{
 			// TSAggregatorGeneric
