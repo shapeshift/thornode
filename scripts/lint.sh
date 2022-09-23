@@ -19,8 +19,8 @@ if git ls-files '*.go' | grep -q '.pb.go$'; then
   die "Do not add generated protobuf .pb.go files"
 fi
 
-git ls-files '*.go' | grep -v -e '^docs/' | xargs gofumpt -d
-if [ -n "$(git ls-files '*.go' | grep -v -e '^docs/' | xargs gofumpt -l)" ]; then
+if [ -n "$(git ls-files '*.go' | grep -v -e '^docs/' | xargs gofumpt -l 2>/dev/null)" ]; then
+  git ls-files '*.go' | grep -v -e '^docs/' | xargs gofumpt -d 2>/dev/null
   die "Go formatting errors"
 fi
 go mod verify
