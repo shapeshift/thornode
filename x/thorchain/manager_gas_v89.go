@@ -7,6 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 // GasMgrV89 implement GasManager interface which will store the gas related events happened in thorchain to memory
@@ -169,6 +170,10 @@ func (gm *GasMgrV89) GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.U
 		cosmos.NewUint(networkFee.TransactionFeeRate*3/2),
 		chain.GetGasAssetDecimal(),
 	)
+}
+
+func (gm *GasMgrV89) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (types.NetworkFee, error) {
+	return types.NetworkFee{}, nil
 }
 
 // GetMaxGas will calculate the maximum gas fee a tx can use

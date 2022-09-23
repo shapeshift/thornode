@@ -4,6 +4,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type DummyGasManager struct{}
@@ -36,4 +37,8 @@ func (m *DummyGasManager) GetMaxGas(ctx cosmos.Context, chain common.Chain) (com
 
 func (m *DummyGasManager) GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.Uint {
 	return cosmos.OneUint()
+}
+
+func (m *DummyGasManager) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (types.NetworkFee, error) {
+	return types.NetworkFee{}, nil
 }

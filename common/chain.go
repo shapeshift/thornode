@@ -142,6 +142,30 @@ func (c Chain) GetGasAsset() Asset {
 	}
 }
 
+// GetGasUnits returns name of the gas unit for each chain
+func (c Chain) GetGasUnits() string {
+	switch c {
+	case AVAXChain:
+		return "gwei"
+	case BNBChain:
+		return "ubnb"
+	case BTCChain:
+		return "satsperbyte"
+	case BCHChain:
+		return "satsperbyte"
+	case DOGEChain:
+		return "satsperbyte"
+	case ETHChain:
+		return "gwei"
+	case GAIAChain:
+		return "uatom"
+	case LTCChain:
+		return "satsperbyte"
+	default:
+		return ""
+	}
+}
+
 // GetGasAssetDecimal for the gas asset of given chain , what kind of precision it is using
 // TERRA and GAIA are using 1E6, all other gas asset so far using 1E8
 // THORChain is using 1E8, if an external chain's gas asset is larger than 1E8, just return cosmos.DefaultCoinDecimals

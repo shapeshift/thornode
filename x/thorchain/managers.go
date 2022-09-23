@@ -16,6 +16,7 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 const (
@@ -53,6 +54,7 @@ type GasManager interface {
 	GetFee(ctx cosmos.Context, chain common.Chain, asset common.Asset) cosmos.Uint
 	GetMaxGas(ctx cosmos.Context, chain common.Chain) (common.Coin, error)
 	GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.Uint
+	GetNetworkFee(ctx cosmos.Context, chain common.Chain) (types.NetworkFee, error)
 	SubGas(gas common.Gas)
 }
 

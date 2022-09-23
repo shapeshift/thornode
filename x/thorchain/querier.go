@@ -456,18 +456,34 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		}
 		cc := vault.GetContract(chain)
 		gasRate := mgr.GasMgr().GetGasRate(ctx, chain)
+		networkFeeInfo, err := mgr.GasMgr().GetNetworkFee(ctx, chain)
+		if err != nil {
+			ctx.Logger().Error("fail to get network fee info", "error", err)
+			return nil, fmt.Errorf("fail to get network fee info: %w", err)
+		}
+
 		// because THORNode is using 1e8, while GWei in ETH is in 1e9, thus the minimum THORNode can represent is 10Gwei
 		// here convert the gas rate to Gwei , so api user don't need to convert it , make it easier for people to understand
 		if chain.IsEVM() {
 			gasRate = gasRate.MulUint64(10)
 		}
+
+		// The value returned from `GetGasRate` is 1.5x the internal fee value of the chain reported by Bifrost
+		// The user is charged 3x the internal value (see https://gitlab.com/thorchain/thornode/-/blob/develop/x/thorchain/manager_txout_current.go#L277)
+		// Thus the fee rate that the user is charged is 2x the `GetGasRate` (or 3x the internal fee value reported by Bifrost)
+		// Multiply by the TransactionSize reported by Bifrost, and this is the full outbound fee charged to the user
+		outboundFee := gasRate.MulUint64(2).MulUint64(networkFeeInfo.TransactionSize).String()
+
 		addr := openapi.InboundAddress{
-			Chain:   wrapString(chain.String()),
-			PubKey:  wrapString(vault.PubKey.String()),
-			Address: wrapString(vaultAddress.String()),
-			Router:  wrapString(cc.Router.String()),
-			Halted:  isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, chain),
-			GasRate: wrapString(gasRate.String()),
+			Chain:          wrapString(chain.String()),
+			PubKey:         wrapString(vault.PubKey.String()),
+			Address:        wrapString(vaultAddress.String()),
+			Router:         wrapString(cc.Router.String()),
+			Halted:         isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, chain),
+			GasRate:        wrapString(gasRate.String()),
+			GasRateUnits:   wrapString(chain.GetGasUnits()),
+			OutboundTxSize: wrapString(cosmos.NewUint(networkFeeInfo.TransactionSize).String()),
+			OutboundFee:    wrapString(outboundFee),
 		}
 
 		resp = append(resp, addr)

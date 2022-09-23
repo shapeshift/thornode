@@ -1464,14 +1464,28 @@ components:
           address:
             type: string
             example: "bc1qn9esxuw8ca7ts8l6w66kdh800s09msvutydc46"
-          gas_rate:
-            type: string
-            example: "214"
           router:
             type: string
+            example: "0xD37BbE5744D730a1d98d8DC97c42F0Ca46aD7146"
           halted:
             type: boolean
             example: false
+          gas_rate:
+            type: string
+            example: "214"
+            description: "The minimum fee rate used by vaults to send outbound TXs. The actual fee rate may be higher."
+          gas_rate_units:
+            type: string
+            example: "satsperbyte"
+            description: "Units of the gas_rate."
+          outbound_tx_size:
+            type: string
+            example: "1000"
+            description: "Avg size of outbound TXs on each chain. For UTXO chains it may be larger than average, as it takes into account vault consolidation txs, which can have many vouts"
+          outbound_fee:
+            type: string
+            example: "428000"
+            description: "The total outbound fee charged to the user for outbound txs on each chain"
 
     LastBlockResponse:
       type: array
