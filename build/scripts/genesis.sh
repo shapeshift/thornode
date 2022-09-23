@@ -99,7 +99,6 @@ if [ "$SEED" != "$(hostname)" ]; then
     echo "Setting THORNode as peer not genesis"
 
     init_chain "$NODE_ADDRESS"
-    fetch_genesis $SEED
     NODE_ID=$(fetch_node_id $SEED)
     echo "NODE ID: $NODE_ID"
     export THOR_TENDERMINT_P2P_PERSISTENT_PEERS="$NODE_ID@$SEED:$PORT_P2P"

@@ -9,32 +9,31 @@ if [ "$NET" = "mocknet" ] || [ "$NET" = "testnet" ]; then
   . "$(dirname "$0")/core-unsafe.sh"
 fi
 
-SEEDS="${SEEDS:=none}"        # the hostname of multiple seeds set as tendermint seeds
 PEER="${PEER:=none}"          # the hostname of a seed node set as tendermint persistent peer
 PEER_API="${PEER_API:=$PEER}" # the hostname of a seed node API if different
 BINANCE=${BINANCE:=$PEER:26660}
 
 if [ ! -f ~/.thornode/config/genesis.json ]; then
   echo "Setting THORNode as Validator node"
-  if [ "$PEER" = "none" ] && [ "$SEEDS" = "none" ]; then
-    echo "Missing PEER / SEEDS"
-    exit 1
-  fi
 
   create_thor_user "$SIGNER_NAME" "$SIGNER_PASSWD" "$SIGNER_SEED_PHRASE"
 
   NODE_ADDRESS=$(echo "$SIGNER_PASSWD" | thornode keys show "$SIGNER_NAME" -a --keyring-backend file)
   init_chain "$NODE_ADDRESS"
-
-  if [ "$PEER" != "none" ]; then
-    fetch_genesis $PEER
-  fi
-
-  if [ "$SEEDS" != "none" ]; then
-    fetch_genesis_from_seeds $SEEDS
-  fi
+  rm -rf ~/.thornode/config/genesis.json # set in thornode render-config
 
   if [ "$NET" = "mocknet" ]; then
+    if [ "$PEER" = "none" ]; then
+      echo "Missing PEER"
+      exit 1
+    fi
+
+    # wait for peer
+    until curl -s "$PEER:$PORT_RPC" &>/dev/null; do
+      echo "Waiting for peer: $PEER:$PORT_RPC"
+      sleep 3
+    done
+
     # create a binance wallet and bond/register
     gen_bnb_address
     ADDRESS=$(cat ~/.bond/address.txt)

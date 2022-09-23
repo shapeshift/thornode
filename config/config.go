@@ -344,7 +344,8 @@ func InitThornode(ctx context.Context) {
 	}
 
 	// dynamically set seeds
-	config.Thornode.Tendermint.P2P.Seeds = thornodeSeeds()
+	seedAddrs, tmSeeds := thornodeSeeds()
+	config.Thornode.Tendermint.P2P.Seeds = strings.Join(tmSeeds, ",")
 
 	// dynamically set rpc listen address
 	config.Thornode.Tendermint.RPC.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", rpcPort)
@@ -380,11 +381,14 @@ func InitThornode(ctx context.Context) {
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to render app.toml")
 	}
+
+	// fetch genesis
+	thornodeFetchGenesis(seedAddrs)
 }
 
-func thornodeSeeds() string {
+func thornodeSeeds() (seedAddrs []string, tmSeeds []string) {
 	// use environment variable if set
-	seedIPs := os.Getenv("SEEDS")
+	seeds := os.Getenv("SEEDS")
 
 	// default to endpoint provided seeds if not provided
 	seedEndpoints := map[string]string{
@@ -393,16 +397,16 @@ func thornodeSeeds() string {
 	}
 	switch os.Getenv("NET") {
 	case "stagenet":
-		seedIPs = "stagenet-seed.ninerealms.com"
+		seeds = "stagenet-seed.ninerealms.com"
 	default:
-		if endpoint, ok := seedEndpoints[os.Getenv("NET")]; ok && seedIPs == "" {
+		if endpoint, ok := seedEndpoints[os.Getenv("NET")]; ok && seeds == "" {
 			log.Info().Msg("seeds not provided, initializing automatically...")
 
 			// trunk-ignore(golangci-lint/gosec): variable url is safe here
 			res, err := http.Get(endpoint)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to get seeds")
-				return ""
+				return
 			}
 
 			// unmarshal seeds response
@@ -411,21 +415,22 @@ func thornodeSeeds() string {
 			err = dec.Decode(&seedsResponse)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to unmarshal seeds response")
-				return ""
+				return
 			}
 
 			// set seeds to lookup ids
-			seedIPs = strings.Join(seedsResponse, ",")
+			seeds = strings.Join(seedsResponse, ",")
 		}
 	}
+
+	seedAddrs = strings.Split(seeds, ",")
 
 	// initialize seed with their node id if the network matches
 	wg := sync.WaitGroup{}
 	mu := sync.Mutex{}
-	seeds := []string{}
 
 	for try := 0; try < MaxSeedRetries; try++ {
-		for _, seed := range strings.Split(seedIPs, ",") {
+		for _, seed := range seedAddrs {
 			wg.Add(1)
 			go func(seedIP string) {
 				defer wg.Done()
@@ -465,22 +470,22 @@ func thornodeSeeds() string {
 
 				// update seeds
 				mu.Lock()
-				seeds = append(seeds, fmt.Sprintf("%s@%s:%d", s.Result.NodeInfo.ID, seedIP, p2pPort))
+				tmSeeds = append(tmSeeds, fmt.Sprintf("%s@%s:%d", s.Result.NodeInfo.ID, seedIP, p2pPort))
 				mu.Unlock()
 			}(seed)
 		}
 		wg.Wait()
 
 		// retry a few times if we have no seeds
-		if len(seeds) > 0 {
+		if len(tmSeeds) > 0 {
 			break
 		}
 		log.Info().Msg("retrying to fetch seeds...")
 		time.Sleep(SeedRetryBackoff)
 	}
 
-	log.Info().Msgf("found %d p2p seeds", len(seeds))
-	return strings.Join(seeds, ",")
+	log.Info().Msgf("found %d p2p seeds", len(tmSeeds))
+	return
 }
 
 func thornodeAutoStateSync(ctx context.Context) {
@@ -530,6 +535,67 @@ func thornodeAutoStateSync(ctx context.Context) {
 	}
 
 	log.Fatal().Msg("failed to determine statesync trust height from any rpc host")
+}
+
+func thornodeFetchGenesis(seeds []string) {
+	home := os.ExpandEnv("$HOME/.thornode")
+	genesisPath := filepath.Join(home, "config", "genesis.json")
+
+	// check to see if we already have a genesis file
+	if fi, err := os.Stat(genesisPath); !os.IsNotExist(err) || (fi != nil && fi.Size() == 0) {
+		log.Info().Msg("genesis file already exists, skipping fetch")
+		return
+	}
+
+	// iterate peers until we succeed in fetching genesis
+	for try := 0; try < MaxSeedRetries; try++ {
+		for _, seed := range seeds {
+			res, err := http.Get(fmt.Sprintf("http://%s:%d/genesis", seed, rpcPort))
+			if err != nil || res.StatusCode != http.StatusOK {
+				log.Error().Err(err).Str("seed", seed).Msg("failed to fetch genesis")
+				continue
+			}
+
+			// decode genesis response
+			type genesisResponse struct {
+				Result struct {
+					Genesis interface{} `json:"genesis"`
+				} `json:"result"`
+			}
+			var g genesisResponse
+			dec := json.NewDecoder(res.Body)
+			err = dec.Decode(&g)
+			if err != nil {
+				log.Error().Err(err).Str("seed", seed).Msg("failed to decode genesis")
+				continue
+			}
+
+			// open genesis file
+			err = os.MkdirAll(filepath.Dir(genesisPath), 0o755)
+			if err != nil {
+				log.Fatal().Err(err).Msg("failed to create genesis directory")
+			}
+			f, err := os.OpenFile(genesisPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+			if err != nil {
+				log.Fatal().Err(err).Msg("failed to create genesis file")
+			}
+
+			// encode back to file
+			enc := json.NewEncoder(f)
+			err = enc.Encode(g.Result.Genesis)
+			if err != nil {
+				log.Fatal().Err(err).Msg("failed to write genesis file")
+			}
+
+			// success
+			f.Close()
+			log.Info().Msg("genesis file fetched")
+			return
+		}
+
+		time.Sleep(SeedRetryBackoff)
+		log.Info().Msg("retrying to fetch genesis...")
+	}
 }
 
 // -------------------------------------------------------------------------------------

@@ -55,7 +55,6 @@ disable_bank_send() {
 
 # inits a thorchain with a comman separate list of usernames
 init_chain() {
-  OLD_IFS=IFS
   IFS=","
 
   echo "Init chain"
@@ -65,8 +64,6 @@ init_chain() {
   for user in "$@"; do # iterate over our list of comma separated users "alice,jack"
     thornode add-genesis-account "$user" 100000000rune
   done
-
-  IFS=OLD_IFS
 }
 
 set_eth_contract() {
@@ -77,25 +74,6 @@ set_eth_contract() {
 set_avax_contract() {
   jq --arg AVAX_CONTRACT "$1" '.app_state.thorchain.chain_contracts += [{"chain": "AVAX", "router": $AVAX_CONTRACT}]' ~/.thornode/config/genesis.json >/tmp/genesis.json
   mv /tmp/genesis.json ~/.thornode/config/genesis.json
-}
-
-fetch_genesis() {
-  echo "Fetching genesis from $1:$PORT_RPC"
-  until curl -s "$1:$PORT_RPC" &>/dev/null; do
-    sleep 3
-  done
-  curl -s "$1:$PORT_RPC/genesis" | jq .result.genesis >~/.thornode/config/genesis.json
-}
-
-fetch_genesis_from_seeds() {
-  OLD_IFS=$IFS
-  IFS=","
-  for SEED in $1; do
-    echo "Fetching genesis from seed $SEED"
-    curl -sL --fail -m 30 "$SEED:$PORT_RPC/genesis" | jq .result.genesis >~/.thornode/config/genesis.json || continue
-    break
-  done
-  IFS=$OLD_IFS
 }
 
 fetch_node_id() {
