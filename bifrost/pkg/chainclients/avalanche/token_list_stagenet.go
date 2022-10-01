@@ -7,5 +7,5 @@ import (
 	_ "embed"
 )
 
-//go:embed token_list_testnet.json
+//go:embed token_list_stagenet.json
 var tokenList []byte
