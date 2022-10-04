@@ -1,3 +1,16 @@
+########################################################################################
+# Environment Checks
+########################################################################################
+
+CHECK_ENV:=$(shell ./scripts/check-env.sh)
+ifneq ($(CHECK_ENV),)
+$(error Check environment dependencies.)
+endif
+
+########################################################################################
+# Config
+########################################################################################
+
 .PHONY: build test tools export healthcheck run-mocknet build-mocknet stop-mocknet ps-mocknet reset-mocknet logs-mocknet openapi
 
 # compiler flags
@@ -30,7 +43,9 @@ ifdef CI_COMMIT_BRANCH # pull branch name from CI, if available
 	BUILDTAG=$(shell echo ${CI_COMMIT_BRANCH})
 endif
 
-all: lint install
+########################################################################################
+# Targets
+########################################################################################
 
 # ------------------------------ Generate ------------------------------
 
@@ -74,10 +89,10 @@ openapi:
 
 # ------------------------------ Build ------------------------------
 
-build: protob
+build:
 	go build ${BUILD_FLAGS} ${BINARIES}
 
-install: protob
+install:
 	go install ${BUILD_FLAGS} ${BINARIES}
 
 tools:
@@ -189,16 +204,16 @@ smoke-remote-ci: reset-mocknet
 # ------------------------------ Single Node Mocknet ------------------------------
 
 cli-mocknet:
-	@docker-compose -f build/docker/docker-compose.yml run --rm cli
+	@docker compose -f build/docker/docker-compose.yml run --rm cli
 
 run-mocknet:
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard up -d
 
 stop-mocknet:
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
 
 build-mocknet:
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard build
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard build
 
 bootstrap-mocknet: $(SMOKE_PROTO_DIR)
 	@docker run ${SMOKE_DOCKER_OPTS} \
@@ -208,27 +223,27 @@ bootstrap-mocknet: $(SMOKE_PROTO_DIR)
 		python scripts/smoke.py --bootstrap-only=True
 
 ps-mocknet:
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard images
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard ps
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard images
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard ps
 
 logs-mocknet:
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet logs -f thornode bifrost
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet logs -f thornode bifrost
 
 reset-mocknet: stop-mocknet run-mocknet
 
 # ------------------------------ Multi Node Mocknet ------------------------------
 
 run-mocknet-cluster:
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard up -d
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard up -d
 
 stop-mocknet-cluster:
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard down -v
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard down -v
 
 build-mocknet-cluster:
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard build
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard build
 
 ps-mocknet-cluster:
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard images
-	@docker-compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard ps
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard images
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard ps
 
 reset-mocknet-cluster: stop-mocknet-cluster build-mocknet-cluster run-mocknet-cluster

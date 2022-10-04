@@ -19,7 +19,7 @@ RUN go mod download
 COPY . .
 
 ARG TAG=mainnet
-RUN make install
+RUN make protob install
 
 #
 # Main

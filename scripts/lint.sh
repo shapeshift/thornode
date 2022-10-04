@@ -6,8 +6,6 @@ die() {
   exit 1
 }
 
-./scripts/check-build-env.sh
-
 # check docs version
 version=$(cat version)
 if ! grep "^  version: ${version}" openapi/openapi.yaml; then

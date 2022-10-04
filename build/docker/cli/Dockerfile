@@ -25,4 +25,4 @@ RUN go mod download
 COPY . .
 
 ARG TAG=mocknet
-RUN make install
+RUN make protob install

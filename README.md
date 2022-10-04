@@ -152,8 +152,7 @@ cd thornode
 Install via this `make` command.
 
 ```bash
-make openapi
-make install
+make openapi protob-docker install
 ```
 
 Once you've installed `thornode`, check that they are there.
