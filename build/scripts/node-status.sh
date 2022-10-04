@@ -21,12 +21,15 @@ calc_progress() {
 
 API=http://thornode:1317
 THORNODE_PORT="${THORNODE_SERVICE_PORT_RPC:-27147}"
-BINANCE_PORT="${BINANCE_DAEMON_SERVICE_PORT_RPC:-26657}"
-BITCOIN_PORT="${BITCOIN_DAEMON_SERVICE_PORT_RPC:-8332}"
-LITECOIN_PORT="${LITECOIN_DAEMON_SERVICE_PORT_RPC:-9332}"
-BITCOIN_CASH_PORT="${BITCOIN_CASH_DAEMON_SERVICE_PORT_RPC:-8332}"
-DOGECOIN_PORT="${DOGECOIN_DAEMON_SERVICE_PORT_RPC:-22555}"
-ETHEREUM_PORT="${ETHEREUM_DAEMON_SERVICE_PORT_RPC:-8545}"
+
+BINANCE_ENDPOINT="${BINANCE_HOST:-binance-daemon:${BINANCE_DAEMON_SERVICE_PORT_RPC:-26657}}"
+BITCOIN_ENDPOINT="${BTC_HOST:-bitcoin-daemon:${BITCOIN_DAEMON_SERVICE_PORT_RPC:-8332}}"
+LITECOIN_ENDPOINT="${LTC_HOST:-litecoin-daemon:${LITECOIN_DAEMON_SERVICE_PORT_RPC:-9332}}"
+BITCOIN_CASH_ENDPOINT="${BCH_HOST:-bitcoin-cash-daemon:${BITCOIN_CASH_DAEMON_SERVICE_PORT_RPC:-8332}}"
+DOGECOIN_ENDPOINT="${DOGE_HOST:-dogecoin-daemon:${DOGECOIN_DAEMON_SERVICE_PORT_RPC:-22555}}"
+ETHEREUM_ENDPOINT="${ETH_HOST:-http://ethereum-daemon:${ETHEREUM_DAEMON_SERVICE_PORT_RPC:-8545}}"
+GAIA_ENDPOINT="${GAIA_HOST:-http://gaia-daemon:26657}"
+AVALANCHE_ENDPOINT="${AVAX_HOST:-http://avalanche-daemon:9650/ext/bc/C/rpc}"
 
 ADDRESS=$(echo "$SIGNER_PASSWD" | thornode keys show "$SIGNER_NAME" -a --keyring-backend file)
 JSON=$(curl -sL --fail -m 10 "$API/thorchain/node/$ADDRESS")
@@ -52,27 +55,27 @@ if [ "$VALIDATOR" = "true" ]; then
     if [ -z "$BNB_HEIGHT" ]; then continue; fi # Continue if empty height (malformed/bad json reply?)
     break
   done
-  BNB_SYNC_HEIGHT=$(curl -sL --fail -m 10 binance-daemon:"$BINANCE_PORT"/status | jq -r ".result.sync_info.index_height")
+  BNB_SYNC_HEIGHT=$(curl -sL --fail -m 10 "$BINANCE_ENDPOINT"/status | jq -r ".result.sync_info.index_height")
   BNB_PROGRESS=$(calc_progress "$BNB_SYNC_HEIGHT" "$BNB_HEIGHT")
 
   # calculate BTC chain sync progress
-  BTC_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@bitcoin-daemon:"$BITCOIN_PORT")
+  BTC_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@"$BITCOIN_ENDPOINT")
   BTC_HEIGHT=$(echo "$BTC_RESULT" | jq -r ".result.headers")
   BTC_SYNC_HEIGHT=$(echo "$BTC_RESULT" | jq -r ".result.blocks")
   BTC_PROGRESS=$(echo "$BTC_RESULT" | jq -r ".result.verificationprogress")
   BTC_PROGRESS=$(calc_progress "$BTC_SYNC_HEIGHT" "$BTC_HEIGHT" "$BTC_PROGRESS")
 
   # calculate LTC chain sync progress
-  LTC_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@litecoin-daemon:"$LITECOIN_PORT")
+  LTC_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@"$LITECOIN_ENDPOINT")
   LTC_HEIGHT=$(echo "$LTC_RESULT" | jq -r ".result.headers")
   LTC_SYNC_HEIGHT=$(echo "$LTC_RESULT" | jq -r ".result.blocks")
   LTC_PROGRESS=$(echo "$LTC_RESULT" | jq -r ".result.verificationprogress")
   LTC_PROGRESS=$(calc_progress "$LTC_SYNC_HEIGHT" "$LTC_HEIGHT" "$LTC_PROGRESS")
 
   # calculate ETH chain sync progress
-  ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' -H 'content-type: application/json' http://ethereum-daemon:"$ETHEREUM_PORT")
+  ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' -H 'content-type: application/json' "$ETHEREUM_ENDPOINT")
   if [ "$ETH_RESULT" = '{"jsonrpc":"2.0","id":1,"result":false}' ]; then
-    ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' http://ethereum-daemon:"$ETHEREUM_PORT")
+    ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' "$ETHEREUM_ENDPOINT")
     ETH_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result")")
     ETH_SYNC_HEIGHT=$ETH_HEIGHT
     ETH_PROGRESS=$(calc_progress "$ETH_SYNC_HEIGHT" "$ETH_HEIGHT")
@@ -85,7 +88,7 @@ if [ "$VALIDATOR" = "true" ]; then
   fi
 
   # calculate BCH chain sync progress
-  BCH_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@bitcoin-cash-daemon:"$BITCOIN_CASH_PORT")
+  BCH_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@"$BITCOIN_CASH_ENDPOINT")
   BCH_HEIGHT=$(echo "$BCH_RESULT" | jq -r ".result.headers")
   BCH_SYNC_HEIGHT=$(echo "$BCH_RESULT" | jq -r ".result.blocks")
   BCH_PROGRESS=$(echo "$BCH_RESULT" | jq -r ".result.verificationprogress")
@@ -93,7 +96,7 @@ if [ "$VALIDATOR" = "true" ]; then
 
   # calculate DOGE chain sync progress
   if [ -n "$DOGECOIN_DAEMON_SERVICE_PORT_RPC" ]; then
-    DOGE_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@dogecoin-daemon:"$DOGECOIN_PORT")
+    DOGE_RESULT=$(curl -sL --fail -m 10 --data-binary '{"jsonrpc": "1.0", "id": "node-status", "method": "getblockchaininfo", "params": []}' -H 'content-type: text/plain;' http://thorchain:password@"$DOGECOIN_ENDPOINT")
     DOGE_HEIGHT=$(echo "$DOGE_RESULT" | jq -r ".result.headers")
     DOGE_SYNC_HEIGHT=$(echo "$DOGE_RESULT" | jq -r ".result.blocks")
     DOGE_PROGRESS=$(echo "$DOGE_RESULT" | jq -r ".result.verificationprogress")
@@ -110,14 +113,14 @@ if [ "$VALIDATOR" = "true" ]; then
   # calculate Gaia chain sync progress
   if [ -n "$GAIA_DAEMON_SERVICE_PORT_RPC" ]; then
     GAIA_HEIGHT=$(curl -sL --fail -m 10 https://api.cosmos.network/blocks/latest | jq -e -r ".block.header.height")
-    GAIA_SYNC_HEIGHT=$(curl -sL --fail -m 10 gaia-daemon:"$GAIA_DAEMON_SERVICE_PORT_RPC"/status | jq -r ".result.sync_info.latest_block_height")
+    GAIA_SYNC_HEIGHT=$(curl -sL --fail -m 10 "$GAIA_ENDPOINT/status" | jq -r ".result.sync_info.latest_block_height")
     GAIA_PROGRESS=$(calc_progress "$GAIA_SYNC_HEIGHT" "$GAIA_HEIGHT")
   fi
 
   # calculate AVAX chain sync progress
   if [ -n "$AVALANCHE_DAEMON_SERVICE_PORT_RPC" ]; then
     AVAX_HEIGHT_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' "https://api.avax.network/ext/bc/C/rpc")
-    AVAX_SYNC_HEIGHT_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' "http://avalanche-daemon:$AVALANCHE_DAEMON_SERVICE_PORT_RPC/ext/bc/C/rpc")
+    AVAX_SYNC_HEIGHT_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' "$AVALANCHE_ENDPOINT")
     AVAX_HEIGHT=$(printf "%.0f" "$(echo "$AVAX_HEIGHT_RESULT" | jq -r ".result")")
     if [ -n "$AVAX_SYNC_HEIGHT_RESULT" ]; then
       AVAX_SYNC_HEIGHT=$(printf "%.0f" "$(echo "$AVAX_SYNC_HEIGHT_RESULT" | jq -r ".result")")
@@ -129,7 +132,7 @@ if [ "$VALIDATOR" = "true" ]; then
 fi
 
 # calculate THOR chain sync progress
-THOR_SYNC_HEIGHT=$(curl -sL --fail -m 10 localhost:"$THORNODE_PORT"/status | jq -r ".result.sync_info.latest_block_height")
+THOR_SYNC_HEIGHT=$(curl -sL --fail -m 10 thornode:"$THORNODE_PORT"/status | jq -r ".result.sync_info.latest_block_height")
 if [ "$PEER" != "" ]; then
   THOR_HEIGHT=$(curl -sL --fail -m 10 "$PEER:$THORNODE_PORT/status" | jq -r ".result.sync_info.latest_block_height")
 elif [ "$SEEDS" != "" ]; then
