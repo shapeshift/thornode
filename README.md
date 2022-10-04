@@ -114,9 +114,21 @@ Emergency changes to the protocol may be difficult to coordinate, since there is
 
 Install dependencies, you may skip packages you already have.
 
+Linux:
+
 ```bash
 apt-get update
 apt-get install -y git make golang-go protobuf-compiler
+```
+
+Mac:
+
+```bash
+brew install golang coreutils binutils diffutils findutils gnu-tar gnu-sed gawk grep make git protobuf
+
+# Follow post-setup instructions...
+# Your $PATH should look something like this
+export PATH=/opt/homebrew/opt/make/libexec/gnubin:/opt/homebrew/opt/gnu-sed/libexec/gnubin:opt/homebrew/opt/libpq/bin:/opt/homebrew/opt/findutils/libexec/gnubin:$GOPATH/bin:/usr/local/bin:$PATH
 ```
 
 Install [Docker and Docker Compose V2](https://docs.docker.com/engine/install/).
