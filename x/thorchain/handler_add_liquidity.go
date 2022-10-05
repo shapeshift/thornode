@@ -52,6 +52,8 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.98.0")):
+		return h.validateV98(ctx, msg)
 	case version.GTE(semver.MustParse("1.96.0")):
 		return h.validateV96(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
@@ -65,7 +67,7 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	}
 }
 
-func (h AddLiquidityHandler) validateV96(ctx cosmos.Context, msg MsgAddLiquidity) error {
+func (h AddLiquidityHandler) validateV98(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if err := msg.ValidateBasicV93(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
@@ -86,6 +88,16 @@ func (h AddLiquidityHandler) validateV96(ctx cosmos.Context, msg MsgAddLiquidity
 	if !msg.RuneAddress.IsEmpty() && !msg.RuneAddress.IsChain(common.THORChain) {
 		ctx.Logger().Error("rune address must be THORChain")
 		return errAddLiquidityFailValidation
+	}
+
+	if !msg.AssetAddress.IsEmpty() {
+		polAddress, err := h.mgr.Keeper().GetModuleAddress(ReserveName)
+		if err != nil {
+			return err
+		}
+		if msg.RuneAddress.Equals(polAddress) {
+			return fmt.Errorf("pol lp cannot have asset address")
+		}
 	}
 
 	// check if swap meets standards
