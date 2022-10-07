@@ -988,6 +988,43 @@ components:
           type: string
           example: "ADD:BTC.BTC:thor1zupk5lmc84r2dh738a9g3zscavannjy3nzplwt"
 
+    InboundAddress:
+      type: object
+      required:
+        - halted
+      properties:
+        chain:
+          type: string
+          example: "BTC"
+        pub_key:
+          type: string
+          example: "thorpub1addwnpepq2jqhv5rdqlkusfxy05stfzcgslhhz5qh8pxetw5ry2aa6awgdh3shq8s82"
+        address:
+          type: string
+          example: "bc1qn9esxuw8ca7ts8l6w66kdh800s09msvutydc46"
+        router:
+          type: string
+          example: "0xD37BbE5744D730a1d98d8DC97c42F0Ca46aD7146"
+        halted:
+          type: boolean
+          example: false
+        gas_rate:
+          type: string
+          example: "214"
+          description: "The minimum fee rate used by vaults to send outbound TXs. The actual fee rate may be higher."
+        gas_rate_units:
+          type: string
+          example: "satsperbyte"
+          description: "Units of the gas_rate."
+        outbound_tx_size:
+          type: string
+          example: "1000"
+          description: "Avg size of outbound TXs on each chain. For UTXO chains it may be larger than average, as it takes into account vault consolidation txs, which can have many vouts"
+        outbound_fee:
+          type: string
+          example: "428000"
+          description: "The total outbound fee charged to the user for outbound txs on each chain"
+
     LastBlock:
       type: object
       required:
@@ -1280,6 +1317,41 @@ components:
                 bond:
                   type: string
 
+    KeygenMetric:
+      type: object
+      required:
+        - node_tss_times
+      properties:
+        pub_key:
+          type: string
+        node_tss_times:
+          type: array
+          items:
+            type: object
+            title: NodeKeygenMetric
+            properties:
+              address:
+                type: string
+              tss_time:
+                type: string
+
+    Thorname:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "thor"
+        chain:
+          type: string
+          example: "BTC"
+        address:
+          type: string
+          example: "bc1qd45uzetakjvdy5ynjjyp4nlnj89am88e4e5jeq"
+        expire_block_height:
+          type: integer
+          format: int64
+          example: 1234
+
     # ------------------------------ responses ------------------------------
 
     PoolResponse:
@@ -1450,42 +1522,7 @@ components:
     InboundAddressesResponse:
       type: array
       items:
-        type: object
-        title: InboundAddress
-        required:
-          - halted
-        properties:
-          chain:
-            type: string
-            example: "BTC"
-          pub_key:
-            type: string
-            example: "thorpub1addwnpepq2jqhv5rdqlkusfxy05stfzcgslhhz5qh8pxetw5ry2aa6awgdh3shq8s82"
-          address:
-            type: string
-            example: "bc1qn9esxuw8ca7ts8l6w66kdh800s09msvutydc46"
-          router:
-            type: string
-            example: "0xD37BbE5744D730a1d98d8DC97c42F0Ca46aD7146"
-          halted:
-            type: boolean
-            example: false
-          gas_rate:
-            type: string
-            example: "214"
-            description: "The minimum fee rate used by vaults to send outbound TXs. The actual fee rate may be higher."
-          gas_rate_units:
-            type: string
-            example: "satsperbyte"
-            description: "Units of the gas_rate."
-          outbound_tx_size:
-            type: string
-            example: "1000"
-            description: "Avg size of outbound TXs on each chain. For UTXO chains it may be larger than average, as it takes into account vault consolidation txs, which can have many vouts"
-          outbound_fee:
-            type: string
-            example: "428000"
-            description: "The total outbound fee charged to the user for outbound txs on each chain"
+        $ref: "#/components/schemas/InboundAddress"
 
     LastBlockResponse:
       type: array
@@ -1608,23 +1645,7 @@ components:
     KeygenMetricsResponse:
       type: array
       items:
-        type: object
-        title: KeygenMetric
-        required:
-          - node_tss_times
-        properties:
-          pub_key:
-            type: string
-          node_tss_times:
-            type: array
-            items:
-              type: object
-              title: NodeKeygenMetric
-              properties:
-                address:
-                  type: string
-                tss_time:
-                  type: string
+        $ref: "#/components/schemas/KeygenMetric"
 
     MetricsResponse:
       type: object
@@ -1645,22 +1666,7 @@ components:
     ThornameResponse:
       type: array
       items:
-        type: object
-        title: Thorname
-        properties:
-          name:
-            type: string
-            example: "thor"
-          chain:
-            type: string
-            example: "BTC"
-          address:
-            type: string
-            example: "bc1qd45uzetakjvdy5ynjjyp4nlnj89am88e4e5jeq"
-          expire_block_height:
-            type: integer
-            format: int64
-            example: 1234
+        $ref: "#/components/schemas/Thorname"
 
     MimirResponse:
       type: object
