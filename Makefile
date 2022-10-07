@@ -34,14 +34,16 @@ TEST_BUILD_FLAGS := -parallel=1 -tags=mocknet
 GOBIN?=${GOPATH}/bin
 BINARIES=./cmd/thornode ./cmd/bifrost ./tools/generate
 
+# pull branch name from CI if unset and available
+ifdef CI_COMMIT_BRANCH
+	BRANCH?=$(shell echo ${CI_COMMIT_BRANCH})
+	BUILDTAG?=$(shell echo ${CI_COMMIT_BRANCH})
+endif
+
 # image build settings
 BRANCH?=$(shell git rev-parse --abbrev-ref HEAD)
 GITREF=$(shell git rev-parse --short HEAD)
 BUILDTAG?=$(shell git rev-parse --abbrev-ref HEAD)
-ifdef CI_COMMIT_BRANCH # pull branch name from CI, if available
-	BRANCH=$(shell echo ${CI_COMMIT_BRANCH})
-	BUILDTAG=$(shell echo ${CI_COMMIT_BRANCH})
-endif
 
 ########################################################################################
 # Targets

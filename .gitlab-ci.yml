@@ -110,6 +110,9 @@ build-thornode:
   script:
     - make docker-gitlab-build
     - make docker-gitlab-push
+    # also push mocknet from develop
+    - BUILDTAG=mocknet BRANCH=mocknet make docker-gitlab-build
+    - BUILDTAG=mocknet BRANCH=mocknet make docker-gitlab-push
 
 build-smoke:
   stage: build
