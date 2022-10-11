@@ -146,7 +146,7 @@ func (c Chain) GetGasAsset() Asset {
 func (c Chain) GetGasUnits() string {
 	switch c {
 	case AVAXChain:
-		return "gwei"
+		return "nAVAX"
 	case BNBChain:
 		return "ubnb"
 	case BTCChain:

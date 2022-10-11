@@ -444,11 +444,17 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		chains = common.Chains{common.RuneAsset().Chain}
 	}
 
+	isGlobalTradingPaused := isGlobalTradingHalted(ctx, mgr)
+
 	for _, chain := range chains {
 		// tx send to thorchain doesn't need an address , thus here skip it
 		if chain == common.THORChain {
 			continue
 		}
+
+		isChainTradingPaused := isChainTradingHalted(ctx, mgr, chain)
+		isChainLpPaused := isLPPausedV1(ctx, chain, mgr)
+
 		vaultAddress, err := vault.PubKey.GetAddress(chain)
 		if err != nil {
 			ctx.Logger().Error("fail to get address for chain", "error", err)
@@ -468,22 +474,24 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 			gasRate = gasRate.MulUint64(10)
 		}
 
-		// The value returned from `GetGasRate` is 1.5x the internal fee value of the chain reported by Bifrost
-		// The user is charged 3x the internal value (see https://gitlab.com/thorchain/thornode/-/blob/develop/x/thorchain/manager_txout_current.go#L277)
-		// Thus the fee rate that the user is charged is 2x the `GetGasRate` (or 3x the internal fee value reported by Bifrost)
-		// Multiply by the TransactionSize reported by Bifrost, and this is the full outbound fee charged to the user
-		outboundFee := gasRate.MulUint64(2).MulUint64(networkFeeInfo.TransactionSize).String()
+		// Retrieve the value the network charges for outbound fees for this chain
+		// Note: If calculating the outbound fee of a non-gas asset outbound, the returned value must be converted to RUNE,
+		// then to the non-gas asset using the pool depths. That will be the value deducted from the non-gas asset outbound amount
+		outboundFee := mgr.GasMgr().GetFee(ctx, chain, chain.GetGasAsset())
 
 		addr := openapi.InboundAddress{
-			Chain:          wrapString(chain.String()),
-			PubKey:         wrapString(vault.PubKey.String()),
-			Address:        wrapString(vaultAddress.String()),
-			Router:         wrapString(cc.Router.String()),
-			Halted:         isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, chain),
-			GasRate:        wrapString(gasRate.String()),
-			GasRateUnits:   wrapString(chain.GetGasUnits()),
-			OutboundTxSize: wrapString(cosmos.NewUint(networkFeeInfo.TransactionSize).String()),
-			OutboundFee:    wrapString(outboundFee),
+			Chain:                wrapString(chain.String()),
+			PubKey:               wrapString(vault.PubKey.String()),
+			Address:              wrapString(vaultAddress.String()),
+			Router:               wrapString(cc.Router.String()),
+			Halted:               isGlobalTradingPaused || isChainTradingPaused,
+			GlobalTradingPaused:  &isGlobalTradingPaused,
+			ChainTradingPaused:   &isChainTradingPaused,
+			ChainLpActionsPaused: &isChainLpPaused,
+			GasRate:              wrapString(gasRate.String()),
+			GasRateUnits:         wrapString(chain.GetGasUnits()),
+			OutboundTxSize:       wrapString(cosmos.NewUint(networkFeeInfo.TransactionSize).String()),
+			OutboundFee:          wrapString(outboundFee.String()),
 		}
 
 		resp = append(resp, addr)
