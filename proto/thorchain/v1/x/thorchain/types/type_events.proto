@@ -17,6 +17,12 @@ message PoolMod {
   bool asset_add = 5;
 }
 
+message EventLimitOrder {
+  common.Coin source = 1 [(gogoproto.nullable) = false];
+  common.Coin target = 2 [(gogoproto.nullable) = false];
+  string tx_id = 3 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.TxID", (gogoproto.customname) = "TxID"];
+}
+
 message EventSwap {
   common.Asset pool = 1 [(gogoproto.nullable) = false];
   string swap_target = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];

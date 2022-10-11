@@ -1199,6 +1199,17 @@ func queryQueue(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		query.Swap++
 	}
 
+	iter2 := mgr.Keeper().GetOrderBookItemIterator(ctx)
+	defer iter2.Close()
+	for ; iter2.Valid(); iter2.Next() {
+		var msg MsgSwap
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &msg); err != nil {
+			ctx.Logger().Error("failed to load MsgSwap", "error", err)
+			continue
+		}
+		query.Swap++
+	}
+
 	for height := startHeight; height <= ctx.BlockHeight(); height++ {
 		txs, err := mgr.Keeper().GetTxOut(ctx, height)
 		if err != nil {

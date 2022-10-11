@@ -31,6 +31,7 @@ const (
 	SlashEventType             = "slash"
 	SlashPointEventType        = "slash_points"
 	SwapEventType              = "swap"
+	LimitOrderEventType        = "limit_order"
 	SwitchEventType            = "switch"
 	THORNameEventType          = "thorname"
 	TSSKeygenMetricEventType   = "tss_keygen"
@@ -50,6 +51,30 @@ func NewPoolMod(asset common.Asset, runeAmt cosmos.Uint, runeAdd bool, assetAmt 
 		AssetAmt: assetAmt,
 		AssetAdd: assetAdd,
 	}
+}
+
+// NewEventLimitOrder create a new swap event
+func NewEventLimitOrder(source, target common.Coin, txid common.TxID) *EventLimitOrder {
+	return &EventLimitOrder{
+		Source: source,
+		Target: target,
+		TxID:   txid,
+	}
+}
+
+// Type return a string that represent the type, it should not duplicated with other event
+func (m *EventLimitOrder) Type() string {
+	return LimitOrderEventType
+}
+
+// Events convert EventLimitOrder to key value pairs used in cosmos
+func (m *EventLimitOrder) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("source", m.Source.String()),
+		cosmos.NewAttribute("target", m.Target.String()),
+		cosmos.NewAttribute("txid", m.TxID.String()),
+	)
+	return cosmos.Events{evt}, nil
 }
 
 // NewEventSwap create a new swap event

@@ -59,6 +59,7 @@ const (
 	NodePauseChainBlocks
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
+	EnableOrderBooks
 	MaxSynthPerAssetDepth
 	VirtualMultSynths
 	VirtualMultSynthsBasisPoints
@@ -142,6 +143,7 @@ var nameToString = map[ConstantName]string{
 	NodePauseChainBlocks:               "NodePauseChainBlocks",
 	MinSwapsPerBlock:                   "MinSwapsPerBlock",
 	MaxSwapsPerBlock:                   "MaxSwapsPerBlock",
+	EnableOrderBooks:                   "EnableOrderBooks",
 	VirtualMultSynths:                  "VirtualMultSynths",
 	VirtualMultSynthsBasisPoints:       "VirtualMultSynthsBasisPoints",
 	MaxSynthPerAssetDepth:              "MaxSynthPerAssetDepth",

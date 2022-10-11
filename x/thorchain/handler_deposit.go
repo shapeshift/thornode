@@ -219,38 +219,27 @@ func (h DepositHandler) handleV87(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 
 func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.65.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.98.0")):
+		h.addSwapV98(ctx, msg)
+	default:
 		h.addSwapV65(ctx, msg)
 	}
 }
 
-func (h DepositHandler) addSwapV65(ctx cosmos.Context, msg MsgSwap) {
-	amt := cosmos.ZeroUint()
-	swapSourceAsset := msg.Tx.Coins[0].Asset
-	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
-		amt = common.GetSafeShare(
-			msg.AffiliateBasisPoints,
-			cosmos.NewUint(10000),
-			msg.Tx.Coins[0].Amount,
-		)
-		msg.Tx.Coins[0].Amount = common.SafeSub(msg.Tx.Coins[0].Amount, amt)
-	}
-
-	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, msg, 0); err != nil {
-		ctx.Logger().Error("fail to add swap to queue", "error", err)
-	}
-
-	if !amt.IsZero() {
-		toAddress, err := msg.AffiliateAddress.AccAddress()
-		if err != nil {
-			ctx.Logger().Error("fail to convert address into AccAddress", "msg", msg.AffiliateAddress, "error", err)
-			return
+func (h DepositHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
+	enableOrderBooks := fetchConfigInt64(ctx, h.mgr, constants.EnableOrderBooks)
+	if enableOrderBooks > 0 {
+		source := msg.Tx.Coins[0]
+		target := common.NewCoin(msg.TargetAsset, msg.TradeTarget)
+		evt := NewEventLimitOrder(source, target, msg.Tx.ID)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+			ctx.Logger().Error("fail to emit limit order event", "error", err)
 		}
-		// since native transaction fee has been charged to inbound from address, thus for affiliated fee , the network doesn't need to charge it again
-		coin := common.NewCoin(swapSourceAsset, amt)
-		sdkErr := h.mgr.Keeper().SendFromModuleToAccount(ctx, AsgardName, toAddress, common.NewCoins(coin))
-		if sdkErr != nil {
-			ctx.Logger().Error("fail to send native asset to affiliate", "msg", msg.AffiliateAddress, "error", err, "asset", swapSourceAsset)
+		if err := h.mgr.Keeper().SetOrderBookItem(ctx, msg); err != nil {
+			ctx.Logger().Error("fail to add swap to queue", "error", err)
 		}
+	} else {
+		h.addSwapV65(ctx, msg)
 	}
 }

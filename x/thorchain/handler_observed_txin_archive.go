@@ -3,6 +3,7 @@ package thorchain
 import (
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -154,4 +155,42 @@ func (h ObservedTxInHandler) handleV78(ctx cosmos.Context, msg MsgObservedTxIn) 
 		}
 	}
 	return &cosmos.Result{}, nil
+}
+
+func (h ObservedTxInHandler) addSwapV63(ctx cosmos.Context, msg MsgSwap) {
+	amt := cosmos.ZeroUint()
+	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
+		amt = common.GetSafeShare(
+			msg.AffiliateBasisPoints,
+			cosmos.NewUint(10000),
+			msg.Tx.Coins[0].Amount,
+		)
+		msg.Tx.Coins[0].Amount = common.SafeSub(msg.Tx.Coins[0].Amount, amt)
+	}
+
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, msg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+	}
+
+	if !amt.IsZero() {
+		affiliateSwap := NewMsgSwap(
+			msg.Tx,
+			common.RuneAsset(),
+			msg.AffiliateAddress,
+			cosmos.ZeroUint(),
+			common.NoAddress,
+			cosmos.ZeroUint(),
+			"",
+			"", nil,
+			MarketOrder,
+			msg.Signer,
+		)
+		if affiliateSwap.Tx.Coins[0].Amount.GTE(amt) {
+			affiliateSwap.Tx.Coins[0].Amount = amt
+		}
+
+		if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *affiliateSwap, 1); err != nil {
+			ctx.Logger().Error("fail to add swap to queue", "error", err)
+		}
+	}
 }

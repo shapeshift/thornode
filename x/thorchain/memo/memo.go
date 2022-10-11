@@ -20,6 +20,7 @@ const (
 	TxAdd
 	TxWithdraw
 	TxSwap
+	TxLimitOrder
 	TxOutbound
 	TxDonate
 	TxBond
@@ -46,6 +47,8 @@ var stringToTxTypeMap = map[string]TxType{
 	"swap":        TxSwap,
 	"s":           TxSwap,
 	"=":           TxSwap,
+	"limito":      TxLimitOrder,
+	"lo":          TxLimitOrder,
 	"out":         TxOutbound,
 	"donate":      TxDonate,
 	"d":           TxDonate,
@@ -70,6 +73,7 @@ var txToStringMap = map[TxType]string{
 	TxAdd:             "add",
 	TxWithdraw:        "withdraw",
 	TxSwap:            "swap",
+	TxLimitOrder:      "limito",
 	TxOutbound:        "out",
 	TxRefund:          "refund",
 	TxDonate:          "donate",
@@ -100,7 +104,7 @@ func StringToTxType(s string) (TxType, error) {
 
 func (tx TxType) IsInbound() bool {
 	switch tx {
-	case TxAdd, TxWithdraw, TxSwap, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve, TxNoOp, TxTHORName:
+	case TxAdd, TxWithdraw, TxSwap, TxLimitOrder, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve, TxNoOp, TxTHORName:
 		return true
 	default:
 		return false
@@ -205,7 +209,7 @@ func parseBase(memo string) (MemoBase, []string, error) {
 	}
 
 	switch mem.TxType {
-	case TxDonate, TxAdd, TxSwap, TxWithdraw:
+	case TxDonate, TxAdd, TxSwap, TxLimitOrder, TxWithdraw:
 		if len(parts) < 2 {
 			return mem, parts, fmt.Errorf("cannot parse given memo: length %d", len(parts))
 		}
@@ -241,7 +245,10 @@ func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 		return ParseAddLiquidityMemo(cosmos.Context{}, nil, asset, parts)
 	case TxWithdraw:
 		return ParseWithdrawLiquidityMemo(asset, parts)
-	case TxSwap:
+	case TxSwap, TxLimitOrder:
+		if mem.GetType() == TxLimitOrder && version.LT(semver.MustParse("1.98.0")) {
+			return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
+		}
 		return ParseSwapMemo(cosmos.Context{}, nil, asset, parts)
 	case TxOutbound:
 		return ParseOutboundMemo(parts)
@@ -295,7 +302,10 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 		return ParseAddLiquidityMemo(ctx, keeper, asset, parts)
 	case TxWithdraw:
 		return ParseWithdrawLiquidityMemo(asset, parts)
-	case TxSwap:
+	case TxSwap, TxLimitOrder:
+		if mem.GetType() == TxLimitOrder && keeper.GetVersion().LT(semver.MustParse("1.98.0")) {
+			return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
+		}
 		return ParseSwapMemo(ctx, keeper, asset, parts)
 	case TxOutbound:
 		return ParseOutboundMemo(parts)

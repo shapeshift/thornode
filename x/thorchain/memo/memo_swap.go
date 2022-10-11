@@ -3,6 +3,7 @@ package thorchain
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/blang/semver"
 
@@ -55,6 +56,8 @@ func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset,
 		return ParseSwapMemoV1(ctx, keeper, asset, parts)
 	}
 	switch {
+	case keeper.GetVersion().GTE(semver.MustParse("1.98.0")):
+		return ParseSwapMemoV98(ctx, keeper, asset, parts)
 	case keeper.GetVersion().GTE(semver.MustParse("1.92.0")):
 		return ParseSwapMemoV92(ctx, keeper, asset, parts)
 	default:
@@ -62,7 +65,7 @@ func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset,
 	}
 }
 
-func ParseSwapMemoV92(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
+func ParseSwapMemoV98(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
 	var err error
 	var order types.OrderType
 	dexAgg := ""
@@ -75,6 +78,9 @@ func ParseSwapMemoV92(ctx cosmos.Context, keeper keeper.Keeper, asset common.Ass
 	destination := common.NoAddress
 	affAddr := common.NoAddress
 	affPts := cosmos.ZeroUint()
+	if strings.EqualFold(parts[0], "limito") || strings.EqualFold(parts[0], "lo") {
+		order = types.OrderType_limit
+	}
 	if len(parts) > 2 {
 		if len(parts[2]) > 0 {
 			if keeper == nil {
