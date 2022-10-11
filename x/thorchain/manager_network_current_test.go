@@ -7,6 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type NetworkManagerV96TestSuite struct{}
@@ -790,4 +791,187 @@ func (*NetworkManagerV96TestSuite) TestPOLLiquidityWithdraw(c *C) {
 	lp, err = mgr.Keeper().GetLiquidityProvider(ctx, btcPool.Asset, polAddress)
 	c.Assert(err, IsNil)
 	c.Check(lp.Units.Uint64(), Equals, uint64(788), Commentf("%d", lp.Units.Uint64()))
+}
+
+func (*NetworkManagerV96TestSuite) TestPOLCycle(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+	net := newNetworkMgrV96(mgr.Keeper(), NewTxStoreDummy(), NewDummyEventMgr())
+
+	// cycle should do nothing when target is 0
+	err := net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err := mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.Uint64(), Equals, uint64(0))
+	c.Assert(pol.RuneWithdrawn.Uint64(), Equals, uint64(0))
+
+	// cycle should error when target is greater than 0 with no node accounts
+	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 1000) // 10% liability
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, ErrorMatches, "dev err: no active node accounts")
+
+	// create dummy bnb pool
+	pool := NewPool()
+	pool.Asset = common.BNBAsset
+	pool.BalanceRune = cosmos.NewUint(100 * common.One)
+	pool.BalanceAsset = cosmos.NewUint(100 * common.One)
+	pool.Status = PoolAvailable
+	pool.LPUnits = cosmos.NewUint(100 * common.One)
+	err = mgr.Keeper().SetPool(ctx, pool)
+	c.Assert(err, IsNil)
+
+	// cycle should error since there are no pol enabled pools
+	err = mgr.Keeper().SetNodeAccount(ctx, GetRandomValidatorNode(NodeActive))
+	c.Assert(err, IsNil)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, ErrorMatches, "no POL pools")
+
+	// cycle should silently succeed when there is a pool enabled
+	mgr.Keeper().SetMimir(ctx, "POL-BNB-BNB", 1)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+
+	// pol should still be zero since there are no synths
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.Uint64(), Equals, uint64(0))
+	c.Assert(pol.RuneWithdrawn.Uint64(), Equals, uint64(0))
+
+	// add some synths
+	coins := cosmos.NewCoins(cosmos.NewCoin("bnb/bnb", cosmos.NewInt(20*common.One))) // 20% utilization, 10% liability
+	err = mgr.coinKeeper.MintCoins(ctx, ModuleName, coins)
+	c.Assert(err, IsNil)
+	err = mgr.Keeper().SetPool(ctx, pool)
+	c.Assert(err, IsNil)
+
+	// synth liability should be 10%
+	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
+	pool.CalcUnits(mgr.GetVersion(), synthSupply)
+	liability := common.GetUncappedShare(pool.SynthUnits, pool.GetPoolUnits(), cosmos.NewUint(10_000))
+	c.Assert(liability.String(), Equals, "1000")
+
+	// cycle should succeed, still no rune deposited since max is 0
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+
+	// pol should still be zero
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "0")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "0")
+
+	// synth liability should still be 10%
+	synthSupply = mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
+	pool.CalcUnits(mgr.GetVersion(), synthSupply)
+	liability = common.GetUncappedShare(pool.SynthUnits, pool.GetPoolUnits(), cosmos.NewUint(10_000))
+	c.Assert(liability.String(), Equals, "1000")
+
+	// set pol utilization to 5% should deposit up to the max
+	mgr.Keeper().SetMimir(ctx, constants.POLMaxNetworkDeposit.String(), common.One)
+	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 500)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "100000000")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "0")
+
+	// there needs to be one vault or the withdraw handler fails
+	vault := NewVault(0, ActiveVault, types.VaultType_AsgardVault, GetRandomPubKey(), []string{"BNB"}, nil)
+	err = mgr.Keeper().SetVault(ctx, vault)
+	c.Assert(err, IsNil)
+
+	// synth liability should still be 10%
+	synthSupply = mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
+	pool.CalcUnits(mgr.GetVersion(), synthSupply)
+	liability = common.GetUncappedShare(pool.SynthUnits, pool.GetPoolUnits(), cosmos.NewUint(10_000))
+	c.Assert(liability.String(), Equals, "1000")
+
+	// withdraw entire pol position
+	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 10000)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "100000000")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "98964510") // minus slip
+
+	// synth liability should still be 10%
+	synthSupply = mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
+	pool.CalcUnits(mgr.GetVersion(), synthSupply)
+	liability = common.GetUncappedShare(pool.SynthUnits, pool.GetPoolUnits(), cosmos.NewUint(10_000))
+	c.Assert(liability.String(), Equals, "1000")
+
+	// deposit entire pol position
+	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 500)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "98964510")
+
+	// withdraw entire pol position 1 basis point of rune depth at a time
+	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 10000)
+	mgr.Keeper().SetMimir(ctx, constants.POLMaxPoolMovement.String(), 1)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "99978984")
+	// another basis point
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "100992910")
+
+	// set the buffer to 100% to stop any movement
+	mgr.Keeper().SetMimir(ctx, constants.POLBuffer.String(), 10000)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "100992910")
+
+	// current liability is at 10%, so buffer at 40% and target of 50% should still not move
+	mgr.Keeper().SetMimir(ctx, constants.POLBuffer.String(), 4000)
+	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 5000)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "100992910")
+
+	// any smaller buffer should withdraw one basis point of rune
+	mgr.Keeper().SetMimir(ctx, constants.POLBuffer.String(), 3999)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "102006089")
+
+	// withdraw everything
+	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 10000)
+	mgr.Keeper().SetMimir(ctx, constants.POLBuffer.String(), 0)
+	mgr.Keeper().SetMimir(ctx, constants.POLMaxPoolMovement.String(), 10000)
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "197955446")
+
+	// should be nothing left to withdraw again
+	err = net.POLCycle(ctx, mgr)
+	c.Assert(err, IsNil)
+	pol, err = mgr.Keeper().GetPOL(ctx)
+	c.Assert(err, IsNil)
+	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "197955446")
 }
