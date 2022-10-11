@@ -54,7 +54,6 @@ const (
 	DefaultFeePerKB      = 0.01
 	DefaultCoinbaseValue = 10000
 	MaxMempoolScanPerTry = 500
-	FeeResolution        = uint64(500_000) // sats per byte
 )
 
 // Client observes dogecoin chain and allows to sign and broadcast tx
@@ -721,12 +720,13 @@ func (c *Client) sendNetworkFee(blockResult *btcjson.GetBlockVerboseTxResult) er
 	}
 
 	// round to prevent fee observation noise
-	feeRateSats = ((feeRateSats / FeeResolution) + 1) * FeeResolution
+	resolution := uint64(c.cfg.BlockScanner.GasPriceResolution)
+	feeRateSats = ((feeRateSats / resolution) + 1) * resolution
 
 	// skip fee if less than 1 resolution away from the last
 	feeDelta := new(big.Int).Sub(big.NewInt(int64(feeRateSats)), big.NewInt(int64(c.lastFeeRate)))
 	feeDelta.Abs(feeDelta)
-	if c.lastFeeRate != 0 && feeDelta.Cmp(big.NewInt(int64(FeeResolution))) != 1 {
+	if c.lastFeeRate != 0 && feeDelta.Cmp(big.NewInt(c.cfg.BlockScanner.GasPriceResolution)) != 1 {
 		return nil
 	}
 

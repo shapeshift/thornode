@@ -249,10 +249,9 @@ func (s *AvalancheSuite) TestConvertSigningAmount(c *C) {
 	a, err := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			RPCHost:             "http://" + s.server.Listener.Addr().String(),
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			RPCHost:            "http://" + s.server.Listener.Addr().String(),
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -284,10 +283,9 @@ func (s *AvalancheSuite) TestClient(c *C) {
 	a2, err2 := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			RPCHost:             "http://" + s.server.Listener.Addr().String(),
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			RPCHost:            "http://" + s.server.Listener.Addr().String(),
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err2, IsNil)
@@ -368,10 +366,9 @@ func (s *AvalancheSuite) TestGetAccount(c *C) {
 	e, err := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			RPCHost:             "http://" + s.server.Listener.Addr().String(),
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			RPCHost:            "http://" + s.server.Listener.Addr().String(),
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -393,10 +390,9 @@ func (s *AvalancheSuite) TestSignAVAXTx(c *C) {
 	e, err := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			RPCHost:             "http://" + s.server.Listener.Addr().String(),
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 1,
+			RPCHost:            "http://" + s.server.Listener.Addr().String(),
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)

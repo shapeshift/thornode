@@ -179,9 +179,8 @@ func (s *UnstuckTestSuite) TestUnstuckProcess(c *C) {
 	e, err := NewClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second * 10,
-			SuggestedFeeVersion: 2,
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second * 10,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)

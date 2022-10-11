@@ -250,7 +250,6 @@ func Init() {
 	assert(viper.BindEnv("bifrost.chains.DOGE.disabled", "DOGE_DISABLED"))
 	assert(viper.BindEnv("bifrost.chains.LTC.disabled", "LTC_DISABLED"))
 	assert(viper.BindEnv("bifrost.chains.AVAX.disabled", "AVAX_DISABLED"))
-	assert(viper.BindEnv("bifrost.chains.ETH.block_scanner.suggested_fee_version", "ETH_SUGGESTED_FEE_VERSION"))
 	assert(viper.BindEnv("bifrost.chains.AVAX.block_scanner.gas_cache_size", "AVAX_GAS_CACHE_SIZE"))
 
 	// always override from environment
@@ -522,8 +521,6 @@ func (b *BifrostChainConfiguration) Validate() {
 
 type BifrostBlockScannerConfiguration struct {
 	RPCHost                    string        `mapstructure:"rpc_host"`
-	CosmosGRPCHost             string        `mapstructure:"cosmos_grpc_host"`
-	CosmosGRPCTLS              bool          `mapstructure:"cosmos_grpc_tls"`
 	StartBlockHeight           int64         `mapstructure:"start_block_height"`
 	BlockScanProcessors        int           `mapstructure:"block_scan_processors"`
 	HTTPRequestTimeout         time.Duration `mapstructure:"http_request_timeout"`
@@ -535,9 +532,26 @@ type BifrostBlockScannerConfiguration struct {
 	EnforceBlockHeight         bool          `mapstructure:"enforce_block_height"`
 	DBPath                     string        `mapstructure:"db_path"`
 	ChainID                    common.Chain  `mapstructure:"chain_id"`
-	SuggestedFeeVersion        int           `mapstructure:"suggested_fee_version"`
-	GasCacheSize               int           `mapstructure:"gas_cache_size"`
-	Concurrency                int64         `mapstructure:"concurrency"`
+
+	// The following configuration values apply only to a subset of chains.
+
+	// CosmosGRPCHost is the <host>:<port> of the gRPC endpoint of the Cosmos SDK chain.
+	CosmosGRPCHost string `mapstructure:"cosmos_grpc_host"`
+
+	// CosmosGRPCTLS is a boolean value indicating whether the gRPC host is using TLS.
+	CosmosGRPCTLS bool `mapstructure:"cosmos_grpc_tls"`
+
+	// GasCacheBlocks is the number of blocks worth of gas price data cached to determine
+	// the gas price reported to Thorchain.
+	GasCacheBlocks int `mapstructure:"gas_cache_blocks"`
+
+	// Concurrency is the number of goroutines used for RPC requests on data within a
+	// block - e.g. transactions, receipts, logs, etc. Blocks are processed sequentially.
+	Concurrency int64 `mapstructure:"concurrency"`
+
+	// GasPriceResolution is the resolution of price per gas unit in the base asset of the
+	// chain (wei, tavax, uatom, satoshi, etc) and is transitively the floor price.
+	GasPriceResolution int64 `mapstructure:"gas_price_resolution"`
 }
 
 func (b *BifrostBlockScannerConfiguration) Validate() {

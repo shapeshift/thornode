@@ -48,9 +48,7 @@ var routerContractABI string
 var erc20ContractABI string
 
 const (
-	BlockCacheSize           = 6000
-	MaxContractGas           = 80000
-	GasPriceResolution int64 = 250000000000 // wei per gas unit (250 gwei)
+	MaxContractGas = 80000
 
 	avaxToken       = "0x0000000000000000000000000000000000000000"
 	defaultDecimals = 18 // on AVAX, consolidate all decimals to 18, in Wei
@@ -88,9 +86,6 @@ type AvalancheScanner struct {
 
 	vaultABI *abi.ABI
 	erc20ABI *abi.ABI
-
-	gasCacheBlocks uint64
-	blockLag       uint64
 }
 
 // Creates a new instance of AvalancheScanner
@@ -163,9 +158,7 @@ func NewAVAXScanner(cfg config.BifrostBlockScannerConfiguration,
 		whitelistTokens:      whitelistTokens.Tokens,
 		signerCacheManager:   signerCacheManager,
 
-		gasCacheBlocks: uint64(cfg.GasCacheSize),
-		blockLag:       0,
-		tokenManager:   tokenManager,
+		tokenManager: tokenManager,
 	}, nil
 }
 
@@ -180,7 +173,7 @@ func (a *AvalancheScanner) GetHeight() (int64, error) {
 	if err != nil {
 		return -1, err
 	}
-	return height - int64(a.blockLag), nil
+	return height, nil
 }
 
 func (a *AvalancheScanner) GetNonce(addr string) (uint64, error) {
@@ -367,12 +360,12 @@ func (a *AvalancheScanner) updateGasPrice(prices []*big.Int) {
 
 	// add to the cache
 	a.gasCache = append(a.gasCache, gasPrice)
-	if len(a.gasCache) > int(a.gasCacheBlocks) {
-		a.gasCache = a.gasCache[(len(a.gasCache) - int(a.gasCacheBlocks)):]
+	if len(a.gasCache) > a.cfg.GasCacheBlocks {
+		a.gasCache = a.gasCache[(len(a.gasCache) - a.cfg.GasCacheBlocks):]
 	}
 
 	// skip update unless cache is full
-	if len(a.gasCache) < int(a.gasCacheBlocks) {
+	if len(a.gasCache) < a.cfg.GasCacheBlocks {
 		return
 	}
 
@@ -383,14 +376,14 @@ func (a *AvalancheScanner) updateGasPrice(prices []*big.Int) {
 	median := medians[len(medians)/2]
 
 	// round the price up to avoid fee noise
-	resolution := big.NewInt(GasPriceResolution)
+	resolution := big.NewInt(a.cfg.GasPriceResolution)
 	if median.Cmp(resolution) != 1 {
 		a.gasPrice = resolution
 	} else {
 		median.Sub(median, big.NewInt(1))
-		median.Quo(median, big.NewInt(GasPriceResolution))
+		median.Quo(median, big.NewInt(a.cfg.GasPriceResolution))
 		median.Add(median, big.NewInt(1))
-		median.Mul(median, big.NewInt(GasPriceResolution))
+		median.Mul(median, big.NewInt(a.cfg.GasPriceResolution))
 		a.gasPrice = median
 	}
 
@@ -412,7 +405,7 @@ func (a *AvalancheScanner) reportNetworkFee(height int64) {
 	// skip fee if less than 1 resolution away from the last
 	feeDelta := new(big.Int).Sub(gasPrice, big.NewInt(int64(a.lastReportedGasPrice)))
 	feeDelta.Abs(feeDelta)
-	if a.lastReportedGasPrice != 0 && feeDelta.Cmp(big.NewInt(GasPriceResolution)) != 1 {
+	if a.lastReportedGasPrice != 0 && feeDelta.Cmp(big.NewInt(a.cfg.GasPriceResolution)) != 1 {
 		return
 	}
 

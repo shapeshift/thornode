@@ -70,8 +70,8 @@ func getConfigForTest(rpcHost string) config.BifrostBlockScannerConfiguration {
 		MaxHTTPRequestRetry:        3,
 		BlockHeightDiscoverBackoff: time.Second,
 		BlockRetryInterval:         time.Second,
-		SuggestedFeeVersion:        2,
 		Concurrency:                1,
+		GasCacheBlocks:             40,
 	}
 }
 
@@ -641,7 +641,6 @@ func (s *BlockScannerTestSuite) TestGasPriceV2(c *C) {
 		return nil
 	}
 	conf := getConfigForTest("127.0.0.1")
-	conf.SuggestedFeeVersion = 2
 	bs, err := NewETHScanner(conf, storage, big.NewInt(int64(types.Mainnet)), ethClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)

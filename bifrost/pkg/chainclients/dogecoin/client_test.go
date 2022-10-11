@@ -84,7 +84,8 @@ func (s *DogecoinSuite) SetUpTest(c *C) {
 		DisableTLS:  true,
 		HTTPostMode: true,
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			StartBlockHeight: 1, // avoids querying thorchain for block height
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			GasPriceResolution: 500_000,
 		},
 	}
 	ns := strconv.Itoa(time.Now().Nanosecond())

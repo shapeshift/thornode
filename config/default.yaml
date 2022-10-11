@@ -82,9 +82,9 @@ bifrost:
       chain_id: ETH
       block_scanner:
         <<: *default-block-scanner
+        gas_cache_blocks: 40
         concurrency: 1
         chain_id: ETH
-        suggested_fee_version: 2
     avax:
       <<: *default-chain
       chain_id: AVAX
@@ -92,13 +92,15 @@ bifrost:
         <<: *default-block-scanner
         concurrency: 1
         chain_id: AVAX
-        gas_cache_size: 40
+        gas_cache_blocks: 40
+        gas_price_resolution: 50_000_000_000 # 50 navax
     doge:
       <<: *default-chain
       chain_id: DOGE
       block_scanner:
         <<: *default-block-scanner
         chain_id: DOGE
+        gas_price_resolution: 500_000 # sats
     terra:
       <<: *default-chain
       chain_id: TERRA
@@ -111,6 +113,7 @@ bifrost:
       block_scanner:
         <<: *default-block-scanner
         chain_id: GAIA
+        gas_price_resolution: 100_000 # uatom
     ltc:
       <<: *default-chain
       chain_id: LTC

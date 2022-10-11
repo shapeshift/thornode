@@ -249,9 +249,8 @@ func (s *EthereumSuite) TestConvertSigningAmount(c *C) {
 	e, err := NewClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 2,
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -283,9 +282,8 @@ func (s *EthereumSuite) TestClient(c *C) {
 	e2, err2 := NewClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 2,
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err2, IsNil)
@@ -295,7 +293,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 	c.Check(e2.GetChain(), Equals, common.ETHChain)
 	height, err := e2.GetHeight()
 	c.Assert(err, IsNil)
-	c.Check(height, Equals, int64(6))
+	c.Check(height, Equals, int64(7))
 	gasPrice := e2.GetGasPrice()
 	c.Check(gasPrice.Uint64(), Equals, uint64(initialGasPrice))
 
@@ -366,9 +364,8 @@ func (s *EthereumSuite) TestGetAccount(c *C) {
 	e, err := NewClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 2,
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -390,9 +387,8 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	e, err := NewClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 2,
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -617,9 +613,8 @@ func (s *EthereumSuite) TestGetAsgardAddresses(c *C) {
 	e, err := NewClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 2,
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
@@ -638,9 +633,8 @@ func (s *EthereumSuite) TestGetConfirmationCount(c *C) {
 	e, err := NewClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
-			StartBlockHeight:    1, // avoids querying thorchain for block height
-			HTTPRequestTimeout:  time.Second,
-			SuggestedFeeVersion: 2,
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
 		},
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)

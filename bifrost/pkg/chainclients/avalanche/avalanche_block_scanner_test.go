@@ -30,6 +30,8 @@ import (
 	. "gopkg.in/check.v1"
 )
 
+const TestGasPriceResolution = 50_000_000_000
+
 var (
 	//go:embed test/deposit_avax_transaction.json
 	depositAVAXTx []byte
@@ -116,9 +118,9 @@ func getConfigForTest(rpcHost string) config.BifrostBlockScannerConfiguration {
 		MaxHTTPRequestRetry:        3,
 		BlockHeightDiscoverBackoff: time.Second,
 		BlockRetryInterval:         time.Second,
-		SuggestedFeeVersion:        1,
-		GasCacheSize:               100,
+		GasCacheBlocks:             100,
 		Concurrency:                1,
+		GasPriceResolution:         TestGasPriceResolution, // 50 navax
 	}
 }
 
@@ -534,11 +536,11 @@ func (s *BlockScannerTestSuite) TestUpdateGasPrice(c *C) {
 	// almost fill gas cache
 	for i := 0; i < 99; i++ {
 		bs.updateGasPrice([]*big.Int{
-			big.NewInt(1 * GasPriceResolution),
-			big.NewInt(2 * GasPriceResolution),
-			big.NewInt(3 * GasPriceResolution),
-			big.NewInt(4 * GasPriceResolution),
-			big.NewInt(5 * GasPriceResolution),
+			big.NewInt(1 * TestGasPriceResolution),
+			big.NewInt(2 * TestGasPriceResolution),
+			big.NewInt(3 * TestGasPriceResolution),
+			big.NewInt(4 * TestGasPriceResolution),
+			big.NewInt(5 * TestGasPriceResolution),
 		})
 	}
 
@@ -549,50 +551,50 @@ func (s *BlockScannerTestSuite) TestUpdateGasPrice(c *C) {
 
 	// now we should get the median of medians
 	bs.updateGasPrice([]*big.Int{
-		big.NewInt(1 * GasPriceResolution),
-		big.NewInt(2 * GasPriceResolution),
-		big.NewInt(3 * GasPriceResolution),
-		big.NewInt(4 * GasPriceResolution),
-		big.NewInt(5 * GasPriceResolution),
+		big.NewInt(1 * TestGasPriceResolution),
+		big.NewInt(2 * TestGasPriceResolution),
+		big.NewInt(3 * TestGasPriceResolution),
+		big.NewInt(4 * TestGasPriceResolution),
+		big.NewInt(5 * TestGasPriceResolution),
 	})
 	c.Assert(len(bs.gasCache), Equals, 100)
-	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(3*GasPriceResolution).String())
+	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(3*TestGasPriceResolution).String())
 
 	// add 49 more blocks with 2x the median and we should get the same
 	for i := 0; i < 49; i++ {
 		bs.updateGasPrice([]*big.Int{
-			big.NewInt(2 * GasPriceResolution),
-			big.NewInt(4 * GasPriceResolution),
-			big.NewInt(6 * GasPriceResolution),
-			big.NewInt(8 * GasPriceResolution),
-			big.NewInt(10 * GasPriceResolution),
+			big.NewInt(2 * TestGasPriceResolution),
+			big.NewInt(4 * TestGasPriceResolution),
+			big.NewInt(6 * TestGasPriceResolution),
+			big.NewInt(8 * TestGasPriceResolution),
+			big.NewInt(10 * TestGasPriceResolution),
 		})
 	}
 	c.Assert(len(bs.gasCache), Equals, 100)
-	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(3*GasPriceResolution).String())
+	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(3*TestGasPriceResolution).String())
 
 	// after one more block with 2x the median we should get 2x
 	bs.updateGasPrice([]*big.Int{
-		big.NewInt(2 * GasPriceResolution),
-		big.NewInt(4 * GasPriceResolution),
-		big.NewInt(6 * GasPriceResolution),
-		big.NewInt(8 * GasPriceResolution),
-		big.NewInt(10 * GasPriceResolution),
+		big.NewInt(2 * TestGasPriceResolution),
+		big.NewInt(4 * TestGasPriceResolution),
+		big.NewInt(6 * TestGasPriceResolution),
+		big.NewInt(8 * TestGasPriceResolution),
+		big.NewInt(10 * TestGasPriceResolution),
 	})
-	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(6*GasPriceResolution).String())
+	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(6*TestGasPriceResolution).String())
 
 	// add 50 more blocks with half the median and we should get the same
 	for i := 0; i < 50; i++ {
 		bs.updateGasPrice([]*big.Int{
-			big.NewInt(GasPriceResolution),
+			big.NewInt(TestGasPriceResolution),
 		})
 	}
 	c.Assert(len(bs.gasCache), Equals, 100)
-	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(6*GasPriceResolution).String())
+	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(6*TestGasPriceResolution).String())
 
 	// after one more block with half the median we should get half
 	bs.updateGasPrice([]*big.Int{
-		big.NewInt(GasPriceResolution),
+		big.NewInt(TestGasPriceResolution),
 	})
-	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(GasPriceResolution).String())
+	c.Assert(bs.gasPrice.String(), Equals, big.NewInt(TestGasPriceResolution).String())
 }

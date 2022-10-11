@@ -80,10 +80,6 @@ type ETHScanner struct {
 	solvencyReporter     SolvencyReporter
 	whitelistTokens      []tokenlist.ERC20Token
 	signerCacheManager   *signercache.CacheManager
-
-	// set at creation based on the SuggestedFeeVersion in config
-	gasCacheBlocks uint64
-	blockLag       uint64
 }
 
 // NewETHScanner create a new instance of ETHScanner
@@ -126,20 +122,6 @@ func NewETHScanner(cfg config.BifrostBlockScannerConfiguration,
 		return nil, fmt.Errorf("fail to create contract abi: %w", err)
 	}
 
-	// suggested gas fee configuration
-	var gasCacheBlocks, blockLag uint64
-	switch cfg.SuggestedFeeVersion {
-	case 1:
-		gasCacheBlocks = 20
-		blockLag = 0
-	case 2:
-		gasCacheBlocks = 40
-		blockLag = 1
-	default:
-		log.Fatal().Int("version", cfg.SuggestedFeeVersion).Msg("unsupported suggested fee version")
-	}
-	log.Info().Msgf("suggested fee version: %d", cfg.SuggestedFeeVersion)
-
 	return &ETHScanner{
 		cfg:                  cfg,
 		logger:               log.Logger.With().Str("module", "block_scanner").Str("chain", common.ETHChain.String()).Logger(),
@@ -161,8 +143,6 @@ func NewETHScanner(cfg config.BifrostBlockScannerConfiguration,
 		solvencyReporter:     solvencyReporter,
 		whitelistTokens:      tokenlist.GetETHTokenList(semver.MustParse("9999.0.0")).Tokens,
 		signerCacheManager:   signerCacheManager,
-		gasCacheBlocks:       gasCacheBlocks,
-		blockLag:             blockLag,
 	}, nil
 }
 
@@ -183,7 +163,7 @@ func (e *ETHScanner) GetHeight() (int64, error) {
 	if err != nil {
 		return -1, fmt.Errorf("fail to get block height: %w", err)
 	}
-	return int64(height - e.blockLag), nil
+	return int64(height), nil
 }
 
 // FetchMemPool get tx from mempool
@@ -224,49 +204,15 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 		}()
 	}
 
-	switch e.cfg.SuggestedFeeVersion {
-	case 1:
-		if e.gasPriceChanged {
-			// only send the network fee to THORNode when the price get changed
-			gasPrice := e.GetGasPrice() // gas price is in wei
-			// convert the gas price to 1E8 , the decimals used in thorchain
-			gasPriceForThorchain := big.NewInt(0).Div(gasPrice, big.NewInt(common.One*100))
-			gasValue := gasPriceForThorchain.Uint64()
-			if gasValue == 0 {
-				gasValue = 1
-			}
-			// make it to round up
-			if big.NewInt(1).Mul(big.NewInt(int64(gasValue)), big.NewInt(common.One*100)).Cmp(gasPrice) < 0 {
-				gasValue++
-			}
-			// only report the gas price when it actually get changed
-			if gasValue != e.lastReportedGasPrice {
-				e.lastReportedGasPrice = gasValue
-				if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, MaxContractGas, gasValue); err != nil {
-					e.logger.Err(err).Msg("fail to post ETH chain single transfer fee to THORNode")
-				}
-			}
-		}
-	case 2:
-		gasPrice := e.GetGasPrice()
+	// gas price to 1e8
+	gasPrice := e.GetGasPrice()
+	tcGasPrice := new(big.Int).Div(gasPrice, big.NewInt(common.One*100)).Uint64()
+	if tcGasPrice == 0 {
+		tcGasPrice = 1
+	}
 
-		// skip posting if there is not yet a fee
-		if gasPrice.Cmp(big.NewInt(0)) == 0 {
-			break
-		}
-
-		// gas price to 1e8
-		tcGasPrice := new(big.Int).Div(gasPrice, big.NewInt(common.One*100)).Uint64()
-		if tcGasPrice == 0 {
-			tcGasPrice = 1
-		}
-
-		// skip posting if the fee has not changed
-		if tcGasPrice == e.lastReportedGasPrice {
-			break
-		}
-
-		// post to thorchain
+	// post to thorchain if there is a fee and it has changed
+	if gasPrice.Cmp(big.NewInt(0)) != 0 && tcGasPrice != e.lastReportedGasPrice {
 		if _, err := e.bridge.PostNetworkFee(height, common.ETHChain, MaxContractGas, tcGasPrice); err != nil {
 			e.logger.Err(err).Msg("fail to post ETH chain single transfer fee to THORNode")
 		} else {
@@ -282,63 +228,6 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	return txIn, nil
 }
 
-// get the highest gas price in the last 50 blocks , make sure we can pay enough fee
-func (e *ETHScanner) getHighestGasPrice() *big.Int {
-	gasPrice := big.NewInt(0)
-	for _, v := range e.gasCache {
-		if v.Cmp(gasPrice) > 0 {
-			gasPrice = v
-		}
-	}
-	return gasPrice
-}
-
-func (e *ETHScanner) updateGasPriceV1() {
-	ctx, cancel := e.getContext()
-	defer cancel()
-	gasPrice, err := e.client.SuggestGasPrice(ctx)
-
-	gasPriceFloat, _ := new(big.Float).SetInt(gasPrice).Float64()
-	e.m.GetGauge(metrics.GasPriceSuggested(common.ETHChain)).Set(gasPriceFloat)
-
-	if err != nil {
-		e.logger.Err(err).Msg("fail to get suggest gas price")
-		return
-	}
-	if gasPrice.Uint64() == 0 {
-		e.logger.Info().Msg("gas price is zero , not valid")
-		return
-	}
-
-	// make sure the gas price is at least ten Gwei
-	if gasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
-		gasPrice = big.NewInt(tenGwei)
-	}
-	// gasPrice = gasPrice * 1.5
-	gasPrice = big.NewInt(1).Mul(gasPrice, big.NewInt(3))
-	gasPrice = big.NewInt(1).Div(gasPrice, big.NewInt(2))
-	e.gasCache = append(e.gasCache, gasPrice)
-	if len(e.gasCache) > int(e.gasCacheBlocks) {
-		e.gasCache = e.gasCache[(len(e.gasCache) - int(e.gasCacheBlocks)):]
-	}
-	gasPrice = e.getHighestGasPrice()
-	if e.gasPrice.Cmp(gasPrice) == 0 {
-		e.gasPriceChanged = false
-		return
-	}
-	halfPrevious := big.NewInt(1).Div(e.gasPrice, big.NewInt(2))
-	if gasPrice.Cmp(halfPrevious) < 0 {
-		e.logger.Info().Msgf("new gas price: %s less than half of previous price: %s , only half it", gasPrice, e.gasPrice)
-		e.gasPrice = halfPrevious
-	}
-	e.gasPriceChanged = true
-	e.gasPrice = gasPrice
-
-	gasPriceFloat, _ = new(big.Float).SetInt(gasPrice).Float64()
-	e.m.GetGauge(metrics.GasPrice(common.ETHChain)).Set(gasPriceFloat)
-	e.m.GetCounter(metrics.GasPriceChange(common.ETHChain)).Inc()
-}
-
 func (e *ETHScanner) updateGasPriceV2(prices []*big.Int) {
 	// skip empty blocks
 	if len(prices) == 0 {
@@ -351,12 +240,12 @@ func (e *ETHScanner) updateGasPriceV2(prices []*big.Int) {
 
 	// add to the cache
 	e.gasCache = append(e.gasCache, gasPrice)
-	if len(e.gasCache) > int(e.gasCacheBlocks) {
-		e.gasCache = e.gasCache[(len(e.gasCache) - int(e.gasCacheBlocks)):]
+	if len(e.gasCache) > e.cfg.GasCacheBlocks {
+		e.gasCache = e.gasCache[(len(e.gasCache) - e.cfg.GasCacheBlocks):]
 	}
 
 	// skip update unless cache is full
-	if len(e.gasCache) < int(e.gasCacheBlocks) {
+	if len(e.gasCache) < e.cfg.GasCacheBlocks {
 		return
 	}
 
@@ -365,7 +254,7 @@ func (e *ETHScanner) updateGasPriceV2(prices []*big.Int) {
 	for _, fee := range e.gasCache {
 		sum.Add(sum, fee)
 	}
-	mean := new(big.Int).Quo(sum, big.NewInt(int64(e.gasCacheBlocks)))
+	mean := new(big.Int).Quo(sum, big.NewInt(int64(e.cfg.GasCacheBlocks)))
 
 	// compute the standard deviation of the 25th percentiles in cache
 	std := new(big.Int)
@@ -374,7 +263,7 @@ func (e *ETHScanner) updateGasPriceV2(prices []*big.Int) {
 		v.Mul(v, v)
 		std.Add(std, v)
 	}
-	std.Quo(std, big.NewInt(int64(e.gasCacheBlocks)))
+	std.Quo(std, big.NewInt(int64(e.cfg.GasCacheBlocks)))
 	std.Sqrt(std)
 
 	// mean + 3x standard deviation of the 25th percentile fee over blocks
@@ -397,18 +286,13 @@ func (e *ETHScanner) processBlock(block *etypes.Block) (stypes.TxIn, error) {
 		SentUnFinalised: false,
 		Finalised:       false,
 	}
-	// Update gas price
 
-	switch e.cfg.SuggestedFeeVersion {
-	case 1:
-		e.updateGasPriceV1()
-	case 2:
-		var txsGas []*big.Int
-		for _, tx := range block.Transactions() {
-			txsGas = append(txsGas, tx.GasPrice())
-		}
-		e.updateGasPriceV2(txsGas)
+	// update gas price
+	var txsGas []*big.Int
+	for _, tx := range block.Transactions() {
+		txsGas = append(txsGas, tx.GasPrice())
 	}
+	e.updateGasPriceV2(txsGas)
 
 	reorgedTxIns, err := e.processReorg(block.Header())
 	if err != nil {

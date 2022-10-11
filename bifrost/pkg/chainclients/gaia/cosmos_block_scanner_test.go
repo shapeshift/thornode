@@ -92,7 +92,7 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 }
 
 func (s *BlockScannerTestSuite) TestCalculateAverageGasFees(c *C) {
-	cfg := config.BifrostBlockScannerConfiguration{ChainID: common.GAIAChain}
+	cfg := config.BifrostBlockScannerConfiguration{ChainID: common.GAIAChain, GasPriceResolution: 100_000}
 	blockScanner := CosmosBlockScanner{cfg: cfg}
 
 	atomToThorchain := int64(100)
