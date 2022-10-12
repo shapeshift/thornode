@@ -53,6 +53,7 @@ func NewConstantValue010() *ConstantVals {
 			VirtualMultSynths:                  2,                  // pool depth multiplier for synthetic swaps
 			VirtualMultSynthsBasisPoints:       10_000,             // pool depth multiplier for synthetic swaps (in basis points)
 			MaxSynthPerAssetDepth:              3300,               // percentage (in basis points) of how many synths are allowed relative to asset depth of the related pool
+			MaxSynthPerPoolDepth:               1700,               // percentage (in basis points) of how many synths are allowed relative to pool depth of the related pool
 			MinSlashPointsForBadValidator:      100,                // The minimum slash point
 			FullImpLossProtectionBlocks:        1440000,            // number of blocks before a liquidity provider gets 100% impermanent loss protection
 			MinTxOutVolumeThreshold:            1000_00000000,      // total txout volume (in rune) a block needs to have to slow outbound transactions

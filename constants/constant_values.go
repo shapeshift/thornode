@@ -61,6 +61,7 @@ const (
 	MaxSwapsPerBlock
 	EnableOrderBooks
 	MaxSynthPerAssetDepth
+	MaxSynthPerPoolDepth
 	VirtualMultSynths
 	VirtualMultSynthsBasisPoints
 	MinSlashPointsForBadValidator
@@ -147,6 +148,7 @@ var nameToString = map[ConstantName]string{
 	VirtualMultSynths:                  "VirtualMultSynths",
 	VirtualMultSynthsBasisPoints:       "VirtualMultSynthsBasisPoints",
 	MaxSynthPerAssetDepth:              "MaxSynthPerAssetDepth",
+	MaxSynthPerPoolDepth:               "MaxSynthPerPoolDepth",
 	MinSlashPointsForBadValidator:      "MinSlashPointsForBadValidator",
 	FullImpLossProtectionBlocks:        "FullImpLossProtectionBlocks",
 	BondLockupPeriod:                   "BondLockupPeriod",
