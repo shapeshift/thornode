@@ -3,7 +3,9 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"testing"
 
+	"github.com/magiconair/properties/assert"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -13,30 +15,30 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-type WithdrawSuiteV98 struct{}
+type WithdrawSuiteV91 struct{}
 
-var _ = Suite(&WithdrawSuiteV98{})
+var _ = Suite(&WithdrawSuiteV91{})
 
-type WithdrawTestKeeperV98 struct {
+type WithdrawTestKeeperV91 struct {
 	keeper.KVStoreDummy
 	store       map[string]interface{}
 	networkFees map[common.Chain]NetworkFee
 	keeper      keeper.Keeper
 }
 
-func NewWithdrawTestKeeperV98(keeper keeper.Keeper) *WithdrawTestKeeperV98 {
-	return &WithdrawTestKeeperV98{
+func NewWithdrawTestKeeperV91(keeper keeper.Keeper) *WithdrawTestKeeperV91 {
+	return &WithdrawTestKeeperV91{
 		keeper:      keeper,
 		store:       make(map[string]interface{}),
 		networkFees: make(map[common.Chain]NetworkFee),
 	}
 }
 
-func (k *WithdrawTestKeeperV98) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
+func (k *WithdrawTestKeeperV91) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 	return !asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"})
 }
 
-func (k *WithdrawTestKeeperV98) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
+func (k *WithdrawTestKeeperV91) GetPool(ctx cosmos.Context, asset common.Asset) (types.Pool, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"}) {
 		return types.Pool{}, nil
 	}
@@ -54,16 +56,16 @@ func (k *WithdrawTestKeeperV98) GetPool(ctx cosmos.Context, asset common.Asset) 
 	}, nil
 }
 
-func (k *WithdrawTestKeeperV98) SetPool(ctx cosmos.Context, ps Pool) error {
+func (k *WithdrawTestKeeperV91) SetPool(ctx cosmos.Context, ps Pool) error {
 	k.store[ps.Asset.String()] = ps
 	return nil
 }
 
-func (k *WithdrawTestKeeperV98) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
+func (k *WithdrawTestKeeperV91) GetGas(ctx cosmos.Context, asset common.Asset) ([]cosmos.Uint, error) {
 	return []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)}, nil
 }
 
-func (k *WithdrawTestKeeperV98) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
+func (k *WithdrawTestKeeperV91) GetLiquidityProvider(ctx cosmos.Context, asset common.Asset, addr common.Address) (LiquidityProvider, error) {
 	if asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXISTSTICKER", Ticker: "NOTEXISTSTICKER"}) {
 		return types.LiquidityProvider{}, errors.New("you asked for it")
 	}
@@ -73,25 +75,25 @@ func (k *WithdrawTestKeeperV98) GetLiquidityProvider(ctx cosmos.Context, asset c
 	return k.keeper.GetLiquidityProvider(ctx, asset, addr)
 }
 
-func (k *WithdrawTestKeeperV98) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
+func (k *WithdrawTestKeeperV91) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (NetworkFee, error) {
 	return k.networkFees[chain], nil
 }
 
-func (k *WithdrawTestKeeperV98) SaveNetworkFee(ctx cosmos.Context, chain common.Chain, networkFee NetworkFee) error {
+func (k *WithdrawTestKeeperV91) SaveNetworkFee(ctx cosmos.Context, chain common.Chain, networkFee NetworkFee) error {
 	k.networkFees[chain] = networkFee
 	return nil
 }
 
-func (k *WithdrawTestKeeperV98) SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider) {
+func (k *WithdrawTestKeeperV91) SetLiquidityProvider(ctx cosmos.Context, lp LiquidityProvider) {
 	k.keeper.SetLiquidityProvider(ctx, lp)
 }
 
-func (s *WithdrawSuiteV98) SetUpSuite(c *C) {
+func (s *WithdrawSuiteV91) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }
 
 // TestValidateWithdraw is to test validateWithdraw function
-func (s WithdrawSuiteV98) TestValidateWithdraw(c *C) {
+func (s WithdrawSuiteV91) TestValidateWithdraw(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeWhiteListed).NodeAddress
 	runeAddress, err := common.NewAddress("bnb1g0xakzh03tpa54khxyvheeu92hwzypkdce77rm")
 	if err != nil {
@@ -183,7 +185,7 @@ func (s WithdrawSuiteV98) TestValidateWithdraw(c *C) {
 
 	for _, item := range inputs {
 		ctx, _ := setupKeeperForTest(c)
-		ps := &WithdrawTestKeeperV98{}
+		ps := &WithdrawTestKeeperV91{}
 		c.Logf("name:%s", item.name)
 		err := validateWithdrawV1(ctx, ps, item.msg)
 		if item.expectedError != nil {
@@ -195,7 +197,7 @@ func (s WithdrawSuiteV98) TestValidateWithdraw(c *C) {
 	}
 }
 
-func (s WithdrawSuiteV98) TestCalculateUnsake(c *C) {
+func (s WithdrawSuiteV91) TestCalculateUnsake(c *C) {
 	inputs := []struct {
 		name                  string
 		poolUnit              cosmos.Uint
@@ -312,12 +314,12 @@ func (s WithdrawSuiteV98) TestCalculateUnsake(c *C) {
 	}
 }
 
-func (WithdrawSuiteV98) TestWithdraw(c *C) {
+func (WithdrawSuiteV91) TestWithdraw(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	accountAddr := GetRandomValidatorNode(NodeWhiteListed).NodeAddress
 	runeAddress := GetRandomRUNEAddress()
-	ps := NewWithdrawTestKeeperV98(mgr.Keeper())
-	ps2 := getWithdrawTestKeeperV98(c, ctx, mgr.Keeper(), runeAddress)
+	ps := NewWithdrawTestKeeperV91(mgr.Keeper())
+	ps2 := getWithdrawTestKeeperV91(c, ctx, mgr.Keeper(), runeAddress)
 
 	remainGas := uint64(37500)
 	testCases := []struct {
@@ -463,7 +465,7 @@ func (WithdrawSuiteV98) TestWithdraw(c *C) {
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		}), IsNil)
-		r, asset, _, _, _, err := withdrawV98(ctx, tc.msg, mgr)
+		r, asset, _, _, _, err := withdrawV91(ctx, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -477,7 +479,7 @@ func (WithdrawSuiteV98) TestWithdraw(c *C) {
 	}
 }
 
-func (WithdrawSuiteV98) TestWithdrawAsym(c *C) {
+func (WithdrawSuiteV91) TestWithdrawAsym(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeWhiteListed).NodeAddress
 	runeAddress := GetRandomRUNEAddress()
 
@@ -527,7 +529,7 @@ func (WithdrawSuiteV98) TestWithdrawAsym(c *C) {
 			TransactionSize:    1,
 			TransactionFeeRate: bnbSingleTxFee.Uint64(),
 		}), IsNil)
-		r, asset, _, _, _, err := withdrawV98(ctx, tc.msg, mgr)
+		r, asset, _, _, _, err := withdrawV91(ctx, tc.msg, mgr)
 		if tc.expectedError != nil {
 			c.Assert(err, NotNil)
 			c.Check(err.Error(), Equals, tc.expectedError.Error())
@@ -541,7 +543,7 @@ func (WithdrawSuiteV98) TestWithdrawAsym(c *C) {
 	}
 }
 
-func (WithdrawSuiteV98) TestWithdrawPendingRuneOrAsset(c *C) {
+func (WithdrawSuiteV91) TestWithdrawPendingRuneOrAsset(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
 	ctx, mgr := setupManagerForTest(c)
 	pool := Pool{
@@ -572,7 +574,7 @@ func (WithdrawSuiteV98) TestWithdrawPendingRuneOrAsset(c *C) {
 		WithdrawalAsset: common.BNBAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV98(ctx, msg, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV91(ctx, msg, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(runeAmt.Equal(cosmos.NewUint(1024)), Equals, true)
 	c.Assert(assetAmt.IsZero(), Equals, true)
@@ -599,7 +601,7 @@ func (WithdrawSuiteV98) TestWithdrawPendingRuneOrAsset(c *C) {
 		WithdrawalAsset: common.BNBAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, _, unitsLeft, gas, err = withdrawV98(ctx, msg1, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err = withdrawV91(ctx, msg1, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(assetAmt.Equal(cosmos.NewUint(1024)), Equals, true)
 	c.Assert(runeAmt.IsZero(), Equals, true)
@@ -607,7 +609,7 @@ func (WithdrawSuiteV98) TestWithdrawPendingRuneOrAsset(c *C) {
 	c.Assert(gas.IsZero(), Equals, true)
 }
 
-func (s *WithdrawSuiteV98) TestWithdrawWithImpermanentLossProtection(c *C) {
+func (s *WithdrawSuiteV91) TestWithdrawWithImpermanentLossProtection(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
 	ctx, mgr := setupManagerForTest(c)
 	pool := Pool{
@@ -659,7 +661,7 @@ func (s *WithdrawSuiteV98) TestWithdrawWithImpermanentLossProtection(c *C) {
 	p.BalanceAsset = p.BalanceAsset.Add(cosmos.NewUint(common.One))
 	mgr.Keeper().SetMimir(ctx, fmt.Sprintf("ilp-%s", p.Asset), 1)
 	c.Assert(mgr.Keeper().SetPool(ctx, p), IsNil)
-	runeAmt, assetAmt, protectoinRuneAmt, unitsClaimed, gas, err := withdrawV98(newctx, msg2, mgr)
+	runeAmt, assetAmt, protectoinRuneAmt, unitsClaimed, gas, err := withdrawV91(newctx, msg2, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(assetAmt.Equal(cosmos.NewUint(50356727)), Equals, true, Commentf("%d", assetAmt.Uint64()))
 	c.Assert(runeAmt.IsZero(), Equals, true)
@@ -668,7 +670,7 @@ func (s *WithdrawSuiteV98) TestWithdrawWithImpermanentLossProtection(c *C) {
 	c.Assert(protectoinRuneAmt.Equal(cosmos.NewUint(21713)), Equals, true, Commentf("%d", protectoinRuneAmt.Uint64()))
 }
 
-func (s *WithdrawSuiteV98) TestWithdrawPendingLiquidityShouldRoundToPoolDecimals(c *C) {
+func (s *WithdrawSuiteV91) TestWithdrawPendingLiquidityShouldRoundToPoolDecimals(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
 	ctx, mgr := setupManagerForTest(c)
 	pool := Pool{
@@ -704,7 +706,7 @@ func (s *WithdrawSuiteV98) TestWithdrawPendingLiquidityShouldRoundToPoolDecimals
 		WithdrawalAsset: common.LUNAAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, protectoinRuneAmt, unitsClaimed, _, err := withdrawV98(newctx, msg2, mgr)
+	runeAmt, assetAmt, protectoinRuneAmt, unitsClaimed, _, err := withdrawV91(newctx, msg2, mgr)
 	c.Assert(err, IsNil)
 	c.Assert(assetAmt.Equal(cosmos.NewUint(339448125500)), Equals, true, Commentf("%d", assetAmt.Uint64()))
 	c.Assert(runeAmt.IsZero(), Equals, true)
@@ -712,8 +714,8 @@ func (s *WithdrawSuiteV98) TestWithdrawPendingLiquidityShouldRoundToPoolDecimals
 	c.Assert(unitsClaimed.IsZero(), Equals, true)
 }
 
-func getWithdrawTestKeeperV98(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
-	store := NewWithdrawTestKeeperV98(k)
+func getWithdrawTestKeeperV91(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
+	store := NewWithdrawTestKeeperV91(k)
 	pool := Pool{
 		BalanceRune:  cosmos.NewUint(100 * common.One),
 		BalanceAsset: cosmos.NewUint(100 * common.One),
@@ -740,7 +742,134 @@ func getWithdrawTestKeeperV98(c *C, ctx cosmos.Context, k keeper.Keeper, runeAdd
 	return store
 }
 
-func (WithdrawSuiteV98) TestWithdrawSynth(c *C) {
+func TestCalcImpLossV91(t *testing.T) {
+	testCases := []struct {
+		name                  string
+		pool                  Pool
+		lp                    types.LiquidityProvider
+		withdrawBasisPoint    int64
+		protectionBasisPoints int64
+		expectedILP           cosmos.Uint
+		expectedDepositValue  cosmos.Uint
+		expectedRedeemValue   cosmos.Uint
+	}{
+		{
+			name: "little-asset-large-rune",
+			pool: Pool{
+				Asset:        common.BTCAsset,
+				BalanceAsset: cosmos.NewUint(100 * common.One),
+				BalanceRune:  cosmos.NewUint(100 * common.One),
+				LPUnits:      cosmos.NewUint(100 * common.One),
+				SynthUnits:   cosmos.ZeroUint(),
+			},
+			lp: types.LiquidityProvider{
+				Units:             cosmos.NewUint(12345678),
+				AssetDepositValue: cosmos.NewUint(common.One),
+				RuneDepositValue:  cosmos.NewUint(common.One * 50),
+			},
+			withdrawBasisPoint:    10000,
+			protectionBasisPoints: 10000,
+			expectedILP:           cosmos.NewUint(5075308644),
+			expectedDepositValue:  cosmos.NewUint(5100000000),
+			expectedRedeemValue:   cosmos.NewUint(24691356),
+		},
+		{
+			name: "symmetrical-add",
+			pool: Pool{
+				Asset:        common.BTCAsset,
+				BalanceAsset: cosmos.NewUint(100 * common.One),
+				BalanceRune:  cosmos.NewUint(100 * common.One),
+				LPUnits:      cosmos.NewUint(100 * common.One),
+				SynthUnits:   cosmos.ZeroUint(),
+			},
+			lp: types.LiquidityProvider{
+				Units:             cosmos.NewUint(common.One * 50),
+				AssetDepositValue: cosmos.NewUint(common.One * 50),
+				RuneDepositValue:  cosmos.NewUint(common.One * 50),
+			},
+			withdrawBasisPoint:    10000,
+			protectionBasisPoints: 10000,
+			expectedILP:           cosmos.ZeroUint(),
+			expectedDepositValue:  cosmos.NewUint(10000000000),
+			expectedRedeemValue:   cosmos.NewUint(10000000000),
+		},
+		{
+			name: "price-less-than-one",
+			pool: Pool{
+				Asset:        common.BTCAsset,
+				BalanceAsset: cosmos.NewUint(100 * common.One),
+				BalanceRune:  cosmos.NewUint(10 * common.One),
+				LPUnits:      cosmos.NewUint(100 * common.One),
+				SynthUnits:   cosmos.ZeroUint(),
+			},
+			lp: types.LiquidityProvider{
+				Units:             cosmos.NewUint(common.One * 10),
+				AssetDepositValue: cosmos.NewUint(common.One * 50),
+				RuneDepositValue:  cosmos.NewUint(common.One),
+			},
+			withdrawBasisPoint:    10000,
+			protectionBasisPoints: 10000,
+			expectedILP:           cosmos.NewUint(400000000),
+			expectedDepositValue:  cosmos.NewUint(600000000),
+			expectedRedeemValue:   cosmos.NewUint(200000000),
+		},
+		{
+			name: "half-coverage",
+			pool: Pool{
+				Asset:        common.BTCAsset,
+				BalanceAsset: cosmos.NewUint(100 * common.One),
+				BalanceRune:  cosmos.NewUint(100 * common.One),
+				LPUnits:      cosmos.NewUint(100 * common.One),
+				SynthUnits:   cosmos.ZeroUint(),
+			},
+			lp: types.LiquidityProvider{
+				Units:             cosmos.NewUint(12345678),
+				AssetDepositValue: cosmos.NewUint(common.One),
+				RuneDepositValue:  cosmos.NewUint(common.One * 50),
+			},
+			withdrawBasisPoint:    10000,
+			protectionBasisPoints: 5000,
+			expectedILP:           cosmos.NewUint(2537654322),
+			expectedDepositValue:  cosmos.NewUint(5100000000),
+			expectedRedeemValue:   cosmos.NewUint(24691356),
+		},
+		{
+			name: "no-panic",
+			pool: Pool{
+				Asset:        common.BTCAsset,
+				BalanceAsset: cosmos.NewUint(100 * common.One),
+				BalanceRune:  cosmos.NewUint(100 * common.One),
+				LPUnits:      getUintFromString("56641523781457101833101355"),
+				SynthUnits:   getUintFromString("14364006570060942596417271288417281565500"),
+			},
+			lp: types.LiquidityProvider{
+				Units:             getUintFromString("56641523781433101833101355"),
+				AssetDepositValue: cosmos.NewUint(common.One),
+				RuneDepositValue:  cosmos.NewUint(common.One * 50),
+			},
+			withdrawBasisPoint:    10000,
+			protectionBasisPoints: 5000,
+			expectedILP:           cosmos.ZeroUint(),
+			expectedDepositValue:  cosmos.ZeroUint(),
+			expectedRedeemValue:   cosmos.ZeroUint(),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t1 *testing.T) {
+			ilpRune, depositValue, redeemValue := calcImpLossV91(tc.lp, cosmos.NewUint(uint64(tc.withdrawBasisPoint)), tc.protectionBasisPoints, tc.pool)
+			assert.Equal(t1, ilpRune.String(), tc.expectedILP.String())
+			assert.Equal(t1, depositValue.String(), tc.expectedDepositValue.String())
+			assert.Equal(t1, redeemValue.String(), tc.expectedRedeemValue.String())
+		})
+	}
+}
+
+func getUintFromString(input string) cosmos.Uint {
+	result, _ := cosmos.ParseUint(input)
+	return result
+}
+
+func (WithdrawSuiteV91) TestWithdrawSynth(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
 	ctx, mgr := setupManagerForTest(c)
 	asset := common.BTCAsset.GetSyntheticAsset()
@@ -777,7 +906,7 @@ func (WithdrawSuiteV98) TestWithdrawSynth(c *C) {
 		WithdrawalAsset: common.EmptyAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV98(ctx, msg, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV91(ctx, msg, mgr)
 	c.Assert(err, IsNil)
 	c.Check(assetAmt.Uint64(), Equals, uint64(25*common.One), Commentf("%d", assetAmt.Uint64()))
 	c.Check(runeAmt.IsZero(), Equals, true)
@@ -791,7 +920,7 @@ func (WithdrawSuiteV98) TestWithdrawSynth(c *C) {
 	c.Check(pool.LPUnits.Uint64(), Equals, uint64(150*common.One), Commentf("%d", pool.LPUnits.Uint64())) // LP units did decreased
 }
 
-func (WithdrawSuiteV98) TestWithdrawSynthSingleLP(c *C) {
+func (WithdrawSuiteV91) TestWithdrawSynthSingleLP(c *C) {
 	accountAddr := GetRandomValidatorNode(NodeActive).NodeAddress
 	ctx, mgr := setupManagerForTest(c)
 	asset := common.BTCAsset.GetSyntheticAsset()
@@ -828,7 +957,7 @@ func (WithdrawSuiteV98) TestWithdrawSynthSingleLP(c *C) {
 		WithdrawalAsset: common.EmptyAsset,
 		Signer:          accountAddr,
 	}
-	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV98(ctx, msg, mgr)
+	runeAmt, assetAmt, _, unitsLeft, gas, err := withdrawV91(ctx, msg, mgr)
 	c.Assert(err, IsNil)
 	c.Check(assetAmt.Uint64(), Equals, coin.Amount.Uint64(), Commentf("%d", assetAmt.Uint64()))
 	c.Check(runeAmt.IsZero(), Equals, true)

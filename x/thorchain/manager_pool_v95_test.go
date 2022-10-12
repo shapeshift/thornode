@@ -9,11 +9,11 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type PoolMgrV98Suite struct{}
+type PoolMgrV95Suite struct{}
 
-var _ = Suite(&PoolMgrV98Suite{})
+var _ = Suite(&PoolMgrV95Suite{})
 
-func (s *PoolMgrV98Suite) TestEnableNextPool(c *C) {
+func (s *PoolMgrV95Suite) TestEnableNextPool(c *C) {
 	var err error
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
@@ -60,7 +60,7 @@ func (s *PoolMgrV98Suite) TestEnableNextPool(c *C) {
 	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	poolMgr := newPoolMgrV98(k)
+	poolMgr := newPoolMgrV95(k)
 
 	// should enable BTC
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 0, mgr), IsNil)
@@ -83,7 +83,7 @@ func (s *PoolMgrV98Suite) TestEnableNextPool(c *C) {
 	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(30*common.One))
 }
 
-func (s *PoolMgrV98Suite) TestAbandonPool(c *C) {
+func (s *PoolMgrV95Suite) TestAbandonPool(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
 	usdAsset, err := common.NewAsset("BNB.TUSDB")
@@ -114,7 +114,7 @@ func (s *PoolMgrV98Suite) TestAbandonPool(c *C) {
 	}
 	k.SetLiquidityProvider(ctx, lp)
 
-	poolMgr := newPoolMgrV98(k)
+	poolMgr := newPoolMgrV95(k)
 
 	// cycle pools
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 100*common.One, mgr), IsNil)
@@ -141,7 +141,7 @@ func (s *PoolMgrV98Suite) TestAbandonPool(c *C) {
 	c.Assert(count, Equals, 0)
 }
 
-func (s *PoolMgrV98Suite) TestDemotePoolWithLowLiquidityFees(c *C) {
+func (s *PoolMgrV95Suite) TestDemotePoolWithLowLiquidityFees(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
 	usdAsset, err := common.NewAsset("BNB.TUSDB")
@@ -189,7 +189,7 @@ func (s *PoolMgrV98Suite) TestDemotePoolWithLowLiquidityFees(c *C) {
 	k.SetLiquidityProvider(ctx, lp)
 	k.SetMimir(ctx, constants.MinimumPoolLiquidityFee.String(), 100000000)
 
-	poolMgr := newPoolMgrV98(k)
+	poolMgr := newPoolMgrV95(k)
 
 	// cycle pools
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 100*common.One, mgr), IsNil)
@@ -222,10 +222,10 @@ func (s *PoolMgrV98Suite) TestDemotePoolWithLowLiquidityFees(c *C) {
 	c.Assert(afterBNBEth.Status == PoolStaged, Equals, true)
 }
 
-func (s *PoolMgrV98Suite) TestPoolMeetTradingVolumeCriteria(c *C) {
+func (s *PoolMgrV95Suite) TestPoolMeetTradingVolumeCriteria(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
-	pm := newPoolMgrV98(k)
+	pm := newPoolMgrV95(k)
 
 	asset := common.BTCAsset
 
@@ -256,10 +256,10 @@ func (s *PoolMgrV98Suite) TestPoolMeetTradingVolumeCriteria(c *C) {
 		Commentf("pool should meet min fee criteria"))
 }
 
-func (s *PoolMgrV98Suite) TestRemoveAssetFromVault(c *C) {
+func (s *PoolMgrV95Suite) TestRemoveAssetFromVault(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
-	pm := newPoolMgrV98(k)
+	pm := newPoolMgrV95(k)
 
 	asset := common.BTCAsset
 
@@ -294,10 +294,10 @@ func (s *PoolMgrV98Suite) TestRemoveAssetFromVault(c *C) {
 		Commentf("vault1 should no longer have asset"))
 }
 
-func (s *PoolMgrV98Suite) TestRemoveLiquidityProviders(c *C) {
+func (s *PoolMgrV95Suite) TestRemoveLiquidityProviders(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
-	pm := newPoolMgrV98(k)
+	pm := newPoolMgrV95(k)
 
 	countLiquidityProviders := func(ctx cosmos.Context, k keeper.Keeper, asset common.Asset) int {
 		count := 0

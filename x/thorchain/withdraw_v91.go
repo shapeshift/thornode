@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"errors"
 	"fmt"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -8,9 +9,9 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-// withdrawV98 all the asset
+// withdrawV91 all the asset
 // it returns runeAmt,assetAmount,protectionRuneAmt,units, lastWithdraw,err
-func withdrawV98(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+func withdrawV91(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if err := validateWithdrawV1(ctx, mgr.Keeper(), msg); err != nil {
 		ctx.Logger().Error("msg withdraw fail validation", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
@@ -165,7 +166,7 @@ func withdrawV98(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 	}
 
 	// Create a pool event if THORNode have no rune or assets
-	if (pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero()) && !pool.Asset.IsVaultAsset() {
+	if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() {
 		poolEvt := NewEventPool(pool.Asset, PoolStaged)
 		if err := mgr.EventMgr().EmitEvent(ctx, poolEvt); nil != err {
 			ctx.Logger().Error("fail to emit pool event", "error", err)
@@ -193,4 +194,77 @@ func withdrawV98(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 		}
 	}
 	return withdrawRune, withDrawAsset, protectionRuneAmount, common.SafeSub(originalLiquidityProviderUnits, unitAfter), gasAsset, nil
+}
+
+func calculateVaultWithdrawV1(vaultUnits, assetAmt, lpUnits, withdrawBasisPoints cosmos.Uint) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+	if vaultUnits.IsZero() || lpUnits.IsZero() || assetAmt.IsZero() || withdrawBasisPoints.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint()
+	}
+
+	unitsToClaim := common.GetSafeShare(withdrawBasisPoints, cosmos.NewUint(MaxWithdrawBasisPoints), lpUnits)
+	unitAfter := common.SafeSub(lpUnits, unitsToClaim)
+	withdrawAsset := common.GetSafeShare(unitsToClaim, vaultUnits, assetAmt)
+	return cosmos.ZeroUint(), withdrawAsset, unitAfter
+}
+
+func calculateWithdrawV91(poolUnits, poolRune, poolAsset, lpUnits, extraUnits, withdrawBasisPoints cosmos.Uint, withdrawalAsset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+	if poolUnits.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("poolUnits can't be zero")
+	}
+	if poolRune.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("pool rune balance can't be zero")
+	}
+	if poolAsset.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("pool asset balance can't be zero")
+	}
+	if lpUnits.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("liquidity provider unit can't be zero")
+	}
+	if withdrawBasisPoints.GT(cosmos.NewUint(MaxWithdrawBasisPoints)) {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), fmt.Errorf("withdraw basis point %s is not valid", withdrawBasisPoints.String())
+	}
+
+	unitsToClaim := common.GetSafeShare(withdrawBasisPoints, cosmos.NewUint(10000), lpUnits)
+	unitAfter := common.SafeSub(lpUnits, unitsToClaim)
+	unitsToClaim = unitsToClaim.Add(extraUnits)
+	if withdrawalAsset.IsEmpty() {
+		withdrawRune := common.GetSafeShare(unitsToClaim, poolUnits, poolRune)
+		withdrawAsset := common.GetSafeShare(unitsToClaim, poolUnits, poolAsset)
+		return withdrawRune, withdrawAsset, unitAfter, nil
+	}
+	if withdrawalAsset.IsRune() {
+		return calcAsymWithdrawalV1(unitsToClaim, poolUnits, poolRune), cosmos.ZeroUint(), unitAfter, nil
+	}
+	return cosmos.ZeroUint(), calcAsymWithdrawalV1(unitsToClaim, poolUnits, poolAsset), unitAfter, nil
+}
+
+// calcImpLossV91 if there needs to add some imp loss protection, in rune
+func calcImpLossV91(lp LiquidityProvider, withdrawBasisPoints cosmos.Uint, protectionBasisPoints int64, pool Pool) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+	/*
+		A0 = assetDepositValue; R0 = runeDepositValue;
+
+		liquidityUnits = units the member wishes to redeem after applying withdrawBasisPoints
+		A1 = GetUncappedShare(liquidityUnits, lpUnits, assetDepth);
+		R1 = GetUncappedShare(liquidityUnits, lpUnits, runeDepth);
+		P1 = R1/A1
+		coverage = ((A0 * P1) + R0) - ((A1 * P1) + R1) => ((A0 * R1/A1) + R0) - (R1 + R1)
+	*/
+	A0 := lp.AssetDepositValue
+	R0 := lp.RuneDepositValue
+	poolUnits := pool.GetPoolUnits()
+	A1 := common.GetSafeShare(lp.Units, poolUnits, pool.BalanceAsset)
+	R1 := common.GetSafeShare(lp.Units, poolUnits, pool.BalanceRune)
+	if A1.IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint()
+	}
+	depositValue := A0.Mul(R1).Quo(A1).Add(R0)
+	redeemValue := R1.Add(R1)
+	coverage := common.SafeSub(depositValue, redeemValue)
+
+	// taking withdrawBasisPoints, calculate how much of the coverage the user should receives
+	coverage = common.GetSafeShare(withdrawBasisPoints, cosmos.NewUint(10000), coverage)
+
+	// taking protection basis points, calculate how much of the coverage the user actually receives
+	result := coverage.MulUint64(uint64(protectionBasisPoints)).QuoUint64(10000)
+	return result, depositValue, redeemValue
 }

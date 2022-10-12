@@ -409,6 +409,8 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 // GetPoolManager return an implementation of PoolManager
 func GetPoolManager(version semver.Version, keeper keeper.Keeper) (PoolManager, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.98.0")):
+		return newPoolMgrV98(keeper), nil
 	case version.GTE(semver.MustParse("1.95.0")):
 		return newPoolMgrV95(keeper), nil
 	case version.GTE(semver.MustParse("0.73.0")):

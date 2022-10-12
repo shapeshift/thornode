@@ -403,6 +403,8 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 ) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.98.0")):
+		return h.addLiquidityV98(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	case version.GTE(semver.MustParse("1.96.0")):
 		return h.addLiquidityV96(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	case version.GTE(semver.MustParse("1.95.0")):
@@ -416,7 +418,7 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	}
 }
 
-func (h AddLiquidityHandler) addLiquidityV96(ctx cosmos.Context,
+func (h AddLiquidityHandler) addLiquidityV98(ctx cosmos.Context,
 	asset common.Asset,
 	addRuneAmount, addAssetAmount cosmos.Uint,
 	runeAddr, assetAddr common.Address,
@@ -440,7 +442,8 @@ func (h AddLiquidityHandler) addLiquidityV96(ctx cosmos.Context,
 	if originalUnits.IsZero() {
 		defaultPoolStatus := PoolAvailable.String()
 		// if the pools is for gas asset on the chain, automatically enable it
-		if !pool.Asset.Equals(pool.Asset.GetChain().GetGasAsset()) {
+		if !pool.Asset.Equals(pool.Asset.GetChain().GetGasAsset()) &&
+			!pool.Asset.IsVaultAsset() {
 			defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
 		}
 		pool.Status = GetPoolStatus(defaultPoolStatus)
