@@ -28,6 +28,7 @@ LITECOIN_ENDPOINT="${LTC_HOST:-litecoin-daemon:${LITECOIN_DAEMON_SERVICE_PORT_RP
 BITCOIN_CASH_ENDPOINT="${BCH_HOST:-bitcoin-cash-daemon:${BITCOIN_CASH_DAEMON_SERVICE_PORT_RPC:-8332}}"
 DOGECOIN_ENDPOINT="${DOGE_HOST:-dogecoin-daemon:${DOGECOIN_DAEMON_SERVICE_PORT_RPC:-22555}}"
 ETHEREUM_ENDPOINT="${ETH_HOST:-http://ethereum-daemon:${ETHEREUM_DAEMON_SERVICE_PORT_RPC:-8545}}"
+ETHEREUM_BEACON_ENDPOINT=$(echo "$ETHEREUM_ENDPOINT" | sed 's/:[0-9]*$/:3500/g')
 GAIA_ENDPOINT="${GAIA_HOST:-http://gaia-daemon:26657}"
 AVALANCHE_ENDPOINT="${AVAX_HOST:-http://avalanche-daemon:9650/ext/bc/C/rpc}"
 
@@ -73,15 +74,10 @@ if [ "$VALIDATOR" = "true" ]; then
   LTC_PROGRESS=$(calc_progress "$LTC_SYNC_HEIGHT" "$LTC_HEIGHT" "$LTC_PROGRESS")
 
   # calculate ETH chain sync progress
-  ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' -H 'content-type: application/json' "$ETHEREUM_ENDPOINT")
-  if [ "$ETH_RESULT" = '{"jsonrpc":"2.0","id":1,"result":false}' ]; then
-    ETH_RESULT=$(curl -X POST -sL --fail -m 10 --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H 'content-type: application/json' "$ETHEREUM_ENDPOINT")
-    ETH_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result")")
-    ETH_SYNC_HEIGHT=$ETH_HEIGHT
-    ETH_PROGRESS=$(calc_progress "$ETH_SYNC_HEIGHT" "$ETH_HEIGHT")
-  elif [ -n "$ETH_RESULT" ]; then
-    ETH_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result.highestBlock")")
-    ETH_SYNC_HEIGHT=$(printf "%.0f" "$(echo "$ETH_RESULT" | jq -r ".result.currentBlock")")
+  ETH_RESULT=$(curl -sL --fail -m 10 "$ETHEREUM_BEACON_ENDPOINT/eth/v1/node/syncing")
+  if [ -n "$ETH_RESULT" ]; then
+    ETH_HEIGHT=$(echo "$ETH_RESULT" | jq -r "(.data.head_slot|tonumber)+(.data.sync_distance|tonumber)")
+    ETH_SYNC_HEIGHT=$(echo "$ETH_RESULT" | jq -r ".data.head_slot|tonumber")
     ETH_PROGRESS=$(calc_progress "$ETH_SYNC_HEIGHT" "$ETH_HEIGHT")
   else
     ETH_PROGRESS=Error
@@ -101,13 +97,6 @@ if [ "$VALIDATOR" = "true" ]; then
     DOGE_SYNC_HEIGHT=$(echo "$DOGE_RESULT" | jq -r ".result.blocks")
     DOGE_PROGRESS=$(echo "$DOGE_RESULT" | jq -r ".result.verificationprogress")
     DOGE_PROGRESS=$(calc_progress "$DOGE_SYNC_HEIGHT" "$DOGE_HEIGHT" "$DOGE_PROGRESS")
-  fi
-
-  # calculate Terra chain sync progress
-  if [ -n "$TERRA_DAEMON_SERVICE_PORT_RPC" ]; then
-    TERRA_HEIGHT=$(curl -sL --fail -m 10 https://lcd.terra.dev/blocks/latest | jq -e -r ".block.header.height")
-    TERRA_SYNC_HEIGHT=$(curl -sL --fail -m 10 terra-daemon:"$TERRA_DAEMON_SERVICE_PORT_RPC"/status | jq -r ".result.sync_info.latest_block_height")
-    TERRA_PROGRESS=$(calc_progress "$TERRA_SYNC_HEIGHT" "$TERRA_HEIGHT")
   fi
 
   # calculate Gaia chain sync progress
@@ -143,6 +132,10 @@ elif [ "$SEEDS" != "" ]; then
     break
   done
   IFS=$OLD_IFS
+elif [ "$NET" = "mainnet" ]; then
+  THOR_HEIGHT=$(curl -sL --fail -m 10 https://rpc.ninerealms.com/status | jq -r ".result.sync_info.latest_block_height")
+elif [ "$NET" = "stagenet" ]; then
+  THOR_HEIGHT=$(curl -sL --fail -m 10 https://stagenet-rpc.ninerealms.com/status | jq -r ".result.sync_info.latest_block_height")
 else
   THOR_HEIGHT=$THOR_SYNC_HEIGHT
 fi
@@ -187,29 +180,24 @@ BCH_HEIGHT=${BCH_HEIGHT:=0}
 BCH_SYNC_HEIGHT=${BCH_SYNC_HEIGHT:=0}
 DOGE_HEIGHT=${DOGE_HEIGHT:=0}
 DOGE_SYNC_HEIGHT=${DOGE_SYNC_HEIGHT:=0}
-TERRA_HEIGHT=${TERRA_HEIGHT:=0}
-TERRA_SYNC_HEIGHT=${TERRA_SYNC_HEIGHT:=0}
 GAIA_HEIGHT=${GAIA_HEIGHT:=0}
 GAIA_SYNC_HEIGHT=${GAIA_SYNC_HEIGHT:=0}
 
 echo
-printf "%-10s %-10s %-14s %-10s\n" CHAIN SYNC BEHIND TIP
-printf "%-10s %-10s %-14s %-10s\n" THOR "$THOR_PROGRESS" "$(format_int $((THOR_SYNC_HEIGHT - THOR_HEIGHT)))" "$(format_int "$THOR_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-10s %-10s %-14s %-10s\n" BNB "$BNB_PROGRESS" "$(format_int $((BNB_SYNC_HEIGHT - BNB_HEIGHT)))" "$(format_int "$BNB_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-10s %-10s %-14s %-10s\n" BTC "$BTC_PROGRESS" "$(format_int $((BTC_SYNC_HEIGHT - BTC_HEIGHT)))" "$(format_int "$BTC_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-10s %-10s %-14s %-10s\n" ETH "$ETH_PROGRESS" "$(format_int $((ETH_SYNC_HEIGHT - ETH_HEIGHT)))" "$(format_int "$ETH_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-10s %-10s %-14s %-10s\n" LTC "$LTC_PROGRESS" "$(format_int $((LTC_SYNC_HEIGHT - LTC_HEIGHT)))" "$(format_int "$LTC_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-10s %-10s %-14s %-10s\n" BCH "$BCH_PROGRESS" "$(format_int $((BCH_SYNC_HEIGHT - BCH_HEIGHT)))" "$(format_int "$BCH_HEIGHT")"
+printf "%-18s %-10s %-14s %-10s\n" CHAIN SYNC BEHIND TIP
+printf "%-18s %-10s %-14s %-10s\n" THOR "$THOR_PROGRESS" "$(format_int $((THOR_SYNC_HEIGHT - THOR_HEIGHT)))" "$(format_int "$THOR_HEIGHT")"
+[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" BNB "$BNB_PROGRESS" "$(format_int $((BNB_SYNC_HEIGHT - BNB_HEIGHT)))" "$(format_int "$BNB_HEIGHT")"
+[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" BTC "$BTC_PROGRESS" "$(format_int $((BTC_SYNC_HEIGHT - BTC_HEIGHT)))" "$(format_int "$BTC_HEIGHT")"
+[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" "ETH (beacon slot)" "$ETH_PROGRESS" "$(format_int $((ETH_SYNC_HEIGHT - ETH_HEIGHT)))" "$(format_int "$ETH_HEIGHT")"
+[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" LTC "$LTC_PROGRESS" "$(format_int $((LTC_SYNC_HEIGHT - LTC_HEIGHT)))" "$(format_int "$LTC_HEIGHT")"
+[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" BCH "$BCH_PROGRESS" "$(format_int $((BCH_SYNC_HEIGHT - BCH_HEIGHT)))" "$(format_int "$BCH_HEIGHT")"
 if [ "$VALIDATOR" = "true" ] && [ -n "$DOGECOIN_DAEMON_SERVICE_PORT_RPC" ]; then
-  printf "%-10s %-10s %-14s %-10s\n" DOGE "$DOGE_PROGRESS" "$(format_int $((DOGE_SYNC_HEIGHT - DOGE_HEIGHT)))" "$(format_int "$DOGE_HEIGHT")"
-fi
-if [ "$VALIDATOR" = "true" ] && [ -n "$TERRA_DAEMON_SERVICE_PORT_RPC" ]; then
-  printf "%-10s %-10s %-14s %-10s\n" TERRA "$TERRA_PROGRESS" "$(format_int $((TERRA_SYNC_HEIGHT - TERRA_HEIGHT)))" "$(format_int "$TERRA_HEIGHT")"
+  printf "%-18s %-10s %-14s %-10s\n" DOGE "$DOGE_PROGRESS" "$(format_int $((DOGE_SYNC_HEIGHT - DOGE_HEIGHT)))" "$(format_int "$DOGE_HEIGHT")"
 fi
 if [ "$VALIDATOR" = "true" ] && [ -n "$GAIA_DAEMON_SERVICE_PORT_RPC" ]; then
-  printf "%-10s %-10s %-14s %-10s\n" GAIA "$GAIA_PROGRESS" "$(format_int $((GAIA_SYNC_HEIGHT - GAIA_HEIGHT)))" "$(format_int "$GAIA_HEIGHT")"
+  printf "%-18s %-10s %-14s %-10s\n" GAIA "$GAIA_PROGRESS" "$(format_int $((GAIA_SYNC_HEIGHT - GAIA_HEIGHT)))" "$(format_int "$GAIA_HEIGHT")"
 fi
 if [ "$VALIDATOR" = "true" ] && [ -n "$AVALANCHE_DAEMON_SERVICE_PORT_RPC" ]; then
-  printf "%-10s %-10s %-14s %-10s\n" AVAX "$AVAX_PROGRESS" "$(format_int $((AVAX_SYNC_HEIGHT - AVAX_HEIGHT)))" "$(format_int "$AVAX_HEIGHT")"
+  printf "%-18s %-10s %-14s %-10s\n" AVAX "$AVAX_PROGRESS" "$(format_int $((AVAX_SYNC_HEIGHT - AVAX_HEIGHT)))" "$(format_int "$AVAX_HEIGHT")"
 fi
 exit 0
