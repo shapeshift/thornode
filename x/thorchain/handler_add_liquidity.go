@@ -359,17 +359,17 @@ func calculatePoolUnitsV1(oldPoolUnits, poolRune, poolAsset, addRune, addAsset c
 
 	// (r + R) (a + A)
 	slipAdjDenominator := (r.Add(R)).Mul(a.Add(A))
-	// ABS((R a - r A)/((2 r + R) (a + A)))
+	// ABS((R a - r A)/((r + R) (a + A)))
 	var slipAdjustment cosmos.Dec
 	if R.Mul(a).GT(r.Mul(A)) {
 		slipAdjustment = R.Mul(a).Sub(r.Mul(A)).Quo(slipAdjDenominator)
 	} else {
 		slipAdjustment = r.Mul(A).Sub(R.Mul(a)).Quo(slipAdjDenominator)
 	}
-	// (1 - ABS((R a - r A)/((2 r + R) (a + A))))
+	// (1 - ABS((R a - r A)/((r + R) (a + A))))
 	slipAdjustment = cosmos.NewDec(1).Sub(slipAdjustment)
 
-	// ((P (a R + A r))
+	// (P (a R + A r))
 	numerator := P.Mul(a.Mul(R).Add(A.Mul(r)))
 	// 2AR
 	denominator := cosmos.NewDec(2).Mul(A).Mul(R)
