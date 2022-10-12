@@ -16,6 +16,7 @@ import (
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	openapi "gitlab.com/thorchain/thornode/openapi/gen"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	"gitlab.com/thorchain/thornode/x/thorchain/query"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -185,10 +186,10 @@ func (s *QuerierSuite) TestVaultss(c *C) {
 	c.Assert(err, NotNil)
 }
 
-func (s *QuerierSuite) TestBucket(c *C) {
+func (s *QuerierSuite) TestSaverPools(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	querier := NewQuerier(mgr, s.kb)
-	path := []string{"buckets"}
+	path := []string{"pools"}
 
 	poolBNB := NewPool()
 	poolBNB.Asset = common.BNBAsset.GetSyntheticAsset()
@@ -198,19 +199,36 @@ func (s *QuerierSuite) TestBucket(c *C) {
 	poolBTC.Asset = common.BTCAsset
 	poolBTC.LPUnits = cosmos.NewUint(1000)
 
+	poolETH := NewPool()
+	poolETH.Asset = common.ETHAsset.GetSyntheticAsset()
+	poolETH.LPUnits = cosmos.NewUint(100)
+
 	err := mgr.Keeper().SetPool(ctx, poolBNB)
 	c.Assert(err, IsNil)
 
 	err = mgr.Keeper().SetPool(ctx, poolBTC)
 	c.Assert(err, IsNil)
 
+	err = mgr.Keeper().SetPool(ctx, poolETH)
+	c.Assert(err, IsNil)
+
 	res, err := querier(ctx, path, abci.RequestQuery{})
 	c.Assert(err, IsNil)
 
-	var out Pools
+	var out []openapi.Pool
 	err = json.Unmarshal(res, &out)
 	c.Assert(err, IsNil)
-	c.Assert(len(out), Equals, 1)
+	c.Assert(len(out), Equals, 3)
+
+	numSaverPools := 0
+
+	for _, pool := range out {
+		if pool.IsSaversPool {
+			numSaverPools++
+		}
+	}
+
+	c.Assert(numSaverPools, Equals, 2)
 }
 
 func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
@@ -320,6 +338,39 @@ func (s *QuerierSuite) TestQueryLiquidityProviders(c *C) {
 	var lps LiquidityProviders
 	c.Assert(json.Unmarshal(result, &lps), IsNil)
 	c.Assert(lps, HasLen, 1)
+
+	// Should fail if requesting a savers pool from the liquidity_providers endpoint
+	result, err = s.querier(s.ctx, []string{query.QueryLiquidityProviders.Key, "BNB_BNB"}, req)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
+
+	req = abci.RequestQuery{
+		Data:   nil,
+		Path:   query.QuerySavers.Key,
+		Height: s.ctx.BlockHeight(),
+		Prove:  false,
+	}
+
+	s.k.SetLiquidityProvider(s.ctx, LiquidityProvider{
+		Asset:              common.BNBAsset.GetSyntheticAsset(),
+		RuneAddress:        GetRandomBNBAddress(),
+		AssetAddress:       GetRandomRUNEAddress(),
+		LastAddHeight:      1024,
+		LastWithdrawHeight: 0,
+		Units:              cosmos.NewUint(10),
+	})
+
+	// Query Savers from SaversPool
+	result, err = s.querier(s.ctx, []string{query.QuerySavers.Key, "BNB_BNB"}, req)
+	c.Assert(err, IsNil)
+	var savers LiquidityProviders
+	c.Assert(json.Unmarshal(result, &savers), IsNil)
+	c.Assert(lps, HasLen, 1)
+
+	// Query Savers from L1 Pool, should fail
+	result, err = s.querier(s.ctx, []string{query.QuerySavers.Key, "BNB.BNB"}, req)
+	c.Assert(err, NotNil)
+	c.Assert(result, IsNil)
 }
 
 func (s *QuerierSuite) TestQueryTxInVoter(c *C) {

@@ -66,41 +66,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/PoolsResponse"
 
-  # ------------------------------ buckets ------------------------------
-
-  /thorchain/bucket/{asset}:
-    parameters:
-      - $ref: "#/components/parameters/queryHeight"
-      - $ref: "#/components/parameters/asset"
-    get:
-      description: Returns the bucket information for the provided asset.
-      operationId: bucket
-      tags:
-        - Buckets
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BucketResponse"
-
-  /thorchain/buckets:
-    parameters:
-      - $ref: "#/components/parameters/queryHeight"
-    get:
-      description: Returns the bucket information for all assets.
-      operationId: buckets
-      tags:
-        - Buckets
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BucketsResponse"
-
   # # ------------------------------ liquidity providers ------------------------------
 
   /thorchain/pool/{asset}/liquidity_provider/{address}:
@@ -130,6 +95,43 @@ paths:
       operationId: liquidityProviders
       tags:
         - Liquidity Providers
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiquidityProviderResponse"
+
+  # # ------------------------------ savers ------------------------------
+
+  /thorchain/pool/{asset}/saver/{address}:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - $ref: "#/components/parameters/asset"
+      - $ref: "#/components/parameters/address"
+    get:
+      description: Returns the saver position given then savers pool and address.
+      operationId: saver
+      tags:
+        - Savers
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiquidityProviderResponse"
+
+  /thorchain/pool/{asset}/savers:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - $ref: "#/components/parameters/asset"
+    get:
+      description: Returns all savers for the savers pool.
+      operationId: savers
+      tags:
+        - Savers
       responses:
         200:
           description: OK
@@ -744,6 +746,7 @@ components:
         - synth_supply
         - pending_inbound_rune
         - pending_inbound_asset
+        - is_savers_pool
       properties:
         balance_rune:
           type: string
@@ -783,6 +786,10 @@ components:
         pending_inbound_asset:
           type: string
           example: "101713319"
+        is_savers_pool:
+          type: boolean
+          example: true
+          description: Returns true if pool is a Savers pool. Savers pools are used for single-sided yield deposits.
 
     Bucket:
       type: object
