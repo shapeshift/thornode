@@ -339,11 +339,6 @@ func (s *QuerierSuite) TestQueryLiquidityProviders(c *C) {
 	c.Assert(json.Unmarshal(result, &lps), IsNil)
 	c.Assert(lps, HasLen, 1)
 
-	// Should fail if requesting a savers pool from the liquidity_providers endpoint
-	result, err = s.querier(s.ctx, []string{query.QueryLiquidityProviders.Key, "BNB_BNB"}, req)
-	c.Assert(err, NotNil)
-	c.Assert(result, IsNil)
-
 	req = abci.RequestQuery{
 		Data:   nil,
 		Path:   query.QuerySavers.Key,
@@ -361,16 +356,11 @@ func (s *QuerierSuite) TestQueryLiquidityProviders(c *C) {
 	})
 
 	// Query Savers from SaversPool
-	result, err = s.querier(s.ctx, []string{query.QuerySavers.Key, "BNB_BNB"}, req)
+	result, err = s.querier(s.ctx, []string{query.QuerySavers.Key, "BNB.BNB"}, req)
 	c.Assert(err, IsNil)
 	var savers LiquidityProviders
 	c.Assert(json.Unmarshal(result, &savers), IsNil)
 	c.Assert(lps, HasLen, 1)
-
-	// Query Savers from L1 Pool, should fail
-	result, err = s.querier(s.ctx, []string{query.QuerySavers.Key, "BNB.BNB"}, req)
-	c.Assert(err, NotNil)
-	c.Assert(result, IsNil)
 }
 
 func (s *QuerierSuite) TestQueryTxInVoter(c *C) {

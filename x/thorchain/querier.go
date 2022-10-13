@@ -773,7 +773,9 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 	if len(path) == 0 {
 		return nil, errors.New("asset not provided")
 	}
-	path[0] = strings.Replace(path[0], "_", "/", 1)
+	if isSavers {
+		path[0] = strings.Replace(path[0], ".", "/", 1)
+	}
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to get parse asset", "error", err)
@@ -807,7 +809,9 @@ func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQ
 	if len(path) < 2 {
 		return nil, errors.New("asset/lp not provided")
 	}
-	path[0] = strings.Replace(path[0], "_", "/", 1)
+	if isSavers {
+		path[0] = strings.Replace(path[0], ".", "/", 1)
+	}
 	asset, err := common.NewAsset(path[0])
 	if err != nil {
 		ctx.Logger().Error("fail to get parse asset", "error", err)
