@@ -227,6 +227,7 @@ func getBCHAddressV83(address bchutil.Address, cfg *bchchaincfg.Params) (Address
 	return NoAddress, fmt.Errorf("invalid address type")
 }
 
+// Note that this can have false positives, such as being unable to distinguish between ETH and AVAX.
 func (addr Address) IsChain(chain Chain) bool {
 	if chain.IsEVM() {
 		return strings.HasPrefix(addr.String(), "0x")
@@ -317,6 +318,8 @@ func (addr Address) IsChain(chain Chain) bool {
 	}
 }
 
+// Note that this will always return ETHChain for an AVAXChain address,
+// so perhaps only use it when determining a network (e.g. mainnet/testnet).
 func (addr Address) GetChain() Chain {
 	for _, chain := range []Chain{ETHChain, BNBChain, THORChain, BTCChain, LTCChain, BCHChain, DOGEChain, TERRAChain, GAIAChain, AVAXChain} {
 		if addr.IsChain(chain) {
