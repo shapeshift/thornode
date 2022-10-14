@@ -68,7 +68,7 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 }
 
 func (h AddLiquidityHandler) validateV98(ctx cosmos.Context, msg MsgAddLiquidity) error {
-	if err := msg.ValidateBasicV93(); err != nil {
+	if err := msg.ValidateBasicV98(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
 	}
@@ -77,8 +77,8 @@ func (h AddLiquidityHandler) validateV98(ctx cosmos.Context, msg MsgAddLiquidity
 		if !msg.Asset.GetLayer1Asset().IsGasAsset() {
 			return fmt.Errorf("asset must be a gas asset for the layer1 protocol")
 		}
-		if !msg.AssetAddress.IsChain(common.THORChain) {
-			return fmt.Errorf("asset address must be a thor address")
+		if !msg.AssetAddress.IsChain(msg.Asset.GetLayer1Asset().GetChain()) {
+			return fmt.Errorf("asset address must be layer1 chain")
 		}
 		if !msg.RuneAmount.IsZero() {
 			return fmt.Errorf("cannot deposit rune into a vault")
@@ -259,24 +259,28 @@ func (h AddLiquidityHandler) handleV96(ctx cosmos.Context, msg MsgAddLiquidity) 
 		return err
 	}
 
+	affiliateRuneAddress := common.NoAddress
+	affiliateAssetAddress := common.NoAddress
+	if msg.AffiliateAddress.IsChain(common.THORChain) {
+		affiliateRuneAddress = msg.AffiliateAddress
+	} else {
+		affiliateAssetAddress = msg.AffiliateAddress
+	}
+
 	err = h.addLiquidity(
 		ctx,
 		msg.Asset,
 		affiliateRune,
 		affiliateAsset,
-		msg.AffiliateAddress,
-		common.NoAddress,
+		affiliateRuneAddress,
+		affiliateAssetAddress,
 		msg.Tx.ID,
-		stage,
+		false,
 		h.mgr.GetConstants(),
 	)
 	if err != nil {
-		// we swallow this error so we don't trigger a refund, when we've
-		// already successfully added liquidity for the user. If we were to
-		// refund here, funds could be leaked from the network. In order, to
-		// error here, we would need to revert the user addLiquidity
-		// function first (TODO).
 		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
+		return err
 	}
 	return nil
 }
@@ -485,7 +489,11 @@ func (h AddLiquidityHandler) addLiquidityV98(ctx cosmos.Context,
 		}
 	}
 
-	if !assetAddr.IsEmpty() && !su.AssetAddress.Equals(assetAddr) && !asset.IsVaultAsset() {
+	if asset.IsVaultAsset() {
+		if su.AssetAddress.IsEmpty() || !su.AssetAddress.IsChain(asset.GetLayer1Asset().GetChain()) {
+			return errAddLiquidityMismatchAddr
+		}
+	} else if !assetAddr.IsEmpty() && !su.AssetAddress.Equals(assetAddr) {
 		// mismatch of asset addresses from what is known to the address
 		// given. Refund it.
 		return errAddLiquidityMismatchAddr

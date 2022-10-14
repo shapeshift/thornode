@@ -86,6 +86,8 @@ func (h WithdrawLiquidityHandler) validateV96(ctx cosmos.Context, msg MsgWithdra
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.98.0")):
+		return h.handleV98(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
 		return h.handleV95(ctx, msg)
 	case version.GTE(semver.MustParse("1.94.0")):
@@ -109,7 +111,7 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleV95(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -201,7 +203,7 @@ func (h WithdrawLiquidityHandler) handleV95(ctx cosmos.Context, msg MsgWithdrawL
 	if !assetAmt.IsZero() {
 		coin := common.NewCoin(msg.Asset, assetAmt)
 		// TODO: this might be an issue for single sided/AVAX->ETH, ETH -> AVAX
-		if !msg.Asset.IsNativeRune() && !lp.AssetAddress.IsChain(msg.Asset.Chain) {
+		if !msg.Asset.IsNativeRune() && !lp.AssetAddress.IsChain(msg.Asset.GetChain()) {
 			if err := h.swapV93(ctx, msg, coin, lp.AssetAddress); err != nil {
 				return nil, err
 			}

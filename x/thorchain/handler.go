@@ -288,6 +288,8 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 	switch m := newMsg.(type) {
 	case *MsgAddLiquidity:
 		switch {
+		case keeper.GetVersion().GTE(semver.MustParse("1.98.0")):
+			return newMsg, m.ValidateBasicV98()
 		case keeper.GetVersion().GTE(semver.MustParse("1.93.0")):
 			return newMsg, m.ValidateBasicV93()
 		default:

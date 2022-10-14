@@ -798,7 +798,7 @@ func (HandlerAddLiquiditySuite) TestSynthValidate(c *C) {
 
 	handler := NewAddLiquidityHandler(mgr)
 
-	addr := GetRandomTHORAddress()
+	addr := GetRandomBTCAddress()
 	signer := GetRandomBech32Addr()
 	addTxHash := GetRandomTxHash()
 
@@ -812,11 +812,8 @@ func (HandlerAddLiquiditySuite) TestSynthValidate(c *C) {
 	)
 
 	// happy path
-	msg := NewMsgAddLiquidity(tx, asset, cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), addr, addr, common.NoAddress, cosmos.ZeroUint(), signer)
+	msg := NewMsgAddLiquidity(tx, asset, cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), common.NoAddress, addr, common.NoAddress, cosmos.ZeroUint(), signer)
 	err := handler.validate(ctx, *msg)
-	c.Assert(err, IsNil)
-	msg = NewMsgAddLiquidity(tx, asset, cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), common.NoAddress, addr, common.NoAddress, cosmos.ZeroUint(), signer)
-	err = handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
 
 	// don't allow non-gas assets
@@ -862,7 +859,7 @@ func (HandlerAddLiquiditySuite) TestAddSynthNoLPs(c *C) {
 	c.Assert(k.MintToModule(ctx, ModuleName, coin), IsNil)
 	c.Assert(k.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
 
-	addr := GetRandomTHORAddress()
+	addr := GetRandomBTCAddress()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	h := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
 	addCoin := common.NewCoin(asset, cosmos.NewUint(10*common.One))
@@ -900,7 +897,7 @@ func (HandlerAddLiquiditySuite) TestAddSynth(c *C) {
 	c.Assert(k.MintToModule(ctx, ModuleName, coin), IsNil)
 	c.Assert(k.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)), IsNil)
 
-	addr := GetRandomTHORAddress()
+	addr := GetRandomBTCAddress()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
 	h := NewAddLiquidityHandler(NewDummyMgrWithKeeper(k))
 	addCoin := common.NewCoin(asset, cosmos.NewUint(100*common.One))
