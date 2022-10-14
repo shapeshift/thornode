@@ -218,8 +218,11 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 	if err := am.mgr.SwapQ().EndBlock(ctx, am.mgr); err != nil {
 		ctx.Logger().Error("fail to process swap queue", "error", err)
 	}
-	if err := am.mgr.OrderBookMgr().EndBlock(ctx, am.mgr); err != nil {
-		ctx.Logger().Error("fail to process order books", "error", err)
+
+	if am.mgr.GetVersion().GTE(semver.MustParse("1.98.0")) {
+		if err := am.mgr.OrderBookMgr().EndBlock(ctx, am.mgr); err != nil {
+			ctx.Logger().Error("fail to process order books", "error", err)
+		}
 	}
 
 	// slash node accounts for not observing any accepted inbound tx
