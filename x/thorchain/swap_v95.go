@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/armon/go-metrics"
-	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -13,55 +12,14 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type Swapper interface {
-	Swap(ctx cosmos.Context,
-		keeper keeper.Keeper,
-		tx common.Tx,
-		target common.Asset,
-		destination common.Address,
-		swapTarget cosmos.Uint,
-		dexAgg string,
-		dexAggTargetAsset string,
-		dexAggLimit *cosmos.Uint,
-		transactionFee cosmos.Uint,
-		synthVirtualDepthMult int64,
-		mgr Manager,
-	) (cosmos.Uint, []*EventSwap, error)
-	CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint
-	CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint
-	CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint
-}
+type SwapperV95 struct{}
 
-// GetSwapper return an implementation of Swapper
-func GetSwapper(version semver.Version) (Swapper, error) {
-	switch {
-	case version.GTE(semver.MustParse("1.98.0")):
-		return newSwapperV98(), nil
-	case version.GTE(semver.MustParse("1.95.0")):
-		return newSwapperV95(), nil
-	case version.GTE(semver.MustParse("1.94.0")):
-		return newSwapperV94(), nil
-	case version.GTE(semver.MustParse("1.92.0")):
-		return newSwapperV92(), nil
-	case version.GTE(semver.MustParse("1.91.0")):
-		return newSwapperV91(), nil
-	case version.GTE(semver.MustParse("1.90.0")):
-		return newSwapperV90(), nil
-	case version.GTE(semver.MustParse("0.81.0")):
-		return newSwapperV81(), nil
-	default:
-		return nil, errInvalidVersion
-	}
-}
-
-type SwapperV98 struct{}
-
-func newSwapperV98() *SwapperV98 {
-	return &SwapperV98{}
+func newSwapperV95() *SwapperV95 {
+	return &SwapperV95{}
 }
 
 // validateMessage is trying to validate the legitimacy of the incoming message and decide whether THORNode can handle it
-func (s *SwapperV98) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
+func (s *SwapperV95) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
 	if err := tx.Valid(); err != nil {
 		return err
 	}
@@ -75,7 +33,7 @@ func (s *SwapperV98) validateMessage(tx common.Tx, target common.Asset, destinat
 	return nil
 }
 
-func (s *SwapperV98) Swap(ctx cosmos.Context,
+func (s *SwapperV95) Swap(ctx cosmos.Context,
 	keeper keeper.Keeper,
 	tx common.Tx,
 	target common.Asset,
@@ -181,18 +139,7 @@ func (s *SwapperV98) Swap(ctx cosmos.Context,
 		)
 	}
 
-	if destination.IsNoop() {
-		// mint synths if no txout is created and send them to asgard
-		if target.GetChain().IsTHORChain() && target.IsSyntheticAsset() {
-			coin := common.NewCoin(target, assetAmount)
-			if err := keeper.MintToModule(ctx, ModuleName, coin); err != nil {
-				return assetAmount, swapEvents, fmt.Errorf("fail to mint coins during noop swap: %w", err)
-			}
-			if err := keeper.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)); err != nil {
-				return assetAmount, swapEvents, fmt.Errorf("fail to transfer coins to asgard: %w", err)
-			}
-		}
-	} else {
+	if !destination.IsNoop() {
 		toi := TxOutItem{
 			Chain:                 target.GetChain(),
 			InHash:                tx.ID,
@@ -219,7 +166,7 @@ func (s *SwapperV98) Swap(ctx cosmos.Context,
 	return assetAmount, swapEvents, nil
 }
 
-func (s *SwapperV98) burnCoins(ctx cosmos.Context, keeper keeper.Keeper, coins common.Coins) error {
+func (s *SwapperV95) burnCoins(ctx cosmos.Context, keeper keeper.Keeper, coins common.Coins) error {
 	err := keeper.SendFromModuleToModule(ctx, AsgardName, ModuleName, coins)
 	if err != nil {
 		ctx.Logger().Error("fail to move coins during swap", "error", err)
@@ -234,7 +181,7 @@ func (s *SwapperV98) burnCoins(ctx cosmos.Context, keeper keeper.Keeper, coins c
 	return nil
 }
 
-func (s *SwapperV98) swapOne(ctx cosmos.Context,
+func (s *SwapperV95) swapOne(ctx cosmos.Context,
 	keeper keeper.Keeper, tx common.Tx,
 	target common.Asset,
 	destination common.Address,
@@ -377,7 +324,7 @@ func (s *SwapperV98) swapOne(ctx cosmos.Context,
 
 // calculate the number of assets sent to the address (includes liquidity fee)
 // nolint
-func (s *SwapperV98) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV95) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x * X * Y ) / ( x + X )^2
 	numerator := x.Mul(X).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -389,7 +336,7 @@ func (s *SwapperV98) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 
 // CalculateLiquidityFee the fee of the swap
 // nolint
-func (s *SwapperV98) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV95) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x^2 *  Y ) / ( x + X )^2
 	numerator := x.Mul(x).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -401,7 +348,7 @@ func (s *SwapperV98) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 
 // CalcSwapSlip - calculate the swap slip, expressed in basis points (10000)
 // nolint
-func (s *SwapperV98) CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
+func (s *SwapperV95) CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// Cast to DECs
 	xD := cosmos.NewDecFromBigInt(xi.BigInt())
 	XD := cosmos.NewDecFromBigInt(Xi.BigInt())
