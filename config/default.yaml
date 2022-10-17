@@ -180,8 +180,9 @@ thor:
     state_sync:
       enable: false
       # The thorchain.info RPC is unreliable, so Nine Realms will be the trusted source
-      # until someone from the community hosts another.
-      rpc_servers: "https://rpc.ninerealms.com:443,https://rpc.ninerealms.com:443"
+      # until someone from the community hosts another. This must be an archive node for
+      # historical height verification.
+      rpc_servers: "https://rpc-v1.ninerealms.com:443,https://rpc-v1.ninerealms.com:443"
       trust_height: 0
       trust_hash: ""
       trust_period: "360h0m0s"
