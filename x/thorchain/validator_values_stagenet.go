@@ -11,5 +11,4 @@ var VALIDATORS = []string{
 	"sthor1xgyuc9ccs4fdchky3uay7jcdquamas0hucxthx",
 	"sthor1wuwf6pmkwn3mzrmmx5ysy98a90h3kxsf49muw6",
 	"sthor1jckghmm30ral7uhmty97vaulxnmjl7ycmf4gn8",
-	"sthor1s7cnpf44tvc7tdc8t8xfaazvqzy2yh08rwu65m",
 }
