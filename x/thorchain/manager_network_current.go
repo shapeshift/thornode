@@ -408,13 +408,13 @@ func (vm *NetworkMgrV98) EndBlock(ctx cosmos.Context, mgr Manager) error {
 func (vm *NetworkMgrV98) POLCycle(ctx cosmos.Context, mgr Manager) error {
 	maxDeposit := fetchConfigInt64(ctx, mgr, constants.POLMaxNetworkDeposit)
 	movement := fetchConfigInt64(ctx, mgr, constants.POLMaxPoolMovement)
-	target := fetchConfigInt64(ctx, mgr, constants.POLSynthUtilization)
+	target := fetchConfigInt64(ctx, mgr, constants.POLTargetSynthPerPoolDepth)
 	buf := fetchConfigInt64(ctx, mgr, constants.POLBuffer)
-	targetUtil := cosmos.NewUint(uint64(target))
+	targetSynthPerPoolDepth := cosmos.NewUint(uint64(target))
 	maxMovement := cosmos.NewUint(uint64(movement))
 	buffer := cosmos.NewUint(uint64(buf))
 
-	// if target synth utilization is zero, disable POL
+	// if POLTargetSynthPerPoolDepth is zero, disable POL
 	if target == 0 {
 		return nil
 	}
@@ -460,28 +460,28 @@ func (vm *NetworkMgrV98) POLCycle(ctx cosmos.Context, mgr Manager) error {
 
 	// if pool isn't available or mimir has it configured, force withdraw from the pool
 	if val == 2 || pool.Status != PoolAvailable {
-		targetUtil = cosmos.NewUint(10_000)
+		targetSynthPerPoolDepth = cosmos.NewUint(10_000)
 	}
 
 	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 	pool.CalcUnits(mgr.GetVersion(), synthSupply)
-	utilization := common.GetUncappedShare(pool.SynthUnits, pool.GetPoolUnits(), cosmos.NewUint(10_000))
+	synthPerPoolDepth := common.GetUncappedShare(pool.SynthUnits, pool.GetPoolUnits(), cosmos.NewUint(10_000))
 
 	// detect if we need to deposit rune
-	if common.SafeSub(utilization, buffer).GT(targetUtil) {
+	if common.SafeSub(synthPerPoolDepth, buffer).GT(targetSynthPerPoolDepth) {
 		if maxDeposit <= pol.CurrentDeposit().Int64() {
 			ctx.Logger().Info("maximum rune deployed from POL")
 			return nil
 		}
-		if err := vm.addPOLLiquidity(ctx, pool, polAddress, asgardAddress, signer, maxMovement, utilization, targetUtil, mgr); err != nil {
+		if err := vm.addPOLLiquidity(ctx, pool, polAddress, asgardAddress, signer, maxMovement, synthPerPoolDepth, targetSynthPerPoolDepth, mgr); err != nil {
 			ctx.Logger().Error("fail to manage POL in pool", "pool", pool.Asset.String(), "error", err)
 		}
 		return nil
 	}
 
 	// detect if we need to withdraw rune
-	if utilization.Add(buffer).LT(targetUtil) {
-		if err := vm.removePOLLiquidity(ctx, pool, polAddress, asgardAddress, signer, maxMovement, utilization, targetUtil, mgr); err != nil {
+	if synthPerPoolDepth.Add(buffer).LT(targetSynthPerPoolDepth) {
+		if err := vm.removePOLLiquidity(ctx, pool, polAddress, asgardAddress, signer, maxMovement, synthPerPoolDepth, targetSynthPerPoolDepth, mgr); err != nil {
 			ctx.Logger().Error("fail to manage POL in pool", "pool", pool.Asset.String(), "error", err)
 		}
 	}
@@ -547,12 +547,12 @@ func (vm *NetworkMgrV98) addPOLLiquidity(
 	pool Pool,
 	polAddress, asgardAddress common.Address,
 	signer cosmos.AccAddress,
-	maxMovement, utilization, targetUtil cosmos.Uint,
+	maxMovement, synthPerPoolDepth, targetSynthPerPoolDepth cosmos.Uint,
 	mgr Manager,
 ) error {
 	handler := NewInternalHandler(mgr)
 
-	move := utilization.Sub(targetUtil)
+	move := synthPerPoolDepth.Sub(targetSynthPerPoolDepth)
 	if move.GT(maxMovement) {
 		move = maxMovement
 	}
@@ -588,7 +588,7 @@ func (vm *NetworkMgrV98) removePOLLiquidity(
 	pool Pool,
 	polAddress, asgardAddress common.Address,
 	signer cosmos.AccAddress,
-	maxMovement, utilization, targetUtil cosmos.Uint,
+	maxMovement, synthPerPoolDepth, targetSynthPerPoolDepth cosmos.Uint,
 	mgr Manager,
 ) error {
 	handler := NewInternalHandler(mgr)
@@ -602,7 +602,7 @@ func (vm *NetworkMgrV98) removePOLLiquidity(
 		return nil
 	}
 
-	move := targetUtil.Sub(utilization)
+	move := targetSynthPerPoolDepth.Sub(synthPerPoolDepth)
 	if move.GT(maxMovement) {
 		move = maxMovement
 	}

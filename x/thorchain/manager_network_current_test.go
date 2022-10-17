@@ -806,7 +806,7 @@ func (*NetworkManagerV98TestSuite) TestFairMergePOLCycle(c *C) {
 	c.Assert(pol.RuneWithdrawn.Uint64(), Equals, uint64(0))
 
 	// cycle should error when target is greater than 0 with no node accounts
-	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 1000) // 10% liability
+	mgr.Keeper().SetMimir(ctx, constants.POLTargetSynthPerPoolDepth.String(), 1000) // 10% liability
 	err = net.POLCycle(ctx, mgr)
 	c.Assert(err, ErrorMatches, "dev err: no active node accounts")
 
@@ -868,7 +868,7 @@ func (*NetworkManagerV98TestSuite) TestFairMergePOLCycle(c *C) {
 
 	// set pol utilization to 5% should deposit up to the max
 	mgr.Keeper().SetMimir(ctx, constants.POLMaxNetworkDeposit.String(), common.One)
-	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 500)
+	mgr.Keeper().SetMimir(ctx, constants.POLTargetSynthPerPoolDepth.String(), 500)
 	err = net.POLCycle(ctx, mgr)
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
@@ -888,7 +888,7 @@ func (*NetworkManagerV98TestSuite) TestFairMergePOLCycle(c *C) {
 	c.Assert(liability.String(), Equals, "1000")
 
 	// withdraw entire pol position
-	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 10000)
+	mgr.Keeper().SetMimir(ctx, constants.POLTargetSynthPerPoolDepth.String(), 10000)
 	err = net.POLCycle(ctx, mgr)
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
@@ -903,7 +903,7 @@ func (*NetworkManagerV98TestSuite) TestFairMergePOLCycle(c *C) {
 	c.Assert(liability.String(), Equals, "1000")
 
 	// deposit entire pol position
-	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 500)
+	mgr.Keeper().SetMimir(ctx, constants.POLTargetSynthPerPoolDepth.String(), 500)
 	err = net.POLCycle(ctx, mgr)
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
@@ -912,7 +912,7 @@ func (*NetworkManagerV98TestSuite) TestFairMergePOLCycle(c *C) {
 	c.Assert(pol.RuneWithdrawn.String(), Equals, "99451741")
 
 	// withdraw entire pol position 1 basis point of rune depth at a time
-	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 10000)
+	mgr.Keeper().SetMimir(ctx, constants.POLTargetSynthPerPoolDepth.String(), 10000)
 	mgr.Keeper().SetMimir(ctx, constants.POLMaxPoolMovement.String(), 1)
 	err = net.POLCycle(ctx, mgr)
 	c.Assert(err, IsNil)
@@ -939,7 +939,7 @@ func (*NetworkManagerV98TestSuite) TestFairMergePOLCycle(c *C) {
 
 	// current liability is at 10%, so buffer at 40% and target of 50% should still not move
 	mgr.Keeper().SetMimir(ctx, constants.POLBuffer.String(), 4000)
-	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 5000)
+	mgr.Keeper().SetMimir(ctx, constants.POLTargetSynthPerPoolDepth.String(), 5000)
 	err = net.POLCycle(ctx, mgr)
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
@@ -957,7 +957,7 @@ func (*NetworkManagerV98TestSuite) TestFairMergePOLCycle(c *C) {
 	c.Assert(pol.RuneWithdrawn.String(), Equals, "102478852")
 
 	// withdraw everything
-	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 10000)
+	mgr.Keeper().SetMimir(ctx, constants.POLTargetSynthPerPoolDepth.String(), 10000)
 	mgr.Keeper().SetMimir(ctx, constants.POLBuffer.String(), 0)
 	mgr.Keeper().SetMimir(ctx, constants.POLMaxPoolMovement.String(), 10000)
 	err = net.POLCycle(ctx, mgr)

@@ -52,7 +52,7 @@ func NewConstantValue010() *ConstantVals {
 			EnableOrderBooks:                   0,                  // enable order books instead of swap queue
 			VirtualMultSynths:                  2,                  // pool depth multiplier for synthetic swaps
 			VirtualMultSynthsBasisPoints:       10_000,             // pool depth multiplier for synthetic swaps (in basis points)
-			MaxSynthPerAssetDepth:              3300,               // percentage (in basis points) of how many synths are allowed relative to asset depth of the related pool
+			MaxSynthPerAssetDepth:              3300,               //  TODO: remove me on hard fork
 			MaxSynthPerPoolDepth:               1700,               // percentage (in basis points) of how many synths are allowed relative to pool depth of the related pool
 			MinSlashPointsForBadValidator:      100,                // The minimum slash point
 			FullImpLossProtectionBlocks:        1440000,            // number of blocks before a liquidity provider gets 100% impermanent loss protection
@@ -69,8 +69,9 @@ func NewConstantValue010() *ConstantVals {
 			MaxNodeToChurnOutForLowVersion:     1,                  // the maximum number of nodes to churn out for low version per churn
 			POLMaxNetworkDeposit:               0,                  // Maximum amount of rune deposited into the pools
 			POLMaxPoolMovement:                 100,                // Maximum amount of rune to enter/exit a pool per iteration. This is in basis points of the pool rune depth
-			POLSynthUtilization:                0,                  // target synth utilization for POL (basis points)
-			POLBuffer:                          0,                  // buffer around the POL synth utilization (basis points added to/subtracted from POLSynthUtilization basis points)
+			POLSynthUtilization:                0,                  // TODO: remove me on hard fork
+			POLTargetSynthPerPoolDepth:         0,                  // target synth per pool depth for POL (basis points)
+			POLBuffer:                          0,                  // buffer around the POL synth utilization (basis points added to/subtracted from POLTargetSynthPerPoolDepth basis points)
 			RagnarokProcessNumOfLPPerIteration: 200,                // the number of LP to be processed per iteration during ragnarok pool
 			SynthYieldBasisPoints:              5000,               // amount of the yield the capital earns the synth holder receives
 			SynthYieldCycle:                    0,                  // number of blocks when the network pays out rewards to yield bearing synths

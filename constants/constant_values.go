@@ -60,7 +60,7 @@ const (
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
 	EnableOrderBooks
-	MaxSynthPerAssetDepth
+	MaxSynthPerAssetDepth // TODO: remove me on hard fork
 	MaxSynthPerPoolDepth
 	VirtualMultSynths
 	VirtualMultSynthsBasisPoints
@@ -83,7 +83,8 @@ const (
 	MaxNodeToChurnOutForLowVersion
 	POLMaxNetworkDeposit
 	POLMaxPoolMovement
-	POLSynthUtilization
+	POLSynthUtilization // TODO: remove me on hard fork
+	POLTargetSynthPerPoolDepth
 	POLBuffer
 	RagnarokProcessNumOfLPPerIteration
 	SwapOutDexAggregationDisabled
@@ -147,7 +148,7 @@ var nameToString = map[ConstantName]string{
 	EnableOrderBooks:                   "EnableOrderBooks",
 	VirtualMultSynths:                  "VirtualMultSynths",
 	VirtualMultSynthsBasisPoints:       "VirtualMultSynthsBasisPoints",
-	MaxSynthPerAssetDepth:              "MaxSynthPerAssetDepth",
+	MaxSynthPerAssetDepth:              "MaxSynthPerAssetDepth", // TODO: remove me on hard fork
 	MaxSynthPerPoolDepth:               "MaxSynthPerPoolDepth",
 	MinSlashPointsForBadValidator:      "MinSlashPointsForBadValidator",
 	FullImpLossProtectionBlocks:        "FullImpLossProtectionBlocks",
@@ -168,7 +169,8 @@ var nameToString = map[ConstantName]string{
 	SwapOutDexAggregationDisabled:      "SwapOutDexAggregationDisabled",
 	POLMaxNetworkDeposit:               "POLMaxNetworkDeposit",
 	POLMaxPoolMovement:                 "POLMaxPoolMovement",
-	POLSynthUtilization:                "POLSynthUtilization",
+	POLSynthUtilization:                "POLSynthUtilization", // TODO: remove me on hard fork
+	POLTargetSynthPerPoolDepth:         "POLTargetSynthPerPoolDepth",
 	POLBuffer:                          "POLBuffer",
 	RagnarokProcessNumOfLPPerIteration: "RagnarokProcessNumOfLPPerIteration",
 	SynthYieldBasisPoints:              "SynthYieldBasisPoints",
