@@ -1331,7 +1331,7 @@ func (vm *validatorMgrV95) NodeAccountPreflightCheck(ctx cosmos.Context, na Node
 
 	// Check that the node account has an pubkey set
 	if na.PubKeySet.IsEmpty() {
-		return NodeWhiteListed, fmt.Errorf("node account has registered their pubkey set")
+		return NodeWhiteListed, fmt.Errorf("node account has not registered their pubkey set")
 	}
 
 	// check if node account is whitelisted. This is used for testnet/stagenet environments
