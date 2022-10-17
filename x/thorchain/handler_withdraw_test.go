@@ -465,7 +465,7 @@ func (HandlerWithdrawSuite) TestWithdrawHandler_outboundFailures(c *C) {
 	handleCase(msg, nil, nil, "sym rune/asset success", false)
 }
 
-func (s *HandlerWithdrawSuite) TestWithdrawLiquidityHandlerWithSwap(c *C) {
+func (s *HandlerWithdrawSuite) TestFairMergeAddAndWithdrawLiquidityHandlerWithSwap(c *C) {
 	var err error
 	ctx, mgr := setupManagerForTest(c)
 	mgr.txOutStore = NewTxStoreDummy()
@@ -523,7 +523,7 @@ func (s *HandlerWithdrawSuite) TestWithdrawLiquidityHandlerWithSwap(c *C) {
 	lp, err := mgr.Keeper().GetLiquidityProvider(ctx, common.BNBAsset, btcAddr)
 	c.Assert(err, IsNil)
 	c.Check(lp.Units.IsZero(), Equals, false)
-	c.Check(lp.Units.Uint64(), Equals, uint64(1173802086792), Commentf("%d", lp.Units.Uint64()))
+	c.Check(lp.Units.Uint64(), Equals, uint64(1187103604184), Commentf("%d", lp.Units.Uint64()))
 
 	// nothing in the outbound queue
 	outbound, err := mgr.txOutStore.GetOutboundItems(ctx)
@@ -542,6 +542,6 @@ func (s *HandlerWithdrawSuite) TestWithdrawLiquidityHandlerWithSwap(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(outbound, HasLen, 1)
 
-	expected := common.NewCoin(common.BTCAsset, cosmos.NewUint(462467571))
+	expected := common.NewCoin(common.BTCAsset, cosmos.NewUint(467422814))
 	c.Check(outbound[0].Coin.Equals(expected), Equals, true, Commentf("%s", outbound[0].Coin))
 }

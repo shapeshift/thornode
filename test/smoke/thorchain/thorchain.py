@@ -1749,12 +1749,13 @@ class Pool(Jsonable):
     def _calc_liquidity_units(self, R, A, r, a):
         """
         Calculate liquidity provider units
-        slipAdjustment = (1 - ABS((R a - r A)/((r + R) (a + A))))
-        units = ((P (a R + A r))/(2 A R))*slidAdjustment
-        R = pool rune balance after
-        A = pool asset balance after
-        r = provided rune
-        a = provided asset
+        r = rune provided;
+        a = asset provided
+        R = rune Balance (before)
+        A = asset Balance (before)
+        P = Pool Units (before)
+        units / (P + units) = (1/2) * ((r / (R + r)) + (a / (A + a)))
+        units = P * (r*A + a*R + 2*r*a) / (r*A + a*R + 2*R*A)
         """
         P = self.pool_units()
         R = float(R)
@@ -1763,9 +1764,8 @@ class Pool(Jsonable):
         a = float(a)
         if R == 0.0 or A == 0.0 or P == 0:
             return int(r)
-        slipAdjustment = 1 - abs((R * a - r * A) / ((r + R) * (a + A)))
-        units = (P * (a * R + A * r)) / (2 * A * R)
-        return int(units * slipAdjustment)
+        units = (P * (r * A + a * R + 2 * r * a)) / (r * A + a * R + 2 * R * A)
+        return int(units)
 
     def _calc_withdraw_units(self, lp_units, withdraw_basis_points):
         """

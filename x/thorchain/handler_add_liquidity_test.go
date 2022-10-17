@@ -381,7 +381,7 @@ func (s *HandlerAddLiquiditySuite) TestHandlerAddLiquidityFailScenario(c *C) {
 	}
 }
 
-func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerWithSwap(c *C) {
+func (s *HandlerAddLiquiditySuite) TestFairMergeAddLiquidityHandlerWithSwap(c *C) {
 	var err error
 	ctx, mgr := setupManagerForTest(c)
 	activeNodeAccount := GetRandomValidatorNode(NodeActive)
@@ -438,7 +438,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerWithSwap(c *C) {
 	lp, err := mgr.Keeper().GetLiquidityProvider(ctx, common.BNBAsset, btcAddr)
 	c.Assert(err, IsNil)
 	c.Check(lp.Units.IsZero(), Equals, false)
-	c.Check(lp.Units.Uint64(), Equals, uint64(1173802086792), Commentf("%d", lp.Units.Uint64()))
+	c.Check(lp.Units.Uint64(), Equals, uint64(1187103604184), Commentf("%d", lp.Units.Uint64()))
 }
 
 type AddLiquidityTestKeeper struct {
@@ -597,6 +597,89 @@ func (s *HandlerAddLiquiditySuite) TestCalculateLPUnitsV1(c *C) {
 	}
 }
 
+func (s *HandlerAddLiquiditySuite) TestCalculateLPUnitsV98(c *C) {
+	inputs := []struct {
+		name           string
+		oldLPUnits     cosmos.Uint
+		poolRune       cosmos.Uint
+		poolAsset      cosmos.Uint
+		addRune        cosmos.Uint
+		addAsset       cosmos.Uint
+		poolUnits      cosmos.Uint
+		liquidityUnits cosmos.Uint
+		expectedErr    error
+	}{
+		{
+			name:           "first-add-zero-rune",
+			oldLPUnits:     cosmos.ZeroUint(),
+			poolRune:       cosmos.ZeroUint(),
+			poolAsset:      cosmos.ZeroUint(),
+			addRune:        cosmos.ZeroUint(),
+			addAsset:       cosmos.NewUint(100 * common.One),
+			poolUnits:      cosmos.ZeroUint(),
+			liquidityUnits: cosmos.ZeroUint(),
+			expectedErr:    errors.New("total RUNE in the pool is zero"),
+		},
+		{
+			name:           "first-add-zero-asset",
+			oldLPUnits:     cosmos.ZeroUint(),
+			poolRune:       cosmos.ZeroUint(),
+			poolAsset:      cosmos.ZeroUint(),
+			addRune:        cosmos.NewUint(100 * common.One),
+			addAsset:       cosmos.ZeroUint(),
+			poolUnits:      cosmos.ZeroUint(),
+			liquidityUnits: cosmos.ZeroUint(),
+			expectedErr:    errors.New("total asset in the pool is zero"),
+		},
+		{
+			name:           "first-add",
+			oldLPUnits:     cosmos.ZeroUint(),
+			poolRune:       cosmos.ZeroUint(),
+			poolAsset:      cosmos.ZeroUint(),
+			addRune:        cosmos.NewUint(100 * common.One),
+			addAsset:       cosmos.NewUint(100 * common.One),
+			poolUnits:      cosmos.NewUint(100 * common.One),
+			liquidityUnits: cosmos.NewUint(100 * common.One),
+			expectedErr:    nil,
+		},
+		{
+			name:           "second-add",
+			oldLPUnits:     cosmos.NewUint(789500 * common.One),
+			poolRune:       cosmos.NewUint(500 * common.One),
+			poolAsset:      cosmos.NewUint(500 * common.One),
+			addRune:        cosmos.NewUint(345 * common.One),
+			addAsset:       cosmos.NewUint(234 * common.One),
+			poolUnits:      cosmos.NewUint(1240460 * common.One),
+			liquidityUnits: cosmos.NewUint(450960 * common.One),
+			expectedErr:    nil,
+		},
+		{
+			name:           "asym-add",
+			oldLPUnits:     cosmos.NewUint(300 * common.One),
+			poolRune:       cosmos.NewUint(500 * common.One),
+			poolAsset:      cosmos.NewUint(500 * common.One),
+			addRune:        cosmos.NewUint(500 * common.One),
+			addAsset:       cosmos.ZeroUint(),
+			poolUnits:      cosmos.NewUint(400 * common.One),
+			liquidityUnits: cosmos.NewUint(100 * common.One),
+			expectedErr:    nil,
+		},
+	}
+
+	for _, item := range inputs {
+		c.Logf("Name: %s", item.name)
+		poolUnits, liquidityUnits, err := calculatePoolUnitsV98(item.oldLPUnits, item.poolRune, item.poolAsset, item.addRune, item.addAsset)
+		if item.expectedErr == nil {
+			c.Assert(err, IsNil)
+		} else {
+			c.Assert(err.Error(), Equals, item.expectedErr.Error())
+		}
+
+		c.Check(item.poolUnits.Uint64(), Equals, poolUnits.Uint64(), Commentf("%d / %d", item.poolUnits.Uint64(), poolUnits.Uint64()))
+		c.Check(item.liquidityUnits.Uint64(), Equals, liquidityUnits.Uint64(), Commentf("%d / %d", item.liquidityUnits.Uint64(), liquidityUnits.Uint64()))
+	}
+}
+
 func (s *HandlerAddLiquiditySuite) TestValidateAddLiquidityMessage(c *C) {
 	ps := NewAddLiquidityTestKeeper()
 	ctx, mgr := setupManagerForTest(c)
@@ -726,7 +809,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
 	c.Check(p.LPUnits.Equal(cosmos.NewUint(100*common.One)), Equals, true, Commentf("%d", p.LPUnits.Uint64()))
 }
 
-func (HandlerAddLiquiditySuite) TestRuneOnlyLiquidity(c *C) {
+func (HandlerAddLiquiditySuite) TestRuneOnlyFairMergeProvidedLiquidity(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	txID := GetRandomTxHash()
 
@@ -747,14 +830,14 @@ func (HandlerAddLiquiditySuite) TestRuneOnlyLiquidity(c *C) {
 
 	su, err := k.GetLiquidityProvider(ctx, common.BTCAsset, runeAddr)
 	c.Assert(err, IsNil)
-	c.Assert(su.Units.Uint64(), Equals, uint64(2500000000), Commentf("%d", su.Units.Uint64()))
+	c.Assert(su.Units.Uint64(), Equals, uint64(3333333333), Commentf("%d", su.Units.Uint64()))
 
 	pool, err := k.GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
-	c.Assert(pool.LPUnits.Uint64(), Equals, uint64(12500000000), Commentf("%d", pool.LPUnits.Uint64()))
+	c.Assert(pool.LPUnits.Uint64(), Equals, uint64(13333333333), Commentf("%d", pool.LPUnits.Uint64()))
 }
 
-func (HandlerAddLiquiditySuite) TestAssetOnlyProvidedLiquidity(c *C) {
+func (HandlerAddLiquiditySuite) TestAssetOnlyFairMergeProvidedLiquidity(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	txID := GetRandomTxHash()
 
@@ -775,11 +858,11 @@ func (HandlerAddLiquiditySuite) TestAssetOnlyProvidedLiquidity(c *C) {
 
 	su, err := k.GetLiquidityProvider(ctx, common.BTCAsset, assetAddr)
 	c.Assert(err, IsNil)
-	c.Assert(su.Units.Uint64(), Equals, uint64(2500000000), Commentf("%d", su.Units.Uint64()))
+	c.Assert(su.Units.Uint64(), Equals, uint64(3333333333), Commentf("%d", su.Units.Uint64()))
 
 	pool, err := k.GetPool(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
-	c.Assert(pool.LPUnits.Uint64(), Equals, uint64(12500000000), Commentf("%d", pool.LPUnits.Uint64()))
+	c.Assert(pool.LPUnits.Uint64(), Equals, uint64(13333333333), Commentf("%d", pool.LPUnits.Uint64()))
 }
 
 func (HandlerAddLiquiditySuite) TestSynthValidate(c *C) {

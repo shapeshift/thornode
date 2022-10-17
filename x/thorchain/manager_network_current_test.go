@@ -793,9 +793,9 @@ func (*NetworkManagerV98TestSuite) TestPOLLiquidityWithdraw(c *C) {
 	c.Check(lp.Units.Uint64(), Equals, uint64(788), Commentf("%d", lp.Units.Uint64()))
 }
 
-func (*NetworkManagerV96TestSuite) TestPOLCycle(c *C) {
+func (*NetworkManagerV98TestSuite) TestFairMergePOLCycle(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	net := newNetworkMgrV96(mgr.Keeper(), NewTxStoreDummy(), NewDummyEventMgr())
+	net := newNetworkMgrV98(mgr.Keeper(), NewTxStoreDummy(), NewDummyEventMgr())
 
 	// cycle should do nothing when target is 0
 	err := net.POLCycle(ctx, mgr)
@@ -894,7 +894,7 @@ func (*NetworkManagerV96TestSuite) TestPOLCycle(c *C) {
 	pol, err = mgr.Keeper().GetPOL(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(pol.RuneDeposited.String(), Equals, "100000000")
-	c.Assert(pol.RuneWithdrawn.String(), Equals, "98964510") // minus slip
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "99451741") // minus slip
 
 	// synth liability should still be 10%
 	synthSupply = mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
@@ -908,8 +908,8 @@ func (*NetworkManagerV96TestSuite) TestPOLCycle(c *C) {
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
-	c.Assert(pol.RuneWithdrawn.String(), Equals, "98964510")
+	c.Assert(pol.RuneDeposited.String(), Equals, "200005483")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "99451741")
 
 	// withdraw entire pol position 1 basis point of rune depth at a time
 	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 10000)
@@ -918,15 +918,15 @@ func (*NetworkManagerV96TestSuite) TestPOLCycle(c *C) {
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
-	c.Assert(pol.RuneWithdrawn.String(), Equals, "99978984")
+	c.Assert(pol.RuneDeposited.String(), Equals, "200005483")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "100461191")
 	// another basis point
 	err = net.POLCycle(ctx, mgr)
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
-	c.Assert(pol.RuneWithdrawn.String(), Equals, "100992910")
+	c.Assert(pol.RuneDeposited.String(), Equals, "200005483")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "101470294")
 
 	// set the buffer to 100% to stop any movement
 	mgr.Keeper().SetMimir(ctx, constants.POLBuffer.String(), 10000)
@@ -934,8 +934,8 @@ func (*NetworkManagerV96TestSuite) TestPOLCycle(c *C) {
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
-	c.Assert(pol.RuneWithdrawn.String(), Equals, "100992910")
+	c.Assert(pol.RuneDeposited.String(), Equals, "200005483")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "101470294")
 
 	// current liability is at 10%, so buffer at 40% and target of 50% should still not move
 	mgr.Keeper().SetMimir(ctx, constants.POLBuffer.String(), 4000)
@@ -944,8 +944,8 @@ func (*NetworkManagerV96TestSuite) TestPOLCycle(c *C) {
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
-	c.Assert(pol.RuneWithdrawn.String(), Equals, "100992910")
+	c.Assert(pol.RuneDeposited.String(), Equals, "200005483")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "101470294")
 
 	// any smaller buffer should withdraw one basis point of rune
 	mgr.Keeper().SetMimir(ctx, constants.POLBuffer.String(), 3999)
@@ -953,8 +953,8 @@ func (*NetworkManagerV96TestSuite) TestPOLCycle(c *C) {
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
-	c.Assert(pol.RuneWithdrawn.String(), Equals, "102006089")
+	c.Assert(pol.RuneDeposited.String(), Equals, "200005483")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "102478852")
 
 	// withdraw everything
 	mgr.Keeper().SetMimir(ctx, constants.POLSynthUtilization.String(), 10000)
@@ -964,14 +964,14 @@ func (*NetworkManagerV96TestSuite) TestPOLCycle(c *C) {
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
-	c.Assert(pol.RuneWithdrawn.String(), Equals, "197955446")
+	c.Assert(pol.RuneDeposited.String(), Equals, "200005483")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "198925118")
 
 	// should be nothing left to withdraw again
 	err = net.POLCycle(ctx, mgr)
 	c.Assert(err, IsNil)
 	pol, err = mgr.Keeper().GetPOL(ctx)
 	c.Assert(err, IsNil)
-	c.Assert(pol.RuneDeposited.String(), Equals, "200010355")
-	c.Assert(pol.RuneWithdrawn.String(), Equals, "197955446")
+	c.Assert(pol.RuneDeposited.String(), Equals, "200005483")
+	c.Assert(pol.RuneWithdrawn.String(), Equals, "198925118")
 }
