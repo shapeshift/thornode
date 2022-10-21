@@ -13,7 +13,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ecommon "github.com/ethereum/go-ethereum/common"
-	ecore "github.com/ethereum/go-ethereum/core"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	ethclient "github.com/ethereum/go-ethereum/ethclient"
 	"github.com/hashicorp/go-multierror"
@@ -664,8 +663,9 @@ func (c *AvalancheClient) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) 
 	}
 	ctx, cancel := c.getContext()
 	defer cancel()
-	if err := c.ethClient.SendTransaction(ctx, tx); err != nil && err.Error() != ecore.ErrAlreadyKnown.Error() && err.Error() != ecore.ErrNonceTooLow.Error() {
-		return "", err
+	if err := c.ethClient.SendTransaction(ctx, tx); err != nil {
+		c.logger.Error().Stringer("txid", tx.Hash()).Err(err).Msg("failed to send transaction")
+		return "", nil
 	}
 	txID := tx.Hash().String()
 	c.logger.Info().Str("memo", txOutItem.Memo).Str("hash", txID).Msg("broadcast tx to AVAX C-Chain")

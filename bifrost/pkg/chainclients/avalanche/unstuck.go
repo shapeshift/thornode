@@ -8,7 +8,6 @@ import (
 
 	"github.com/ethereum/go-ethereum"
 	ecommon "github.com/ethereum/go-ethereum/common"
-	ecore "github.com/ethereum/go-ethereum/core"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 
 	evmtypes "gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/evm/types"
@@ -130,15 +129,8 @@ func (c *AvalancheClient) unstuckTx(vaultPubKey, hash string) error {
 	ctx, cancel = c.getContext()
 	defer cancel()
 	err = c.avaxScanner.ethClient.SendTransaction(ctx, broadcastTx)
-	if err != nil {
-		switch err.Error() {
-		case ecore.ErrAlreadyKnown.Error():
-			break
-		case ecore.ErrNonceTooLow.Error():
-			break
-		default:
-			return fmt.Errorf("fail to broadcast the cancel transaction, hash:%s , err: %w", hash, err)
-		}
+	if !isAcceptableError(err) {
+		return fmt.Errorf("fail to broadcast the cancel transaction, hash:%s , err: %w", hash, err)
 	}
 
 	c.logger.Info().Str("old tx hash", hash).Uint64("nonce", tx.Nonce()).Str("new tx hash", broadcastTx.Hash().String()).Msg("broadcast new tx, old tx cancelled")
