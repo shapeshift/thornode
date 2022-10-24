@@ -7,6 +7,8 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -316,7 +318,7 @@ func InitBifrost() {
 
 	// set bootstrap peers from seeds endpoint if unset
 	if len(config.Bifrost.TSS.BootstrapPeers) == 0 {
-		config.Bifrost.TSS.BootstrapPeers = getSeedAddrs()
+		config.Bifrost.TSS.BootstrapPeers = resolveAddrs(getSeedAddrs())
 	}
 }
 
@@ -590,14 +592,43 @@ type BifrostTSSConfiguration struct {
 // GetBootstrapPeers return the internal bootstrap peers in a slice of maddr.Multiaddr
 func (c BifrostTSSConfiguration) GetBootstrapPeers() ([]maddr.Multiaddr, error) {
 	var addrs []maddr.Multiaddr
-	for _, item := range c.BootstrapPeers {
-		if len(item) > 0 {
-			addr, err := maddr.NewMultiaddr(item)
-			if err != nil {
-				return nil, fmt.Errorf("fail to parse multi addr(%s): %w", item, err)
-			}
-			addrs = append(addrs, addr)
+
+	for _, ip := range c.BootstrapPeers {
+		if len(ip) == 0 {
+			continue
 		}
+
+		// fetch the p2pid
+		res, err := http.Get(fmt.Sprintf("http://%s:6040/p2pid", ip))
+		if err != nil {
+			log.Error().Err(err).Msg("failed to get p2p id")
+			continue
+		}
+
+		// read the response
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to read p2p id response")
+			continue
+		}
+		res.Body.Close()
+
+		// format the multiaddr
+		peerMultiAddr := fmt.Sprintf("/ip4/%s/tcp/5040/ipfs/%s", ip, string(body))
+
+		addr, err := maddr.NewMultiaddr(peerMultiAddr)
+		if err != nil {
+			log.Error().Err(err).Str("addr", peerMultiAddr).Msg("failed to parse multiaddr")
+			continue
+		}
+		addrs = append(addrs, addr)
+	}
+
+	if len(addrs) == 0 {
+		log.Error().Msg("no bootstrap peers found")
+		assertBifrostHasSeeds()
+	} else {
+		log.Info().Interface("peers", addrs).Msg("bootstrap peers")
 	}
 	return addrs, nil
 }
@@ -605,6 +636,24 @@ func (c BifrostTSSConfiguration) GetBootstrapPeers() ([]maddr.Multiaddr, error) 
 // -------------------------------------------------------------------------------------
 // Helpers
 // -------------------------------------------------------------------------------------
+
+func resolveAddrs(addrs []string) []string {
+	resolvedAddrs := []string{}
+	for _, addr := range addrs {
+		if net.ParseIP(addr) == nil {
+			ips, err := net.LookupHost(addr)
+			if err != nil {
+				log.Warn().Err(err).Msg("failed to resolve address")
+			} else {
+				resolvedAddrs = append(resolvedAddrs, ips[0]) // just take the first
+			}
+		} else {
+			resolvedAddrs = append(resolvedAddrs, addr)
+		}
+	}
+
+	return resolvedAddrs
+}
 
 func thornodeSeeds() (seedAddrs []string, tmSeeds []string) {
 	// use environment variable if set
@@ -615,6 +664,9 @@ func thornodeSeeds() (seedAddrs []string, tmSeeds []string) {
 		log.Info().Msg("seeds not provided, initializing automatically...")
 		seedAddrs = getSeedAddrs()
 	}
+
+	// resolve any hostnames
+	seedAddrs = resolveAddrs(seedAddrs)
 
 	// initialize seed with their node id if the network matches
 	wg := sync.WaitGroup{}

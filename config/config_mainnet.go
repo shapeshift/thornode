@@ -6,6 +6,7 @@ package config
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"github.com/rs/zerolog/log"
 )
@@ -32,4 +33,19 @@ func getSeedAddrs() (addrs []string) {
 	}
 
 	return seedsResponse
+}
+
+func assertBifrostHasSeeds() {
+	// fail if seed file is missing or empty since bifrost will hang
+	seedPath := os.ExpandEnv("$HOME/.thornode/address_book.seed")
+	fi, err := os.Stat(seedPath)
+	if os.IsNotExist(err) {
+		log.Fatal().Msg("no seed file found")
+	}
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to stat seed file")
+	}
+	if fi.Size() == 0 {
+		log.Fatal().Msg("seed file is empty")
+	}
 }
