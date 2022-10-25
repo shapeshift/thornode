@@ -151,7 +151,23 @@ func queryTHORName(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 		return nil, ErrInternal(err, "fail to fetch THORName")
 	}
 
-	res, err := json.MarshalIndent(name, "", "	")
+	// convert to openapi types
+	aliases := []openapi.ThornameAlias{}
+	for _, alias := range name.Aliases {
+		aliases = append(aliases, openapi.ThornameAlias{
+			Chain:   wrapString(alias.Chain.String()),
+			Address: wrapString(alias.Address.String()),
+		})
+	}
+	resp := openapi.Thorname{
+		Name:              wrapString(name.Name),
+		ExpireBlockHeight: wrapInt64(name.ExpireBlockHeight),
+		Owner:             wrapString(name.Owner.String()),
+		PreferredAsset:    name.PreferredAsset.String(),
+		Aliases:           aliases,
+	}
+
+	res, err := json.MarshalIndent(resp, "", "	")
 	if err != nil {
 		return nil, ErrInternal(err, "fail to marshal response to json")
 	}

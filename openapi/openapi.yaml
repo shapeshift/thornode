@@ -1305,22 +1305,39 @@ components:
               tss_time:
                 type: string
 
-    Thorname:
+    ThornameAlias:
       type: object
       properties:
-        name:
-          type: string
-          example: "thor"
         chain:
           type: string
           example: "BTC"
         address:
           type: string
-          example: "bc1qd45uzetakjvdy5ynjjyp4nlnj89am88e4e5jeq"
+          example: "bc1qn9esxuw8ca7ts8l6w66kdh800s09msvutydc46"
+
+    Thorname:
+      type: object
+      required:
+        - preferred_asset
+        - aliases
+      properties:
+        name:
+          type: string
+          example: "thor"
         expire_block_height:
           type: integer
           format: int64
           example: 1234
+        owner:
+          type: string
+          example: "thor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5"
+        preferred_asset:
+          type: string
+          example: "BTC.BTC"
+        aliases:
+          type: array
+          items:
+            $ref: "#/components/schemas/ThornameAlias"
 
     # ------------------------------ responses ------------------------------
 
