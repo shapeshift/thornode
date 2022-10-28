@@ -432,7 +432,10 @@ type Thornode struct {
 	// Tendermint contains values used in templating the Tendermint config.toml.
 	Tendermint struct {
 		Consensus struct {
-			TimeoutCommit time.Duration `mapstructure:"timeout_commit"`
+			TimeoutProposeDelta   time.Duration `mapstructure:"timeout_propose_delta"`
+			TimeoutPrevoteDelta   time.Duration `mapstructure:"timeout_prevote_delta"`
+			TimeoutPrecommitDelta time.Duration `mapstructure:"timeout_precommit_delta"`
+			TimeoutCommit         time.Duration `mapstructure:"timeout_commit"`
 		} `mapstructure:"consensus"`
 
 		Log struct {

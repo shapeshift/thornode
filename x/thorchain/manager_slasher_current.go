@@ -36,6 +36,11 @@ func (s *SlasherV92) BeginBlock(ctx cosmos.Context, req abci.RequestBeginBlock, 
 	// Slash any validators (and since-unbonded liquidity within the unbonding period)
 	// who contributed to valid infractions
 	for _, evidence := range req.ByzantineValidators {
+		// TODO: Remove on next hard fork.
+		// The consensus failure occurred at block 7971846 and we give a few block buffer.
+		if evidence.Height > 7971840 && evidence.Height < 7971850 {
+			continue
+		}
 		switch evidence.Type {
 		case abci.EvidenceType_DUPLICATE_VOTE:
 			if err := s.HandleDoubleSign(ctx, evidence.Validator.Address, evidence.Height, constAccessor); err != nil {
