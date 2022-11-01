@@ -43,6 +43,16 @@ var (
 
 	// config is the global configuration, it should never be returned by reference.
 	config Config
+
+	httpClient = &http.Client{
+		Timeout: 5 * time.Second,
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout: 5 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 5 * time.Second,
+		},
+	}
 )
 
 type Config struct {
@@ -305,12 +315,6 @@ func InitBifrost() {
 	if err != nil {
 		log.Fatal().Err(err).Str("path", config.Bifrost.Signer.SignerDbPath).
 			Msg("failed to create signer db directory")
-	}
-
-	// create bifrost config directory
-	err = os.MkdirAll("/etc/bifrost", os.ModePerm)
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create bifrost config directory")
 	}
 
 	// set signer password explicitly from environment variable
@@ -602,9 +606,15 @@ func (c BifrostTSSConfiguration) GetBootstrapPeers() ([]maddr.Multiaddr, error) 
 		}
 
 		// fetch the p2pid
-		res, err := http.Get(fmt.Sprintf("http://%s:6040/p2pid", ip))
+		res, err := httpClient.Get(fmt.Sprintf("http://%s:6040/p2pid", ip))
 		if err != nil {
 			log.Error().Err(err).Msg("failed to get p2p id")
+			continue
+		}
+
+		// skip peers with a bad response status
+		if res.StatusCode != http.StatusOK {
+			log.Warn().Msgf("failed to get p2p id, status code: %d", res.StatusCode)
 			continue
 		}
 
@@ -682,7 +692,7 @@ func thornodeSeeds() (seedAddrs []string, tmSeeds []string) {
 				defer wg.Done()
 
 				// get node status
-				res, err := http.Get(fmt.Sprintf("http://%s:%d/status", seedIP, rpcPort))
+				res, err := httpClient.Get(fmt.Sprintf("http://%s:%d/status", seedIP, rpcPort))
 				if err != nil {
 					log.Error().Err(err).Msg("failed to get node status")
 					return
@@ -796,6 +806,7 @@ func thornodeFetchGenesis(seeds []string) {
 	// iterate peers until we succeed in fetching genesis
 	for try := 0; try < MaxSeedRetries; try++ {
 		for _, seed := range seeds {
+			// use the default http client to avoid the short timeout
 			res, err := http.Get(fmt.Sprintf("http://%s:%d/genesis", seed, rpcPort))
 			if err != nil || res.StatusCode != http.StatusOK {
 				log.Error().Err(err).Str("seed", seed).Msg("failed to fetch genesis")
