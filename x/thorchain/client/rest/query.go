@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/query"
 )
@@ -46,6 +48,16 @@ func getHandlerWrapper(q query.Query, storeName string, cliCtx client.Context) h
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
+
+		// get the block height and time of the latest block on the node
+		latest, err := cliCtx.Client.Block(r.Context(), nil)
+		if err != nil {
+			log.Debug().Err(err).Msg("fail to get latest block")
+		} else {
+			w.Header().Set("X-Thorchain-Height", fmt.Sprintf("%d", latest.Block.Height))
+			w.Header().Set("X-Thorchain-Time", latest.Block.Time.Format(time.RFC3339))
+		}
+
 		_, _ = w.Write(res)
 	}
 }
