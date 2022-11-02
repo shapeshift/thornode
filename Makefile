@@ -115,6 +115,7 @@ lint-ci:
 	@./scripts/lint.sh
 	@go run tools/analyze/main.go ./common/... ./constants/... ./x/...
 	@./scripts/trunk check --all --no-progress --monitor=false
+	@./scripts/lint-versions.bash
 
 # ------------------------------ Testing ------------------------------
 
