@@ -31,7 +31,10 @@ const MaxMemoSize = 250
 // MaxETHGas define the maximum gas for a single transaction on ETH
 const MaxETHGas = 50000000
 
-const CtxMetricLabels = "metricLabels"
+// The provided key must be comparable and should not be of type string or any other built-in type to avoid collisions between packages using context. Users of WithValue should define their own types for keys. To avoid allocating when assigning to an interface{}, context keys often have concrete type struct{}. Alternatively, exported context key variables' static type should be a pointer or interface.
+type contextKey string
+
+const CtxMetricLabels contextKey = "metricLabels"
 
 const MimirKeyRegex = `^[a-zA-Z0-9-]+$`
 

@@ -29,7 +29,7 @@ if [ ! -f ~/.thornode/config/genesis.json ]; then
     fi
 
     # wait for peer
-    until curl -s "$PEER:$PORT_RPC" &>/dev/null; do
+    until curl -s "$PEER:$PORT_RPC" 1>/dev/null 2>&1; do
       echo "Waiting for peer: $PEER:$PORT_RPC"
       sleep 3
     done

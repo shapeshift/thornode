@@ -21,7 +21,7 @@ add_account() {
 
 deploy_eth_contract() {
   echo "Deploying eth contracts"
-  until curl -s "$1" &>/dev/null; do
+  until curl -s "$1" 1>/dev/null 2>&1; do
     echo "Waiting for ETH node to be available ($1)"
     sleep 1
   done
@@ -36,7 +36,7 @@ deploy_eth_contract() {
 deploy_avax_contract() {
   echo "Deploying AVAX contracts"
   echo "$1/ext/bc/C/rpc"
-  until curl -s "$1/ext/bc/C/rpc" &>/dev/null; do
+  until curl -s "$1/ext/bc/C/rpc" 1>/dev/null 2>&1; do
     echo "Waiting for AVAX node to be available ($1)"
     sleep 1
   done

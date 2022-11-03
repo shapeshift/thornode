@@ -192,7 +192,7 @@ func (h CommonOutboundTxHandler) handleV98(ctx cosmos.Context, tx ObservedTx, in
 		ctx.Logger().Info("slash node account, no matched tx out item", "inbound txid", inTxID, "outbound tx", tx.Tx)
 
 		// send security alert for events that are not evm burn
-		if !h.isOutboundFakeGasTX(tx) {
+		if !isOutboundFakeGasTX(tx) {
 			msg := fmt.Sprintf("missing tx out in=%s", inTxID)
 			if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventSecurity(tx.Tx, msg)); err != nil {
 				ctx.Logger().Error("fail to emit security event", "error", err)
@@ -219,7 +219,7 @@ func (h CommonOutboundTxHandler) handleV98(ctx cosmos.Context, tx ObservedTx, in
 // - chain of coin must be an EVM chain
 // - coin asset must be the gas asset
 // - coin amount must be 1
-func (h CommonOutboundTxHandler) isOutboundFakeGasTX(tx ObservedTx) bool {
+func isOutboundFakeGasTX(tx ObservedTx) bool {
 	isLenCoins1 := len(tx.Tx.Coins) == 1
 	if !isLenCoins1 {
 		return false

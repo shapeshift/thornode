@@ -77,7 +77,7 @@ set_avax_contract() {
 }
 
 fetch_node_id() {
-  until curl -s "$1:$PORT_RPC" &>/dev/null; do
+  until curl -s "$1:$PORT_RPC" 1>/dev/null 2>&1; do
     sleep 3
   done
   curl -s "$1:$PORT_RPC/status" | jq -r .result.node_info.id
@@ -113,7 +113,7 @@ create_thor_user() {
   SIGNER_SEED_PHRASE="$3"
 
   echo "Checking if THORNode Thor '$SIGNER_NAME' account exists"
-  echo "$SIGNER_PASSWD" | thornode keys show "$SIGNER_NAME" --keyring-backend file &>/dev/null
+  echo "$SIGNER_PASSWD" | thornode keys show "$SIGNER_NAME" --keyring-backend file 1>/dev/null 2>&1
   # shellcheck disable=SC2181
   if [ $? -ne 0 ]; then
     echo "Creating THORNode Thor '$SIGNER_NAME' account"

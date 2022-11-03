@@ -13,7 +13,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/input"
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/bech32/legacybech32"
+	"github.com/cosmos/cosmos-sdk/types/bech32/legacybech32" // nolint SA1019 deprecated
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/hashicorp/go-multierror"
@@ -65,10 +65,8 @@ var (
 	StoreTypeIAVL                = sdk.StoreTypeIAVL
 	NewContext                   = sdk.NewContext
 
-	// nolint
-	GetPubKeyFromBech32 = legacybech32.UnmarshalPubKey
-	// nolint
-	Bech32ifyPubKey         = legacybech32.MarshalPubKey
+	GetPubKeyFromBech32     = legacybech32.UnmarshalPubKey // nolint SA1019 deprecated
+	Bech32ifyPubKey         = legacybech32.MarshalPubKey   // nolint SA1019 deprecated
 	Bech32PubKeyTypeConsPub = legacybech32.ConsPK
 	Bech32PubKeyTypeAccPub  = legacybech32.AccPK
 	Wrapf                   = se.Wrapf

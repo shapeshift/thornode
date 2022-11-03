@@ -27,8 +27,9 @@ func NewHealthServer(addr string, tssServer tss.Server) *HealthServer {
 		tssServer: tssServer,
 	}
 	s := &http.Server{
-		Addr:    addr,
-		Handler: hs.newHandler(),
+		Addr:              addr,
+		Handler:           hs.newHandler(),
+		ReadHeaderTimeout: 2 * time.Second,
 	}
 	hs.s = s
 	return hs

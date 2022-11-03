@@ -12,9 +12,6 @@ type HandlerCommonOutboundSuite struct{}
 var _ = Suite(&HandlerCommonOutboundSuite{})
 
 func (s *HandlerCommonOutboundSuite) TestIsOutboundFakeGasTX(c *C) {
-	_, k := setupKeeperForTest(c)
-	handler := NewCommonOutboundTxHandler(NewDummyMgrWithKeeper(k))
-
 	coins := common.Coins{
 		common.NewCoin(common.ETHAsset, cosmos.NewUint(1)),
 	}
@@ -25,7 +22,7 @@ func (s *HandlerCommonOutboundSuite) TestIsOutboundFakeGasTX(c *C) {
 		Tx: common.NewTx("123", "0xabc", "0x123", coins, gas, "=:AVAX.AVAX:0x123"),
 	}
 
-	c.Assert(handler.isOutboundFakeGasTX(fakeGasTx), Equals, true)
+	c.Assert(isOutboundFakeGasTX(fakeGasTx), Equals, true)
 
 	coins = common.Coins{
 		common.NewCoin(common.ETHAsset, cosmos.NewUint(100000)),
@@ -33,7 +30,7 @@ func (s *HandlerCommonOutboundSuite) TestIsOutboundFakeGasTX(c *C) {
 	theftTx := types.ObservedTx{
 		Tx: common.NewTx("123", "0xabc", "0x123", coins, gas, "=:AVAX.AVAX:0x123"),
 	}
-	c.Assert(handler.isOutboundFakeGasTX(theftTx), Equals, false)
+	c.Assert(isOutboundFakeGasTX(theftTx), Equals, false)
 
 	coins = common.Coins{
 		common.NewCoin(common.BTCAsset, cosmos.NewUint(1)),
@@ -41,5 +38,5 @@ func (s *HandlerCommonOutboundSuite) TestIsOutboundFakeGasTX(c *C) {
 	theftTx2 := types.ObservedTx{
 		Tx: common.NewTx("123", "0xabc", "0x123", coins, gas, "=:AVAX.AVAX:0x123"),
 	}
-	c.Assert(handler.isOutboundFakeGasTX(theftTx2), Equals, false)
+	c.Assert(isOutboundFakeGasTX(theftTx2), Equals, false)
 }

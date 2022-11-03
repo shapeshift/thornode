@@ -91,9 +91,9 @@ Prompt Node Operators to vote on `Halt<Proposed-Chain>Chain=1` view Node Mimir. 
 
 ## **Phase II: Development, Testing, and Auditing**
 
-1. _Chain Client Development Period:_ Community devs of the Proposed Chain build the Bifrost Chain Client, and open a PR to [`thornode`](https://gitlab.com/thorchain/thornode) (referencing the Gitlab issue created in the discussion phase), [`node-launcher`](https://gitlab.com/thorchain/node-launcher), and the [`smoke-test`](https://gitlab.com/thorchain/heimdall) repo.
+1. _Chain Client Development Period:_ Community devs of the Proposed Chain build the Bifrost Chain Client, and open a PR to [`thornode`](https://gitlab.com/thorchain/thornode) (referencing the Gitlab issue created in the discussion phase), and [`node-launcher`](https://gitlab.com/thorchain/node-launcher) repos.
 
-   1. All PRs should meet the public requirements set forth in [High-Level Software Requirements](#high-level-software-requirements).
+   1. All PRs should meet the public requirements set forth in [Technical Requirements and Guidelines](#technical-requirements-and-guidelines).
 
 1. _Stagenet Merge/Baking Period:_ Community devs are incentivized to test all necessary functionality as it relates to the new chain integration. Any chain on stagenet that is to be considered for Mainnet will have to go through a defined baking/hardening process set forth
 
@@ -137,7 +137,7 @@ The following steps will be performed by the core team and Nine Realms for the f
 
 ## Technical Requirements and Guidelines
 
-A new Chain Integration must include a pull request to [`thornode`](https://gitlab.com/thorchain/thornode) (referencing the Gitlab issue created in the discussion phase), [`node-launcher`](https://gitlab.com/thorchain/node-launcher), and the [`smoke-test`](https://gitlab.com/thorchain/heimdall) repo.
+A new Chain Integration must include a pull request to [`thornode`](https://gitlab.com/thorchain/thornode) (referencing the Gitlab issue created in the discussion phase) and [`node-launcher`](https://gitlab.com/thorchain/node-launcher).
 
 ### **Thornode PR Requirements**
 

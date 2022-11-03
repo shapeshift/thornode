@@ -32,10 +32,8 @@ func mockIsValidContractAddr(addr *ecommon.Address, _ bool) bool {
 }
 
 const (
-	// trunk-ignore-begin(gitleaks/generic-api-key)
 	errAssetToken = "0x983e2cC84Bb8eA7b75685F285A28Bde2b4D5aCDA" // nolint
 	tknTestToken  = "0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483" // nolint
-	// trunk-ignore-end(gitleaks/generic-api-key)
 )
 
 func mockAssetResolver(token string) (common.Asset, error) {

@@ -25,7 +25,7 @@ linters-settings:
   exhaustivestruct:
     check-generated: false
   staticcheck:
-    checks: ["all", "-SA1029", "-SA1019"]
+    checks: ["all"]
   revive:
     rules:
       - name: exported
