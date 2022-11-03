@@ -876,10 +876,19 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	if pool.IsEmpty() {
 		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
 	}
+
+	// Get Savers Vault for this L1 pool if it's a gas asset
+	saversAsset := pool.Asset.GetSyntheticAsset()
+	saversPool, err := mgr.Keeper().GetPool(ctx, saversAsset)
+	if err != nil {
+		return nil, fmt.Errorf("fail to unmarshal savers vault: %w", err)
+	}
+
+	saversDepth := saversPool.BalanceAsset
+	saversUnits := saversPool.LPUnits
+
 	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 	pool.CalcUnits(mgr.GetVersion(), synthSupply)
-
-	isSaversPool := pool.Asset.IsVaultAsset()
 
 	p := &openapi.Pool{
 		BalanceRune:         pool.BalanceRune.String(),
@@ -891,9 +900,10 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		Decimals:            wrapInt64(pool.Decimals),
 		SynthUnits:          pool.SynthUnits.String(),
 		SynthSupply:         synthSupply.String(),
+		SaversDepth:         saversDepth.String(),
+		SaversUnits:         saversUnits.String(),
 		PendingInboundRune:  pool.PendingInboundRune.String(),
 		PendingInboundAsset: pool.PendingInboundAsset.String(),
-		IsSaversPool:        isSaversPool,
 	}
 
 	res, err := json.MarshalIndent(p, "", "	")
@@ -916,9 +926,20 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 			continue
 		}
 
-		// Savers pools are the synthetic gas asset
-		isSaversPool := pool.Asset.IsVaultAsset()
-		isSaversPool = isSaversPool && pool.Asset.GetLayer1Asset().IsGasAsset()
+		// Ignore synth asset pool (savers). Info will be on the L1 pool
+		if pool.Asset.IsVaultAsset() {
+			continue
+		}
+
+		// Get Savers Vault
+		saversAsset := pool.Asset.GetSyntheticAsset()
+		saversPool, err := mgr.Keeper().GetPool(ctx, saversAsset)
+		if err != nil {
+			return nil, fmt.Errorf("fail to unmarshal savers vault: %w", err)
+		}
+
+		saversDepth := saversPool.BalanceAsset
+		saversUnits := saversPool.LPUnits
 
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 		pool.CalcUnits(mgr.GetVersion(), synthSupply)
@@ -933,9 +954,10 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 			Decimals:            wrapInt64(pool.Decimals),
 			SynthUnits:          pool.SynthUnits.String(),
 			SynthSupply:         synthSupply.String(),
+			SaversDepth:         saversDepth.String(),
+			SaversUnits:         saversUnits.String(),
 			PendingInboundRune:  pool.PendingInboundRune.String(),
 			PendingInboundAsset: pool.PendingInboundAsset.String(),
-			IsSaversPool:        isSaversPool,
 		}
 		pools = append(pools, p)
 	}

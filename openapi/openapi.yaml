@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Thornode API
-  version: 1.98.1
+  version: 1.99.0
   contact:
     email: devs@thorchain.org
   description: Thornode REST API.
@@ -746,7 +746,8 @@ components:
         - synth_supply
         - pending_inbound_rune
         - pending_inbound_asset
-        - is_savers_pool
+        - savers_depth
+        - savers_units
       properties:
         balance_rune:
           type: string
@@ -786,32 +787,14 @@ components:
         pending_inbound_asset:
           type: string
           example: "101713319"
-        is_savers_pool:
-          type: boolean
-          example: true
-          description: Returns true if pool is a Savers pool. Savers pools are used for single-sided yield deposits.
-
-    Bucket:
-      type: object
-      required:
-        - balance_asset
-        - asset
-        - LP_units
-        - status
-      properties:
-        balance_asset:
+        savers_depth:
           type: string
-          example: "3197744873"
-        asset:
+          example: "199998"
+          description: the balance of L1 asset deposited into the Savers Vault
+        savers_units:
           type: string
-          example: "BTC/BTC"
-        LP_units:
-          type: string
-          description: the total pool liquidity provider units
-          example: "14694928607473"
-        status:
-          type: string
-          example: "Available"
+          example: "199998"
+          description: the number of units owned by Savers
 
     LiquidityProvider:
       type: object
@@ -1348,14 +1331,6 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/Pool"
-
-    BucketResponse:
-      $ref: "#/components/schemas/Bucket"
-
-    BucketsResponse:
-      type: array
-      items:
-        $ref: "#/components/schemas/Bucket"
 
     LiquidityProviderResponse:
       type: array

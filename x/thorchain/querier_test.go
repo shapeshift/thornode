@@ -218,17 +218,7 @@ func (s *QuerierSuite) TestSaverPools(c *C) {
 	var out []openapi.Pool
 	err = json.Unmarshal(res, &out)
 	c.Assert(err, IsNil)
-	c.Assert(len(out), Equals, 3)
-
-	numSaverPools := 0
-
-	for _, pool := range out {
-		if pool.IsSaversPool {
-			numSaverPools++
-		}
-	}
-
-	c.Assert(numSaverPools, Equals, 2)
+	c.Assert(len(out), Equals, 1)
 }
 
 func (s *QuerierSuite) TestQueryNodeAccounts(c *C) {
