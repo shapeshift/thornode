@@ -1533,7 +1533,10 @@ components:
             type: string
             example: "428000"
             description: "The total outbound fee charged to the user for outbound txs in the gas asset of the chain."
-
+          dust_threshold:
+            type: string
+            example: "10000"
+            description: Defines the minimum transaction size for the chain in base units (sats, wei, uatom). Transctions with asset amounts lower than the dust_thresold are ignored.
     LastBlockResponse:
       type: array
       items:

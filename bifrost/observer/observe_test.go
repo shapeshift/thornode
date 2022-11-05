@@ -462,3 +462,80 @@ func (s *ObserverSuite) TestFilterMemoFlag(c *C) {
 	})
 	c.Assert(result, HasLen, 1)
 }
+
+func (s *ObserverSuite) TestGetSaversMemo(c *C) {
+	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
+	c.Assert(err, IsNil)
+	obs, err := NewObserver(pubkeyMgr, map[common.Chain]chainclients.ChainClient{
+		common.BNBChain: s.b,
+	}, s.bridge, s.m, "", metrics.NewTssKeysignMetricMgr())
+	c.Assert(obs, NotNil)
+	c.Assert(err, IsNil)
+
+	busd, err := common.NewAsset("BNB.BUSD-BD1")
+	c.Assert(err, IsNil)
+
+	bnbSaversTx := types.TxInItem{
+		BlockHeight: 1024,
+		Tx:          "tx1",
+		Memo:        "",
+		Sender:      thorchain.GetRandomBNBAddress().String(),
+		To:          thorchain.GetRandomBNBAddress().String(),
+		Coins: common.Coins{
+			common.NewCoin(busd, cosmos.NewUint(1024)),
+		},
+		Gas:                 nil,
+		ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+	}
+
+	// memo should be withdraw 1024 basis points
+	memo := obs.getSaversMemo(common.BNBChain, bnbSaversTx)
+	c.Assert(memo, Equals, "-:BNB/BUSD-BD1:1024")
+
+	// memo should be withdraw 1000 basis points
+	bnbSaversTx.Coins = common.NewCoins(common.NewCoin(common.BNBAsset, cosmos.NewUint(1000)))
+	memo = obs.getSaversMemo(common.BNBChain, bnbSaversTx)
+	c.Assert(memo, Equals, "-:BNB/BNB:1000")
+
+	// memo should be add
+	bnbSaversTx.Coins = common.NewCoins(common.NewCoin(common.BNBAsset, cosmos.NewUint(20_000)))
+	memo = obs.getSaversMemo(common.BNBChain, bnbSaversTx)
+	c.Assert(memo, Equals, "+:BNB/BNB")
+
+	btcSaversTx := types.TxInItem{
+		BlockHeight: 1024,
+		Tx:          "tx1",
+		Memo:        "",
+		Sender:      thorchain.GetRandomBNBAddress().String(),
+		To:          thorchain.GetRandomBNBAddress().String(),
+		Coins: common.Coins{
+			common.NewCoin(common.BTCAsset, cosmos.NewUint(1000)),
+		},
+		Gas:                 nil,
+		ObservedVaultPubKey: thorchain.GetRandomPubKey(),
+	}
+
+	// memo should be empty, amount not above dust threshold
+	memo = obs.getSaversMemo(common.BTCChain, btcSaversTx)
+	c.Assert(memo, Equals, "")
+
+	// memo should still be empty, amount is at the dust thresold, but you can't withdraw 0 basis points
+	btcSaversTx.Coins = common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(10_000)))
+	memo = obs.getSaversMemo(common.BTCChain, btcSaversTx)
+	c.Assert(memo, Equals, "")
+
+	// memo should be withdraw 500 basis points
+	btcSaversTx.Coins = common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(10_500)))
+	memo = obs.getSaversMemo(common.BTCChain, btcSaversTx)
+	c.Assert(memo, Equals, "-:BTC/BTC:500")
+
+	// memo should be withdraw 10_000 basis points
+	btcSaversTx.Coins = common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(20_000)))
+	memo = obs.getSaversMemo(common.BTCChain, btcSaversTx)
+	c.Assert(memo, Equals, "-:BTC/BTC:10000")
+
+	// memo should be add
+	btcSaversTx.Coins = common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(40_000)))
+	memo = obs.getSaversMemo(common.BTCChain, btcSaversTx)
+	c.Assert(memo, Equals, "+:BTC/BTC")
+}

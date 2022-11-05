@@ -925,7 +925,7 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 		if txInItem.Coins.IsEmpty() {
 			continue
 		}
-		if txInItem.Coins[0].Amount.LT(cosmos.NewUint(minSpendableUTXOAmountSats)) {
+		if txInItem.Coins[0].Amount.LT(c.chain.DustThreshold()) {
 			continue
 		}
 		exist, err := c.temporalStorage.TrackObservedTx(txInItem.Tx)

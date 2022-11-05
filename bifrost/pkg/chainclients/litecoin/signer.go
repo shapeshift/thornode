@@ -33,10 +33,9 @@ const (
 	// SatsPervBytes it should be enough , this one will only be used if signer can't find any previous UTXO , and fee info from local storage.
 	SatsPervBytes = 25
 	// MinUTXOConfirmation UTXO that has less confirmation then this will not be spent , unless it is yggdrasil
-	MinUTXOConfirmation        = 1
-	defaultMaxLTCFeeRate       = ltcutil.SatoshiPerBitcoin / 10
-	maxUTXOsToSpend            = 10
-	minSpendableUTXOAmountSats = 10000 // If UTXO is less than this , it will not observed , and will not spend it either
+	MinUTXOConfirmation  = 1
+	defaultMaxLTCFeeRate = ltcutil.SatoshiPerBitcoin / 10
+	maxUTXOsToSpend      = 10
 )
 
 func getLTCPrivateKey(key cryptotypes.PrivKey) (*btcec.PrivateKey, error) {
@@ -124,7 +123,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 		return utxos[i].TxID < utxos[j].TxID
 	})
 	var toSpend float64
-	minUTXOAmt := ltcutil.Amount(minSpendableUTXOAmountSats).ToBTC()
+	minUTXOAmt := ltcutil.Amount(c.chain.DustThreshold().Uint64()).ToBTC()
 	for _, item := range utxos {
 		if !c.isValidUTXO(item.ScriptPubKey) {
 			c.logger.Info().Msgf("invalid UTXO , can't spent it")
@@ -137,7 +136,7 @@ func (c *Client) getUtxoToSpend(pubKey common.PubKey, total float64) ([]btcjson.
 				continue
 			}
 		}
-		// when the utxo is signed yggdrasil / asgard , even amount is less than minSpendableUTXOAmountSats
+		// when the utxo is signed yggdrasil / asgard , even amount is less than DustThreshold
 		// it is ok to spend it
 		if item.Amount < minUTXOAmt && !isSelfTx && !isYggdrasil {
 			continue

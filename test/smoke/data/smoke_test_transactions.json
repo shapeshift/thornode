@@ -681,19 +681,6 @@
         "chain": "BNB",
         "from_address": "PROVIDER-2",
         "to_address": "VAULT",
-        "memo": "",
-        "coins": [
-            {
-                "asset": "BNB.BNB",
-                "amount": 150000000
-            }
-        ],
-        "gas": null
-    },
-    {
-        "chain": "BNB",
-        "from_address": "PROVIDER-2",
-        "to_address": "VAULT",
         "memo": "ABDG?",
         "coins": [
             {

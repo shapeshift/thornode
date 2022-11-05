@@ -331,8 +331,9 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(baseMemo.GetBlockHeight(), Equals, int64(0))
 
 	// unhappy paths
-	_, err = ParseMemoWithTHORNames(ctx, k, "")
+	memo, err = ParseMemoWithTHORNames(ctx, k, "")
 	c.Assert(err, NotNil)
+	c.Assert(memo.IsEmpty(), Equals, true)
 	_, err = ParseMemoWithTHORNames(ctx, k, "bogus")
 	c.Assert(err, NotNil)
 	_, err = ParseMemoWithTHORNames(ctx, k, "CREATE") // missing symbol

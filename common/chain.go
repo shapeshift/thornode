@@ -249,6 +249,25 @@ func (c Chain) AddressPrefix(cn ChainNetwork) string {
 	return ""
 }
 
+// DustThreshold returns the min dust threshold for each chain
+// The min dust threshold defines the lower end of the withdraw range of memoless savers txs
+// The native coin value provided in a memoless tx defines a basis points amount of Withdraw or Add to a savers position as follows:
+// Withdraw range: (dust_threshold + 1) -> (dust_threshold + 10_000)
+// Add range: dust_threshold -> Inf
+// NOTE: these should all be in 8 decimal places
+func (c Chain) DustThreshold() cosmos.Uint {
+	switch c {
+	case BTCChain, LTCChain, BCHChain:
+		return cosmos.NewUint(10_000)
+	case DOGEChain:
+		return cosmos.NewUint(100_000_000)
+	case ETHChain, AVAXChain, GAIAChain, BNBChain:
+		return cosmos.NewUint(0)
+	default:
+		return cosmos.NewUint(0)
+	}
+}
+
 // Has check whether chain c is in the list
 func (chains Chains) Has(c Chain) bool {
 	for _, ch := range chains {

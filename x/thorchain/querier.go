@@ -504,6 +504,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 			GasRateUnits:         wrapString(chain.GetGasUnits()),
 			OutboundTxSize:       wrapString(cosmos.NewUint(networkFeeInfo.TransactionSize).String()),
 			OutboundFee:          wrapString(outboundFee.String()),
+			DustThreshold:        wrapString(chain.DustThreshold().String()),
 		}
 
 		resp = append(resp, addr)
