@@ -603,6 +603,34 @@ func (s *HelperSuite) TestEmitPoolStageCostEvent(c *C) {
 	c.Assert(found, Equals, true)
 }
 
+func (s *HelperSuite) TestIsSynthMintPause(c *C) {
+	ctx, mgr := setupManagerForTest(c)
+
+	mgr.Keeper().SetMimir(ctx, constants.MaxSynthPerPoolDepth.String(), 1500)
+
+	pool := types.Pool{
+		Asset:        common.BTCAsset,
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+	}
+	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
+
+	coins := cosmos.NewCoins(cosmos.NewCoin("btc/btc", cosmos.NewInt(29*common.One))) // 29% utilization
+	c.Assert(mgr.coinKeeper.MintCoins(ctx, ModuleName, coins), IsNil)
+
+	c.Assert(isSynthMintPaused(ctx, mgr, common.BTCAsset), IsNil)
+
+	coins = cosmos.NewCoins(cosmos.NewCoin("btc/btc", cosmos.NewInt(1*common.One))) // 30% utilization
+	c.Assert(mgr.coinKeeper.MintCoins(ctx, ModuleName, coins), IsNil)
+
+	c.Assert(isSynthMintPaused(ctx, mgr, common.BTCAsset), IsNil)
+
+	coins = cosmos.NewCoins(cosmos.NewCoin("btc/btc", cosmos.NewInt(1*common.One))) // 31% utilization
+	c.Assert(mgr.coinKeeper.MintCoins(ctx, ModuleName, coins), IsNil)
+
+	c.Assert(isSynthMintPaused(ctx, mgr, common.BTCAsset), NotNil)
+}
+
 func (s *HelperSuite) TestIsTradingHalt(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	txID := GetRandomTxHash()

@@ -748,6 +748,7 @@ components:
         - pending_inbound_asset
         - savers_depth
         - savers_units
+        - synth_mint_paused
       properties:
         balance_rune:
           type: string
@@ -795,6 +796,10 @@ components:
           type: string
           example: "199998"
           description: the number of units owned by Savers
+        synth_mint_paused:
+          type: boolean
+          example: true
+          description: whether additional synths cannot be minted
 
     LiquidityProvider:
       type: object

@@ -891,6 +891,8 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 	pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
+	synthMintPausedErr := isSynthMintPaused(ctx, mgr, saversAsset)
+
 	p := &openapi.Pool{
 		BalanceRune:         pool.BalanceRune.String(),
 		BalanceAsset:        pool.BalanceAsset.String(),
@@ -903,6 +905,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		SynthSupply:         synthSupply.String(),
 		SaversDepth:         saversDepth.String(),
 		SaversUnits:         saversUnits.String(),
+		SynthMintPaused:     synthMintPausedErr != nil,
 		PendingInboundRune:  pool.PendingInboundRune.String(),
 		PendingInboundAsset: pool.PendingInboundAsset.String(),
 	}
@@ -945,6 +948,8 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 		pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
+		synthMintPausedErr := isSynthMintPaused(ctx, mgr, pool.Asset)
+
 		p := openapi.Pool{
 			BalanceRune:         pool.BalanceRune.String(),
 			BalanceAsset:        pool.BalanceAsset.String(),
@@ -957,6 +962,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 			SynthSupply:         synthSupply.String(),
 			SaversDepth:         saversDepth.String(),
 			SaversUnits:         saversUnits.String(),
+			SynthMintPaused:     synthMintPausedErr != nil,
 			PendingInboundRune:  pool.PendingInboundRune.String(),
 			PendingInboundAsset: pool.PendingInboundAsset.String(),
 		}

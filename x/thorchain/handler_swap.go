@@ -44,6 +44,8 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.99.0")):
+		return h.validateV99(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
 		return h.validateV98(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
@@ -61,7 +63,7 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	}
 }
 
-func (h SwapHandler) validateV98(ctx cosmos.Context, msg MsgSwap) error {
+func (h SwapHandler) validateV99(ctx cosmos.Context, msg MsgSwap) error {
 	if err := msg.ValidateBasicV63(); err != nil {
 		return err
 	}
@@ -102,21 +104,9 @@ func (h SwapHandler) validateV98(ctx cosmos.Context, msg MsgSwap) error {
 		}
 
 		// fail validation if synth supply is already too high, relative to pool depth
-		maxSynths, err := h.mgr.Keeper().GetMimir(ctx, constants.MaxSynthPerPoolDepth.String())
-		if maxSynths < 0 || err != nil {
-			maxSynths = h.mgr.GetConstants().GetInt64Value(constants.MaxSynthPerPoolDepth)
-		}
-		synthSupply := h.mgr.Keeper().GetTotalSupply(ctx, target.GetSyntheticAsset())
-		pool, err := h.mgr.Keeper().GetPool(ctx, target.GetLayer1Asset())
+		err = isSynthMintPaused(ctx, h.mgr, target)
 		if err != nil {
-			return ErrInternal(err, "fail to get pool")
-		}
-		if pool.BalanceAsset.IsZero() {
-			return fmt.Errorf("pool(%s) has zero asset balance", pool.Asset.String())
-		}
-		coverage := int64(synthSupply.MulUint64(MaxWithdrawBasisPoints).Quo(pool.BalanceAsset.MulUint64(2)).Uint64())
-		if coverage > maxSynths {
-			return fmt.Errorf("synth quantity is too high relative to asset depth of related pool (%d/%d)", coverage, maxSynths)
+			return err
 		}
 
 		ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
