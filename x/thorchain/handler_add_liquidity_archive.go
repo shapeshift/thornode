@@ -11,6 +11,102 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
+func (h AddLiquidityHandler) validateV98(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	if err := msg.ValidateBasicV98(); err != nil {
+		ctx.Logger().Error(err.Error())
+		return errAddLiquidityFailValidation
+	}
+
+	if msg.Asset.IsVaultAsset() {
+		if !msg.Asset.GetLayer1Asset().IsGasAsset() {
+			return fmt.Errorf("asset must be a gas asset for the layer1 protocol")
+		}
+		if !msg.AssetAddress.IsChain(msg.Asset.GetLayer1Asset().GetChain()) {
+			return fmt.Errorf("asset address must be layer1 chain")
+		}
+		if !msg.RuneAmount.IsZero() {
+			return fmt.Errorf("cannot deposit rune into a vault")
+		}
+	}
+
+	if !msg.RuneAddress.IsEmpty() && !msg.RuneAddress.IsChain(common.THORChain) {
+		ctx.Logger().Error("rune address must be THORChain")
+		return errAddLiquidityFailValidation
+	}
+
+	if !msg.AssetAddress.IsEmpty() {
+		polAddress, err := h.mgr.Keeper().GetModuleAddress(ReserveName)
+		if err != nil {
+			return err
+		}
+		if msg.RuneAddress.Equals(polAddress) {
+			return fmt.Errorf("pol lp cannot have asset address")
+		}
+	}
+
+	// check if swap meets standards
+	if h.needsSwap(msg) {
+		if !msg.Asset.IsVaultAsset() {
+			return fmt.Errorf("swap & add liquidity is only available for synthetic pools")
+		}
+		if !msg.Asset.GetLayer1Asset().Equals(msg.Tx.Coins[0].Asset) {
+			return fmt.Errorf("deposit asset must be the layer1 equivalent for the synthetic asset")
+		}
+	}
+
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
+	if err != nil {
+		return ErrInternal(err, "fail to get pool")
+	}
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
+		ctx.Logger().Error("fail to check pool status", "error", err)
+		return errInvalidPoolStatus
+	}
+
+	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
+		return fmt.Errorf("unable to add liquidity while chain has paused LP actions")
+	}
+
+	ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
+	// if the pool is THORChain no need to check economic security
+	if msg.Asset.IsVaultAsset() || !ensureLiquidityNoLargerThanBond {
+		return nil
+	}
+
+	// the following  only applicable for chaosnet
+	totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
+	if err != nil {
+		return ErrInternal(err, "fail to get total liquidity RUNE")
+	}
+
+	// total liquidity RUNE after current add liquidity
+	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
+	totalLiquidityRUNE = totalLiquidityRUNE.Add(pool.AssetValueInRune(msg.AssetAmount))
+	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
+	if maximumLiquidityRune < 0 || err != nil {
+		maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
+	}
+	if maximumLiquidityRune > 0 {
+		if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
+			return errAddLiquidityRUNEOverLimit
+		}
+	}
+
+	if !ensureLiquidityNoLargerThanBond {
+		return nil
+	}
+	securityBond, err := h.getEffectiveSecurityBond(ctx)
+	if err != nil {
+		return ErrInternal(err, "fail to get security bond RUNE")
+	}
+	if totalLiquidityRUNE.GT(securityBond) {
+		ctx.Logger().Info("total liquidity RUNE is more than effective security bond", "rune", totalLiquidityRUNE.String(), "bond", securityBond.String())
+		return errAddLiquidityRUNEMoreThanBond
+	}
+
+	return nil
+}
+
 // r = rune provided;
 // a = asset provided
 // R = rune Balance (before)

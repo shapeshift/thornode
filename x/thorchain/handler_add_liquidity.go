@@ -52,6 +52,8 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.99.0")):
+		return h.validateV99(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
 		return h.validateV98(ctx, msg)
 	case version.GTE(semver.MustParse("1.96.0")):
@@ -67,10 +69,40 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	}
 }
 
-func (h AddLiquidityHandler) validateV98(ctx cosmos.Context, msg MsgAddLiquidity) error {
+func (h AddLiquidityHandler) validateV99(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if err := msg.ValidateBasicV98(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
+	}
+
+	// The Ragnarok key for the TERRA.LUNA pool would be RAGNAROK-TERRA-LUNA .
+	k := "RAGNAROK-" + msg.Asset.MimirString()
+	v, err := h.mgr.Keeper().GetMimir(ctx, k)
+	if err != nil {
+		ctx.Logger().Error("fail to get mimir value", "mimir", k, "error", err)
+	}
+	if v >= 1 {
+		return fmt.Errorf("cannot add liquidity to Ragnaroked pool (%s)", msg.Asset.String())
+	}
+
+	// Note that GetChain() without GetLayer1Asset() would indicate THORChain for synthetic assets.
+	gasAsset := msg.Asset.GetLayer1Asset().GetChain().GetGasAsset()
+	// Even if a destination gas asset pool is empty, the first add liquidity has to be symmetrical,
+	// and so there is no need to check at this stage for whether the addition is of RUNE or Asset or with needsSwap.
+	if !msg.Asset.Equals(gasAsset) {
+		gasPool, err := h.mgr.Keeper().GetPool(ctx, gasAsset)
+		// Note that for a synthetic asset msg.Asset.Chain (unlike msg.Asset.GetChain())
+		// is intentionally used to be the external chain rather than THOR.
+		// Any destination asset starting with THOR should be rejected for no THOR.RUNE
+		// gas asset pool existing.
+		if err != nil {
+			return ErrInternal(err, "fail to get gas pool")
+		}
+		// Note that NewPool from GetPool would return a pool with status;
+		// use IsEmpty to check for prior existence.
+		if gasPool.IsEmpty() {
+			return fmt.Errorf("asset (%s)'s gas asset pool (%s) does not exist yet", msg.Asset.String(), gasAsset.String())
+		}
 	}
 
 	if msg.Asset.IsVaultAsset() {

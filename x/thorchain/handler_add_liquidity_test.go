@@ -703,7 +703,19 @@ func (s *HandlerAddLiquiditySuite) TestValidateAddLiquidityMessage(c *C) {
 		LPUnits:      cosmos.NewUint(100 * common.One),
 		Status:       PoolAvailable,
 	}), IsNil)
+	// happy path
 	c.Assert(h.validateAddLiquidityMessage(ctx, ps, common.BNBAsset, txID, bnbAddress, assetAddress), Equals, nil)
+	// Don't accept THOR.BNB
+	thorAsset := common.BNBAsset
+	var err error // Previously undeclared, so declaration needed
+	thorAsset.Chain, err = common.NewChain("THOR")
+	c.Assert(err, IsNil)
+	c.Assert(h.validateAddLiquidityMessage(ctx, ps, thorAsset, txID, bnbAddress, assetAddress), NotNil)
+	// Don't accept TEST.BNB
+	testAsset := common.BNBAsset
+	testAsset.Chain, err = common.NewChain("TEST")
+	c.Assert(err, IsNil)
+	c.Assert(h.validateAddLiquidityMessage(ctx, ps, testAsset, txID, bnbAddress, assetAddress), NotNil)
 }
 
 func (s *HandlerAddLiquiditySuite) TestAddLiquidityV1(c *C) {
@@ -894,10 +906,34 @@ func (HandlerAddLiquiditySuite) TestSynthValidate(c *C) {
 		fmt.Sprintf("add:%s", asset.String()),
 	)
 
-	// happy path
+	// don't allow add liquidity when the gas asset pool doesn't exist
 	msg := NewMsgAddLiquidity(tx, asset, cosmos.ZeroUint(), cosmos.NewUint(1000*common.One), common.NoAddress, addr, common.NoAddress, cosmos.ZeroUint(), signer)
 	err := handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+
+	// Set gas pool's Asset to represent existence for IsEmpty
+	gasPool := NewPool()
+	gasPool.Asset = common.BTCAsset
+	c.Assert(mgr.Keeper().SetPool(ctx, gasPool), IsNil)
+
+	// happy path
+	err = handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
+
+	// don't accept THOR/BTC
+	thorAsset := asset
+	thorAsset.Chain, err = common.NewChain("THOR")
+	c.Assert(err, IsNil)
+	msg.Asset = thorAsset
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+	// don't accept TEST/BTC
+	testAsset := asset
+	testAsset.Chain, err = common.NewChain("TEST")
+	c.Assert(err, IsNil)
+	msg.Asset = testAsset
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
 
 	// don't allow non-gas assets
 	busd, err := common.NewAsset("BNB.BUSD-BD1")
