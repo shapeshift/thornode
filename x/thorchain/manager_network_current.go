@@ -73,128 +73,6 @@ func (vm *NetworkMgrV99) processGenesisSetup(ctx cosmos.Context) error {
 	return nil
 }
 
-func (vm *NetworkMgrV99) synthYieldCycle(ctx cosmos.Context, mgr Manager, yieldPts int64) error {
-	iterator := vm.k.GetPoolIterator(ctx)
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		var bucket Pool
-		if err := vm.k.Cdc().Unmarshal(iterator.Value(), &bucket); err != nil {
-			ctx.Logger().Error("fail to unmarshal bucket", "key", string(iterator.Key()), "error", err)
-			continue
-		}
-
-		earnings := vm.calcSynthYield(ctx, mgr, yieldPts, bucket)
-		if earnings.IsZero() {
-			continue
-		}
-
-		// Mint the corresponding amount of synths
-		coin := common.NewCoin(bucket.Asset.GetSyntheticAsset(), earnings)
-		if err := mgr.Keeper().MintToModule(ctx, ModuleName, coin); err != nil {
-			ctx.Logger().Error("fail to mint synth rewards", "error", err)
-			continue
-		}
-
-		// send synths to asgard module
-		if err := mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)); err != nil {
-			ctx.Logger().Error("fail to move module synths", "error", err)
-			continue
-		}
-
-		// update synthetic bucket state with new synths
-		bucket.BalanceAsset = bucket.BalanceAsset.Add(earnings)
-		if err := mgr.Keeper().SetPool(ctx, bucket); err != nil {
-			ctx.Logger().Error("fail to save bucket", "bucket", bucket.Asset, "error", err)
-			continue
-		}
-
-		// emit event
-		modAddress, err := mgr.Keeper().GetModuleAddress(ModuleName)
-		if err != nil {
-			return err
-		}
-		asgardAddress, err := mgr.Keeper().GetModuleAddress(AsgardName)
-		if err != nil {
-			return err
-		}
-		tx := common.NewTx(common.BlankTxID, modAddress, asgardAddress, common.NewCoins(coin), nil, "THOR-YIELD")
-		donateEvt := NewEventDonate(bucket.Asset, tx)
-		if err := mgr.EventMgr().EmitEvent(ctx, donateEvt); err != nil {
-			return cosmos.Wrapf(errFailSaveEvent, "fail to save donate events: %w", err)
-		}
-		ctx.Logger().Info("Synth Earnings", "bucket", bucket.Asset.String(), "amount", earnings.String())
-	}
-	return nil
-}
-
-func (vm *NetworkMgrV99) calcSynthYield(ctx cosmos.Context, mgr Manager, yieldPts int64, bucket Pool) cosmos.Uint {
-	// skip any layer1 pools
-	if !bucket.Asset.IsSyntheticAsset() {
-		return cosmos.ZeroUint()
-	}
-
-	// if bucket is empty, skip it
-	if bucket.BalanceAsset.IsZero() || bucket.LPUnits.IsZero() {
-		return cosmos.ZeroUint()
-	}
-
-	pool, err := mgr.Keeper().GetPool(ctx, bucket.Asset.GetLayer1Asset())
-	if err != nil {
-		ctx.Logger().Error("fail to unmarshal pool", "bucket", bucket.Asset.String(), "error", err)
-		return cosmos.ZeroUint()
-	}
-
-	// if bucket's layer 1 pool is empty, skip
-	if pool.BalanceAsset.IsZero() {
-		return cosmos.ZeroUint()
-	}
-
-	// if the pool is not active, no need to pay synths for yield
-	if pool.Status != PoolAvailable {
-		return cosmos.ZeroUint()
-	}
-
-	synthSupply := mgr.Keeper().GetTotalSupply(ctx, bucket.Asset.GetSyntheticAsset())
-	pool.CalcUnits(mgr.GetVersion(), synthSupply)
-	currentLUVI := pool.GetLUVI()
-	if currentLUVI.IsZero() {
-		return cosmos.ZeroUint()
-	}
-
-	// get previous LUVI score
-	lastLUVI, err := mgr.Keeper().GetPoolLUVI(ctx, bucket.Asset.GetLayer1Asset())
-	if err != nil {
-		ctx.Logger().Error("fail to fetch previous LUVI score", "bucket", bucket.Asset.String(), "error", err)
-		return cosmos.ZeroUint()
-	}
-	if lastLUVI.IsZero() {
-		mgr.Keeper().SetPoolLUVI(ctx, bucket.Asset.GetLayer1Asset(), currentLUVI)
-		return cosmos.ZeroUint()
-	}
-
-	// skip if LUVI has decreased
-	if currentLUVI.LTE(lastLUVI) {
-		return cosmos.ZeroUint()
-	}
-
-	// Only update LUVI if it has net increased, otherwise synth vaults syphon yield from LPers
-	mgr.Keeper().SetPoolLUVI(ctx, bucket.Asset.GetLayer1Asset(), currentLUVI)
-
-	// sanity check, ensure LUVI has been updated, so we don't repeat yield due to a bug
-	luvi, err := mgr.Keeper().GetPoolLUVI(ctx, bucket.Asset.GetLayer1Asset())
-	if err != nil {
-		return cosmos.ZeroUint()
-	}
-	if !luvi.Equal(currentLUVI) {
-		return cosmos.ZeroUint()
-	}
-
-	// calculate the earnings between luvi1 & luvi2
-	earnings := common.GetSafeShare(common.SafeSub(currentLUVI, lastLUVI), currentLUVI, bucket.BalanceAsset)
-	earnings = common.GetSafeShare(cosmos.NewUint(uint64(yieldPts)), cosmos.NewUint(10_000), earnings)
-	return earnings
-}
-
 // EndBlock move funds from retiring asgard vaults
 func (vm *NetworkMgrV99) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	if ctx.BlockHeight() == genesisBlockHeight {
@@ -205,14 +83,6 @@ func (vm *NetworkMgrV99) EndBlock(ctx cosmos.Context, mgr Manager) error {
 
 	if err := vm.POLCycle(ctx, mgr); err != nil {
 		ctx.Logger().Error("fail to process POL liquidity", "error", err)
-	}
-
-	synthYieldCycle := fetchConfigInt64(ctx, mgr, constants.SynthYieldCycle)
-	if synthYieldCycle > 0 && ctx.BlockHeight()%synthYieldCycle == 0 {
-		synthYieldPts := fetchConfigInt64(ctx, mgr, constants.SynthYieldBasisPoints)
-		if err := vm.synthYieldCycle(ctx, mgr, synthYieldPts); err != nil {
-			ctx.Logger().Error("fail to payout yield bearing synths", "error", err)
-		}
 	}
 
 	migrateInterval, err := vm.k.GetMimir(ctx, constants.FundMigrationInterval.String())
@@ -406,6 +276,87 @@ func (vm *NetworkMgrV99) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	}
 	if err := vm.checkPoolRagnarok(ctx, mgr); err != nil {
 		ctx.Logger().Error("fail to process pool ragnarok", "error", err)
+	}
+	return nil
+}
+
+// paySaverYield - takes a pool asset and total rune collected in yield to the pool, then pays out savers their proportion of yield based on its size (relative to dual side LPs) and the SynthYieldBasisPoints
+func (vm *NetworkMgrV99) paySaverYield(ctx cosmos.Context, asset common.Asset, runeAmt cosmos.Uint) error {
+	pool, err := vm.k.GetPool(ctx, asset.GetLayer1Asset())
+	if err != nil {
+		return err
+	}
+
+	// if saver's layer 1 pool is empty, skip
+	// if the pool is not active, no need to pay synths for yield
+	if pool.BalanceAsset.IsZero() || pool.Status != PoolAvailable {
+		return nil
+	}
+
+	saver, err := vm.k.GetPool(ctx, asset.GetSyntheticAsset())
+	if err != nil {
+		return err
+	}
+
+	if saver.BalanceAsset.IsZero() || saver.LPUnits.IsZero() {
+		return nil
+	}
+
+	basisPts, err := vm.k.GetMimir(ctx, constants.SynthYieldBasisPoints.String())
+	if basisPts < 0 || err != nil {
+		constAccessor := constants.GetConstantValues(vm.k.GetVersion())
+		basisPts = constAccessor.GetInt64Value(constants.SynthYieldBasisPoints)
+		if err != nil {
+			ctx.Logger().Error("fail to fetch mimir value", "key", constants.SynthYieldBasisPoints.String(), "error", err)
+			return err
+		}
+	}
+	if basisPts <= 0 {
+		return nil
+	}
+
+	assetAmt := pool.RuneValueInAsset(runeAmt)
+	// get the portion of the assetAmt based on the pool depth (asset * 2) and
+	// the saver asset balance
+	earnings := common.GetSafeShare(saver.BalanceAsset, pool.BalanceAsset.MulUint64(2), assetAmt)
+	earnings = common.GetSafeShare(cosmos.NewUint(uint64(basisPts)), cosmos.NewUint(10_000), earnings)
+	if earnings.IsZero() {
+		return nil
+	}
+
+	// Mint the corresponding amount of synths
+	coin := common.NewCoin(saver.Asset.GetSyntheticAsset(), earnings)
+	if err := vm.k.MintToModule(ctx, ModuleName, coin); err != nil {
+		ctx.Logger().Error("fail to mint synth rewards", "error", err)
+		return err
+	}
+
+	// send synths to asgard module
+	if err := vm.k.SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(coin)); err != nil {
+		ctx.Logger().Error("fail to move module synths", "error", err)
+		return err
+	}
+
+	// update synthetic saver state with new synths
+	saver.BalanceAsset = saver.BalanceAsset.Add(earnings)
+	if err := vm.k.SetPool(ctx, saver); err != nil {
+		ctx.Logger().Error("fail to save saver", "saver", saver.Asset, "error", err)
+		return err
+	}
+
+	// emit event
+	modAddress, err := vm.k.GetModuleAddress(ModuleName)
+	if err != nil {
+		return err
+	}
+	asgardAddress, err := vm.k.GetModuleAddress(AsgardName)
+	if err != nil {
+		return err
+	}
+	tx := common.NewTx(common.BlankTxID, modAddress, asgardAddress, common.NewCoins(coin), nil, "THOR-SAVERS-YIELD")
+	donateEvt := NewEventDonate(saver.Asset, tx)
+	if err := vm.eventMgr.EmitEvent(ctx, donateEvt); err != nil {
+		return cosmos.Wrapf(errFailSaveEvent, "fail to save donate events: %w", err)
 	}
 	return nil
 }
@@ -1091,20 +1042,26 @@ func (vm *NetworkMgrV99) UpdateNetwork(ctx cosmos.Context, constAccessor constan
 			if !pool.IsAvailable() {
 				continue
 			}
-			var amt cosmos.Uint
+			var amt, fees cosmos.Uint
 			if totalLiquidityFees.IsZero() {
 				amt = common.GetSafeShare(pool.BalanceRune, totalProvidedLiquidity, totalPoolRewards)
+				fees = cosmos.ZeroUint()
 			} else {
-				fees, err := vm.k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
+				var err error
+				fees, err = vm.k.GetPoolLiquidityFees(ctx, currentHeight, pool.Asset)
 				if err != nil {
 					ctx.Logger().Error("fail to get fees", "error", err)
 					continue
 				}
 				amt = common.GetSafeShare(fees, totalLiquidityFees, totalPoolRewards)
 			}
+			if err := vm.paySaverYield(ctx, pool.Asset, amt.Add(fees)); err != nil {
+				return fmt.Errorf("fail to pay saver yield: %w", err)
+			}
 			rewardAmts = append(rewardAmts, amt)
 			evtPools = append(evtPools, PoolAmt{Asset: pool.Asset, Amount: int64(amt.Uint64())})
 			rewardPools = append(rewardPools, pool)
+
 		}
 		// Pay out
 		if err := vm.payPoolRewards(ctx, rewardAmts, rewardPools); err != nil {
@@ -1186,11 +1143,9 @@ func (vm *NetworkMgrV99) payPoolRewards(ctx cosmos.Context, poolRewards []cosmos
 		if err := vm.k.SetPool(ctx, pools[i]); err != nil {
 			return fmt.Errorf("fail to set pool: %w", err)
 		}
-		if !reward.IsZero() {
-			coin := common.NewCoin(common.RuneNative, reward)
-			if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoins(coin)); err != nil {
-				return fmt.Errorf("fail to transfer funds from reserve to asgard: %w", err)
-			}
+		coin := common.NewCoin(common.RuneNative, reward)
+		if err := vm.k.SendFromModuleToModule(ctx, ReserveName, AsgardName, common.NewCoins(coin)); err != nil {
+			return fmt.Errorf("fail to transfer funds from reserve to asgard: %w", err)
 		}
 	}
 	return nil
@@ -1285,16 +1240,18 @@ func (vm *NetworkMgrV99) deductPoolRewardDeficit(ctx cosmos.Context, pools Pools
 			continue
 		}
 		poolDeficit := vm.calcPoolDeficit(lpDeficit, totalLiquidityFees, poolFees)
+		if err := vm.paySaverYield(ctx, pool.Asset, common.SafeSub(poolFees, poolDeficit)); err != nil {
+			ctx.Logger().Error("fail to pay saver yield", "error", err)
+		}
+
 		// when pool deficit is zero , the pool doesn't pay deficit
 		if poolDeficit.IsZero() {
 			continue
 		}
-		if !poolDeficit.IsZero() {
-			coin := common.NewCoin(common.RuneNative, poolDeficit)
-			if err := vm.k.SendFromModuleToModule(ctx, AsgardName, ReserveName, common.NewCoins(coin)); err != nil {
-				ctx.Logger().Error("fail to transfer funds from asgard to reserve", "error", err)
-				return poolAmts, fmt.Errorf("fail to transfer funds from asgard to reserve: %w", err)
-			}
+		coin := common.NewCoin(common.RuneNative, poolDeficit)
+		if err := vm.k.SendFromModuleToModule(ctx, AsgardName, ReserveName, common.NewCoins(coin)); err != nil {
+			ctx.Logger().Error("fail to transfer funds from asgard to reserve", "error", err)
+			return poolAmts, fmt.Errorf("fail to transfer funds from asgard to reserve: %w", err)
 		}
 		if poolDeficit.GT(pool.BalanceRune) {
 			poolDeficit = pool.BalanceRune
