@@ -60,7 +60,7 @@ func (s *PoolMgrV95Suite) TestEnableNextPool(c *C) {
 	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	poolMgr := newPoolMgrV95(k)
+	poolMgr := newPoolMgrV95()
 
 	// should enable BTC
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 0, mgr), IsNil)
@@ -114,7 +114,7 @@ func (s *PoolMgrV95Suite) TestAbandonPool(c *C) {
 	}
 	k.SetLiquidityProvider(ctx, lp)
 
-	poolMgr := newPoolMgrV95(k)
+	poolMgr := newPoolMgrV95()
 
 	// cycle pools
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 100*common.One, mgr), IsNil)
@@ -189,7 +189,7 @@ func (s *PoolMgrV95Suite) TestDemotePoolWithLowLiquidityFees(c *C) {
 	k.SetLiquidityProvider(ctx, lp)
 	k.SetMimir(ctx, constants.MinimumPoolLiquidityFee.String(), 100000000)
 
-	poolMgr := newPoolMgrV95(k)
+	poolMgr := newPoolMgrV95()
 
 	// cycle pools
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 100*common.One, mgr), IsNil)
@@ -225,7 +225,7 @@ func (s *PoolMgrV95Suite) TestDemotePoolWithLowLiquidityFees(c *C) {
 func (s *PoolMgrV95Suite) TestPoolMeetTradingVolumeCriteria(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
-	pm := newPoolMgrV95(k)
+	pm := newPoolMgrV95()
 
 	asset := common.BTCAsset
 
@@ -259,7 +259,7 @@ func (s *PoolMgrV95Suite) TestPoolMeetTradingVolumeCriteria(c *C) {
 func (s *PoolMgrV95Suite) TestRemoveAssetFromVault(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
-	pm := newPoolMgrV95(k)
+	pm := newPoolMgrV95()
 
 	asset := common.BTCAsset
 
@@ -297,7 +297,7 @@ func (s *PoolMgrV95Suite) TestRemoveAssetFromVault(c *C) {
 func (s *PoolMgrV95Suite) TestRemoveLiquidityProviders(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
-	pm := newPoolMgrV95(k)
+	pm := newPoolMgrV95()
 
 	countLiquidityProviders := func(ctx cosmos.Context, k keeper.Keeper, asset common.Asset) int {
 		count := 0

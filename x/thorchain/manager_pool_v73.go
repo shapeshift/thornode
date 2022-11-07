@@ -6,17 +6,12 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type PoolMgrV73 struct {
-	keeper keeper.Keeper
-}
+type PoolMgrV73 struct{}
 
-func newPoolMgrV73(k keeper.Keeper) *PoolMgrV73 {
-	return &PoolMgrV73{
-		keeper: k,
-	}
+func newPoolMgrV73() *PoolMgrV73 {
+	return &PoolMgrV73{}
 }
 
 func (pm *PoolMgrV73) EndBlock(ctx cosmos.Context, mgr Manager) error {

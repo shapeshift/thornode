@@ -6,17 +6,12 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type PoolMgrV95 struct {
-	keeper keeper.Keeper
-}
+type PoolMgrV95 struct{}
 
-func newPoolMgrV95(k keeper.Keeper) *PoolMgrV95 {
-	return &PoolMgrV95{
-		keeper: k,
-	}
+func newPoolMgrV95() *PoolMgrV95 {
+	return &PoolMgrV95{}
 }
 
 // EndBlock cycle pools if required and if ragnarok is not in progress

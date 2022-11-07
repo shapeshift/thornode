@@ -218,7 +218,7 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to get vault manager: %w", err)
 	}
 
-	mgr.poolMgr, err = GetPoolManager(v, mgr.K)
+	mgr.poolMgr, err = GetPoolManager(v)
 	if err != nil {
 		return fmt.Errorf("fail to get pool manager: %w", err)
 	}
@@ -411,14 +411,14 @@ func GetObserverManager(version semver.Version) (ObserverManager, error) {
 }
 
 // GetPoolManager return an implementation of PoolManager
-func GetPoolManager(version semver.Version, keeper keeper.Keeper) (PoolManager, error) {
+func GetPoolManager(version semver.Version) (PoolManager, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.98.0")):
-		return newPoolMgrV98(keeper), nil
+		return newPoolMgrV98(), nil
 	case version.GTE(semver.MustParse("1.95.0")):
-		return newPoolMgrV95(keeper), nil
+		return newPoolMgrV95(), nil
 	case version.GTE(semver.MustParse("0.73.0")):
-		return newPoolMgrV73(keeper), nil
+		return newPoolMgrV73(), nil
 	}
 	return nil, errInvalidVersion
 }
