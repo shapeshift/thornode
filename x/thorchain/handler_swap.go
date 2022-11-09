@@ -104,7 +104,7 @@ func (h SwapHandler) validateV99(ctx cosmos.Context, msg MsgSwap) error {
 		}
 
 		// fail validation if synth supply is already too high, relative to pool depth
-		err = isSynthMintPaused(ctx, h.mgr, target)
+		err = isSynthMintPaused(ctx, h.mgr, target, cosmos.ZeroUint())
 		if err != nil {
 			return err
 		}
@@ -151,6 +151,8 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.99.0")):
+		return h.handleV99(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
 		return h.handleV98(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
@@ -166,7 +168,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	}
 }
 
-func (h SwapHandler) handleV98(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+func (h SwapHandler) handleV99(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	// Don't change msg.Destination here; this line was introduced to avoid people from swapping mainnet asset,
 	// but using testnet address.
@@ -213,6 +215,14 @@ func (h SwapHandler) handleV98(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 		h.mgr)
 	if swapErr != nil {
 		return nil, swapErr
+	}
+
+	// Check if swap to a synth would cause synth supply to exceed MaxSynthPerPoolDepth cap
+	if msg.TargetAsset.IsSyntheticAsset() {
+		err = isSynthMintPaused(ctx, h.mgr, msg.TargetAsset, emit)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	mem, err := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Tx.Memo)

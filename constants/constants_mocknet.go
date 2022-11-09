@@ -24,6 +24,7 @@ func init() {
 		MinTxOutVolumeThreshold:      2000000_00000000,
 		TxOutDelayRate:               2000000_00000000,
 		PoolDepthForYggFundingMin:    500_000_00000000,
+		MaxSynthPerPoolDepth:         3_500,
 	}
 	boolOverrides = map[ConstantName]bool{
 		StrictBondLiquidityRatio: false,

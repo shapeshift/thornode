@@ -792,3 +792,80 @@ func (h SwapHandler) handleV81(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 	}
 	return &cosmos.Result{}, nil
 }
+
+func (h SwapHandler) handleV98(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+	// test that the network we are running matches the destination network
+	// Don't change msg.Destination here; this line was introduced to avoid people from swapping mainnet asset,
+	// but using testnet address.
+	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
+		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
+	}
+	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.TargetAsset.GetChain(), common.RuneAsset())
+	synthVirtualDepthMult, err := h.mgr.Keeper().GetMimir(ctx, constants.VirtualMultSynthsBasisPoints.String())
+	if synthVirtualDepthMult < 1 || err != nil {
+		synthVirtualDepthMult = h.mgr.GetConstants().GetInt64Value(constants.VirtualMultSynthsBasisPoints)
+	}
+
+	if msg.TargetAsset.IsRune() && !msg.TargetAsset.IsNativeRune() {
+		return nil, fmt.Errorf("target asset can't be %s", msg.TargetAsset.String())
+	}
+
+	dexAgg := ""
+	dexAggTargetAsset := ""
+	if len(msg.Aggregator) > 0 {
+		dexAgg, err = FetchDexAggregator(h.mgr.GetVersion(), msg.TargetAsset.Chain, msg.Aggregator)
+		if err != nil {
+			return nil, err
+		}
+	}
+	dexAggTargetAsset = msg.AggregatorTargetAddress
+
+	swapper, err := GetSwapper(h.mgr.Keeper().GetVersion())
+	if err != nil {
+		return nil, err
+	}
+
+	emit, _, swapErr := swapper.Swap(
+		ctx,
+		h.mgr.Keeper(),
+		msg.Tx,
+		msg.TargetAsset,
+		msg.Destination,
+		msg.TradeTarget,
+		dexAgg,
+		dexAggTargetAsset,
+		msg.AggregatorTargetLimit,
+		transactionFee,
+		synthVirtualDepthMult,
+		h.mgr)
+	if swapErr != nil {
+		return nil, swapErr
+	}
+
+	mem, err := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Tx.Memo)
+	if err != nil {
+		ctx.Logger().Error("swap handler failed to parse memo", "memo", msg.Tx.Memo, "error", err)
+		return nil, err
+	}
+	if mem.IsType(TxAdd) {
+		m, ok := mem.(AddLiquidityMemo)
+		if !ok {
+			return nil, fmt.Errorf("fail to cast add liquidity memo")
+		}
+		m.Asset = fuzzyAssetMatch(ctx, h.mgr.Keeper(), m.Asset)
+		msg.Tx.Coins = common.NewCoins(common.NewCoin(m.Asset, emit))
+		obTx := ObservedTx{Tx: msg.Tx}
+		msg, err := getMsgAddLiquidityFromMemo(ctx, m, obTx, msg.Signer)
+		if err != nil {
+			return nil, err
+		}
+		handler := NewAddLiquidityHandler(h.mgr)
+		_, err = handler.Run(ctx, msg)
+		if err != nil {
+			ctx.Logger().Error("swap handler failed to add liquidity", "error", err)
+			return nil, err
+		}
+	}
+
+	return &cosmos.Result{}, nil
+}

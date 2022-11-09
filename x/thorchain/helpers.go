@@ -690,14 +690,24 @@ func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool 
 }
 
 // isSynthMintPaused fails validation if synth supply is already too high, relative to pool depth
-func isSynthMintPaused(ctx cosmos.Context, mgr Manager, asset common.Asset) error {
+func isSynthMintPaused(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
+	version := mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.99.0")):
+		return isSynthMintPaused99(ctx, mgr, targetAsset, outputAmt)
+	default:
+		return nil
+	}
+}
+
+func isSynthMintPaused99(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
 	maxSynths, err := mgr.Keeper().GetMimir(ctx, constants.MaxSynthPerPoolDepth.String())
 	if maxSynths < 0 || err != nil {
 		maxSynths = mgr.GetConstants().GetInt64Value(constants.MaxSynthPerPoolDepth)
 	}
 
-	synthSupply := mgr.Keeper().GetTotalSupply(ctx, asset.GetSyntheticAsset())
-	pool, err := mgr.Keeper().GetPool(ctx, asset.GetLayer1Asset())
+	synthSupply := mgr.Keeper().GetTotalSupply(ctx, targetAsset.GetSyntheticAsset())
+	pool, err := mgr.Keeper().GetPool(ctx, targetAsset.GetLayer1Asset())
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
 	}
@@ -706,7 +716,8 @@ func isSynthMintPaused(ctx cosmos.Context, mgr Manager, asset common.Asset) erro
 		return fmt.Errorf("pool(%s) has zero asset balance", pool.Asset.String())
 	}
 
-	coverage := int64(synthSupply.MulUint64(MaxWithdrawBasisPoints).Quo(pool.BalanceAsset.MulUint64(2)).Uint64())
+	synthSupplyAfterSwap := synthSupply.Add(outputAmt)
+	coverage := int64(synthSupplyAfterSwap.MulUint64(MaxWithdrawBasisPoints).Quo(pool.BalanceAsset.MulUint64(2)).Uint64())
 	if coverage > maxSynths {
 		return fmt.Errorf("synth quantity is too high relative to asset depth of related pool (%d/%d)", coverage, maxSynths)
 	}
