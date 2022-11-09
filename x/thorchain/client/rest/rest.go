@@ -50,6 +50,7 @@ func RegisterRoutes(cliCtx client.Context, r *mux.Router, storeName string) {
 	}
 
 	// Get unsigned json for emitting a transaction. Validators only.
+	// TODO: check to ensure these are dead and remove them
 	r.HandleFunc(
 		fmt.Sprintf("/%s/txs", storeName),
 		postTxsHandler(cliCtx),

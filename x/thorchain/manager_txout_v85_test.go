@@ -486,7 +486,7 @@ func (k *TestCalcKeeperV87) GetTxOutValue(ctx cosmos.Context, height int64) (cos
 	return val, nil
 }
 
-func (s TxOutStoreV85Suite) TestcalcTxOutHeight(c *C) {
+func (s TxOutStoreV85Suite) TestCalcTxOutHeight(c *C) {
 	keeper := &TestCalcKeeperV87{
 		value: make(map[int64]cosmos.Uint),
 		mimir: make(map[string]int64),
@@ -515,18 +515,18 @@ func (s TxOutStoreV85Suite) TestcalcTxOutHeight(c *C) {
 	pool, _ := keeper.GetPool(ctx, common.BNBAsset)
 	value := pool.AssetValueInRune(toi.Coin.Amount)
 
-	targetBlock, err := txout.calcTxOutHeight(ctx, keeper.GetVersion(), toi)
+	targetBlock, err := txout.CalcTxOutHeight(ctx, keeper.GetVersion(), toi)
 	c.Assert(err, IsNil)
 	c.Check(targetBlock, Equals, int64(147))
 	addValue(targetBlock, value)
 
-	targetBlock, err = txout.calcTxOutHeight(ctx, keeper.GetVersion(), toi)
+	targetBlock, err = txout.CalcTxOutHeight(ctx, keeper.GetVersion(), toi)
 	c.Assert(err, IsNil)
 	c.Check(targetBlock, Equals, int64(148))
 	addValue(targetBlock, value)
 
 	toi.Coin.Amount = cosmos.NewUint(50000 * common.One)
-	targetBlock, err = txout.calcTxOutHeight(ctx, keeper.GetVersion(), toi)
+	targetBlock, err = txout.CalcTxOutHeight(ctx, keeper.GetVersion(), toi)
 	c.Assert(err, IsNil)
 	c.Check(targetBlock, Equals, int64(738))
 	addValue(targetBlock, value)

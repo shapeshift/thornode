@@ -52,7 +52,6 @@ const (
 	EstimateAverageTxSize = 1000
 	// DefaultFeePerKB is guidance set by dogecoin core team and adopted by miners: https://github.com/dogecoin/dogecoin/blob/master/doc/fee-recommendation.md
 	DefaultFeePerKB      = 0.01
-	DefaultCoinbaseValue = 10000
 	MaxMempoolScanPerTry = 500
 )
 
@@ -698,7 +697,7 @@ func (c *Client) sendNetworkFee(blockResult *btcjson.GetBlockVerboseTxResult) er
 	if totalVSize == 0 {
 		return nil
 	}
-	amt, err := dogutil.NewAmount(total - DefaultCoinbaseValue)
+	amt, err := dogutil.NewAmount(total - c.chain.DefaultCoinbase())
 	if err != nil {
 		return fmt.Errorf("fail to parse total block fee amount,err: %w", err)
 	}
@@ -1148,7 +1147,7 @@ func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (in
 		c.logger.Err(err).Msgf("fail to get coinbase value")
 	}
 	if totalFeeAndSubsidy == 0 {
-		cbValue, err := dogutil.NewAmount(DefaultCoinbaseValue)
+		cbValue, err := dogutil.NewAmount(c.chain.DefaultCoinbase())
 		if err != nil {
 			return 0, fmt.Errorf("fail to get default coinbase value: %w", err)
 		}

@@ -29,6 +29,29 @@ func NewCoin(asset Asset, amount cosmos.Uint) Coin {
 	}
 }
 
+// ParseCoin parses a coin string and panics if it is invalid.
+func ParseCoin(coinStr string) (Coin, error) {
+	// split "<amount> <asset>"
+	split := strings.Split(coinStr, " ")
+	if len(split) != 2 {
+		return NoCoin, fmt.Errorf("invalid coin string: %s", coinStr)
+	}
+
+	// parse the amount
+	amount, err := cosmos.ParseUint(split[0])
+	if err != nil {
+		return NoCoin, fmt.Errorf("invalid coin string: %s: %w", coinStr, err)
+	}
+
+	// parse the asset
+	asset, err := NewAsset(split[1])
+	if err != nil {
+		return NoCoin, fmt.Errorf("invalid coin string: %s: %w", coinStr, err)
+	}
+
+	return NewCoin(asset, amount), nil
+}
+
 // NewCoins create a new Coins structure
 func NewCoins(coins ...Coin) Coins {
 	result := make(Coins, len(coins))

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
-	types2 "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -104,6 +104,12 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryTssMetric(ctx, path[1:], req, mgr)
 		case q.QueryTHORName.Key:
 			return queryTHORName(ctx, path[1:], req, mgr)
+		case q.QueryQuoteSwap.Key:
+			return queryQuoteSwap(ctx, path[1:], req, mgr)
+		case q.QueryQuoteSaverDeposit.Key:
+			return queryQuoteSaverDeposit(ctx, path[1:], req, mgr)
+		case q.QueryQuoteSaverWithdraw.Key:
+			return queryQuoteSaverWithdraw(ctx, path[1:], req, mgr)
 		default:
 			return nil, cosmos.ErrUnknownRequest(
 				fmt.Sprintf("unknown thorchain query endpoint: %s", path[0]),
@@ -132,7 +138,7 @@ func queryBalanceModule(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, e
 	balance := struct {
 		Name    string            `json:"name"`
 		Address cosmos.AccAddress `json:"address"`
-		Coins   types2.Coins      `json:"coins"`
+		Coins   sdk.Coins         `json:"coins"`
 	}{
 		Name:    moduleName,
 		Address: modAddr,
@@ -1642,6 +1648,10 @@ func queryTssMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	return json.MarshalIndent(m, "", "	")
 }
 
+// -------------------------------------------------------------------------------------
+// Generic Helpers
+// -------------------------------------------------------------------------------------
+
 func wrapString(s string) *string {
 	if s == "" {
 		return nil
@@ -1654,4 +1664,33 @@ func wrapInt64(d int64) *int64 {
 		return nil
 	}
 	return &d
+}
+
+func simulateInternal(ctx cosmos.Context, mgr *Mgrs, msg sdk.Msg) (sdk.Events, error) {
+	// validate
+	err := msg.ValidateBasic()
+	if err != nil {
+		return nil, fmt.Errorf("failed validate: %w", err)
+	}
+
+	// intercept events and avoid modifying state
+	cms := ctx.MultiStore().CacheMultiStore() // never call cms.Write()
+	em := cosmos.NewEventManager()
+	ctx = ctx.WithMultiStore(cms).WithEventManager(em)
+
+	// disable logging
+	ctx = ctx.WithLogger(nullLogger)
+
+	// simulate the message handler
+	_, err = NewInternalHandler(mgr)(ctx, msg)
+	return em.Events(), err
+}
+
+func eventMap(e sdk.Event) map[string]string {
+	m := map[string]string{}
+	m["type"] = e.Type
+	for _, a := range e.Attributes {
+		m[string(a.Key)] = string(a.Value)
+	}
+	return m
 }

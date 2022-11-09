@@ -64,6 +64,7 @@ var (
 	StoreTypeTransient           = sdk.StoreTypeTransient
 	StoreTypeIAVL                = sdk.StoreTypeIAVL
 	NewContext                   = sdk.NewContext
+	NewUintFromString            = sdk.NewUintFromString
 
 	GetPubKeyFromBech32     = legacybech32.UnmarshalPubKey // nolint SA1019 deprecated
 	Bech32ifyPubKey         = legacybech32.MarshalPubKey   // nolint SA1019 deprecated

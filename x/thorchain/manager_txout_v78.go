@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/armon/go-metrics"
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -130,7 +131,7 @@ func (tos *TxOutStorageV78) TryAddTxOutItem(ctx cosmos.Context, mgr Manager, toi
 	outboundHeight := ctx.BlockHeight()
 	if !toi.Chain.IsTHORChain() && !toi.InHash.IsEmpty() && !toi.InHash.Equals(common.BlankTxID) {
 		toi.Memo = outputs[0].Memo
-		targetHeight, err := tos.calcTxOutHeight(ctx, toi)
+		targetHeight, err := tos.CalcTxOutHeight(ctx, mgr.GetVersion(), toi)
 		if err != nil {
 			ctx.Logger().Error("failed to calc target block height for txout item", "error", err)
 		}
@@ -525,7 +526,7 @@ func (tos *TxOutStorageV78) addToBlockOut(ctx cosmos.Context, mgr Manager, item 
 	return tos.keeper.AppendTxOut(ctx, outboundHeight, item)
 }
 
-func (tos *TxOutStorageV78) calcTxOutHeight(ctx cosmos.Context, toi TxOutItem) (int64, error) {
+func (tos *TxOutStorageV78) CalcTxOutHeight(ctx cosmos.Context, _ semver.Version, toi TxOutItem) (int64, error) {
 	// non-outbound transactions are skipped. This is so this code does not
 	// affect internal transactions (ie consolidation and migrate txs)
 	memo, _ := ParseMemo(tos.keeper.GetVersion(), toi.Memo) // ignore err

@@ -660,8 +660,132 @@ paths:
               schema:
                 $ref: "#/components/schemas/MimirResponse"
 
-  # TODO: Deprecate?
-  # /thorchain/mimir/nodes:
+  # ------------------------------ quotes ------------------------------
+
+  /thorchain/quote/swap:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - name: from_asset
+        in: query
+        description: the source asset
+        schema:
+          type: string
+          example: "BTC.BTC"
+      - name: to_asset
+        in: query
+        description: the target asset
+        schema:
+          type: string
+          example: "ETH.ETH"
+      - name: amount
+        in: query
+        description: the source asset amount in 1e8 decimals
+        schema:
+          type: integer
+          format: int64
+          example: 1000000
+      - name: destination
+        in: query
+        description: the destination address, required to generate memo
+        schema:
+          type: string
+          example: "0x1c7b17362c84287bd1184447e6dfeaf920c31bbe"
+      - name: tolerance_bps
+        in: query
+        description: the maximum basis points from the current feeless swap price to set the limit in the generated memo
+        schema:
+          type: integer
+          format: int64
+          example: 100
+      - name: affiliate_bps
+        in: query
+        description: the affiliate fee in basis points
+        schema:
+          type: integer
+          format: int64
+          example: 100
+      - name: affiliate
+        in: query
+        description: the affiliate (address or thorname)
+        schema:
+          type: string
+          example: "t"
+    get:
+      description: Provide a quote estimate for the provided swap.
+      operationId: quoteswap
+      tags:
+        - Quote
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteSwapResponse"
+
+  /thorchain/quote/saver/deposit:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - name: asset
+        in: query
+        description: the asset to deposit
+        schema:
+          type: string
+          example: "BTC.BTC"
+      - name: amount
+        in: query
+        description: the source asset amount in 1e8 decimals
+        schema:
+          type: integer
+          format: int64
+          example: 1000000
+    get:
+      description: Provide a quote estimate for the provided saver deposit.
+      operationId: quotesaverdeposit
+      tags:
+        - Quote
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteSaverDepositResponse"
+
+  /thorchain/quote/saver/withdraw:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - name: asset
+        in: query
+        description: the asset to withdraw
+        schema:
+          type: string
+          example: "BTC.BTC"
+      - name: address
+        in: query
+        description: the address for the position
+        schema:
+          type: string
+          example: "bc1qd45uzetakjvdy5ynjjyp4nlnj89am88e4e5jeq"
+      - name: withdraw_bps
+        in: query
+        description: the basis points of the existing position to withdraw
+        schema:
+          type: integer
+          format: int64
+          example: 100
+    get:
+      description: Provide a quote estimate for the provided saver withdraw.
+      operationId: quotesaverwithdraw
+      tags:
+        - Quote
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteSaverWithdrawResponse"
 
 ########################################################################################
 # Components
@@ -1327,6 +1451,24 @@ components:
           items:
             $ref: "#/components/schemas/ThornameAlias"
 
+    QuoteFees:
+      type: object
+      required:
+        - asset
+        - affiliate
+        - outbound
+        - slippage
+      properties:
+        asset:
+          type: string
+          example: "ETH.ETH"
+        affiliate:
+          type: string
+          example: "1234"
+        outbound:
+          type: string
+          example: "1234"
+
     # ------------------------------ responses ------------------------------
 
     PoolResponse:
@@ -1710,3 +1852,127 @@ components:
                 format: int64
               signer:
                 type: string
+
+    QuoteSwapResponse:
+      type: object
+      required:
+        - inbound_address
+        - expected_amount_out
+        - outbound_delay_blocks
+        - outbound_delay_seconds
+        - fees
+        - slippage_bps
+      properties:
+        inbound_address:
+          type: string
+          description: the inbound address for the transaction on the source chain
+          example: "bc1qjk3xzu5slu7mtmc8jc9yed3zqvkhkttm700g9a"
+        memo:
+          type: string
+          description: generated memo for the swap
+          example: "=:ETH.ETH:0x1c7b17362c84287bd1184447e6dfeaf920c31bbe:1440450000:thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv:100"
+        expected_amount_out:
+          type: string
+          description: the minimum amount of the target asset the user can expect to receive after fees
+          example: "10000"
+        inbound_confirmation_blocks:
+          type: integer
+          format: int64
+          description: the approximate number of source chain blocks required before processing
+        inbound_confirmation_seconds:
+          type: integer
+          format: int64
+          description: the approximate seconds for block confirmations required before processing
+        outbound_delay_blocks:
+          type: integer
+          format: int64
+          description: the number of thorchain blocks the outbound will be delayed
+        outbound_delay_seconds:
+          type: integer
+          format: int64
+          description: the approximate seconds for the outbound delay before it will be sent
+        fees:
+          $ref: "#/components/schemas/QuoteFees"
+        slippage_bps:
+          type: integer
+          format: int64
+          description: the swap slippage in basis points
+
+    QuoteSaverDepositResponse:
+      type: object
+      required:
+        - memo
+        - inbound_address
+        - expected_amount_out
+        - fees
+        - slippage_bps
+      properties:
+        inbound_address:
+          type: string
+          description: the inbound address for the transaction on the source chain
+          example: "bc1qjk3xzu5slu7mtmc8jc9yed3zqvkhkttm700g9a"
+        memo:
+          type: string
+          description: generated memo for the deposit
+          example: "+:ETH/ETH::thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv:100"
+        expected_amount_out:
+          type: string
+          description: the minimum amount of the target asset the user can expect to deposit after fees
+          example: "10000"
+        inbound_confirmation_blocks:
+          type: integer
+          format: int64
+          description: the approximate number of source chain blocks required before processing
+        inbound_confirmation_seconds:
+          type: integer
+          format: int64
+          description: the approximate seconds for block confirmations required before processing
+        fees:
+          $ref: "#/components/schemas/QuoteFees"
+        slippage_bps:
+          type: integer
+          format: int64
+          description: the swap slippage in basis points
+
+    QuoteSaverWithdrawResponse:
+      type: object
+      required:
+        - inbound_address
+        - expected_amount_out
+        - dust_amount
+        - memo
+        - outbound_delay_blocks
+        - outbound_delay_seconds
+        - fees
+        - slippage_bps
+      properties:
+        inbound_address:
+          type: string
+          description: the inbound address for the transaction on the source chain
+          example: "bc1qjk3xzu5slu7mtmc8jc9yed3zqvkhkttm700g9a"
+        memo:
+          type: string
+          description: generated memo for the withdraw, the client can use this OR send the dust amount
+          example: "=:ETH.ETH:0x1c7b17362c84287bd1184447e6dfeaf920c31bbe:1440450000:thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv:100"
+        dust_amount:
+          type: string
+          description: the dust amount of the target asset the user should send to initialize the withdraw, the client can send this OR provide the memo
+          example: "10000"
+        expected_amount_out:
+          type: string
+          description: the minimum amount of the target asset the user can expect to withdraw after fees in 1e8 decimals
+          example: "10000"
+        outbound_delay_blocks:
+          type: integer
+          format: int64
+          description: the number of thorchain blocks the outbound will be delayed
+        outbound_delay_seconds:
+          type: integer
+          format: int64
+          description: the approximate seconds for the outbound delay before it will be sent
+        fees:
+          $ref: "#/components/schemas/QuoteFees"
+        slippage_bps:
+          type: integer
+          format: int64
+          description: the swap slippage in basis points

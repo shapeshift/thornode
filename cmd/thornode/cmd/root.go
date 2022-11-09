@@ -33,6 +33,7 @@ import (
 	"gitlab.com/thorchain/thornode/app"
 	"gitlab.com/thorchain/thornode/app/params"
 	"gitlab.com/thorchain/thornode/config"
+	thorlog "gitlab.com/thorchain/thornode/log"
 
 	"gitlab.com/thorchain/thornode/x/thorchain/client/cli"
 )
@@ -111,7 +112,7 @@ func addModuleInitFlags(startCmd *cobra.Command) {
 
 		filterModules := serverCtx.Viper.GetString("filter-modules")
 		if zw, ok := serverCtx.Logger.(server.ZeroLogWrapper); ok {
-			serverCtx.Logger = app.ThornodeLogWrapper{
+			serverCtx.Logger = thorlog.TendermintLogWrapper{
 				Logger:         zw.Logger.With().CallerWithSkipFrameCount(3).Logger(),
 				ExcludeModules: strings.Split(filterModules, ","),
 			}

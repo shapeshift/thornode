@@ -34,6 +34,50 @@ func (m SwapMemo) GetDexTargetAddress() string          { return m.DexTargetAddr
 func (m SwapMemo) GetDexTargetLimit() *cosmos.Uint      { return m.DexTargetLimit }
 func (m SwapMemo) GetOrderType() types.OrderType        { return m.OrderType }
 
+func (m SwapMemo) String() string {
+	slipLimit := m.SlipLimit.String()
+	if m.SlipLimit.IsZero() {
+		slipLimit = ""
+	}
+
+	// prefer short notation for generate swap memo
+	txType := m.TxType.String()
+	if m.TxType == TxSwap {
+		txType = "="
+	}
+
+	args := []string{
+		txType,
+		m.Asset.String(),
+		m.Destination.String(),
+		slipLimit,
+		m.AffiliateAddress.String(),
+		m.AffiliateBasisPoints.String(),
+		m.DexAggregator,
+		m.DexTargetAddress,
+	}
+
+	last := 3
+	if !m.SlipLimit.IsZero() {
+		last = 4
+	}
+
+	if !m.AffiliateAddress.IsEmpty() {
+		last = 6
+	}
+
+	if m.DexAggregator != "" {
+		last = 8
+	}
+
+	if m.DexTargetLimit != nil && !m.DexTargetLimit.IsZero() {
+		args = append(args, m.DexTargetLimit.String())
+		last = 9
+	}
+
+	return strings.Join(args[:last], ":")
+}
+
 func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, dexAgg, dexTargetAddress string, dexTargetLimit cosmos.Uint, orderType types.OrderType) SwapMemo {
 	swapMemo := SwapMemo{
 		MemoBase:             MemoBase{TxType: TxSwap, Asset: asset},

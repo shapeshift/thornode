@@ -33,7 +33,6 @@ coverage.txt
 c.out
 *.leveldb/
 .envrc
-log
 blockscannertest/
 *.log
 *.ldb

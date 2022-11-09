@@ -50,7 +50,6 @@ const (
 	MaxAsgardAddresses  = 100
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 250 here , as most of time it will spend 1 input, have 3 output
 	EstimateAverageTxSize = 1500
-	DefaultCoinbaseValue  = 6.25
 	MaxMempoolScanPerTry  = 500
 )
 
@@ -1091,7 +1090,7 @@ func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (in
 		c.logger.Err(err).Msg("fail to get coinbase value")
 	}
 	if totalFeeAndSubsidy == 0 {
-		cbValue, err := bchutil.NewAmount(DefaultCoinbaseValue)
+		cbValue, err := bchutil.NewAmount(c.chain.DefaultCoinbase())
 		if err != nil {
 			return 0, fmt.Errorf("fail to get default coinbase value: %w", err)
 		}

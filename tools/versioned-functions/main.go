@@ -216,7 +216,7 @@ func main() {
 		jj.WriteString(fj.Name.Name)
 		printer.Fprint(jj, fset, fj.Type)
 
-		return ii.String() < jj.String()
+		return strings.ToLower(ii.String()) < strings.ToLower(jj.String())
 	})
 
 	// print the versioned functions

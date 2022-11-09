@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -58,6 +59,10 @@ func (tos *TxOutStoreDummy) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, 
 	return nil
 }
 
+func (tos *TxOutStoreDummy) CalcTxOutHeight(_ cosmos.Context, _ semver.Version, _ TxOutItem) (int64, error) {
+	return 0, nil
+}
+
 func (tos *TxOutStoreDummy) addToBlockOut(_ cosmos.Context, toi TxOutItem) {
 	tos.blockOut.TxArray = append(tos.blockOut.TxArray, toi)
 }
@@ -106,6 +111,10 @@ func (tos *TxOutStoreFailDummy) TryAddTxOutItem(ctx cosmos.Context, mgr Manager,
 		tos.addToBlockOut(ctx, toi)
 	}
 	return false, errKaboom
+}
+
+func (tos *TxOutStoreFailDummy) CalcTxOutHeight(_ cosmos.Context, _ semver.Version, _ TxOutItem) (int64, error) {
+	return 0, nil
 }
 
 func (tos *TxOutStoreFailDummy) UnSafeAddTxOutItem(ctx cosmos.Context, mgr Manager, toi TxOutItem) error {

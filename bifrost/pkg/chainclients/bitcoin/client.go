@@ -51,7 +51,6 @@ const (
 	// EstimateAverageTxSize for THORChain the estimate tx size is hard code to 1000 here , as most of time it will spend 1 input, have 3 output
 	// which is average at 250 vbytes , however asgard will consolidate UTXOs , which will take up to 1000 vbytes
 	EstimateAverageTxSize = 1000
-	DefaultCoinbaseValue  = 6.25
 	MaxMempoolScanPerTry  = 500
 )
 
@@ -1166,7 +1165,7 @@ func (c *Client) getBlockRequiredConfirmation(txIn types.TxIn, height int64) (in
 		c.logger.Err(err).Msg("fail to get coinbase value")
 	}
 	if totalFeeAndSubsidy == 0 {
-		cbValue, err := btcutil.NewAmount(DefaultCoinbaseValue)
+		cbValue, err := btcutil.NewAmount(c.chain.DefaultCoinbase())
 		if err != nil {
 			return 0, fmt.Errorf("fail to get default coinbase value: %w", err)
 		}
