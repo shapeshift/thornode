@@ -165,24 +165,24 @@ func quoteReverseFuzzyAsset(ctx cosmos.Context, mgr *Mgrs, asset common.Asset) (
 	return asset, nil
 }
 
-func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgSwap) (res *openapi.QuoteSwapResponse, emitAmount sdk.Uint, err error) {
+func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgSwap) (res *openapi.QuoteSwapResponse, emitAmount, outboundFeeAmount sdk.Uint, err error) {
 	// if the generated memo is too long for the source chain send error
 	maxMemoLength := msg.Tx.Coins[0].Asset.Chain.MaxMemoLength()
 	if maxMemoLength > 0 && len(msg.Tx.Memo) > maxMemoLength {
-		return nil, sdk.ZeroUint(), fmt.Errorf("generated memo too long for source chain")
+		return nil, sdk.ZeroUint(), sdk.ZeroUint(), fmt.Errorf("generated memo too long for source chain")
 	}
 
 	// use the first active node account as the signer
 	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
-		return nil, sdk.ZeroUint(), fmt.Errorf("no active node accounts: %w", err)
+		return nil, sdk.ZeroUint(), sdk.ZeroUint(), fmt.Errorf("no active node accounts: %w", err)
 	}
 	msg.Signer = nodeAccounts[0].NodeAddress
 
 	// simulate the swap
 	events, err := simulateInternal(ctx, mgr, msg)
 	if err != nil {
-		return nil, sdk.ZeroUint(), err
+		return nil, sdk.ZeroUint(), sdk.ZeroUint(), err
 	}
 
 	// extract events
@@ -201,14 +201,14 @@ func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgS
 	// parse outbound fee from event
 	outboundFeeCoin, err := common.ParseCoin(fee["coins"])
 	if err != nil {
-		return nil, sdk.ZeroUint(), fmt.Errorf("unable to parse outbound fee coin: %w", err)
+		return nil, sdk.ZeroUint(), sdk.ZeroUint(), fmt.Errorf("unable to parse outbound fee coin: %w", err)
 	}
-	outboundFeeAmount := outboundFeeCoin.Amount
+	outboundFeeAmount = outboundFeeCoin.Amount
 
 	// parse outbound amount from event
 	emitCoin, err := common.ParseCoin(finalSwap["emit_asset"])
 	if err != nil {
-		return nil, sdk.ZeroUint(), fmt.Errorf("unable to parse emit coin: %w", err)
+		return nil, sdk.ZeroUint(), sdk.ZeroUint(), fmt.Errorf("unable to parse emit coin: %w", err)
 	}
 	emitAmount = emitCoin.Amount
 
@@ -234,14 +234,14 @@ func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgS
 
 	// build response from simulation result events
 	return &openapi.QuoteSwapResponse{
-		ExpectedAmountOut: emitAmount.Sub(outboundFeeAmount).String(),
+		ExpectedAmountOut: emitAmount.String(),
 		Fees: openapi.QuoteFees{
 			Asset:     msg.TargetAsset.String(),
 			Affiliate: affiliateFee.String(),
-			Outbound:  outboundFeeAmount.String(),
+			Outbound:  "0", // set by the caller if non-zero
 		},
 		SlippageBps: slippageBps.BigInt().Int64(),
-	}, emitAmount, nil
+	}, emitAmount, outboundFeeAmount, nil
 }
 
 func quoteInboundInfo(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, chain common.Chain) (address common.Address, confirmations int64, err error) {
@@ -419,10 +419,19 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	}
 
 	// simulate the swap
-	res, emitAmount, err := quoteSimulateSwap(ctx, mgr, amount, msg)
+	res, emitAmount, outboundFeeAmount, err := quoteSimulateSwap(ctx, mgr, amount, msg)
 	if err != nil {
 		return quoteErrorResponse(fmt.Errorf("failed to simulate swap: %w", err))
 	}
+
+	// check invariant
+	if emitAmount.LT(outboundFeeAmount) {
+		return quoteErrorResponse(fmt.Errorf("invariant broken: emit %s less than outbound fee %s", emitAmount, outboundFeeAmount))
+	}
+
+	// the amount out will deduct the outbound fee
+	res.ExpectedAmountOut = emitAmount.Sub(outboundFeeAmount).String()
+	res.Fees.Outbound = outboundFeeAmount.String()
 
 	// estimate the inbound info
 	inboundAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, msg.Tx.Chain)
@@ -533,7 +542,7 @@ func queryQuoteSaverDeposit(ctx cosmos.Context, path []string, req abci.RequestQ
 	}
 
 	// get the swap result
-	swapRes, _, err := quoteSimulateSwap(ctx, mgr, amount, msg)
+	swapRes, _, _, err := quoteSimulateSwap(ctx, mgr, amount, msg)
 	if err != nil {
 		return quoteErrorResponse(fmt.Errorf("failed to simulate swap: %w", err))
 	}
@@ -670,14 +679,22 @@ func queryQuoteSaverWithdraw(ctx cosmos.Context, path []string, req abci.Request
 	}
 
 	// get the swap result
-	swapRes, emitAmount, err := quoteSimulateSwap(ctx, mgr, amount, msg)
+	swapRes, emitAmount, outboundFeeAmount, err := quoteSimulateSwap(ctx, mgr, amount, msg)
 	if err != nil {
 		return quoteErrorResponse(fmt.Errorf("failed to simulate swap: %w", err))
 	}
 
+	// check invariant
+	if emitAmount.LT(outboundFeeAmount) {
+		return quoteErrorResponse(fmt.Errorf("invariant broken: emit %s less than outbound fee %s", emitAmount, outboundFeeAmount))
+	}
+
+	// the amount out will deduct the outbound fee
+	swapRes.Fees.Outbound = outboundFeeAmount.String()
+
 	// use the swap result info to generate the withdraw quote
 	res := &openapi.QuoteSaverWithdrawResponse{
-		ExpectedAmountOut: swapRes.ExpectedAmountOut,
+		ExpectedAmountOut: emitAmount.Sub(outboundFeeAmount).String(),
 		Fees:              swapRes.Fees,
 		SlippageBps:       swapRes.SlippageBps,
 		Memo:              fmt.Sprintf("-:%s:%s", asset.String(), basisPoints.String()),
