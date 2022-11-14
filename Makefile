@@ -11,7 +11,7 @@ endif
 # Config
 ########################################################################################
 
-.PHONY: build test tools export healthcheck run-mocknet build-mocknet stop-mocknet ps-mocknet reset-mocknet logs-mocknet openapi
+.PHONY: build test tools export healthcheck run-mocknet build-mocknet stop-mocknet halt-mocknet ps-mocknet reset-mocknet logs-mocknet openapi
 
 # compiler flags
 NOW=$(shell date +'%Y-%m-%d_%T')
@@ -215,6 +215,10 @@ run-mocknet:
 stop-mocknet:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down -v
 
+# Halt the Mocknet without erasing the blockchain history, so it can be resumed later.
+halt-mocknet:
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard down
+
 build-mocknet:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet --profile midgard build
 
@@ -241,6 +245,9 @@ run-mocknet-cluster:
 
 stop-mocknet-cluster:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard down -v
+
+halt-mocknet-cluster:
+	@docker compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard down
 
 build-mocknet-cluster:
 	@docker compose -f build/docker/docker-compose.yml --profile mocknet-cluster --profile midgard build
