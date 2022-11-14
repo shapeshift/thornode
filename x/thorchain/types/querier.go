@@ -196,6 +196,28 @@ func NewQueryTxOutItem(toi TxOutItem, height int64) QueryTxOutItem {
 	}
 }
 
+// QuerySaver holds all the information related to a saver
+type QuerySaver struct {
+	Asset              common.Asset   `json:"asset"`
+	AssetAddress       common.Address `json:"asset_address"`
+	LastAddHeight      int64          `json:"last_add_height,omitempty"`
+	LastWithdrawHeight int64          `json:"last_withdraw_height,omitempty"`
+	Units              cosmos.Uint    `json:"units"`
+	AssetDepositValue  cosmos.Uint    `json:"asset_deposit_value"`
+}
+
+// NewQuerySaver creates a new QuerySaver based on the given liquidity provider parameters
+func NewQuerySaver(lp LiquidityProvider) QuerySaver {
+	return QuerySaver{
+		Asset:              lp.Asset.GetLayer1Asset(),
+		AssetAddress:       lp.AssetAddress,
+		LastAddHeight:      lp.LastAddHeight,
+		LastWithdrawHeight: lp.LastWithdrawHeight,
+		Units:              lp.Units,
+		AssetDepositValue:  lp.AssetDepositValue,
+	}
+}
+
 // QueryVaultPubKeyContract is a type to combine PubKey and it's related contract
 type QueryVaultPubKeyContract struct {
 	PubKey  common.PubKey   `json:"pub_key"`

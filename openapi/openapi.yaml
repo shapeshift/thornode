@@ -121,7 +121,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiquidityProviderResponse"
+                $ref: "#/components/schemas/SaverResponse"
 
   /thorchain/pool/{asset}/savers:
     parameters:
@@ -138,7 +138,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiquidityProviderResponse"
+                $ref: "#/components/schemas/SaverResponse"
 
   # ------------------------------ transactions ------------------------------
 
@@ -971,6 +971,35 @@ components:
           type: string
           example: "0"
 
+    Saver:
+      type: object
+      required:
+        - asset
+        - asset_address
+        - units
+        - asset_deposit_value
+      properties:
+        asset:
+          type: string
+          example: "BNB.BNB"
+        asset_address:
+          type: string
+          example: "bnb1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        last_add_height:
+          type: integer
+          format: int64
+          example: 82745
+        last_withdraw_height:
+          type: integer
+          format: int64
+          example: 82745
+        units:
+          type: string
+          example: "0"
+        asset_deposit_value:
+          type: string
+          example: "0"
+
     Coin:
       type: object
       required:
@@ -1479,6 +1508,11 @@ components:
         $ref: "#/components/schemas/Pool"
 
     LiquidityProviderResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/LiquidityProvider"
+
+    SaverResponse:
       type: array
       items:
         $ref: "#/components/schemas/LiquidityProvider"

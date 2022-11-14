@@ -811,14 +811,24 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 	}
 
 	var lps LiquidityProviders
+	var savers []QuerySaver
 	iterator := mgr.Keeper().GetLiquidityProviderIterator(ctx, asset)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {
 		var lp LiquidityProvider
 		mgr.Keeper().Cdc().MustUnmarshal(iterator.Value(), &lp)
-		lps = append(lps, lp)
+		if !isSavers {
+			lps = append(lps, lp)
+		} else {
+			savers = append(savers, NewQuerySaver(lp))
+		}
 	}
-	res, err := json.MarshalIndent(lps, "", "	")
+	var res []byte
+	if !isSavers {
+		res, err = json.MarshalIndent(lps, "", "	")
+	} else {
+		res, err = json.MarshalIndent(savers, "", "	")
+	}
 	if err != nil {
 		ctx.Logger().Error("fail to marshal liquidity providers to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal liquidity providers to json: %w", err)
@@ -857,7 +867,14 @@ func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQ
 		ctx.Logger().Error("fail to get liquidity provider", "error", err)
 		return nil, fmt.Errorf("fail to liquidity provider: %w", err)
 	}
-	res, err := json.MarshalIndent(lp, "", "	")
+
+	var res []byte
+	if !isSavers {
+		res, err = json.MarshalIndent(lp, "", "	")
+	} else {
+		saver := NewQuerySaver(lp)
+		res, err = json.MarshalIndent(saver, "", "	")
+	}
 	if err != nil {
 		ctx.Logger().Error("fail to marshal liquidity provider to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal liquidity provider to json: %w", err)
