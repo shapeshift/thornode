@@ -22,7 +22,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
-	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
@@ -396,7 +395,8 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	}
 	wg.Wait()
 	if utxoErr != nil {
-		return nil, fmt.Errorf("fail to sign the message: %w", utxoErr)
+		err = utxo.PostKeysignFailure(c.bridge, tx, c.logger, thorchainHeight, utxoErr)
+		return nil, fmt.Errorf("fail to sign the message: %w", err)
 	}
 	finalSize := redeemTx.SerializeSize()
 	finalVBytes := mempool.GetTxVirtualSize(ltcutil.NewTx(redeemTx))
@@ -414,21 +414,6 @@ func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int6
 	sig := c.ksWrapper.GetSignable(tx.VaultPubKey)
 	witness, err := txscript.WitnessSignature(redeemTx, sigHashes, idx, amount, sourceScript, txscript.SigHashAll, sig, true)
 	if err != nil {
-		var keysignError tss.KeysignError
-		if errors.As(err, &keysignError) {
-			if len(keysignError.Blame.BlameNodes) == 0 {
-				// TSS doesn't know which node to blame
-				return fmt.Errorf("fail to sign UTXO: %w", err)
-			}
-
-			// key sign error forward the keysign blame to thorchain
-			txID, err := c.bridge.PostKeysignFailure(keysignError.Blame, thorchainHeight, tx.Memo, tx.Coins, tx.VaultPubKey)
-			if err != nil {
-				c.logger.Error().Err(err).Msg("fail to post keysign failure to thorchain")
-				return fmt.Errorf("fail to post keysign failure to THORChain: %w", err)
-			}
-			c.logger.Info().Str("tx_id", txID.String()).Msgf("post keysign failure to thorchain")
-		}
 		return fmt.Errorf("fail to get witness: %w", err)
 	}
 
