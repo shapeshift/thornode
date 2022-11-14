@@ -86,6 +86,8 @@ func (h WithdrawLiquidityHandler) validateV96(ctx cosmos.Context, msg MsgWithdra
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.100.0")):
+		return h.handleV100(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
 		return h.handleV98(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
@@ -111,7 +113,7 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV100(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -204,7 +206,7 @@ func (h WithdrawLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgWithdrawL
 		coin := common.NewCoin(msg.Asset, assetAmt)
 		// TODO: this might be an issue for single sided/AVAX->ETH, ETH -> AVAX
 		if !msg.Asset.IsNativeRune() && !lp.AssetAddress.IsChain(msg.Asset.GetChain()) {
-			if err := h.swapV93(ctx, msg, coin, lp.AssetAddress); err != nil {
+			if err := h.swap(ctx, msg, coin, lp.AssetAddress); err != nil {
 				return nil, err
 			}
 		} else {
@@ -264,7 +266,19 @@ func (h WithdrawLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgWithdrawL
 	return &cosmos.Result{}, nil
 }
 
-func (h WithdrawLiquidityHandler) swapV93(ctx cosmos.Context, msg MsgWithdrawLiquidity, coin common.Coin, addr common.Address) error {
+func (h WithdrawLiquidityHandler) swap(ctx cosmos.Context, msg MsgWithdrawLiquidity, coin common.Coin, addr common.Address) error {
+	version := h.mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.100.0")):
+		return h.swapV100(ctx, msg, coin, addr)
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.swapV93(ctx, msg, coin, addr)
+	default:
+		return nil
+	}
+}
+
+func (h WithdrawLiquidityHandler) swapV100(ctx cosmos.Context, msg MsgWithdrawLiquidity, coin common.Coin, addr common.Address) error {
 	// ensure TxID does NOT have a collision with another swap, this could
 	// happen if the user submits two identical loan requests in the same
 	// block
@@ -272,11 +286,11 @@ func (h WithdrawLiquidityHandler) swapV93(ctx cosmos.Context, msg MsgWithdrawLiq
 		return fmt.Errorf("txn hash conflict")
 	}
 
-	target := addr.GetChain().GetGasAsset()
-	memo := fmt.Sprintf("=:%s:%s", target, addr)
+	targetAsset := msg.Asset.GetLayer1Asset().GetChain().GetGasAsset()
+	memo := fmt.Sprintf("=:%s:%s", targetAsset, addr)
 	msg.Tx.Memo = memo
 	msg.Tx.Coins = common.NewCoins(coin)
-	swapMsg := NewMsgSwap(msg.Tx, target, addr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, msg.Signer)
+	swapMsg := NewMsgSwap(msg.Tx, targetAsset, addr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, msg.Signer)
 
 	// sanity check swap msg
 	handler := NewSwapHandler(h.mgr)
