@@ -1354,12 +1354,12 @@ github.com/zondax/hid v0.9.0/go.mod h1:l5wttcP0jwtdLjqjMMWFVEE7d1zO0jvSPA9OPZxWp
 github.com/zquestz/grab v0.0.0-20190224022517-abcee96e61b1/go.mod h1:bslhAiUxakrA6z6CHmVyvkfpnxx18RJBwVyx2TluJWw=
 gitlab.com/thorchain/bifrost/bchd-txscript v0.0.0-20221030141659-2c0aa3290779 h1:ZgecVzL2InqhHOSknnlYeiqx+Oz7gT/oDpzRpJiH/HY=
 gitlab.com/thorchain/bifrost/bchd-txscript v0.0.0-20221030141659-2c0aa3290779/go.mod h1:+4LjBY4dWH+QZsFwxCAxiPsUJrqQXBZU/+63juh3dgY=
-gitlab.com/thorchain/bifrost/dogd-txscript v0.0.0-20221030141631-e969a4ab1f66 h1:CeFBwWF8pugGw2TaF5XPB0BAWjQVVM6rv1P/NMyLzjc=
-gitlab.com/thorchain/bifrost/dogd-txscript v0.0.0-20221030141631-e969a4ab1f66/go.mod h1:5wmYMmCXaI9ZRrUyl9DCwcoH2lfSgsipZy+n60JlWDY=
+gitlab.com/thorchain/bifrost/dogd-txscript v0.0.0-20221115151937-74db6a9d3c92 h1:7LuBidwfokaBGwhsSalsqXvG8lIrE0eGk1VcLlMSjMA=
+gitlab.com/thorchain/bifrost/dogd-txscript v0.0.0-20221115151937-74db6a9d3c92/go.mod h1:5wmYMmCXaI9ZRrUyl9DCwcoH2lfSgsipZy+n60JlWDY=
 gitlab.com/thorchain/bifrost/ltcd-txscript v0.0.0-20221030141522-6ec18ecc4447 h1:MjX/sd0uwvw6iW3U0g/WTFocDTkyJcBjVlBR2D/Qbzs=
 gitlab.com/thorchain/bifrost/ltcd-txscript v0.0.0-20221030141522-6ec18ecc4447/go.mod h1:pnmFFACV58T80xQb43Qrl6rXZy/j7bahnLQiKVRJgio=
-gitlab.com/thorchain/bifrost/txscript v0.0.0-20221102022635-9f40e567a960 h1:EG31sjFN5xZdBiP+cGP+k+1xpAc3tsEP3yWf0AlqRWc=
-gitlab.com/thorchain/bifrost/txscript v0.0.0-20221102022635-9f40e567a960/go.mod h1:/Nfggqg/zV7NKOaUX0HSl4afe2bZqeoWB99MsRbXK94=
+gitlab.com/thorchain/bifrost/txscript v0.0.0-20221115150551-993a3adacf25 h1:iF81aT3e6c78B4UTkhAzLGBbEMT1CvcGNqmk670V0Pc=
+gitlab.com/thorchain/bifrost/txscript v0.0.0-20221115150551-993a3adacf25/go.mod h1:/Nfggqg/zV7NKOaUX0HSl4afe2bZqeoWB99MsRbXK94=
 gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d h1:GGPSI9gU22zW75m1YO7ZEMFtVEI5NgyK4g17CIXFjqI=
 gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d/go.mod h1:SW01IZMpqlPNPdhHnn99qnJNvg8ll/agyyW7p85npwY=
 gitlab.com/thorchain/tss/go-tss v1.5.6 h1:oVoIIF0BHtvG9HFxoYSTzkzOKXstVDLZW2PwW3QHMoU=
