@@ -392,15 +392,25 @@ func queryVaultsPubkeys(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	data, err := mgr.Keeper().GetNetwork(ctx)
 	if err != nil {
-		ctx.Logger().Error("fail to get vault", "error", err)
-		return nil, fmt.Errorf("fail to get vault: %w", err)
+		ctx.Logger().Error("fail to get network", "error", err)
+		return nil, fmt.Errorf("fail to get network: %w", err)
 	}
+
+	vaults, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get retiring vaults: %w", err)
+	}
+	vaultsMigrating := (len(vaults) != 0)
+
 	result := openapi.NetworkResponse{
+		// Due to using openapi. this will be displayed in alphabetical order,
+		// so its schema (and order here) should also be in alphabetical order.
 		BondRewardRune:  data.BondRewardRune.String(),
-		TotalBondUnits:  data.TotalBondUnits.String(),
-		TotalReserve:    mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName).String(),
 		BurnedBep2Rune:  data.BurnedBep2Rune.String(),
 		BurnedErc20Rune: data.BurnedErc20Rune.String(),
+		TotalBondUnits:  data.TotalBondUnits.String(),
+		TotalReserve:    mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName).String(),
+		VaultsMigrating: vaultsMigrating,
 	}
 
 	res, err := json.MarshalIndent(result, "", "	")

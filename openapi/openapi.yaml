@@ -1600,24 +1600,19 @@ components:
     NetworkResponse:
       type: object
       required:
+        # Since the querier uses an openapi. object, these will be displayed in alphabetical order,
+        # so the schema should also be in alphabetical order.
         - bond_reward_rune
-        - total_bond_units
-        - total_reserve
         - burned_bep_2_rune
         - burned_erc_20_rune
+        - total_bond_units
+        - total_reserve
+        - vaults_migrating
       properties:
         bond_reward_rune:
           type: string
           example: "857134475040"
           description: total amount of RUNE awarded to node operators
-        total_bond_units:
-          type: string
-          example: "0"
-          description: total bonded RUNE
-        total_reserve:
-          type: string
-          example: "21999180112172346"
-          description: total reserve RUNE
         burned_bep_2_rune:
           type: string
           example: "674699077345087"
@@ -1626,6 +1621,18 @@ components:
           type: string
           example: "66369401654835"
           description: total of burned ERC20 RUNE
+        total_bond_units:
+          type: string
+          example: "0"
+          description: total bonded RUNE
+        total_reserve:
+          type: string
+          example: "21999180112172346"
+          description: total reserve RUNE
+        vaults_migrating:
+          type: boolean
+          example: false
+          description: Returns true if there exist RetiringVaults which have not finished migrating funds to new ActiveVaults
 
     POLResponse:
       type: object
