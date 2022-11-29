@@ -52,7 +52,9 @@ func (Test) TestJSONSpec(c *C) {
 	assertJSONStructTagsMatch(c, types.QueryNodeAccountPreflightCheck{}, gen.NodePreflightStatus{})
 	assertJSONStructTagsMatch(c, types.QueryNodeAccount{}, gen.Node{})
 	assertJSONStructTagsMatch(c, types.QueryChainHeight{}, gen.ChainHeight{})
-	assertJSONStructTagsMatch(c, types.Jail{}, gen.NodeJail{})
+	// As node_address is omitted from the jail display,
+	// skip assertJSONStructTagsMatch for types.Jail{} / gen.NodeJail{}
+	// so that the spec can match the display.
 
 	// tss
 	assertJSONStructTagsMatch(c, types.NodeTssTime{}, gen.NodeKeygenMetric{})
@@ -77,7 +79,7 @@ func (Test) TestJSONSpec(c *C) {
 func assertJSONStructTagsMatch(c *C, thor, spec interface{}) {
 	thorType := reflect.TypeOf(thor)
 	specType := reflect.TypeOf(spec)
-	comment := Commentf("type=%s", specType.Name())
+	comment := Commentf("thorType=%s; specType=%s", thorType.Name(), specType.Name())
 
 	c.Assert(specType.NumField(), Equals, thorType.NumField(), comment)
 	for i := 0; i < thorType.NumField(); i++ {

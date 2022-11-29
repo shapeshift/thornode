@@ -564,8 +564,18 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 
 	result := NewQueryNodeAccount(nodeAcc)
 	result.SlashPoints = slashPts
-	result.Jail = jail
-	result.BondProviders = bp
+
+	result.Jail = Jail{
+		// Since redundant, leave out the node address
+		ReleaseHeight: jail.ReleaseHeight,
+		Reason:        jail.Reason,
+	}
+
+	result.BondProviders = BondProviders{
+		// Since redundant, leave out the node address
+		NodeOperatorFee: bp.NodeOperatorFee,
+		Providers:       bp.Providers,
+	}
 
 	// CurrentAward is an estimation of reward for node in active status
 	// Node in other status should not have current reward
@@ -754,7 +764,11 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		if err != nil {
 			return nil, fmt.Errorf("fail to get node jail: %w", err)
 		}
-		result[i].Jail = jail
+		result[i].Jail = Jail{
+			// Since redundant, leave out the node address
+			ReleaseHeight: jail.ReleaseHeight,
+			Reason:        jail.Reason,
+		}
 		chainHeights, err := mgr.Keeper().GetLastObserveHeight(ctx, na.NodeAddress)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get last observe chain height: %w", err)
@@ -774,11 +788,17 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		} else {
 			result[i].PreflightStatus = preflightCheckResult
 		}
-		result[i].BondProviders, err = mgr.Keeper().GetBondProviders(ctx, result[i].NodeAddress)
+
+		bp, err := mgr.Keeper().GetBondProviders(ctx, result[i].NodeAddress)
 		if err != nil {
 			ctx.Logger().Error("fail to get bond providers", "error", err)
 		}
-		result[i].BondProviders.Adjust(result[i].Bond)
+		bp.Adjust(na.Bond)
+		result[i].BondProviders = BondProviders{
+			// Since redundant, leave out the node address
+			NodeOperatorFee: bp.NodeOperatorFee,
+			Providers:       bp.Providers,
+		}
 	}
 
 	res, err := json.MarshalIndent(result, "", "	")

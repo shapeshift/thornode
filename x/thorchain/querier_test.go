@@ -581,7 +581,7 @@ func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
 	c.Assert(json.Unmarshal(result, &r2), IsNil)
 
 	// First node has 25% of bond, should have 25% of the rewards
-	c.Assert(r2.Bond.Uint64(), Equals, cosmos.NewUint(common.One*1000).Uint64())
+	c.Assert(r2.TotalBond.Uint64(), Equals, cosmos.NewUint(common.One*1000).Uint64())
 	c.Assert(r2.CurrentAward.Uint64(), Equals, cosmos.NewUint(common.One*250).Uint64())
 
 	// Get second node
@@ -595,7 +595,7 @@ func (s *QuerierSuite) TestQueryNodeAccount(c *C) {
 	c.Assert(json.Unmarshal(result, &r3), IsNil)
 
 	// Second node has 75% of bond, should have 75% of the rewards
-	c.Assert(r3.Bond.Uint64(), Equals, cosmos.NewUint(common.One*3000).Uint64())
+	c.Assert(r3.TotalBond.Uint64(), Equals, cosmos.NewUint(common.One*3000).Uint64())
 	c.Assert(r3.CurrentAward.Uint64(), Equals, cosmos.NewUint(common.One*750).Uint64())
 }
 

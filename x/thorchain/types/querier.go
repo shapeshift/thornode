@@ -129,10 +129,11 @@ type QueryNodeAccount struct {
 	Status              NodeStatus                     `json:"status"`
 	PubKeySet           common.PubKeySet               `json:"pub_key_set"`
 	ValidatorConsPubKey string                         `json:"validator_cons_pub_key"`
-	Bond                cosmos.Uint                    `json:"bond"`
 	ActiveBlockHeight   int64                          `json:"active_block_height"`
-	BondAddress         common.Address                 `json:"bond_address"`
 	StatusSince         int64                          `json:"status_since"`
+	NodeOperatorAddress common.Address                 `json:"node_operator_address"`
+	TotalBond           cosmos.Uint                    `json:"total_bond"`
+	BondProviders       BondProviders                  `json:"bond_providers"`
 	SignerMembership    common.PubKeys                 `json:"signer_membership"`
 	RequestedToLeave    bool                           `json:"requested_to_leave"`
 	ForcedToLeave       bool                           `json:"forced_to_leave"`
@@ -144,7 +145,6 @@ type QueryNodeAccount struct {
 	CurrentAward        cosmos.Uint                    `json:"current_award"`
 	ObserveChains       []QueryChainHeight             `json:"observe_chains"`
 	PreflightStatus     QueryNodeAccountPreflightCheck `json:"preflight_status"`
-	BondProviders       BondProviders                  `json:"bond_providers"`
 }
 
 // NewQueryNodeAccount create a new QueryNodeAccount based on the given node account parameter
@@ -154,10 +154,10 @@ func NewQueryNodeAccount(na NodeAccount) QueryNodeAccount {
 		Status:              na.Status,
 		PubKeySet:           na.PubKeySet,
 		ValidatorConsPubKey: na.ValidatorConsPubKey,
-		Bond:                na.Bond,
 		ActiveBlockHeight:   na.ActiveBlockHeight,
-		BondAddress:         na.BondAddress,
 		StatusSince:         na.StatusSince,
+		NodeOperatorAddress: na.BondAddress,
+		TotalBond:           na.Bond,
 		SignerMembership:    na.GetSignerMembership(),
 		RequestedToLeave:    na.RequestedToLeave,
 		ForcedToLeave:       na.ForcedToLeave,

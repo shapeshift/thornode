@@ -1276,10 +1276,11 @@ components:
         - status
         - pub_key_set
         - validator_cons_pub_key
-        - bond
         - active_block_height
-        - bond_address
         - status_since
+        - node_operator_address
+        - total_bond
+        - bond_providers
         - signer_membership
         - requested_to_leave
         - forced_to_leave
@@ -1291,7 +1292,6 @@ components:
         - current_award
         - observe_chains
         - preflight_status
-        - bond_providers
       properties:
         node_address:
           type: string
@@ -1314,23 +1314,38 @@ components:
           type: string
           description: the consensus pub key for the node
           example: "thor104gsqwta048e80j909g6y9kkqdjrw0lff866ew"
-        bond:
-          type: string
-          description: current node bond
-          example: "123456789"
         active_block_height:
           type: integer
           format: int64
           description: the block height at which the node became active
           example: 123456
-        bond_address:
-          type: string
-          example: "thor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5"
         status_since:
           type: integer
           format: int64
           description: the block height of the current provided information for the node
           example: 100000
+        node_operator_address:
+          type: string
+          example: "thor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5"
+        total_bond:
+          type: string
+          description: current node bond
+          example: "123456789"
+        bond_providers:
+          type: object
+          title: NodeBondProviders
+          properties:
+            node_operator_fee:
+              type: string
+              description: node operator fee in basis points
+            providers:
+              type: object
+              title: NodeBondProvider
+              properties:
+                bond_address:
+                  type: string
+                bond:
+                  type: string
         signer_membership:
           type: array
           description: the set of vault public keys of which the node is a member
@@ -1362,9 +1377,6 @@ components:
           type: object
           title: NodeJail
           properties:
-            node_address:
-              type: string
-              example: "tthor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5"
             release_height:
               type: integer
               format: int64
@@ -1411,22 +1423,6 @@ components:
               type: integer
               format: int64
               example: 0
-        bond_providers:
-          type: object
-          title: NodeBondProviders
-          properties:
-            node_address:
-              type: string
-            node_operator_fee:
-              type: string
-            providers:
-              type: object
-              title: NodeBondProvider
-              properties:
-                bond_address:
-                  type: string
-                bond:
-                  type: string
 
     KeygenMetric:
       type: object
