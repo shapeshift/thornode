@@ -1,5 +1,5 @@
-//go:build !testnet && !mocknet && !stagenet
-// +build !testnet,!mocknet,!stagenet
+//go:build !testnet && !mocknet
+// +build !testnet,!mocknet
 
 package aggregators
 
