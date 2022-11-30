@@ -68,17 +68,29 @@ func GetAVAXGasFee(gasPrice *big.Int, msgLen uint64) Gas {
 
 // MakeETHGas return the gas for ETH
 func MakeETHGas(gasPrice *big.Int, gas uint64) Gas {
-	gasAmt := cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice)).QuoUint64(One * 100)
+	unroundedGasAmt := cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice))
+	roundedGasAmt := unroundedGasAmt.QuoUint64(One * 100)
+	if unroundedGasAmt.GT(roundedGasAmt.MulUint64(One * 100)) {
+		// Round gas amount up rather than down,
+		// to increase rather than decrease solvency.
+		roundedGasAmt = roundedGasAmt.Add(cosmos.NewUint(1))
+	}
 	return Gas{
-		{Asset: ETHAsset, Amount: gasAmt},
+		{Asset: ETHAsset, Amount: roundedGasAmt},
 	}
 }
 
 // MakeAVAXGas return the gas for AVAX
 func MakeAVAXGas(gasPrice *big.Int, gas uint64) Gas {
-	gasAmt := cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice)).QuoUint64(One * 100)
+	unroundedGasAmt := cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice))
+	roundedGasAmt := unroundedGasAmt.QuoUint64(One * 100)
+	if unroundedGasAmt.GT(roundedGasAmt.MulUint64(One * 100)) {
+		// Round gas amount up rather than down,
+		// to increase rather than decrease solvency.
+		roundedGasAmt = roundedGasAmt.Add(cosmos.NewUint(1))
+	}
 	return Gas{
-		{Asset: AVAXAsset, Amount: gasAmt},
+		{Asset: AVAXAsset, Amount: roundedGasAmt},
 	}
 }
 

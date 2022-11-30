@@ -28,6 +28,18 @@ func (s *GasSuite) TestETHGasFee(c *C) {
 		true,
 		Commentf("%d", amt.Uint64()),
 	)
+	// ETH TxID b89d5eb71765b42117bb1fa30d3a22f6d2bfdba9214da60d26f028bd94bcdb0c example
+	gas = MakeETHGas(big.NewInt(18000803458), 63707)
+	// 18000803458 Wei gasPrice, 63,707 gas
+	amt = gas[0].Amount
+	c.Check(
+		amt.Equal(cosmos.NewUint(114678)),
+		// Should be rounded up to 114678, not down to 114677,
+		// to increase rather than decrease solvency.
+		Equals,
+		true,
+		Commentf("%d", amt.Uint64()),
+	)
 }
 
 func (s *GasSuite) TestIsEmpty(c *C) {
