@@ -34,6 +34,29 @@ func NewWithdrawTestKeeperV89(keeper keeper.Keeper) *WithdrawTestKeeperV89 {
 	}
 }
 
+// this one has an extra liquidity provider already set
+func getWithdrawTestKeeper2V89(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
+	store := NewWithdrawTestKeeperV89(k)
+	pool := Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		LPUnits:      cosmos.NewUint(200 * common.One),
+		SynthUnits:   cosmos.ZeroUint(),
+		Status:       PoolAvailable,
+	}
+	c.Assert(store.SetPool(ctx, pool), IsNil)
+	lp := LiquidityProvider{
+		Asset:        pool.Asset,
+		RuneAddress:  runeAddress,
+		AssetAddress: runeAddress,
+		Units:        cosmos.NewUint(100 * common.One),
+		PendingRune:  cosmos.ZeroUint(),
+	}
+	store.SetLiquidityProvider(ctx, lp)
+	return store
+}
+
 func (k *WithdrawTestKeeperV89) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 	return !asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"})
 }
@@ -301,7 +324,7 @@ func (s WithdrawSuiteV89) TestCalculateUnsake(c *C) {
 
 	for _, item := range inputs {
 		c.Logf("name:%s", item.name)
-		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV89(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, cosmos.ZeroUint(), item.percentage, common.EmptyAsset)
+		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV76(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, cosmos.ZeroUint(), item.percentage, common.EmptyAsset)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 		} else {
@@ -522,7 +545,7 @@ func (WithdrawSuiteV89) TestWithdrawAsym(c *C) {
 	for _, tc := range testCases {
 		c.Logf("name:%s", tc.name)
 		ctx, mgr := setupManagerForTest(c)
-		ps := getWithdrawTestKeeper2(c, ctx, mgr.Keeper(), runeAddress)
+		ps := getWithdrawTestKeeper2V89(c, ctx, mgr.Keeper(), runeAddress)
 		mgr.K = ps
 		c.Assert(ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 			Chain:              common.BNBChain,
@@ -836,7 +859,7 @@ func TestCalcImpLossV89(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t1 *testing.T) {
-			ilpRune, depositValue, redeemValue := calcImpLossV89(tc.lp, cosmos.NewUint(uint64(tc.withdrawBasisPoint)), tc.protectionBasisPoints, tc.pool)
+			ilpRune, depositValue, redeemValue := calcImpLossV76(tc.lp, cosmos.NewUint(uint64(tc.withdrawBasisPoint)), tc.protectionBasisPoints, tc.pool)
 			assert.Equal(t1, ilpRune.String(), tc.expectedILP.String())
 			assert.Equal(t1, depositValue.String(), tc.expectedDepositValue.String())
 			assert.Equal(t1, redeemValue.String(), tc.expectedRedeemValue.String())

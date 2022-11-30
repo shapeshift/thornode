@@ -35,6 +35,29 @@ func NewWithdrawTestKeeperV76(keeper keeper.Keeper) *WithdrawTestKeeperV76 {
 	}
 }
 
+// this one has an extra liquidity provider already set
+func getWithdrawTestKeeper2V76(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
+	store := NewWithdrawTestKeeperV76(k)
+	pool := Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		LPUnits:      cosmos.NewUint(200 * common.One),
+		SynthUnits:   cosmos.ZeroUint(),
+		Status:       PoolAvailable,
+	}
+	c.Assert(store.SetPool(ctx, pool), IsNil)
+	lp := LiquidityProvider{
+		Asset:        pool.Asset,
+		RuneAddress:  runeAddress,
+		AssetAddress: runeAddress,
+		Units:        cosmos.NewUint(100 * common.One),
+		PendingRune:  cosmos.ZeroUint(),
+	}
+	store.SetLiquidityProvider(ctx, lp)
+	return store
+}
+
 func (k *WithdrawTestKeeperV76) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 	return !asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"})
 }
@@ -524,7 +547,7 @@ func (WithdrawSuiteV76) TestWithdrawAsym(c *C) {
 	for _, tc := range testCases {
 		c.Logf("name:%s", tc.name)
 		ctx, mgr := setupManagerForTest(c)
-		ps := getWithdrawTestKeeper2(c, ctx, mgr.Keeper(), runeAddress)
+		ps := getWithdrawTestKeeper2V76(c, ctx, mgr.Keeper(), runeAddress)
 		mgr.K = ps
 		c.Assert(ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 			Chain:              common.BNBChain,

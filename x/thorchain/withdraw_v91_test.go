@@ -34,6 +34,29 @@ func NewWithdrawTestKeeperV91(keeper keeper.Keeper) *WithdrawTestKeeperV91 {
 	}
 }
 
+// this one has an extra liquidity provider already set
+func getWithdrawTestKeeper2V91(c *C, ctx cosmos.Context, k keeper.Keeper, runeAddress common.Address) keeper.Keeper {
+	store := NewWithdrawTestKeeperV91(k)
+	pool := Pool{
+		BalanceRune:  cosmos.NewUint(100 * common.One),
+		BalanceAsset: cosmos.NewUint(100 * common.One),
+		Asset:        common.BNBAsset,
+		LPUnits:      cosmos.NewUint(200 * common.One),
+		SynthUnits:   cosmos.ZeroUint(),
+		Status:       PoolAvailable,
+	}
+	c.Assert(store.SetPool(ctx, pool), IsNil)
+	lp := LiquidityProvider{
+		Asset:        pool.Asset,
+		RuneAddress:  runeAddress,
+		AssetAddress: runeAddress,
+		Units:        cosmos.NewUint(100 * common.One),
+		PendingRune:  cosmos.ZeroUint(),
+	}
+	store.SetLiquidityProvider(ctx, lp)
+	return store
+}
+
 func (k *WithdrawTestKeeperV91) PoolExist(ctx cosmos.Context, asset common.Asset) bool {
 	return !asset.Equals(common.Asset{Chain: common.BNBChain, Symbol: "NOTEXIST", Ticker: "NOTEXIST"})
 }
@@ -301,7 +324,7 @@ func (s WithdrawSuiteV91) TestCalculateUnsake(c *C) {
 
 	for _, item := range inputs {
 		c.Logf("name:%s", item.name)
-		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV91(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, cosmos.ZeroUint(), item.percentage, common.EmptyAsset)
+		withDrawRune, withDrawAsset, unitAfter, err := calculateWithdrawV76(item.poolUnit, item.poolRune, item.poolAsset, item.lpUnit, cosmos.ZeroUint(), item.percentage, common.EmptyAsset)
 		if item.expectedErr == nil {
 			c.Assert(err, IsNil)
 		} else {
@@ -522,7 +545,7 @@ func (WithdrawSuiteV91) TestWithdrawAsym(c *C) {
 	for _, tc := range testCases {
 		c.Logf("name:%s", tc.name)
 		ctx, mgr := setupManagerForTest(c)
-		ps := getWithdrawTestKeeper2(c, ctx, mgr.Keeper(), runeAddress)
+		ps := getWithdrawTestKeeper2V91(c, ctx, mgr.Keeper(), runeAddress)
 		mgr.K = ps
 		c.Assert(ps.SaveNetworkFee(ctx, common.BNBChain, NetworkFee{
 			Chain:              common.BNBChain,
