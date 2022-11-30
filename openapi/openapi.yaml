@@ -1676,11 +1676,11 @@ components:
         actions:
           type: array
           items:
-            $ref: "#/components/schemas/ObservedTx"
+            $ref: "#/components/schemas/TxOutItem"
         out_txs:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/Tx"
         finalised_height:
           type: integer
           format: int64
