@@ -9,7 +9,10 @@ VERSION=$(awk -F. '{ print $2 }' version)
 CI_MERGE_REQUEST_TITLE=${CI_MERGE_REQUEST_TITLE:-}
 
 go run tools/versioned-functions/main.go --version="$VERSION" >/tmp/versioned-fns-current
-git checkout origin/develop
+
+git fetch https://gitlab.com/thorchain/thornode.git develop
+git checkout FETCH_HEAD
+
 git checkout - -- tools
 go run tools/versioned-functions/main.go --version="$VERSION" >/tmp/versioned-fns-develop
 git checkout -
