@@ -1750,7 +1750,7 @@ components:
     ConstantsResponse:
       type: object
       properties:
-        int64_values:
+        int_64_values:
           type: object
           additionalProperties:
             type: string
