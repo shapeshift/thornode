@@ -719,19 +719,20 @@ func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, 
 	}
 	txID := tx.Hash().String()
 	c.logger.Info().Msgf("broadcast tx with memo: %s to ETH chain , hash: %s", txOutItem.Memo, txID)
+
+	if err := c.signerCacheManager.SetSigned(txOutItem.CacheHash(), txID); err != nil {
+		c.logger.Err(err).Msgf("fail to mark tx out item (%+v) as signed", txOutItem)
+	}
+
 	blockHeight, err := c.bridge.GetBlockHeight()
 	if err != nil {
 		c.logger.Err(err).Msgf("fail to get current THORChain block height")
 		// at this point , the tx already broadcast successfully , don't return an error
 		// otherwise will cause the same tx to retry
-		return txID, nil
-	}
-	if err := c.AddSignedTxItem(txID, blockHeight, txOutItem.VaultPubKey.String()); err != nil {
+	} else if err := c.AddSignedTxItem(txID, blockHeight, txOutItem.VaultPubKey.String()); err != nil {
 		c.logger.Err(err).Msgf("fail to add signed tx item,hash:%s", txID)
 	}
-	if err := c.signerCacheManager.SetSigned(txOutItem.CacheHash(), txID); err != nil {
-		c.logger.Err(err).Msgf("fail to mark tx out item (%+v) as signed", txOutItem)
-	}
+
 	return txID, nil
 }
 

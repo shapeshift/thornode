@@ -670,19 +670,19 @@ func (c *AvalancheClient) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) 
 	txID := tx.Hash().String()
 	c.logger.Info().Str("memo", txOutItem.Memo).Str("hash", txID).Msg("broadcast tx to AVAX C-Chain")
 
+	if err := c.signerCacheManager.SetSigned(txOutItem.CacheHash(), txID); err != nil {
+		c.logger.Err(err).Interface("txOutItem", txOutItem).Msg("fail to mark tx out item as signed")
+	}
+
 	blockHeight, err := c.bridge.GetBlockHeight()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get current THORChain block height")
 		// at this point , the tx already broadcast successfully , don't return an error
 		// otherwise will cause the same tx to retry
-		return txID, nil
-	}
-	if err := c.AddSignedTxItem(txID, blockHeight, txOutItem.VaultPubKey.String()); err != nil {
+	} else if err := c.AddSignedTxItem(txID, blockHeight, txOutItem.VaultPubKey.String()); err != nil {
 		c.logger.Err(err).Str("hash", txID).Msg("fail to add signed tx item")
 	}
-	if err := c.signerCacheManager.SetSigned(txOutItem.CacheHash(), txID); err != nil {
-		c.logger.Err(err).Interface("txOutItem", txOutItem).Msg("fail to mark tx out item as signed")
-	}
+
 	return txID, nil
 }
 

@@ -460,6 +460,11 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 	if err != nil {
 		if rpcErr, ok := err.(*btcjson.RPCError); ok && rpcErr.Code == btcjson.ErrRPCTxAlreadyInChain {
 			// this means the tx had been broadcast to chain, it must be another signer finished quicker then us
+			// save tx id to block meta in case we need to errata later
+			c.logger.Info().Str("hash", redeemTx.TxHash().String()).Msg("broadcast to BTC chain by another node")
+			if err := c.signerCacheManager.SetSigned(txOut.CacheHash(), redeemTx.TxHash().String()); err != nil {
+				c.logger.Err(err).Msgf("fail to mark tx out item (%+v) as signed", txOut)
+			}
 			return redeemTx.TxHash().String(), nil
 		}
 
