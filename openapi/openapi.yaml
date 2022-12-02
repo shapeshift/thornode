@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Thornode API
-  version: 1.100.0
+  version: 1.101.0
   contact:
     email: devs@thorchain.org
   description: Thornode REST API.
@@ -101,7 +101,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LiquidityProviderResponse"
+                $ref: "#/components/schemas/LiquidityProvidersResponse"
 
   # # ------------------------------ savers ------------------------------
 
@@ -925,7 +925,7 @@ components:
           example: true
           description: whether additional synths cannot be minted
 
-    LiquidityProvider:
+    LiquidityProviderSummary:
       type: object
       required:
         - asset
@@ -961,13 +961,79 @@ components:
         pending_asset:
           type: string
           example: "242000000"
-        pending_tx_Id:
+        pending_tx_id:
           type: string
           example: "C4C876802xxxxxxxxxxBC408829878446A37011EBBA0C5CAA3DD64A548879CB228"
         rune_deposit_value:
           type: string
           example: "0"
         asset_deposit_value:
+          type: string
+          example: "0"
+
+    LiquidityProvider:
+      type: object
+      required:
+        - asset
+        - units
+        - pending_rune
+        - pending_asset
+        - rune_deposit_value
+        - asset_deposit_value
+        - rune_redeem_value
+        - asset_redeem_value
+        - luvi_deposit_value
+        - luvi_redeem_value
+        - luvi_growth_pct
+      properties:
+        asset:
+          type: string
+          example: "BNB.BNB"
+        rune_address:
+          type: string
+          example: "thor1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        asset_address:
+          type: string
+          example: "bnb1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        last_add_height:
+          type: integer
+          format: int64
+          example: 82745
+        last_withdraw_height:
+          type: integer
+          format: int64
+          example: 82745
+        units:
+          type: string
+          example: "0"
+        pending_rune:
+          type: string
+          example: "0"
+        pending_asset:
+          type: string
+          example: "242000000"
+        pending_tx_id:
+          type: string
+          example: "C4C876802xxxxxxxxxxBC408829878446A37011EBBA0C5CAA3DD64A548879CB228"
+        rune_deposit_value:
+          type: string
+          example: "0"
+        asset_deposit_value:
+          type: string
+          example: "0"
+        rune_redeem_value:
+          type: string
+          example: "0"
+        asset_redeem_value:
+          type: string
+          example: "0"
+        luvi_deposit_value:
+          type: string
+          example: "0"
+        luvi_redeem_value:
+          type: string
+          example: "0"
+        luvi_growth_pct:
           type: string
           example: "0"
 
@@ -978,6 +1044,8 @@ components:
         - asset_address
         - units
         - asset_deposit_value
+        - asset_redeem_value
+        - growth_pct
       properties:
         asset:
           type: string
@@ -999,6 +1067,12 @@ components:
         asset_deposit_value:
           type: string
           example: "0"
+        asset_redeem_value:
+          type: string
+          example: "0"
+        growth_pct:
+          type: string
+          example: "0.02"
 
     Coin:
       type: object
@@ -1557,10 +1631,13 @@ components:
       items:
         $ref: "#/components/schemas/Pool"
 
-    LiquidityProviderResponse:
+    LiquidityProvidersResponse:
       type: array
       items:
-        $ref: "#/components/schemas/LiquidityProvider"
+        $ref: "#/components/schemas/LiquidityProviderSummary"
+
+    LiquidityProviderResponse:
+      $ref: "#/components/schemas/LiquidityProvider"
 
     SaverResponse:
       type: array

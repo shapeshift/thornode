@@ -196,6 +196,61 @@ func NewQueryTxOutItem(toi TxOutItem, height int64) QueryTxOutItem {
 	}
 }
 
+// QueryLiquidityProvider holds all the information related to a liquidity provider
+type QueryLiquidityProvider struct {
+	Asset              common.Asset   `json:"asset"`
+	RuneAddress        common.Address `json:"rune_address,omitempty"`
+	AssetAddress       common.Address `json:"asset_address,omitempty"`
+	LastAddHeight      int64          `json:"last_add_height,omitempty"`
+	LastWithdrawHeight int64          `json:"last_withdraw_height,omitempty"`
+	Units              cosmos.Uint    `json:"units"`
+	PendingRune        cosmos.Uint    `json:"pending_rune"`
+	PendingAsset       cosmos.Uint    `json:"pending_asset"`
+	PendingTxId        string         `json:"pending_tx_id,omitempty"`
+	RuneDepositValue   cosmos.Uint    `json:"rune_deposit_value"`
+	AssetDepositValue  cosmos.Uint    `json:"asset_deposit_value"`
+	RuneRedeemValue    cosmos.Uint    `json:"rune_redeem_value"`
+	AssetRedeemValue   cosmos.Uint    `json:"asset_redeem_value"`
+	LuviDepositValue   cosmos.Uint    `json:"luvi_deposit_value"`
+	LuviRedeemValue    cosmos.Uint    `json:"luvi_redeem_value"`
+	LuviGrowthPct      cosmos.Dec     `json:"luvi_growth_pct"`
+}
+
+// NewQueryLiquidityProvider creates a new QueryLiquidityProvider based on the given liquidity provider and pool
+func NewQueryLiquidityProvider(lp LiquidityProvider, pool Pool, synthSupply cosmos.Uint, version semver.Version) QueryLiquidityProvider {
+	_, runeRedeemValue := lp.GetRuneRedeemValue(version, pool, synthSupply)
+	_, assetRedeemValue := lp.GetAssetRedeemValue(version, pool, synthSupply)
+	_, luviDepositValue := lp.GetLuviDepositValue(pool)
+	_, luviRedeemValue := lp.GetLuviRedeemValue(runeRedeemValue, assetRedeemValue)
+
+	lgp := cosmos.NewDec(0)
+	if !luviDepositValue.IsZero() {
+		ldv := cosmos.NewDec(luviDepositValue.BigInt().Int64())
+		lrv := cosmos.NewDec(luviRedeemValue.BigInt().Int64())
+		lgp = lrv.Sub(ldv)
+		lgp = lgp.Quo(ldv)
+	}
+
+	return QueryLiquidityProvider{
+		Asset:              lp.Asset.GetLayer1Asset(),
+		AssetAddress:       lp.AssetAddress,
+		RuneAddress:        lp.RuneAddress,
+		LastAddHeight:      lp.LastAddHeight,
+		LastWithdrawHeight: lp.LastWithdrawHeight,
+		PendingAsset:       lp.PendingAsset,
+		PendingRune:        lp.PendingRune,
+		PendingTxId:        lp.PendingTxID.String(),
+		Units:              lp.Units,
+		AssetDepositValue:  lp.AssetDepositValue,
+		RuneDepositValue:   lp.RuneDepositValue,
+		RuneRedeemValue:    runeRedeemValue,
+		AssetRedeemValue:   assetRedeemValue,
+		LuviRedeemValue:    luviRedeemValue,
+		LuviDepositValue:   luviDepositValue,
+		LuviGrowthPct:      lgp,
+	}
+}
+
 // QuerySaver holds all the information related to a saver
 type QuerySaver struct {
 	Asset              common.Asset   `json:"asset"`
@@ -204,10 +259,22 @@ type QuerySaver struct {
 	LastWithdrawHeight int64          `json:"last_withdraw_height,omitempty"`
 	Units              cosmos.Uint    `json:"units"`
 	AssetDepositValue  cosmos.Uint    `json:"asset_deposit_value"`
+	AssetRedeemValue   cosmos.Uint    `json:"asset_redeem_value"`
+	GrowthPct          cosmos.Dec     `json:"growth_pct"`
 }
 
-// NewQuerySaver creates a new QuerySaver based on the given liquidity provider parameters
-func NewQuerySaver(lp LiquidityProvider) QuerySaver {
+// NewQuerySaver creates a new QuerySaver based on the given liquidity provider parameters and pool
+func NewQuerySaver(lp LiquidityProvider, pool Pool) QuerySaver {
+	assetRedeemableValue := lp.GetSaversAssetRedeemValue(pool)
+
+	gp := cosmos.NewDec(0)
+	if !lp.AssetDepositValue.IsZero() {
+		adv := cosmos.NewDec(lp.AssetDepositValue.BigInt().Int64())
+		arv := cosmos.NewDec(assetRedeemableValue.BigInt().Int64())
+		gp = arv.Sub(adv)
+		gp = gp.Quo(adv)
+	}
+
 	return QuerySaver{
 		Asset:              lp.Asset.GetLayer1Asset(),
 		AssetAddress:       lp.AssetAddress,
@@ -215,6 +282,8 @@ func NewQuerySaver(lp LiquidityProvider) QuerySaver {
 		LastWithdrawHeight: lp.LastWithdrawHeight,
 		Units:              lp.Units,
 		AssetDepositValue:  lp.AssetDepositValue,
+		AssetRedeemValue:   lp.GetSaversAssetRedeemValue(pool),
+		GrowthPct:          gp,
 	}
 }
 

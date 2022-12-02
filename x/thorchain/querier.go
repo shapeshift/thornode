@@ -840,6 +840,17 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 		return nil, fmt.Errorf("invalid request: requested pool is a SaversPool")
 	}
 
+	poolAsset := asset
+	if isSavers {
+		poolAsset = asset.GetSyntheticAsset()
+	}
+
+	pool, err := mgr.Keeper().GetPool(ctx, poolAsset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool", "error", err)
+		return nil, fmt.Errorf("fail to get pool: %w", err)
+	}
+
 	var lps LiquidityProviders
 	var savers []QuerySaver
 	iterator := mgr.Keeper().GetLiquidityProviderIterator(ctx, asset)
@@ -850,7 +861,7 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 		if !isSavers {
 			lps = append(lps, lp)
 		} else {
-			savers = append(savers, NewQuerySaver(lp))
+			savers = append(savers, NewQuerySaver(lp, pool))
 		}
 	}
 	var res []byte
@@ -898,11 +909,23 @@ func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQ
 		return nil, fmt.Errorf("fail to liquidity provider: %w", err)
 	}
 
+	poolAsset := asset
+	if isSavers {
+		poolAsset = asset.GetSyntheticAsset()
+	}
+
+	pool, err := mgr.Keeper().GetPool(ctx, poolAsset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool", "error", err)
+		return nil, fmt.Errorf("fail to get pool: %w", err)
+	}
+
 	var res []byte
 	if !isSavers {
-		res, err = json.MarshalIndent(lp, "", "	")
+		synthSupply := mgr.Keeper().GetTotalSupply(ctx, poolAsset.GetSyntheticAsset())
+		res, err = json.MarshalIndent(NewQueryLiquidityProvider(lp, pool, synthSupply, mgr.GetVersion()), "", "	")
 	} else {
-		saver := NewQuerySaver(lp)
+		saver := NewQuerySaver(lp, pool)
 		res, err = json.MarshalIndent(saver, "", "	")
 	}
 	if err != nil {

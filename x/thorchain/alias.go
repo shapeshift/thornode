@@ -140,6 +140,7 @@ var (
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
 	NewQueryTxOutItem              = types.NewQueryTxOutItem
+	NewQueryLiquidityProvider      = types.NewQueryLiquidityProvider
 	NewQuerySaver                  = types.NewQuerySaver
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
