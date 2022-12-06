@@ -19,10 +19,10 @@ git checkout -
 
 if ! diff -u -F '^func' -I '^//' --color=always /tmp/versioned-fns-develop /tmp/versioned-fns-current; then
   echo "Detected change in versioned function."
-  if [[ $CI_MERGE_REQUEST_TITLE == *"#unsafe"* ]]; then
+  if [[ $CI_MERGE_REQUEST_TITLE == *"#check-lint-warning"* ]]; then
     echo "Merge request is marked unsafe."
   else
-    echo 'Correct the change, add a new versioned function, or add "#unsafe" to the PR description.'
+    echo 'Correct the change, add a new versioned function, or add "#check-lint-warning" to the PR description.'
     exit 1
   fi
 fi
