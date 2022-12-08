@@ -1,6 +1,8 @@
 package thorchain
 
 import (
+	"fmt"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -103,4 +105,121 @@ func refundTransactions(ctx cosmos.Context, mgr *Mgrs, pubKey string, adhocRefun
 			ctx.Logger().Error("fail to send manual refund", "address", item.toAddr, "error", err)
 		}
 	}
+}
+
+//nolint:unused
+type DroppedSwapOutTx struct {
+	inboundHash string
+	gasAsset    common.Asset
+}
+
+// refundDroppedSwapOutFromRUNE refunds a dropped swap out TX that originated from $RUNE
+
+// These txs completed the swap to the EVM gas asset, but bifrost dropped the final swap out outbound
+// To refund:
+// 1. Credit the gas asset pool the amount of gas asset that never left
+// 2. Deduct the corresponding amount of RUNE from the pool, as that will be refunded
+// 3. Send the user their RUNE back
+//nolint:unused,deadcode
+func refundDroppedSwapOutFromRUNE(ctx cosmos.Context, mgr *Mgrs, droppedTx DroppedSwapOutTx) error {
+	txId, err := common.NewTxID(droppedTx.inboundHash)
+	if err != nil {
+		return err
+	}
+
+	txVoter, err := mgr.Keeper().GetObservedTxInVoter(ctx, txId)
+	if err != nil {
+		return err
+	}
+
+	if txVoter.OutTxs != nil {
+		return fmt.Errorf("For a dropped swap out there should be no out_txs")
+	}
+
+	// Get the original inbound, if it's not for RUNE, skip
+	inboundTx := txVoter.Tx.Tx
+	if !inboundTx.Chain.IsTHORChain() {
+		return fmt.Errorf("Inbound tx isn't from thorchain")
+	}
+
+	inboundCoins := inboundTx.Coins
+	if len(inboundCoins) != 1 || !inboundCoins[0].Asset.IsNativeRune() {
+		return fmt.Errorf("Inbound coin is not native RUNE")
+	}
+
+	inboundRUNE := inboundCoins[0]
+	swapperRUNEAddr := inboundTx.FromAddress
+
+	if txVoter.Actions == nil || len(txVoter.Actions) == 0 {
+		return fmt.Errorf("Tx Voter has empty Actions")
+	}
+
+	// gasAssetCoin is the gas asset that was swapped to for the swap out
+	// Since the swap out was dropped, this amount of the gas asset never left the pool.
+	// This amount should be credited back to the pool since it was originally deducted when thornode sent the swap out
+	gasAssetCoin := txVoter.Actions[0].Coin
+	if !gasAssetCoin.Asset.Equals(droppedTx.gasAsset) {
+		return fmt.Errorf("Tx Voter action coin isn't swap out gas asset")
+	}
+
+	gasPool, err := mgr.Keeper().GetPool(ctx, droppedTx.gasAsset)
+	if err != nil {
+		return err
+	}
+
+	totalGasAssetAmt := cosmos.NewUint(0)
+
+	// If the outbound was split between multiple Asgards, add up the full amount here
+	for _, action := range txVoter.Actions {
+		totalGasAssetAmt = totalGasAssetAmt.Add(action.Coin.Amount)
+	}
+
+	// Credit Gas Pool the Gas Asset balance, deduct the RUNE balance
+	gasPool.BalanceAsset = gasPool.BalanceAsset.Add(totalGasAssetAmt)
+	gasPool.BalanceRune = gasPool.BalanceRune.Sub(inboundRUNE.Amount)
+
+	// Update the pool
+	if err := mgr.Keeper().SetPool(ctx, gasPool); err != nil {
+		return err
+	}
+
+	addrAcct, err := swapperRUNEAddr.AccAddress()
+	if err != nil {
+		ctx.Logger().Error("fail to create acct in migrate store to v98", "error", err)
+	}
+
+	runeCoins := common.NewCoins(inboundRUNE)
+
+	// Send user their funds
+	err = mgr.Keeper().SendFromModuleToAccount(ctx, AsgardName, addrAcct, runeCoins)
+	if err != nil {
+		return err
+	}
+
+	// create and emit a fake tx and swap event to keep pools balanced in Midgard
+	fakeSwapTx := common.Tx{
+		ID:          "",
+		Chain:       common.ETHChain,
+		FromAddress: txVoter.Actions[0].ToAddress,
+		ToAddress:   common.Address(txVoter.Actions[0].Aggregator),
+		Coins:       common.NewCoins(gasAssetCoin),
+		Memo:        fmt.Sprintf("REFUND:%s", inboundTx.ID),
+	}
+
+	swapEvt := NewEventSwap(
+		droppedTx.gasAsset,
+		cosmos.ZeroUint(),
+		cosmos.ZeroUint(),
+		cosmos.ZeroUint(),
+		cosmos.ZeroUint(),
+		fakeSwapTx,
+		inboundRUNE,
+		cosmos.ZeroUint(),
+	)
+
+	if err := mgr.EventMgr().EmitEvent(ctx, swapEvt); err != nil {
+		ctx.Logger().Error("fail to emit fake swap event", "error", err)
+	}
+
+	return nil
 }
