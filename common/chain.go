@@ -307,7 +307,7 @@ func (c Chain) ApproximateBlockMilliseconds() int64 {
 	case DOGEChain:
 		return 60_000
 	case ETHChain:
-		return 15_000
+		return 12_000
 	case AVAXChain:
 		return 3_000
 	case BNBChain:
