@@ -389,6 +389,9 @@ func InitThornode(ctx context.Context) {
 // -------------------------------------------------------------------------------------
 
 type Thornode struct {
+	// NodeRelayURL is the URL of the node relay service.
+	NodeRelayURL string `mapstructure:"node_relay_url"`
+
 	AutoStateSync struct {
 		Enabled bool `mapstructure:"enabled"`
 

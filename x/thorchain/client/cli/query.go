@@ -7,7 +7,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/spf13/cobra"
 
-	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/relay"
 	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -73,7 +73,7 @@ func GetCmdGetNORelay() *cobra.Command {
 				return err
 			}
 
-			msg := common.NewNodeRelay(args[0], args[1])
+			msg := relay.NewNodeRelay(args[0], args[1])
 
 			if err := msg.Prepare(); err != nil {
 				log.Fatalln(err)

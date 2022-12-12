@@ -1,4 +1,4 @@
-package common
+package relay
 
 // This file is designed to sign and broadcast messages from node operators to a discord bot
 
@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 type NodeRelayMsg struct {
@@ -36,7 +38,7 @@ func NewNodeRelay(channel, text string) *NodeRelay {
 
 func (n *NodeRelay) fetchUUID() error {
 	// GET UUID PREFIX
-	resp, err := http.Get("https://node-relay-bot.herokuapp.com/uuid_prefix")
+	resp, err := http.Get(fmt.Sprintf("%s/uuid_prefix", config.GetThornode().NodeRelayURL))
 	if err != nil {
 		return err
 	}
@@ -59,7 +61,7 @@ func (n *NodeRelay) fetchUUID() error {
 func (n *NodeRelay) sign() error {
 	msg := fmt.Sprintf("%s|%s|%s", n.Msg.UUID, n.Msg.Channel, n.Msg.Text)
 
-	sig, pubkey, err := SignBase64([]byte(msg))
+	sig, pubkey, err := common.SignBase64([]byte(msg))
 	if err != nil {
 		return err
 	}
@@ -86,7 +88,7 @@ func (n *NodeRelay) Broadcast() (string, error) {
 	// POST to discord bot
 	responseBody := bytes.NewBuffer(postBody)
 	// Leverage Go's HTTP Post function to make request
-	resp, err := http.Post("https://node-relay-bot.herokuapp.com/msg", "application/json", responseBody)
+	resp, err := http.Post(fmt.Sprintf("%s/msg", config.GetThornode().NodeRelayURL), "application/json", responseBody)
 	// Handle Error
 	if err != nil {
 		return "", err
