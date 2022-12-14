@@ -10,7 +10,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ---
 

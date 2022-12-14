@@ -38,6 +38,8 @@ None
 ### Accepted
 
 - [002 - Remove Yggdrasil Vaults](./adr-002-removeyggvaults.md)
+- [003 - Floored Outbound Fee](./adr-003-flooredoutboundfee.md)
+- [004 - Keyshare Backups](./adr-004-keyshare-backups.md)
 
 ### Deprecated
 
@@ -49,7 +51,7 @@ None
 
 ### Proposed
 
-- [004 - Keyshare Backups](./adr-004-keyshare-backups.md)
+- [005 - Deprecate Impermanent Loss Protection](./adr-005-deprecate-ilp.md)
 
 ### On Pause
 
