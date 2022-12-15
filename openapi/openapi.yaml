@@ -873,6 +873,7 @@ components:
         - savers_depth
         - savers_units
         - synth_mint_paused
+        - synth_supply_remaining
       properties:
         balance_rune:
           type: string
@@ -923,7 +924,11 @@ components:
         synth_mint_paused:
           type: boolean
           example: true
-          description: whether additional synths cannot be minted
+          description: whether additional synths cannot be minted (will be deprecated in v1.103)
+        synth_supply_remaining:
+          type: string
+          example: "123456"
+          description: the amount of synth supply remaining before the current max utilization is reached
 
     LiquidityProviderSummary:
       type: object

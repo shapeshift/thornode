@@ -693,14 +693,16 @@ func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool 
 func isSynthMintPaused(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
 	version := mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.102.0")):
+		return isSynthMintPausedV102(ctx, mgr, targetAsset, outputAmt)
 	case version.GTE(semver.MustParse("1.99.0")):
-		return isSynthMintPaused99(ctx, mgr, targetAsset, outputAmt)
+		return isSynthMintPausedV99(ctx, mgr, targetAsset, outputAmt)
 	default:
 		return nil
 	}
 }
 
-func isSynthMintPaused99(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
+func isSynthMintPausedV99(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
 	maxSynths, err := mgr.Keeper().GetMimir(ctx, constants.MaxSynthPerPoolDepth.String())
 	if maxSynths < 0 || err != nil {
 		maxSynths = mgr.GetConstants().GetInt64Value(constants.MaxSynthPerPoolDepth)
@@ -723,6 +725,43 @@ func isSynthMintPaused99(ctx cosmos.Context, mgr Manager, targetAsset common.Ass
 	}
 
 	return nil
+}
+
+func isSynthMintPausedV102(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
+	remaining, err := getSynthSupplyRemainingV102(ctx, mgr, targetAsset)
+	if err != nil {
+		return err
+	}
+
+	if remaining.LT(outputAmt) {
+		return fmt.Errorf("insufficient synth capacity: want=%d have=%d", outputAmt.Uint64(), remaining.Uint64())
+	}
+
+	return nil
+}
+
+func getSynthSupplyRemainingV102(ctx cosmos.Context, mgr Manager, asset common.Asset) (cosmos.Uint, error) {
+	maxSynths, err := mgr.Keeper().GetMimir(ctx, constants.MaxSynthPerPoolDepth.String())
+	if maxSynths < 0 || err != nil {
+		maxSynths = mgr.GetConstants().GetInt64Value(constants.MaxSynthPerPoolDepth)
+	}
+
+	synthSupply := mgr.Keeper().GetTotalSupply(ctx, asset.GetSyntheticAsset())
+	pool, err := mgr.Keeper().GetPool(ctx, asset.GetLayer1Asset())
+	if err != nil {
+		return cosmos.ZeroUint(), ErrInternal(err, "fail to get pool")
+	}
+
+	if pool.BalanceAsset.IsZero() {
+		return cosmos.ZeroUint(), fmt.Errorf("pool(%s) has zero asset balance", pool.Asset.String())
+	}
+
+	maxSynthSupply := cosmos.NewUint(uint64(maxSynths)).Mul(pool.BalanceAsset.MulUint64(2)).QuoUint64(MaxWithdrawBasisPoints)
+	if maxSynthSupply.LT(synthSupply) {
+		return cosmos.ZeroUint(), fmt.Errorf("synth supply over target (%d/%d)", synthSupply.Uint64(), maxSynthSupply.Uint64())
+	}
+
+	return maxSynthSupply.Sub(synthSupply), nil
 }
 
 func isLPPaused(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {

@@ -968,22 +968,24 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
 	synthMintPausedErr := isSynthMintPaused(ctx, mgr, saversAsset, cosmos.ZeroUint())
+	synthSupplyRemaining, _ := getSynthSupplyRemainingV102(ctx, mgr, saversAsset)
 
 	p := &openapi.Pool{
-		BalanceRune:         pool.BalanceRune.String(),
-		BalanceAsset:        pool.BalanceAsset.String(),
-		Asset:               pool.Asset.String(),
-		LPUnits:             pool.LPUnits.String(),
-		PoolUnits:           pool.GetPoolUnits().String(),
-		Status:              pool.Status.String(),
-		Decimals:            wrapInt64(pool.Decimals),
-		SynthUnits:          pool.SynthUnits.String(),
-		SynthSupply:         synthSupply.String(),
-		SaversDepth:         saversDepth.String(),
-		SaversUnits:         saversUnits.String(),
-		SynthMintPaused:     synthMintPausedErr != nil,
-		PendingInboundRune:  pool.PendingInboundRune.String(),
-		PendingInboundAsset: pool.PendingInboundAsset.String(),
+		BalanceRune:          pool.BalanceRune.String(),
+		BalanceAsset:         pool.BalanceAsset.String(),
+		Asset:                pool.Asset.String(),
+		LPUnits:              pool.LPUnits.String(),
+		PoolUnits:            pool.GetPoolUnits().String(),
+		Status:               pool.Status.String(),
+		Decimals:             wrapInt64(pool.Decimals),
+		SynthUnits:           pool.SynthUnits.String(),
+		SynthSupply:          synthSupply.String(),
+		SaversDepth:          saversDepth.String(),
+		SaversUnits:          saversUnits.String(),
+		SynthMintPaused:      synthMintPausedErr != nil,
+		SynthSupplyRemaining: synthSupplyRemaining.String(),
+		PendingInboundRune:   pool.PendingInboundRune.String(),
+		PendingInboundAsset:  pool.PendingInboundAsset.String(),
 	}
 
 	res, err := json.MarshalIndent(p, "", "	")
@@ -1025,22 +1027,24 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		pool.CalcUnits(mgr.GetVersion(), synthSupply)
 
 		synthMintPausedErr := isSynthMintPaused(ctx, mgr, pool.Asset, cosmos.ZeroUint())
+		synthSupplyRemaining, _ := getSynthSupplyRemainingV102(ctx, mgr, pool.Asset)
 
 		p := openapi.Pool{
-			BalanceRune:         pool.BalanceRune.String(),
-			BalanceAsset:        pool.BalanceAsset.String(),
-			Asset:               pool.Asset.String(),
-			LPUnits:             pool.LPUnits.String(),
-			PoolUnits:           pool.GetPoolUnits().String(),
-			Status:              pool.Status.String(),
-			Decimals:            wrapInt64(pool.Decimals),
-			SynthUnits:          pool.SynthUnits.String(),
-			SynthSupply:         synthSupply.String(),
-			SaversDepth:         saversDepth.String(),
-			SaversUnits:         saversUnits.String(),
-			SynthMintPaused:     synthMintPausedErr != nil,
-			PendingInboundRune:  pool.PendingInboundRune.String(),
-			PendingInboundAsset: pool.PendingInboundAsset.String(),
+			BalanceRune:          pool.BalanceRune.String(),
+			BalanceAsset:         pool.BalanceAsset.String(),
+			Asset:                pool.Asset.String(),
+			LPUnits:              pool.LPUnits.String(),
+			PoolUnits:            pool.GetPoolUnits().String(),
+			Status:               pool.Status.String(),
+			Decimals:             wrapInt64(pool.Decimals),
+			SynthUnits:           pool.SynthUnits.String(),
+			SynthSupply:          synthSupply.String(),
+			SaversDepth:          saversDepth.String(),
+			SaversUnits:          saversUnits.String(),
+			SynthMintPaused:      synthMintPausedErr != nil,
+			SynthSupplyRemaining: synthSupplyRemaining.String(),
+			PendingInboundRune:   pool.PendingInboundRune.String(),
+			PendingInboundAsset:  pool.PendingInboundAsset.String(),
 		}
 		pools = append(pools, p)
 	}
