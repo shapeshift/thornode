@@ -138,7 +138,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SaverResponse"
+                $ref: "#/components/schemas/SaversResponse"
 
   # ------------------------------ transactions ------------------------------
 
@@ -1645,9 +1645,12 @@ components:
       $ref: "#/components/schemas/LiquidityProvider"
 
     SaverResponse:
+      $ref: "#/components/schemas/Saver"
+
+    SaversResponse:
       type: array
       items:
-        $ref: "#/components/schemas/LiquidityProvider"
+        $ref: "#/components/schemas/Saver"
 
     TxResponse:
       type: object
