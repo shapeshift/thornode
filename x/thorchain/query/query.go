@@ -40,7 +40,10 @@ var (
 	QuerySavers              = Query{Key: "savers", EndpointTemplate: "/%s/pool/{%s}/savers"}
 	QuerySaver               = Query{Key: "saver", EndpointTemplate: "/%s/pool/{%s}/saver/{%s}"}
 	QueryTx                  = Query{Key: "tx", EndpointTemplate: "/%s/tx/{%s}"}
-	QueryTxVoter             = Query{Key: "txvoter", EndpointTemplate: "/%s/tx/{%s}/signers"}
+	QueryTxVoterOld          = Query{Key: "txvoterold", EndpointTemplate: "/%s/tx/{%s}/signers"}
+	QueryTxVoter             = Query{Key: "txvoter", EndpointTemplate: "/%s/tx/details/{%s}"}
+	QueryTxStages            = Query{Key: "txstages", EndpointTemplate: "/%s/alpha/tx/stages/{%s}"}
+	QueryTxStatus            = Query{Key: "txstatus", EndpointTemplate: "/%s/alpha/tx/status/{%s}"}
 	QueryKeysignArray        = Query{Key: "keysign", EndpointTemplate: "/%s/keysign/{%s}"}
 	QueryKeysignArrayPubkey  = Query{Key: "keysignpubkey", EndpointTemplate: "/%s/keysign/{%s}/{%s}"}
 	QueryKeygensPubkey       = Query{Key: "keygenspubkey", EndpointTemplate: "/%s/keygen/{%s}/{%s}"}
@@ -85,7 +88,10 @@ var Queries = []Query{
 	QueryLiquidityProvider,
 	QuerySavers,
 	QuerySaver,
+	QueryTxStages,
+	QueryTxStatus,
 	QueryTxVoter,
+	QueryTxVoterOld,
 	QueryTx,
 	QueryKeysignArray,
 	QueryKeysignArrayPubkey,

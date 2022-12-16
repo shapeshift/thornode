@@ -43,10 +43,12 @@ func (Test) TestJSONSpec(c *C) {
 	assertJSONStructTagsMatch(c, types.QuerySaver{}, gen.Saver{})
 
 	// txs
-	assertJSONStructTagsMatch(c, types.ObservedTxVoter{}, gen.TxSignersResponse{})
+	assertJSONStructTagsMatch(c, types.ObservedTxVoter{}, gen.TxDetailsResponse{})
 	assertJSONStructTagsMatch(c, types.ObservedTx{}, gen.ObservedTx{})
 	assertJSONStructTagsMatch(c, types.TxOut{}, gen.KeysignInfo{})
 	assertJSONStructTagsMatch(c, types.QueryTxOutItem{}, gen.TxOutItem{})
+	assertJSONStructTagsMatch(c, types.QueryTxStages{}, gen.TxStagesResponse{})
+	assertJSONStructTagsMatch(c, types.QueryTxStatus{}, gen.TxStatusResponse{})
 
 	// nodes
 	assertJSONStructTagsMatch(c, types.QueryNodeAccountPreflightCheck{}, gen.NodePreflightStatus{})

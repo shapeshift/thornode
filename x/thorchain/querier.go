@@ -38,7 +38,13 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryLiquidityProviders(ctx, path[1:], req, mgr, false)
 		case q.QueryLiquidityProvider.Key:
 			return queryLiquidityProvider(ctx, path[1:], req, mgr, false)
+		case q.QueryTxStages.Key:
+			return queryTxStages(ctx, path[1:], req, mgr)
+		case q.QueryTxStatus.Key:
+			return queryTxStatus(ctx, path[1:], req, mgr)
 		case q.QueryTxVoter.Key:
+			return queryTxVoters(ctx, path[1:], req, mgr)
+		case q.QueryTxVoterOld.Key:
 			return queryTxVoters(ctx, path[1:], req, mgr)
 		case q.QueryTx.Key:
 			return queryTx(ctx, path[1:], req, mgr)
@@ -1081,6 +1087,62 @@ func queryTxVoters(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 	}
 
 	res, err := json.MarshalIndent(voter, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryTxStages(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	// First, get the ObservedTxVoter of interest.
+	if len(path) == 0 {
+		return nil, errors.New("tx id not provided")
+	}
+	hash, err := common.NewTxID(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to parse tx id", "error", err)
+		return nil, fmt.Errorf("fail to parse tx id: %w", err)
+	}
+	voter, err := mgr.Keeper().GetObservedTxInVoter(ctx, hash)
+	if err != nil {
+		ctx.Logger().Error("fail to get observed tx voter", "error", err)
+		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+	}
+	// when no TxIn voter don't check TxOut voter, as TxOut THORChain observation or not matters little to the user once signed and broadcast
+	// Rather than a "tx: %s doesn't exist" result, allow a response to an existing-but-unobserved hash with Observation.Started 'false'.
+
+	result := NewQueryTxStages(ctx, voter)
+
+	res, err := json.MarshalIndent(result, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)
+	}
+	return res, nil
+}
+
+func queryTxStatus(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	// First, get the ObservedTxVoter of interest.
+	if len(path) == 0 {
+		return nil, errors.New("tx id not provided")
+	}
+	hash, err := common.NewTxID(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to parse tx id", "error", err)
+		return nil, fmt.Errorf("fail to parse tx id: %w", err)
+	}
+	voter, err := mgr.Keeper().GetObservedTxInVoter(ctx, hash)
+	if err != nil {
+		ctx.Logger().Error("fail to get observed tx voter", "error", err)
+		return nil, fmt.Errorf("fail to get observed tx voter: %w", err)
+	}
+	// when no TxIn voter don't check TxOut voter, as TxOut THORChain observation or not matters little to the user once signed and broadcast
+	// Rather than a "tx: %s doesn't exist" result, allow a response to an existing-but-unobserved hash with Stages.Observation.Started 'false'.
+
+	result := NewQueryTxStatus(ctx, voter)
+
+	res, err := json.MarshalIndent(result, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal tx hash to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal tx hash to json: %w", err)

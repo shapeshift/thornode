@@ -375,6 +375,44 @@ func (s *QuerierSuite) TestQueryTxInVoter(c *C) {
 	c.Assert(voter.Valid(), IsNil)
 }
 
+func (s *QuerierSuite) TestQueryTxStages(c *C) {
+	req := abci.RequestQuery{
+		Data:   nil,
+		Path:   query.QueryTxStages.Key,
+		Height: s.ctx.BlockHeight(),
+		Prove:  false,
+	}
+	tx := GetRandomTx()
+	// test getTxInVoter
+	result, err := s.querier(s.ctx, []string{query.QueryTxStages.Key, tx.ID.String()}, req)
+	c.Assert(result, NotNil) // Expecting a not-started Observation stage.
+	c.Assert(err, IsNil)     // Expecting no error for an unobserved hash.
+	observedTxInVote := NewObservedTxVoter(tx.ID, []ObservedTx{NewObservedTx(tx, s.ctx.BlockHeight(), GetRandomPubKey(), s.ctx.BlockHeight())})
+	s.k.SetObservedTxInVoter(s.ctx, observedTxInVote)
+	result, err = s.querier(s.ctx, []string{query.QueryTxStages.Key, tx.ID.String()}, req)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+}
+
+func (s *QuerierSuite) TestQueryTxStatus(c *C) {
+	req := abci.RequestQuery{
+		Data:   nil,
+		Path:   query.QueryTxStatus.Key,
+		Height: s.ctx.BlockHeight(),
+		Prove:  false,
+	}
+	tx := GetRandomTx()
+	// test getTxInVoter
+	result, err := s.querier(s.ctx, []string{query.QueryTxStatus.Key, tx.ID.String()}, req)
+	c.Assert(result, NotNil) // Expecting a not-started Observation stage.
+	c.Assert(err, IsNil)     // Expecting no error for an unobserved hash.
+	observedTxInVote := NewObservedTxVoter(tx.ID, []ObservedTx{NewObservedTx(tx, s.ctx.BlockHeight(), GetRandomPubKey(), s.ctx.BlockHeight())})
+	s.k.SetObservedTxInVoter(s.ctx, observedTxInVote)
+	result, err = s.querier(s.ctx, []string{query.QueryTxStatus.Key, tx.ID.String()}, req)
+	c.Assert(err, IsNil)
+	c.Assert(result, NotNil)
+}
+
 func (s *QuerierSuite) TestQueryTx(c *C) {
 	req := abci.RequestQuery{
 		Data:   nil,
