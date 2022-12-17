@@ -251,14 +251,14 @@ func NewQueryTxOutItem(toi TxOutItem, height int64) QueryTxOutItem {
 	}
 }
 
-type ObservationStage struct {
+type InboundObservedStage struct {
 	Started   *bool `json:"started,omitempty"`
 	Completed bool  `json:"completed"`
 }
 
 // Querier context contains the query's provided height, but not the full block context,
 // so do not use BlockTime to provide a timestamp estimate.
-type ConfirmationCountingStage struct {
+type InboundConfirmationCountedStage struct {
 	CountingStartHeight             int64        `json:"counting_start_height,omitempty"`
 	Chain                           common.Chain `json:"chain,omitempty"`
 	ExternalObservedHeight          int64        `json:"external_observed_height,omitempty"`
@@ -267,17 +267,17 @@ type ConfirmationCountingStage struct {
 	Completed                       bool         `json:"completed"`
 }
 
-type InboundAcknowledgementStage struct {
+type InboundFinalisedStage struct {
 	Completed bool `json:"completed"`
 }
 
-type ExternalOutboundDelayStage struct {
+type OutboundDelayStage struct {
 	RemainingDelayBlocks  *int64 `json:"remaining_delay_blocks,omitempty"`
 	RemainingDelaySeconds *int64 `json:"remaining_delay_seconds,omitempty"`
 	Completed             bool   `json:"completed"`
 }
 
-type ExternalOutboundKeysignStage struct {
+type OutboundSignedStage struct {
 	ScheduledOutboundHeight *int64 `json:"scheduled_outbound_height,omitempty"`
 	BlocksSinceScheduled    *int64 `json:"blocks_since_scheduled,omitempty"`
 	Completed               bool   `json:"completed"`
@@ -286,22 +286,22 @@ type ExternalOutboundKeysignStage struct {
 type QueryTxStages struct {
 	// Pointers so that the omitempty can recognise 'nil'.
 	// Structs used for all stages for easier user looping through 'Completed' fields.
-	Observation             ObservationStage              `json:"observation"`
-	ConfirmationCounting    *ConfirmationCountingStage    `json:"confirmation_counting,omitempty"`
-	InboundAcknowledgement  InboundAcknowledgementStage   `json:"inbound_acknowledgement"`
-	ExternalOutboundDelay   *ExternalOutboundDelayStage   `json:"external_outbound_delay,omitempty"`
-	ExternalOutboundKeysign *ExternalOutboundKeysignStage `json:"external_outbound_keysign,omitempty"`
+	InboundObserved            InboundObservedStage             `json:"inbound_observed"`
+	InboundConfirmationCounted *InboundConfirmationCountedStage `json:"inbound_confirmation_counted,omitempty"`
+	InboundFinalised           InboundFinalisedStage            `json:"inbound_finalised"`
+	OutboundDelay              *OutboundDelayStage              `json:"outbound_delay,omitempty"`
+	OutboundSigned             *OutboundSignedStage             `json:"outbound_signed,omitempty"`
 }
 
 func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter) QueryTxStages {
 	var result QueryTxStages
 
 	// Set the Completed state first.
-	result.Observation.Completed = !voter.Tx.IsEmpty()
+	result.InboundObserved.Completed = !voter.Tx.IsEmpty()
 	// Only fill in other fields if not Completed.
-	if !result.Observation.Completed {
+	if !result.InboundObserved.Completed {
 		var obStart bool
-		result.Observation.Started = &obStart
+		result.InboundObserved.Started = &obStart
 		if len(voter.Txs) == 0 {
 			obStart = false
 			// Since observation not started, end directly.
@@ -313,9 +313,9 @@ func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter) QueryTxStages {
 	// Current block height is relevant in the confirmation counting and outbound stages.
 	currentHeight := ctx.BlockHeight()
 
-	// Only fill in ConfirmationCounting when confirmation counting took place.
+	// Only fill in InboundConfirmationCounted when confirmation counting took place.
 	if voter.Height != 0 {
-		var confCount ConfirmationCountingStage
+		var confCount InboundConfirmationCountedStage
 
 		// Set the Completed state first.
 		confCount.Completed = !(voter.Tx.FinaliseHeight > voter.Tx.BlockHeight)
@@ -339,11 +339,11 @@ func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter) QueryTxStages {
 			confCount.RemainingConfirmationSeconds = &estConfSec
 		}
 
-		result.ConfirmationCounting = &confCount
+		result.InboundConfirmationCounted = &confCount
 	}
 
-	// InboundAcknowledgement is always displayed, default Completed state false.
-	result.InboundAcknowledgement.Completed = (voter.FinalisedHeight != 0)
+	// InboundFinalised is always displayed, default Completed state false.
+	result.InboundFinalised.Completed = (voter.FinalisedHeight != 0)
 
 	// TODO: As finalised_height can be updated when a swap(/limit order) completes,
 	// and this finalisation can be delayed relative to e.g. add liquidity refunds,
@@ -359,43 +359,43 @@ func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter) QueryTxStages {
 		return result
 	}
 
-	// Only display the ExternalOutboundDelay stage when there's a delay.
+	// Only display the OutboundDelay stage when there's a delay.
 	if voter.OutboundHeight > voter.FinalisedHeight {
-		var extOutDelay ExternalOutboundDelayStage
+		var outDelay OutboundDelayStage
 
 		// Set the Completed state first.
-		extOutDelay.Completed = (currentHeight >= voter.OutboundHeight)
+		outDelay.Completed = (currentHeight >= voter.OutboundHeight)
 
 		// Only fill in other fields if not Completed.
-		if !extOutDelay.Completed {
+		if !outDelay.Completed {
 			remainBlocks := voter.OutboundHeight - currentHeight
-			extOutDelay.RemainingDelayBlocks = &remainBlocks
+			outDelay.RemainingDelayBlocks = &remainBlocks
 
 			remainSec := remainBlocks * common.THORChain.ApproximateBlockMilliseconds() / 1000
-			extOutDelay.RemainingDelaySeconds = &remainSec
+			outDelay.RemainingDelaySeconds = &remainSec
 		}
 
-		result.ExternalOutboundDelay = &extOutDelay
+		result.OutboundDelay = &outDelay
 	}
 
-	var estOutKeysign ExternalOutboundKeysignStage
+	var outSigned OutboundSignedStage
 
 	// Set the Completed state first.
-	estOutKeysign.Completed = (voter.Tx.Status != Status_incomplete)
+	outSigned.Completed = (voter.Tx.Status != Status_incomplete)
 
 	// Only fill in other fields if not Completed.
-	if !estOutKeysign.Completed {
+	if !outSigned.Completed {
 		scheduledHeight := voter.OutboundHeight
-		estOutKeysign.ScheduledOutboundHeight = &scheduledHeight
+		outSigned.ScheduledOutboundHeight = &scheduledHeight
 
 		// Only fill in BlocksSinceScheduled if the outbound delay is complete.
 		if currentHeight >= scheduledHeight {
 			sinceScheduled := currentHeight - scheduledHeight
-			estOutKeysign.BlocksSinceScheduled = &sinceScheduled
+			outSigned.BlocksSinceScheduled = &sinceScheduled
 		}
 	}
 
-	result.ExternalOutboundKeysign = &estOutKeysign
+	result.OutboundSigned = &outSigned
 
 	return result
 }

@@ -1761,10 +1761,10 @@ components:
     TxStagesResponse:
       type: object
       required:
-        - observation
-        - inbound_acknowledgement
+        - inbound_observed
+        - inbound_finalised
       properties:
-        observation:
+        inbound_observed:
           type: object
           required:
             - completed
@@ -1777,7 +1777,7 @@ components:
               type: boolean
               example: false
               description: returns true if no transaction observation remains to be done
-        confirmation_counting:
+        inbound_confirmation_counted:
           type: object
           required:
             - completed
@@ -1810,7 +1810,7 @@ components:
               type: boolean
               example: false
               description: returns true if no transaction confirmation counting remains to be done
-        inbound_acknowledgement:
+        inbound_finalised:
           type: object
           required:
             - completed
@@ -1819,7 +1819,7 @@ components:
               type: boolean
               example: false
               description: returns true if the inbound transaction has been finalised (THORChain agreeing it exists)
-        external_outbound_delay:
+        outbound_delay:
           type: object
           required:
             - completed
@@ -1838,7 +1838,7 @@ components:
               type: boolean
               example: false
               description: returns true if no transaction outbound delay remains
-        external_outbound_keysign:
+        outbound_signed:
           type: object
           required:
             - completed
