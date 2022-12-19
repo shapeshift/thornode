@@ -979,7 +979,7 @@ components:
         synth_supply_remaining:
           type: string
           example: "123456"
-          description: the amount of synth supply remaining before the current max utilization is reached
+          description: the amount of synth supply remaining before the current max supply is reached
 
     LiquidityProviderSummary:
       type: object
