@@ -120,6 +120,7 @@ type DroppedSwapOutTx struct {
 // 1. Credit the gas asset pool the amount of gas asset that never left
 // 2. Deduct the corresponding amount of RUNE from the pool, as that will be refunded
 // 3. Send the user their RUNE back
+//
 //nolint:unused,deadcode
 func refundDroppedSwapOutFromRUNE(ctx cosmos.Context, mgr *Mgrs, droppedTx DroppedSwapOutTx) error {
 	txId, err := common.NewTxID(droppedTx.inboundHash)

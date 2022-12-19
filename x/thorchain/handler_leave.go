@@ -185,7 +185,9 @@ func (h LeaveHandler) handleV76(ctx cosmos.Context, msg MsgLeave) error {
 }
 
 // canAbandonVault do some sanity check & validation to make sure the vault can be abandoned
-//  the vault will be abandoned only when it meet the following conditions
+//
+//	the vault will be abandoned only when it meet the following conditions
+//
 // 1. Only Gas asset left in vault. for Binance chain , it should not have any BEP2 left , for ETH it should not have any ERC20 left
 // 2. The Gas asset is less than 10x MaxGas
 // 3. The total value in RUNE left in the yggdrasil vault should be less than 100 RUNE

@@ -5,7 +5,7 @@ set -o pipefail
 CHAIN_API="${CHAIN_API:=127.0.0.1:1317}"
 
 . "$(dirname "$0")/core.sh"
-"$(dirname "$0")/wait-for-thorchain-api.sh" $CHAIN_API
+"$(dirname "$0")/wait-for-thorchain-api.sh" "$CHAIN_API"
 
 create_thor_user "$SIGNER_NAME" "$SIGNER_PASSWD" "$SIGNER_SEED_PHRASE"
 

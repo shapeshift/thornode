@@ -863,7 +863,6 @@ func getTotalActiveNodeWithBond(ctx cosmos.Context, k keeper.Keeper) (int64, err
 // pool is in proportion to the amount of fees it accrued:
 //
 // deduction = (poolFees / totalLiquidityFees) * lpDeficit
-//
 func (vm *NetworkMgrV87) deductPoolRewardDeficit(ctx cosmos.Context, pools Pools, totalLiquidityFees, lpDeficit cosmos.Uint) ([]PoolAmt, error) {
 	poolAmts := make([]PoolAmt, 0)
 	for _, pool := range pools {

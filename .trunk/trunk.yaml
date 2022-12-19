@@ -1,20 +1,20 @@
 version: 0.1
 cli:
-  version: 1.0.1
+  version: 1.2.1
 lint:
   enabled:
     - git-diff-check
-    - black@22.10.0
-    - black-py@22.10.0
-    - flake8@5.0.4
-    - gitleaks@8.15.0
-    - gofmt@1.16.7
+    - black@22.12.0
+    - black-py@22.12.0
+    - flake8@6.0.0
+    - gitleaks@8.15.2
+    - gofmt@1.19.4
     - golangci-lint@1.50.1
-    - hadolint@2.10.0
-    - isort@5.10.1
+    - hadolint@2.12.0
+    - isort@5.11.2
     - markdownlint@0.32.2
-    - prettier@2.7.1
-    - shellcheck@0.8.0
+    - prettier@2.8.1
+    - shellcheck@0.9.0
     - shfmt@3.5.0
   ignore:
     - linters: [ALL]
@@ -27,6 +27,10 @@ lint:
       paths:
         - "test/fixtures/endpoints/auth/accounts/malformed.json"
 actions:
+  disabled:
+    - trunk-announce
+    - trunk-check-pre-push
+    - trunk-fmt-pre-commit
   enabled:
     - trunk-upgrade-available
 plugins:

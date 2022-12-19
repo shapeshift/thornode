@@ -264,11 +264,11 @@ func (b *BlockScanner) scanBlocks() {
 }
 
 // FetchLastHeight retrieves the last height to start scanning blocks from on startup
-// 1. Check if we have a height specified in config AND
-//    its higher than the block scanner storage one, use that
-// 2. Get the last observed height from THORChain if available
-// 3. Use block scanner storage if > 0
-// 4. Fetch last height from the chain itself
+//  1. Check if we have a height specified in config AND
+//     its higher than the block scanner storage one, use that
+//  2. Get the last observed height from THORChain if available
+//  3. Use block scanner storage if > 0
+//  4. Fetch last height from the chain itself
 func (b *BlockScanner) FetchLastHeight() (int64, error) {
 	// get scanner storage height
 	currentPos, _ := b.scannerStorage.GetScanPos() // ignore error

@@ -1265,7 +1265,6 @@ func (vm *NetworkMgrV98) getPoolShare(incentiveCurve int64, totalProvidedLiquidi
 // pool is in proportion to the amount of fees it accrued:
 //
 // deduction = (poolFees / totalLiquidityFees) * lpDeficit
-//
 func (vm *NetworkMgrV98) deductPoolRewardDeficit(ctx cosmos.Context, pools Pools, totalLiquidityFees, lpDeficit cosmos.Uint) ([]PoolAmt, error) {
 	poolAmts := make([]PoolAmt, 0)
 	for _, pool := range pools {

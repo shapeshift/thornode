@@ -65,10 +65,10 @@ if [ "$SEED" = "$(hostname)" ]; then
       reserve 22000000000000000
 
       # deploy eth contract
-      deploy_eth_contract $ETH_HOST
+      deploy_eth_contract "$ETH_HOST"
 
       # deploy avax contract
-      deploy_avax_contract $AVAX_HOST
+      deploy_avax_contract "$AVAX_HOST"
 
       # sets hardcoded contract address for Local EVM fork testing
       # set_manual_avax_contract
@@ -99,7 +99,7 @@ if [ "$SEED" != "$(hostname)" ]; then
     echo "Setting THORNode as peer not genesis"
 
     init_chain "$NODE_ADDRESS"
-    NODE_ID=$(fetch_node_id $SEED)
+    NODE_ID=$(fetch_node_id "$SEED")
     echo "NODE ID: $NODE_ID"
     export THOR_TENDERMINT_P2P_PERSISTENT_PEERS="$NODE_ID@$SEED:$PORT_P2P"
 

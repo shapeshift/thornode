@@ -957,7 +957,6 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 // Rules to ignore a tx are:
 // - count vouts > 4
 // - count vouts with coins (value) > 2
-//
 func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
 	if len(tx.Vin) == 0 || len(tx.Vout) == 0 || len(tx.Vout) > 4 {
 		return true

@@ -272,7 +272,8 @@ func (r *RouterUpgradeController) upgradeContractV1(ctx cosmos.Context) error {
 }
 
 // Process is the main entry of router upgrade controller , it will recall yggdrasil fund , and refund all USDT liquidity , and then upgrade contract
-//  all these steps are controlled by mimir
+//
+//	all these steps are controlled by mimir
 func (r *RouterUpgradeController) Process(ctx cosmos.Context) {
 	version := r.mgr.GetVersion()
 
