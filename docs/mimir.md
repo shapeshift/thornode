@@ -17,6 +17,7 @@
 `Halt<chain>Trading`: Pause trading on a specific chain
 `MaxSwapsPerBlock`: Artificial limit on the number of swaps that a single block with process
 `MinSwapsPerBlock`: Process all swaps if the queue is equal to or smaller than this number
+`EnableDerivedAssets`: Enable/disable derived asset swapping (excludes lending)
 
 ### Synths
 
@@ -54,6 +55,21 @@
 
 `MaximumBondInRune`: Sets an upper cap on how much a node can bond
 `MinimumBondInRune`: Sets a lower bound on bond for a node to be considered to be churned in
+
+## Derived Assets
+
+`DerivedDepthBasisPts`: Allows mimir to increase or decrease the default derived asset
+pool depth relative to the anchor pools. 10k == 1x, 20k == 2x, 5k == 0.5x
+`DerivedMinDepth`: Sets the minimum derived asset depth in basis points, or
+pool depth floor.
+`MaxAnchorSlip`: Percentage (in basis points) of how much price slip in the
+anchor pools will cause the derived asset pool depths to decrease to
+`DerivedMinDepth`. For example, 8k basis pts will mean that when there has
+been 80% price slip in the last `MaxAnchorBlocks`, the derived asset pool
+depth will be `DerivedMinDepth`. So this controls the "reactiveness" of the
+derived asset pool to the layer1 trade volume.
+`MaxAnchorBlocks`: Number of blocks that are summed to get total pool slip.
+This is the number used to be applied to `MaxAnchorSlip`
 
 ### Yggdrasil Management
 

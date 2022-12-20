@@ -190,6 +190,10 @@ func (vm *NetworkMgrV98) calcSynthYield(ctx cosmos.Context, mgr Manager, yieldPt
 	return earnings
 }
 
+func (vm *NetworkMgrV98) BeginBlock(ctx cosmos.Context, mgr Manager) error {
+	return nil
+}
+
 // EndBlock move funds from retiring asgard vaults
 func (vm *NetworkMgrV98) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	if ctx.BlockHeight() == genesisBlockHeight {

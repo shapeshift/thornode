@@ -794,6 +794,9 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 		ctx.Logger().Error("fail to get parse asset", "error", err)
 		return nil, fmt.Errorf("fail to parse asset: %w", err)
 	}
+	if asset.IsDerivedAsset() {
+		return nil, fmt.Errorf("must not be a derived asset")
+	}
 	if isSavers && !asset.IsVaultAsset() {
 		return nil, fmt.Errorf("invalid request: requested pool is not a SaversPool")
 	} else if !isSavers && asset.IsVaultAsset() {
@@ -850,6 +853,10 @@ func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQ
 	if err != nil {
 		ctx.Logger().Error("fail to get parse asset", "error", err)
 		return nil, fmt.Errorf("fail to parse asset: %w", err)
+	}
+
+	if asset.IsDerivedAsset() {
+		return nil, fmt.Errorf("must not be a derived asset")
 	}
 
 	if isSavers && !asset.IsVaultAsset() {

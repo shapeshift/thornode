@@ -99,6 +99,7 @@ type ValidatorManager interface {
 type NetworkManager interface {
 	TriggerKeygen(ctx cosmos.Context, nas NodeAccounts) error
 	RotateVault(ctx cosmos.Context, vault Vault) error
+	BeginBlock(ctx cosmos.Context, mgr Manager) error
 	EndBlock(ctx cosmos.Context, mgr Manager) error
 	UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error
 	RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNode common.PubKeys) error
@@ -304,6 +305,8 @@ func GetKeeper(version semver.Version, cdc codec.BinaryCodec, coinKeeper bankkee
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAccessor := constants.GetConstantValues(version)
 	switch {
+	case version.GTE(semver.MustParse("1.102.0")):
+		return newGasMgrV102(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.99.0")):
 		return newGasMgrV99(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.94.0")):
@@ -328,6 +331,8 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 func GetTxOutStore(version semver.Version, keeper keeper.Keeper, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAccessor := constants.GetConstantValues(version)
 	switch {
+	case version.GTE(semver.MustParse("1.102.0")):
+		return newTxOutStorageV102(keeper, constAccessor, eventMgr, gasManager), nil
 	case version.GTE(semver.MustParse("1.98.0")):
 		return newTxOutStorageV98(keeper, constAccessor, eventMgr, gasManager), nil
 	case version.GTE(semver.MustParse("1.97.0")):
@@ -356,6 +361,8 @@ func GetTxOutStore(version semver.Version, keeper keeper.Keeper, eventMgr EventM
 // GetNetworkManager  retrieve a NetworkManager that is compatible with the given version
 func GetNetworkManager(version semver.Version, keeper keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.102.0")):
+		return newNetworkMgrV102(keeper, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.99.0")):
 		return newNetworkMgrV99(keeper, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.98.0")):

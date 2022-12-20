@@ -73,6 +73,10 @@ func (vm *NetworkMgrV93) processGenesisSetup(ctx cosmos.Context) error {
 	return nil
 }
 
+func (vm *NetworkMgrV93) BeginBlock(ctx cosmos.Context, mgr Manager) error {
+	return nil
+}
+
 // EndBlock move funds from retiring asgard vaults
 func (vm *NetworkMgrV93) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	if ctx.BlockHeight() == genesisBlockHeight {

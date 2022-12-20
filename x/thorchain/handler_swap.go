@@ -70,6 +70,19 @@ func (h SwapHandler) validateV99(ctx cosmos.Context, msg MsgSwap) error {
 	if isTradingHalt(ctx, &msg, h.mgr) {
 		return errors.New("trading is halted, can't process swap")
 	}
+	if target.IsDerivedAsset() || msg.Tx.Coins[0].Asset.IsDerivedAsset() {
+		if fetchConfigInt64(ctx, h.mgr, constants.EnableDerivedAssets) == 0 {
+			// since derived assets are disabled, only the protocol can use
+			// them (specifically lending)
+			acc, err := h.mgr.Keeper().GetModuleAddress(LendingName)
+			if err != nil {
+				return err
+			}
+			if !msg.Tx.FromAddress.Equals(acc) && !msg.Destination.Equals(acc) {
+				return errors.New("swapping to/from a derived asset is not allowed, except the lending protocol")
+			}
+		}
+	}
 	if target.IsSyntheticAsset() {
 		// the following  only applicable for chaosnet
 		totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)

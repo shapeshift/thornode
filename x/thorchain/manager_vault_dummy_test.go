@@ -15,6 +15,10 @@ func NewNetworkMgrDummy() *NetworkMgrDummy {
 	return &NetworkMgrDummy{}
 }
 
+func (vm *NetworkMgrDummy) BeginBlock(ctx cosmos.Context, mgr Manager) error {
+	return nil
+}
+
 func (vm *NetworkMgrDummy) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	return nil
 }

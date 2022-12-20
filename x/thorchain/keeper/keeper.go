@@ -48,6 +48,7 @@ type Keeper interface {
 	KeeperObservedTx
 	KeeperTxOut
 	KeeperLiquidityFees
+	KeeperSwapSlip
 	KeeperVault
 	KeeperReserveContributors
 	KeeperNetwork
@@ -152,6 +153,13 @@ type KeeperLiquidityFees interface {
 	GetPoolLiquidityFees(ctx cosmos.Context, height uint64, asset common.Asset) (cosmos.Uint, error)
 	GetRollingPoolLiquidityFee(ctx cosmos.Context, asset common.Asset) (uint64, error)
 	ResetRollingPoolLiquidityFee(ctx cosmos.Context, asset common.Asset)
+}
+
+type KeeperSwapSlip interface {
+	AddToSwapSlip(ctx cosmos.Context, asset common.Asset, amt cosmos.Int) error
+	RollupSwapSlip(ctx cosmos.Context, blockCount int64, _ common.Asset) (cosmos.Int, error)
+	GetPoolSwapSlip(ctx cosmos.Context, height int64, asset common.Asset) (cosmos.Int, error)
+	DeletePoolSwapSlip(ctx cosmos.Context, height int64, asset common.Asset)
 }
 
 type KeeperVault interface {

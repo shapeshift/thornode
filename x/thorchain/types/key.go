@@ -11,6 +11,8 @@ const (
 	AsgardName = "asgard"
 	// BondName the name of account used to store bond
 	BondName = "bond"
+	// LendingName
+	LendingName = "lending"
 
 	// StoreKey to be used when creating the KVStore
 	StoreKey = ModuleName

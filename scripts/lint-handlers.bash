@@ -30,7 +30,7 @@ for f in $handlers; do
   missing=$(echo -e "$validate_init\n$validate_call\n$handler_init\n$handler_call" | sort -n | uniq -u)
 
   if [[ -n $missing ]]; then
-    echo "Handler: $f... Not OK"
+    echo "Handler: $f... Failed"
     echo "$missing"
     exit 1
   fi

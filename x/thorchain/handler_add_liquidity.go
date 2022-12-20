@@ -105,6 +105,10 @@ func (h AddLiquidityHandler) validateV99(ctx cosmos.Context, msg MsgAddLiquidity
 		}
 	}
 
+	if msg.Asset.IsDerivedAsset() {
+		return fmt.Errorf("asset cannot be a derived asset")
+	}
+
 	if msg.Asset.IsVaultAsset() {
 		if !msg.Asset.GetLayer1Asset().IsGasAsset() {
 			return fmt.Errorf("asset must be a gas asset for the layer1 protocol")

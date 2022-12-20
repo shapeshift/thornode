@@ -175,6 +175,12 @@ class Asset(str, Jsonable):
         """
         return self.get_chain() == "GAIA"
 
+    def is_thor(self):
+        """
+        Is this asset thorchain chain?
+        """
+        return self.get_chain() == "THOR"
+
     def is_erc(self):
         """
         Is this asset erc20?
@@ -226,7 +232,7 @@ class Asset(str, Jsonable):
     def __eq__(self, other):
         if isinstance(other, str):
             other = Asset(other)
-        return self.chain == other.chain and self.symbol == other.symbol
+        return self.get_chain() == other.get_chain() and self.get_symbol() == other.get_symbol()
 
     def __str__(self):
         div = "."

@@ -32,6 +32,7 @@ const (
 	prefixTxOut                   kvTypes.DbPrefix = "txout/"
 	prefixTotalLiquidityFee       kvTypes.DbPrefix = "total_liquidity_fee/"
 	prefixPoolLiquidityFee        kvTypes.DbPrefix = "pool_liquidity_fee/"
+	prefixPoolSwapSlip            kvTypes.DbPrefix = "pool_swap_slip/"
 	prefixLiquidityProvider       kvTypes.DbPrefix = "lp/"
 	prefixLastChainHeight         kvTypes.DbPrefix = "last_chain_height/"
 	prefixLastSignedHeight        kvTypes.DbPrefix = "last_signed_height/"

@@ -91,6 +91,7 @@ func setupManagerForTest(c *C) (cosmos.Context, *Mgrs) {
 		AsgardName:  {},
 		BondName:    {},
 		ReserveName: {},
+		LendingName: {},
 	})
 
 	bk := bankkeeper.NewBaseKeeper(marshaler, keyBank, ak, pk.Subspace(banktypes.ModuleName), nil)
@@ -161,6 +162,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, keeper.Keeper) {
 		AsgardName:  {},
 		BondName:    {},
 		ReserveName: {},
+		LendingName: {},
 	})
 
 	bk := bankkeeper.NewBaseKeeper(marshaler, keyBank, ak, pk.Subspace(banktypes.ModuleName), nil)

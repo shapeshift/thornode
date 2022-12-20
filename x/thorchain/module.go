@@ -203,6 +203,9 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 		am.mgr.Keeper().ClearObservingAddresses(ctx)
 	}
 	am.mgr.GasMgr().BeginBlock(am.mgr)
+	if err := am.mgr.NetworkMgr().BeginBlock(ctx, am.mgr); err != nil {
+		ctx.Logger().Error("fail to begin network manager", "error", err)
+	}
 	am.mgr.Slasher().BeginBlock(ctx, req, am.mgr.GetConstants())
 	if err := am.mgr.ValidatorMgr().BeginBlock(ctx, am.mgr.GetConstants(), existingValidators); err != nil {
 		ctx.Logger().Error("Fail to begin block on validator", "error", err)

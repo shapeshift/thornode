@@ -28,6 +28,9 @@ var ThorchainBlockTime = 5 * time.Second
 // MaxMemoSize Maximum Memo Size
 const MaxMemoSize = 250
 
+// used to preserve precision when determining the dollar price of rune.
+const DollarMulti = 1e9
+
 // MaxETHGas define the maximum gas for a single transaction on ETH
 const MaxETHGas = 50000000
 

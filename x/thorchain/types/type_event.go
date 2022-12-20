@@ -33,6 +33,7 @@ const (
 	SwapEventType              = "swap"
 	LimitOrderEventType        = "limit_order"
 	SwitchEventType            = "switch"
+	MintBurnType               = "mint_burn"
 	THORNameEventType          = "thorname"
 	TSSKeygenMetricEventType   = "tss_keygen"
 	TSSKeysignMetricEventType  = "tss_keysign"
@@ -773,6 +774,30 @@ func (m *EventSetMimir) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("key", m.Key),
 		cosmos.NewAttribute("value", m.Value),
 	)
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventMintBurn create a new instance of EventMintBurn
+func NewEventMintBurn(t MintBurnSupplyType, denom string, amt cosmos.Uint, reason string) *EventMintBurn {
+	return &EventMintBurn{
+		Supply: t,
+		Denom:  denom,
+		Amount: amt,
+		Reason: reason,
+	}
+}
+
+func (m *EventMintBurn) Type() string {
+	return MintBurnType
+}
+
+// Events return cosmos sdk events
+func (m *EventMintBurn) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("supply", m.Supply.String()),
+		cosmos.NewAttribute("denom", m.Denom),
+		cosmos.NewAttribute("amount", m.Amount.String()),
+		cosmos.NewAttribute("reason", m.Reason))
 	return cosmos.Events{evt}, nil
 }
 

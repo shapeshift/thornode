@@ -671,7 +671,7 @@ func resolveAddrs(addrs []string) []string {
 	return resolvedAddrs
 }
 
-func thornodeSeeds() (seedAddrs []string, tmSeeds []string) {
+func thornodeSeeds() (seedAddrs, tmSeeds []string) {
 	// use environment variable if set
 	seeds := os.Getenv("SEEDS")
 	if seeds != "" {

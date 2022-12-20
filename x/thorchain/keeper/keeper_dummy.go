@@ -307,8 +307,21 @@ func (k KVStoreDummy) GetRollingPoolLiquidityFee(ctx cosmos.Context, asset commo
 
 func (k KVStoreDummy) ResetRollingPoolLiquidityFee(ctx cosmos.Context, asset common.Asset) {}
 
-func (k KVStoreDummy) GetChains(_ cosmos.Context) (common.Chains, error)  { return nil, kaboom }
-func (k KVStoreDummy) SetChains(_ cosmos.Context, _ common.Chains)        {}
+func (k KVStoreDummy) GetChains(_ cosmos.Context) (common.Chains, error) { return nil, kaboom }
+func (k KVStoreDummy) SetChains(_ cosmos.Context, _ common.Chains)       {}
+func (k KVStoreDummy) AddToSwapSlip(ctx cosmos.Context, asset common.Asset, amt cosmos.Int) error {
+	return kaboom
+}
+
+func (k KVStoreDummy) RollupSwapSlip(ctx cosmos.Context, blockCount int64, _ common.Asset) (cosmos.Int, error) {
+	return cosmos.ZeroInt(), kaboom
+}
+
+func (k KVStoreDummy) GetPoolSwapSlip(ctx cosmos.Context, height int64, asset common.Asset) (cosmos.Int, error) {
+	return cosmos.ZeroInt(), kaboom
+}
+func (k KVStoreDummy) DeletePoolSwapSlip(ctx cosmos.Context, height int64, asset common.Asset) {}
+
 func (k KVStoreDummy) GetVaultIterator(_ cosmos.Context) cosmos.Iterator  { return nil }
 func (k KVStoreDummy) VaultExists(_ cosmos.Context, _ common.PubKey) bool { return false }
 func (k KVStoreDummy) FindPubKeyOfAddress(_ cosmos.Context, _ common.Address, _ common.Chain) (common.PubKey, error) {

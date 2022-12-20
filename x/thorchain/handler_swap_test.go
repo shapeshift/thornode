@@ -63,6 +63,7 @@ type TestSwapHandleKeeper struct {
 	activeNodeAccount NodeAccount
 	synthSupply       cosmos.Uint
 	haltChain         int64
+	derivedAssets     bool
 }
 
 func (k *TestSwapHandleKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
@@ -110,12 +111,38 @@ func (k *TestSwapHandleKeeper) AddToLiquidityFees(_ cosmos.Context, _ common.Ass
 	return nil
 }
 
+func (k *TestSwapHandleKeeper) AddToSwapSlip(ctx cosmos.Context, asset common.Asset, fs cosmos.Int) error {
+	return nil
+}
+
 func (k *TestSwapHandleKeeper) GetTotalSupply(_ cosmos.Context, _ common.Asset) cosmos.Uint {
 	return k.synthSupply
 }
 
 func (k *TestSwapHandleKeeper) GetMimir(ctx cosmos.Context, key string) (int64, error) {
+	if key == "EnableDerivedAssets" {
+		if k.derivedAssets {
+			return 1, nil
+		}
+		return 0, nil
+	}
 	return k.haltChain, nil
+}
+
+func (k *TestSwapHandleKeeper) MintToModule(_ cosmos.Context, _ string, _ common.Coin) error {
+	return nil
+}
+
+func (k *TestSwapHandleKeeper) BurnFromModule(_ cosmos.Context, _ string, _ common.Coin) error {
+	return nil
+}
+
+func (k *TestSwapHandleKeeper) SendFromModuleToModule(_ cosmos.Context, _, _ string, _ common.Coins) error {
+	return nil
+}
+
+func (k *TestSwapHandleKeeper) GetModuleAddress(_ string) (common.Address, error) {
+	return GetRandomTHORAddress(), nil
 }
 
 func (s *HandlerSwapSuite) TestValidation(c *C) {
@@ -152,6 +179,16 @@ func (s *HandlerSwapSuite) TestValidation(c *C) {
 	msg := NewMsgSwap(tx, common.BNBAsset.GetSyntheticAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, observerAddr)
 	err := handler.validate(ctx, *msg)
 	c.Assert(err, IsNil)
+
+	// check that derived assets are no allowed
+	msg.TargetAsset = common.BTCAsset.GetDerivedAsset()
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, NotNil)
+	// enable derived assets and try again
+	keeper.derivedAssets = true
+	err = handler.validate(ctx, *msg)
+	c.Assert(err, IsNil)
+	msg.TargetAsset = common.BNBAsset.GetSyntheticAsset()
 
 	// check that minting synths halts after hitting pool limit
 	keeper.synthSupply = cosmos.NewUint(common.One * 200)

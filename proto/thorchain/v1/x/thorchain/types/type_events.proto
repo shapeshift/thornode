@@ -195,7 +195,17 @@ message EventSwitchV87 {
   string mint = 5 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
 }
 
+enum MintBurnSupplyType {
+  mint = 0;
+  burn = 1;
+}
 
+message EventMintBurn {
+  MintBurnSupplyType supply = 1;
+  string denom = 2;
+  string amount = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  string reason = 4;
+}
 
 message EventTHORName {
   string name = 1;

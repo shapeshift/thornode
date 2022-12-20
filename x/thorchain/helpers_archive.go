@@ -3,11 +3,67 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
+
+func DollarInRuneV1(ctx cosmos.Context, mgr Manager) cosmos.Uint {
+	// check for mimir override
+	dollarInRune, err := mgr.Keeper().GetMimir(ctx, "DollarInRune")
+	if err == nil && dollarInRune > 0 {
+		return cosmos.NewUint(uint64(dollarInRune))
+	}
+
+	busd, _ := common.NewAsset("BNB.BUSD-BD1")
+	usdc, _ := common.NewAsset("ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48")
+	usdt, _ := common.NewAsset("ETH.USDT-0XDAC17F958D2EE523A2206206994597C13D831EC7")
+	usdAssets := []common.Asset{busd, usdc, usdt}
+
+	usd := make([]cosmos.Uint, 0)
+	for _, asset := range usdAssets {
+		if isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, asset.Chain) {
+			continue
+		}
+		pool, err := mgr.Keeper().GetPool(ctx, asset.GetLayer1Asset())
+		if err != nil {
+			ctx.Logger().Error("fail to get usd pool", "asset", asset.String(), "error", err)
+			continue
+		}
+		if pool.Status != PoolAvailable {
+			continue
+		}
+		value := pool.AssetValueInRune(cosmos.NewUint(common.One))
+		if !value.IsZero() {
+			usd = append(usd, value)
+		}
+	}
+
+	if len(usd) == 0 {
+		return cosmos.ZeroUint()
+	}
+
+	sort.SliceStable(usd, func(i, j int) bool {
+		return usd[i].Uint64() < usd[j].Uint64()
+	})
+
+	// calculate median of our USD figures
+	var median cosmos.Uint
+	if len(usd)%2 > 0 {
+		// odd number of figures in our slice. Take the middle figure. Since
+		// slices start with an index of zero, just need to length divide by two.
+		medianSpot := len(usd) / 2
+		median = usd[medianSpot]
+	} else {
+		// even number of figures in our slice. Average the middle two figures.
+		pt1 := usd[len(usd)/2-1]
+		pt2 := usd[len(usd)/2]
+		median = pt1.Add(pt2).QuoUint64(2)
+	}
+	return median
+}
 
 func subsidizePoolWithSlashBondV88(ctx cosmos.Context, ygg Vault, yggTotalStolen, slashRuneAmt cosmos.Uint, mgr Manager) error {
 	// Thorchain did not slash the node account

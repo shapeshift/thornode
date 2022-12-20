@@ -545,15 +545,34 @@ class ThorchainState:
 
                         if rune_fee > 0 or asset_fee > 0:
                             # add fee event
-                            event = Event(
+                            self.events.append(Event(
                                 "fee",
                                 [
                                     {"tx_id": in_tx.id},
                                     {"coins": f"{asset_fee} {coin.asset}"},
                                     {"pool_deduct": rune_fee},
                                 ],
-                            )
-                            self.events.append(event)
+                            ))
+                            if coin.asset.is_synth and coin.asset == in_tx.coins[0].asset and asset_fee > 0:
+                                self.events.append(Event(
+                                    "mint_burn",
+                                    [
+                                        {"supply": "burn"},
+                                        {"denom": f"{tx.coins[0].asset.upper()}"},
+                                        {"amount": f"{asset_fee}"},
+                                        {"reason": "burn_synth_fee"},
+                                    ],
+                                ))
+                            if coin.asset.is_synth and in_tx.coins[0].asset != coin.asset and coin.amount > 0:
+                                self.events.append(Event(
+                                    "mint_burn",
+                                    [
+                                        {"supply": "mint"},
+                                        {"denom": f"{coin.asset.lower()}"},
+                                        {"amount": f"{coin.amount}"},
+                                        {"reason": "native_tx_out"},
+                                    ],
+                                ))
                     if coin.amount > 0:
                         tx.fee = Coin(coin.asset, asset_fee)
                         outbounds.append(tx)
@@ -1376,6 +1395,16 @@ class ThorchainState:
             else:
                 from_address = get_alias_address(target.get_chain(), from_alias)
 
+        if tx.coins[0].asset.is_synth:
+            swap_events.append(Event(
+                "mint_burn",
+                [
+                    {"supply": "burn"},
+                    {"denom": f"{tx.coins[0].asset.lower()}"},
+                    {"amount": f"{tx.coins[0].amount}"},
+                    {"reason": "swap"},
+                ],
+            ))
         out_txs = [
             Transaction(
                 target.get_chain(),

@@ -8,15 +8,15 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type GasManagerTestSuiteV99 struct{}
+type GasManagerTestSuiteV102 struct{}
 
-var _ = Suite(&GasManagerTestSuiteV99{})
+var _ = Suite(&GasManagerTestSuiteV102{})
 
-func (GasManagerTestSuiteV99) TestGasManagerV93(c *C) {
+func (GasManagerTestSuiteV102) TestGasManagerV93(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	k := mgr.K
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV99(constAccessor, k)
+	gasMgr := newGasMgrV102(constAccessor, k)
 	gasEvent := gasMgr.gasEvent
 	c.Assert(gasMgr, NotNil)
 	gasMgr.BeginBlock(mgr)
@@ -46,11 +46,11 @@ func (GasManagerTestSuiteV99) TestGasManagerV93(c *C) {
 	gasMgr.EndBlock(ctx, k, eventMgr)
 }
 
-func (GasManagerTestSuiteV99) TestGetFee(c *C) {
+func (GasManagerTestSuiteV102) TestGetFee(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	k := mgr.Keeper()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV99(constAccessor, k)
+	gasMgr := newGasMgrV102(constAccessor, k)
 	gasMgr.BeginBlock(mgr)
 	fee := gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
 	defaultTxFee := uint64(constAccessor.GetInt64Value(constants.OutboundTransactionFee))
@@ -107,9 +107,10 @@ func (GasManagerTestSuiteV99) TestGetFee(c *C) {
 		Status:       PoolAvailable,
 	}), IsNil)
 	k.SetMimir(ctx, constants.MinimumL1OutboundFeeUSD.String(), 1_0000_0000)
+	k.SetMimir(ctx, "TorAnchor-BNB.BUSD-BD1", 1) // enable BUSD pool as a TOR anchor
 
 	fee = gasMgr.GetFee(ctx, common.BTCChain, common.BTCAsset)
-	c.Assert(fee.Uint64(), Equals, uint64(20000000))
+	c.Assert(fee.Uint64(), Equals, uint64(20000000), Commentf("%d", fee.Uint64()))
 
 	// when network fee is higher than MinimumL1OutboundFeeUSD , then choose network fee
 	networkFee = NewNetworkFee(common.BTCChain, 1000, 50000)
@@ -118,11 +119,11 @@ func (GasManagerTestSuiteV99) TestGetFee(c *C) {
 	c.Assert(fee.Uint64(), Equals, uint64(150000000))
 }
 
-func (GasManagerTestSuiteV99) TestDifferentValidations(c *C) {
+func (GasManagerTestSuiteV102) TestDifferentValidations(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	k := mgr.Keeper()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV99(constAccessor, k)
+	gasMgr := newGasMgrV102(constAccessor, k)
 	gasMgr.BeginBlock(mgr)
 	helper := newGasManagerTestHelper(k)
 	eventMgr := newEventMgrV1()
@@ -153,10 +154,10 @@ func (GasManagerTestSuiteV99) TestDifferentValidations(c *C) {
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 }
 
-func (GasManagerTestSuiteV99) TestGetMaxGas(c *C) {
+func (GasManagerTestSuiteV102) TestGetMaxGas(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV99(constAccessor, k)
+	gasMgr := newGasMgrV102(constAccessor, k)
 	gasCoin, err := gasMgr.GetMaxGas(ctx, common.BTCChain)
 	c.Assert(err, IsNil)
 	c.Assert(gasCoin.Amount.IsZero(), Equals, true)
