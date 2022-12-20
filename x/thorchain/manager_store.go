@@ -280,6 +280,3 @@ func migrateStoreV95(ctx cosmos.Context, mgr *Mgrs) {
 		panic(err)
 	}
 }
-
-// no op
-func migrateStoreV102(ctx cosmos.Context, mgr Manager) {}

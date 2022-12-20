@@ -35,3 +35,6 @@ func migrateStoreV88(ctx cosmos.Context, mgr Manager) {
 		ctx.Logger().Error("fail to migrate store to v88", "error", err)
 	}
 }
+
+// no op
+func migrateStoreV102(ctx cosmos.Context, mgr Manager) {}
