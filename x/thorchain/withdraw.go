@@ -15,6 +15,8 @@ import (
 func withdraw(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	version := mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.102.0")):
+		return withdrawV102(ctx, msg, mgr)
 	case version.GTE(semver.MustParse("1.98.0")):
 		return withdrawV98(ctx, msg, mgr)
 	case version.GTE(semver.MustParse("1.91.0")):
@@ -30,17 +32,17 @@ func withdraw(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cosmos
 	return zero, zero, zero, zero, zero, errInvalidVersion
 }
 
-// withdrawV98 all the asset
-// it returns runeAmt,assetAmount,protectionRuneAmt,units, lastWithdraw,err
-func withdrawV98(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
+// Performs the withdraw for the provided MsgWithdrawLiquidity message.
+// Returns: runeAmt, assetAmount, protectionRuneAmt, units, lastWithdraw, err
+func withdrawV102(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, cosmos.Uint, error) {
 	if err := validateWithdrawV1(ctx, mgr.Keeper(), msg); err != nil {
-		ctx.Logger().Error("msg withdraw fail validation", "error", err)
+		ctx.Logger().Error("msg withdraw failed validation", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 	}
 
 	pool, err := mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
-		ctx.Logger().Error("fail to get pool", "error", err)
+		ctx.Logger().Error("failed to get pool", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 	}
 	synthSupply := mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
@@ -48,7 +50,7 @@ func withdrawV98(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 
 	lp, err := mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
-		ctx.Logger().Error("can't find liquidity provider", "error", err)
+		ctx.Logger().Error("failed to find liquidity provider", "error", err)
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), err
 
 	}
@@ -63,7 +65,7 @@ func withdrawV98(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 			pool.PendingInboundRune = common.SafeSub(pool.PendingInboundRune, lp.PendingRune)
 			pool.PendingInboundAsset = common.SafeSub(pool.PendingInboundAsset, lp.PendingAsset)
 			if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
-				ctx.Logger().Error("fail to save pool pending inbound funds", "error", err)
+				ctx.Logger().Error("failed to save pool pending inbound funds", "error", err)
 			}
 			// remove lp
 
@@ -72,10 +74,12 @@ func withdrawV98(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errNoLiquidityUnitLeft
 	}
 
+	// fail if the last add height less than the lockup period in the past
 	cv := mgr.GetConstants()
 	height := ctx.BlockHeight()
-	if height < (lp.LastAddHeight + cv.GetInt64Value(constants.LiquidityLockUpBlocks)) {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawWithin24Hours
+	lockupBlocks := fetchConfigInt64(ctx, mgr, constants.LiquidityLockUpBlocks)
+	if height < (lp.LastAddHeight + lockupBlocks) {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawLockup
 	}
 
 	ctx.Logger().Info("pool before withdraw", "pool units", pool.GetPoolUnits(), "balance RUNE", poolRune, "balance asset", poolAsset)
@@ -89,7 +93,7 @@ func withdrawV98(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 		lp.AssetDepositValue = lp.AssetDepositValue.Add(common.GetSafeShare(lp.Units, pool.GetPoolUnits(), pool.BalanceAsset))
 	}
 
-	// calculate any impermament loss protection or not
+	// calculate any impermanent loss or not
 	protectionRuneAmount := cosmos.ZeroUint()
 	extraUnits := cosmos.ZeroUint()
 	fullProtectionLine, err := mgr.Keeper().GetMimir(ctx, constants.FullImpLossProtectionBlocks.String())
@@ -102,8 +106,13 @@ func withdrawV98(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (cos
 		ctx.Logger().Error("fail to get ILP-DISABLED mimir", "error", err, "key", ilpPoolMimirKey)
 		ilpDisabled = 0
 	}
-	// only when Pool is in Available status will apply impermanent loss protection
-	if fullProtectionLine > 0 && pool.Status == PoolAvailable && !(ilpDisabled > 0 && !pool.Asset.IsVaultAsset()) { // if protection line is zero, no imp loss protection is given
+	ilpCutoff := fetchConfigInt64(ctx, mgr, constants.ILPCutoff)
+
+	if (ilpCutoff <= 0 || ilpCutoff > lp.LastAddHeight) && // ilp cutoff must be after the last add height
+		fullProtectionLine > 0 && // full protection line must be greater than 0
+		pool.Status == PoolAvailable && // pool must be available
+		!(ilpDisabled > 0 && !pool.Asset.IsVaultAsset()) { // ilp must not be disabled for this pool
+
 		lastAddHeight := lp.LastAddHeight
 		if lastAddHeight < pool.StatusSince {
 			lastAddHeight = pool.StatusSince

@@ -38,6 +38,7 @@ const (
 	CodeWithdrawWithin24Hours  uint32 = 136
 	CodeWithdrawFail           uint32 = 137
 	CodeEmptyChain             uint32 = 138
+	CodeWithdrawLockup         uint32 = 139
 )
 
 var (
@@ -62,6 +63,7 @@ var (
 	errSwapFailNotEnoughBalance     = se.Register(DefaultCodespace, CodeSwapFailNotEnoughBalance, "fail swap, not enough balance")
 	errNoLiquidityUnitLeft          = se.Register(DefaultCodespace, CodeNoLiquidityUnitLeft, "nothing to withdraw")
 	errWithdrawWithin24Hours        = se.Register(DefaultCodespace, CodeWithdrawWithin24Hours, "you cannot withdraw for 24 hours after providing liquidity for this blockchain")
+	errWithdrawLockup               = se.Register(DefaultCodespace, CodeWithdrawLockup, "last add within lockup blocks")
 	errWithdrawFail                 = se.Register(DefaultCodespace, CodeWithdrawFail, "fail to withdraw")
 	errInternal                     = se.Register(DefaultCodespace, CodeInternalError, "internal error")
 )
