@@ -33,3 +33,6 @@ func migrateStoreV88(ctx cosmos.Context, mgr Manager) {}
 
 // no op
 func migrateStoreV102(ctx cosmos.Context, mgr Manager) {}
+
+// no op
+func migrateStoreV103(ctx cosmos.Context, mgr *Mgrs) {}

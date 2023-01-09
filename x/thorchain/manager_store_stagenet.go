@@ -42,3 +42,6 @@ func migrateStoreV102(ctx cosmos.Context, mgr *Mgrs) {
 		ctx.Logger().Error("fail to migrate store to v102 refund failed", "error", err)
 	}
 }
+
+// no op
+func migrateStoreV103(ctx cosmos.Context, mgr *Mgrs) {}
