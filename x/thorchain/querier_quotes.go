@@ -368,7 +368,15 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		}
 
 		// convert to a limit of target asset amount assuming zero fees and slip
-		feelessEmit := amount.Mul(fromPool.BalanceRune).Quo(fromPool.BalanceAsset).Mul(toPool.BalanceAsset).Quo(toPool.BalanceRune)
+		feelessEmit := swapAmount
+		// When one asset is RUNE, no conversion is necessary,
+		// and empty fields would cause a divide-by-zero error; skip it.
+		if !fromAsset.IsRune() {
+			feelessEmit = feelessEmit.Mul(fromPool.BalanceRune).Quo(fromPool.BalanceAsset)
+		}
+		if !toAsset.IsRune() {
+			feelessEmit = feelessEmit.Mul(toPool.BalanceAsset).Quo(toPool.BalanceRune)
+		}
 		limit = feelessEmit.MulUint64(10000 - toleranceBasisPoints.Uint64()).QuoUint64(10000)
 	}
 
