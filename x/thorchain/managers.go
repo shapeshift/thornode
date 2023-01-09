@@ -434,6 +434,8 @@ func GetPoolManager(version semver.Version) (PoolManager, error) {
 // GetSwapQueue retrieve a SwapQueue that is compatible with the given version
 func GetSwapQueue(version semver.Version, keeper keeper.Keeper) (SwapQueue, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.103.0")):
+		return newSwapQueueV103(keeper), nil
 	case version.GTE(semver.MustParse("1.95.0")):
 		return newSwapQv95(keeper), nil
 	case version.GTE(semver.MustParse("1.94.0")):
@@ -448,6 +450,8 @@ func GetSwapQueue(version semver.Version, keeper keeper.Keeper) (SwapQueue, erro
 // GetOrderBook retrieve a OrderBook that is compatible with the given version
 func GetOrderBook(version semver.Version, keeper keeper.Keeper) (OrderBook, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.103.0")):
+		return newOrderBookV103(keeper), nil
 	case version.GTE(semver.MustParse("0.1.0")):
 		return newOrderBookV1(keeper), nil
 	default:

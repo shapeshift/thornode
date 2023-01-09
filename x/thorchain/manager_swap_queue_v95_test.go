@@ -8,12 +8,12 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type SwapQueueV103Suite struct{}
+type SwapQueueV95Suite struct{}
 
-var _ = Suite(&SwapQueueV103Suite{})
+var _ = Suite(&SwapQueueV95Suite{})
 
-func (s SwapQueueV103Suite) TestGetTodoNum(c *C) {
-	queue := newSwapQueueV103(keeper.KVStoreDummy{})
+func (s SwapQueueV95Suite) TestGetTodoNum(c *C) {
+	queue := newSwapQv95(keeper.KVStoreDummy{})
 
 	c.Check(queue.getTodoNum(50, 10, 100), Equals, int64(25))     // halves it
 	c.Check(queue.getTodoNum(11, 10, 100), Equals, int64(5))      // halves it
@@ -24,7 +24,7 @@ func (s SwapQueueV103Suite) TestGetTodoNum(c *C) {
 	c.Check(queue.getTodoNum(200, 10, 100), Equals, int64(100))   // does max 100
 }
 
-func (s SwapQueueV103Suite) TestScoreMsgs(c *C) {
+func (s SwapQueueV95Suite) TestScoreMsgs(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	pool := NewPool()
@@ -44,7 +44,7 @@ func (s SwapQueueV103Suite) TestScoreMsgs(c *C) {
 	pool.Status = PoolStaged
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	queue := newSwapQueueV103(k)
+	queue := newSwapQv95(k)
 
 	// check that we sort by liquidity ok
 	msgs := []*MsgSwap{

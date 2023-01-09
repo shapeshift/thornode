@@ -10,12 +10,12 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type OrderBookV103Suite struct{}
+type OrderBookV94Suite struct{}
 
-var _ = Suite(&OrderBookV103Suite{})
+var _ = Suite(&OrderBookV94Suite{})
 
-func (s OrderBookV103Suite) TestGetTodoNum(c *C) {
-	book := newOrderBookV103(keeper.KVStoreDummy{})
+func (s OrderBookV94Suite) TestGetTodoNum(c *C) {
+	book := newOrderBookV1(keeper.KVStoreDummy{})
 
 	c.Check(book.getTodoNum(50, 10, 100), Equals, int64(25))     // halves it
 	c.Check(book.getTodoNum(11, 10, 100), Equals, int64(5))      // halves it
@@ -26,7 +26,7 @@ func (s OrderBookV103Suite) TestGetTodoNum(c *C) {
 	c.Check(book.getTodoNum(200, 10, 100), Equals, int64(100))   // does max 100
 }
 
-func (s OrderBookV103Suite) TestScoreMsgs(c *C) {
+func (s OrderBookV94Suite) TestScoreMsgs(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	pool := NewPool()
@@ -40,7 +40,7 @@ func (s OrderBookV103Suite) TestScoreMsgs(c *C) {
 	pool.BalanceAsset = cosmos.NewUint(1000 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	book := newOrderBookV103(k)
+	book := newOrderBookV1(k)
 
 	// check that we sort by liquidity ok
 	msgs := []*MsgSwap{
@@ -249,9 +249,9 @@ func (s OrderBookV103Suite) TestScoreMsgs(c *C) {
 	c.Check(swaps[10].msg.Tx.Coins[0].Asset.Equals(common.BNBAsset), Equals, true)
 }
 
-func (s OrderBookV103Suite) TestFetchQueue(c *C) {
+func (s OrderBookV94Suite) TestFetchQueue(c *C) {
 	ctx, mgr := setupManagerForTest(c)
-	book := newOrderBookV103(mgr.Keeper())
+	book := newOrderBookV1(mgr.Keeper())
 
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
@@ -303,10 +303,10 @@ func (s OrderBookV103Suite) TestFetchQueue(c *C) {
 	c.Check(items, HasLen, 2, Commentf("%d", len(items)))
 }
 
-func (s OrderBookV103Suite) TestgetAssetPairs(c *C) {
+func (s OrderBookV94Suite) TestgetAssetPairs(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
-	book := newOrderBookV103(k)
+	book := newOrderBookV1(k)
 
 	pool := NewPool()
 	pool.Asset = common.BTCAsset
@@ -319,7 +319,7 @@ func (s OrderBookV103Suite) TestgetAssetPairs(c *C) {
 	c.Check(pairs, HasLen, len(pools)*(len(pools)+1))
 }
 
-func (s OrderBookV103Suite) TestTradePairsTodo(c *C) {
+func (s OrderBookV94Suite) TestTradePairsTodo(c *C) {
 	pairs := tradePairs{
 		{common.RuneAsset(), common.BNBAsset},
 		{common.BNBAsset, common.RuneAsset()},
@@ -356,7 +356,7 @@ func (s OrderBookV103Suite) TestTradePairsTodo(c *C) {
 	c.Check(todo[2].Equals(genTradePair(common.BNBAsset, common.BTCAsset)), Equals, true, Commentf("%s", todo[2]))
 }
 
-func (s OrderBookV103Suite) TestConvertProc(c *C) {
+func (s OrderBookV94Suite) TestConvertProc(c *C) {
 	_, k := setupKeeperForTest(c)
 
 	pairs := tradePairs{
@@ -368,7 +368,7 @@ func (s OrderBookV103Suite) TestConvertProc(c *C) {
 		{common.BTCAsset, common.BNBAsset},
 	}
 
-	book := newOrderBookV103(k)
+	book := newOrderBookV1(k)
 
 	result, ok := book.convertProcToAssetArrays(nil, pairs)
 	c.Assert(result, HasLen, 0)
@@ -409,10 +409,10 @@ func (s OrderBookV103Suite) TestConvertProc(c *C) {
 	c.Assert(ok, Equals, false)
 }
 
-func (s OrderBookV103Suite) TestEndBlock(c *C) {
+func (s OrderBookV94Suite) TestEndBlock(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	mgr.txOutStore = NewTxStoreDummy()
-	book := newOrderBookV103(mgr.Keeper())
+	book := newOrderBookV1(mgr.Keeper())
 
 	pool := NewPool()
 	pool.Asset = common.BNBAsset
