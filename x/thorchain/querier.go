@@ -124,6 +124,33 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 	}
 }
 
+func checkPending(ctx cosmos.Context, mgr *Mgrs, voter ObservedTxVoter) (bool, bool) {
+	isSwap := false
+	isPending := false
+
+	memo, err := ParseMemo(mgr.GetVersion(), voter.Tx.Tx.Memo)
+	if err != nil {
+		// If unable to parse, assume not a (valid) swap or limit order memo.
+		return isSwap, isPending
+	}
+
+	memoType := memo.GetType()
+	// If the memo asset is a synth, as with Savers add liquidity or withdraw, a swap is assumed to be involved.
+	if memoType == TxSwap || memoType == TxLimitOrder || memo.GetAsset().IsVaultAsset() {
+		isSwap = true
+		// Only check the KVStore when the inbound transaction has already been finalised
+		// and when there haven't been any Actions planned.
+		// This will also check the KVStore when an inbound transaction has no output,
+		// such as the output being not enough to cover a fee.
+		if voter.FinalisedHeight != 0 && len(voter.Actions) == 0 {
+			// Use of Swap Queue or Order Book depends on Mimir key EnableOrderBooks rather than memo type, so check both.
+			isPending = mgr.Keeper().HasSwapQueueItem(ctx, voter.TxID, 0) || mgr.Keeper().HasOrderBookItem(ctx, voter.TxID)
+		}
+	}
+
+	return isSwap, isPending
+}
+
 func jsonify(ctx cosmos.Context, r any) ([]byte, error) {
 	res, err := json.MarshalIndent(r, "", "  ")
 	if err != nil {
@@ -1059,7 +1086,9 @@ func queryTxStages(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 	// when no TxIn voter don't check TxOut voter, as TxOut THORChain observation or not matters little to the user once signed and broadcast
 	// Rather than a "tx: %s doesn't exist" result, allow a response to an existing-but-unobserved hash with Observation.Started 'false'.
 
-	result := NewQueryTxStages(ctx, voter)
+	isSwap, isPending := checkPending(ctx, mgr, voter)
+
+	result := NewQueryTxStages(ctx, voter, isSwap, isPending)
 
 	return jsonify(ctx, result)
 }
@@ -1073,7 +1102,9 @@ func queryTxStatus(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 	// when no TxIn voter don't check TxOut voter, as TxOut THORChain observation or not matters little to the user once signed and broadcast
 	// Rather than a "tx: %s doesn't exist" result, allow a response to an existing-but-unobserved hash with Stages.Observation.Started 'false'.
 
-	result := NewQueryTxStatus(ctx, voter)
+	isSwap, isPending := checkPending(ctx, mgr, voter)
+
+	result := NewQueryTxStatus(ctx, voter, isSwap, isPending)
 
 	return jsonify(ctx, result)
 }

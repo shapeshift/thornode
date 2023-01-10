@@ -1819,6 +1819,15 @@ components:
               type: boolean
               example: false
               description: returns true if the inbound transaction has been finalised (THORChain agreeing it exists)
+        swap_finalised:
+          type: object
+          required:
+            - completed
+          properties:
+            completed:
+              type: boolean
+              example: false
+              description: returns true if an inbound transaction's swap (successful or refunded) is no longer pending
         outbound_delay:
           type: object
           required:

@@ -267,7 +267,7 @@ type InboundConfirmationCountedStage struct {
 	Completed                       bool         `json:"completed"`
 }
 
-type InboundFinalisedStage struct {
+type DoneStage struct {
 	Completed bool `json:"completed"`
 }
 
@@ -288,12 +288,13 @@ type QueryTxStages struct {
 	// Structs used for all stages for easier user looping through 'Completed' fields.
 	InboundObserved            InboundObservedStage             `json:"inbound_observed"`
 	InboundConfirmationCounted *InboundConfirmationCountedStage `json:"inbound_confirmation_counted,omitempty"`
-	InboundFinalised           InboundFinalisedStage            `json:"inbound_finalised"`
+	InboundFinalised           DoneStage                        `json:"inbound_finalised"`
+	SwapFinalised              *DoneStage                       `json:"swap_finalised,omitempty"`
 	OutboundDelay              *OutboundDelayStage              `json:"outbound_delay,omitempty"`
 	OutboundSigned             *OutboundSignedStage             `json:"outbound_signed,omitempty"`
 }
 
-func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter) QueryTxStages {
+func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter, isSwap, isPending bool) QueryTxStages {
 	var result QueryTxStages
 
 	// Set the Completed state first.
@@ -345,13 +346,18 @@ func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter) QueryTxStages {
 	// InboundFinalised is always displayed, default Completed state false.
 	result.InboundFinalised.Completed = (voter.FinalisedHeight != 0)
 
-	// TODO: As finalised_height can be updated when a swap(/limit order) completes,
-	// and this finalisation can be delayed relative to e.g. add liquidity refunds,
-	// consider whether there should be a swap(/limit)-specific 'swap completed' stage.
-	//
-	// Only display SwapCompleted when Observation has completed and there is no pending confirmation counting.
-	// if result.Observation.Completed && voter.Tx.FinaliseHeight == voter.Tx.BlockHeight{
-	// }
+	// Whether there's an external outbound or not, show the SwapFinalised stage from the start.
+	if isSwap {
+		var swapFinalisedState DoneStage
+
+		swapFinalisedState.Completed = false
+		if !isPending && result.InboundFinalised.Completed {
+			// Record as completed only when not pending after the inbound has already been finalised.
+			swapFinalisedState.Completed = true
+		}
+
+		result.SwapFinalised = &swapFinalisedState
+	}
 
 	// Only fill ExternalOutboundDelay and ExternalOutboundKeysign for inbound transactions with an external outbound;
 	// namely, transactions with an outbound_height .
@@ -423,7 +429,7 @@ type QueryTxStatus struct {
 	Stages        QueryTxStages       `json:"stages"`
 }
 
-func NewQueryTxStatus(ctx cosmos.Context, voter ObservedTxVoter) QueryTxStatus {
+func NewQueryTxStatus(ctx cosmos.Context, voter ObservedTxVoter, isSwap, isPending bool) QueryTxStatus {
 	var result QueryTxStatus
 
 	// If there's a consensus Tx, display that.
@@ -441,7 +447,7 @@ func NewQueryTxStatus(ctx cosmos.Context, voter ObservedTxVoter) QueryTxStatus {
 	// If there are no voter OutTxs yet, result OutTxs will stay empty and not be displayed.
 	result.OutTxs = voter.OutTxs
 
-	result.Stages = NewQueryTxStages(ctx, voter)
+	result.Stages = NewQueryTxStages(ctx, voter, isSwap, isPending)
 
 	return result
 }

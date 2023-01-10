@@ -69,6 +69,7 @@ const (
 
 	// Memos
 	TxSwap            = mem.TxSwap
+	TxLimitOrder      = mem.TxLimitOrder
 	TxAdd             = mem.TxAdd
 	TxBond            = mem.TxBond
 	TxYggdrasilFund   = mem.TxYggdrasilFund
