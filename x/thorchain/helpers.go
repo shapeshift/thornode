@@ -693,6 +693,8 @@ func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool 
 func isSynthMintPaused(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
 	version := mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.103.0")):
+		return isSynthMintPausedV103(ctx, mgr, targetAsset, outputAmt)
 	case version.GTE(semver.MustParse("1.102.0")):
 		return isSynthMintPausedV102(ctx, mgr, targetAsset, outputAmt)
 	case version.GTE(semver.MustParse("1.99.0")):
@@ -762,6 +764,15 @@ func getSynthSupplyRemainingV102(ctx cosmos.Context, mgr Manager, asset common.A
 	}
 
 	return maxSynthSupply.Sub(synthSupply), nil
+}
+
+func isSynthMintPausedV103(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
+	mintHeight, err := mgr.Keeper().GetMimir(ctx, "MintSynths")
+	if (mintHeight > 0 && ctx.BlockHeight() > mintHeight) || err != nil {
+		return fmt.Errorf("minting synthetics has been disabled")
+	}
+
+	return isSynthMintPausedV102(ctx, mgr, targetAsset, outputAmt)
 }
 
 func isLPPaused(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {

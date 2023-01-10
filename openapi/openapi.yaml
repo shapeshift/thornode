@@ -975,7 +975,7 @@ components:
         synth_mint_paused:
           type: boolean
           example: true
-          description: whether additional synths cannot be minted (will be deprecated in v1.103)
+          description: whether additional synths cannot be minted
         synth_supply_remaining:
           type: string
           example: "123456"
