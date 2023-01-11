@@ -321,6 +321,19 @@ func (c Chain) ApproximateBlockMilliseconds() int64 {
 	}
 }
 
+func (c Chain) InboundNotes() string {
+	switch c {
+	case BTCChain, LTCChain, BCHChain, DOGEChain:
+		return "First output should be to inbound_address, second output should be change back to self, third output should be OP_RETURN, limited to 80 bytes. Do not send below the dust threshold. Do not use exotic spend scripts, locks or address formats (P2WSH with Bech32 address format preferred)."
+	case ETHChain, AVAXChain:
+		return "Base Asset: Send the inbound_address the asset with the memo encoded in hex in the data field. Tokens: First approve router to spend tokens from user: asset.approve(router, amount). Then call router.depositWithExpiry(inbound_address, asset, amount, memo, expiry). Asset is the token contract address. Amount should be in native asset decimals (eg 1e18 for most tokens). Do not send to or from contract addresses."
+	case BNBChain, GAIAChain, THORChain:
+		return "Transfer the inbound_address the asset with the memo. Do not use multi-in, multi-out transactions."
+	default:
+		return ""
+	}
+}
+
 // Has check whether chain c is in the list
 func (chains Chains) Has(c Chain) bool {
 	for _, ch := range chains {

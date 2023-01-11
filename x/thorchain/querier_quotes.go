@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"strings"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/rs/zerolog"
@@ -35,6 +36,9 @@ const (
 	toleranceBasisPointsParam = "tolerance_bps"
 	affiliateParam            = "affiliate"
 	affiliateBpsParam         = "affiliate_bps"
+
+	quoteWarning    = "Do not cache this response. Do not send funds after the expiry."
+	quoteExpiration = 15 * time.Minute
 )
 
 var nullLogger = &log.TendermintLogWrapper{Logger: zerolog.New(ioutil.Discard)}
@@ -244,18 +248,18 @@ func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgS
 	}, emitAmount, outboundFeeAmount, nil
 }
 
-func quoteInboundInfo(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, chain common.Chain) (address common.Address, confirmations int64, err error) {
+func quoteInboundInfo(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, chain common.Chain) (address, router common.Address, confirmations int64, err error) {
 	// get the most secure vault for inbound
 	active, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
-		return common.NoAddress, 0, err
+		return common.NoAddress, common.NoAddress, 0, err
 	}
 	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	vault := mgr.Keeper().GetMostSecure(ctx, active, signingTransactionPeriod)
 	address, err = vault.PubKey.GetAddress(chain)
 	if err != nil {
-		return common.NoAddress, 0, err
+		return common.NoAddress, common.NoAddress, 0, err
 	}
 
 	// estimate the inbound confirmation count blocks: ceil(amount/coinbase)
@@ -267,7 +271,12 @@ func quoteInboundInfo(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, chain comm
 		}
 	}
 
-	return address, confirmations, nil
+	router = common.NoAddress
+	if chain.IsEVM() {
+		router = vault.GetContract(chain).Router
+	}
+
+	return address, router, confirmations, nil
 }
 
 func quoteOutboundInfo(ctx cosmos.Context, mgr *Mgrs, coin common.Coin) (int64, error) {
@@ -367,6 +376,11 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 			return quoteErrorResponse(fmt.Errorf("failed to get pool: %w", err))
 		}
 
+		// ensure pool exists
+		if toPool.IsEmpty() {
+			return quoteErrorResponse(fmt.Errorf("pool does not exist"))
+		}
+
 		// convert to a limit of target asset amount assuming zero fees and slip
 		feelessEmit := swapAmount
 		// When one asset is RUNE, no conversion is necessary,
@@ -442,7 +456,7 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	res.Fees.Outbound = outboundFeeAmount.String()
 
 	// estimate the inbound info
-	inboundAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, msg.Tx.Chain)
+	inboundAddress, routerAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, msg.Tx.Chain)
 	if err != nil {
 		return quoteErrorResponse(err)
 	}
@@ -464,6 +478,17 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	if sendMemo {
 		res.Memo = wrapString(memo.String())
 	}
+
+	// set info fields
+	if fromAsset.Chain.IsEVM() {
+		res.Router = wrapString(routerAddress.String())
+	}
+	if !fromAsset.Chain.DustThreshold().IsZero() {
+		res.DustThreshold = wrapString(fromAsset.Chain.DustThreshold().String())
+	}
+	res.Notes = fromAsset.Chain.InboundNotes()
+	res.Warning = quoteWarning
+	res.Expiry = time.Now().Add(quoteExpiration).Unix()
 
 	return json.MarshalIndent(res, "", "  ")
 }
@@ -579,12 +604,21 @@ func queryQuoteSaverDeposit(ctx cosmos.Context, path []string, req abci.RequestQ
 	}
 
 	// estimate the inbound info
-	inboundAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, asset.GetLayer1Asset().Chain)
+	inboundAddress, _, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, asset.GetLayer1Asset().Chain)
 	if err != nil {
 		return quoteErrorResponse(err)
 	}
 	res.InboundAddress = inboundAddress.String()
 	res.InboundConfirmationBlocks = wrapInt64(inboundConfirmations)
+
+	// set info fields
+	chain := asset.GetLayer1Asset().Chain
+	if !chain.DustThreshold().IsZero() {
+		res.DustThreshold = wrapString(chain.DustThreshold().String())
+	}
+	res.Notes = chain.InboundNotes()
+	res.Warning = quoteWarning
+	res.Expiry = time.Now().Add(quoteExpiration).Unix()
 
 	return json.MarshalIndent(res, "", "  ")
 }
@@ -710,7 +744,7 @@ func queryQuoteSaverWithdraw(ctx cosmos.Context, path []string, req abci.Request
 	}
 
 	// estimate the inbound info
-	inboundAddress, _, err := quoteInboundInfo(ctx, mgr, amount, asset.GetLayer1Asset().Chain)
+	inboundAddress, _, _, err := quoteInboundInfo(ctx, mgr, amount, asset.GetLayer1Asset().Chain)
 	if err != nil {
 		return quoteErrorResponse(err)
 	}
@@ -724,6 +758,15 @@ func queryQuoteSaverWithdraw(ctx cosmos.Context, path []string, req abci.Request
 	}
 	res.OutboundDelayBlocks = outboundDelay
 	res.OutboundDelaySeconds = outboundDelay * asset.GetLayer1Asset().Chain.ApproximateBlockMilliseconds() / 1000
+
+	// set info fields
+	chain := asset.GetLayer1Asset().Chain
+	if !chain.DustThreshold().IsZero() {
+		res.DustThreshold = wrapString(chain.DustThreshold().String())
+	}
+	res.Notes = chain.InboundNotes()
+	res.Warning = quoteWarning
+	res.Expiry = time.Now().Add(quoteExpiration).Unix()
 
 	return json.MarshalIndent(res, "", "  ")
 }
