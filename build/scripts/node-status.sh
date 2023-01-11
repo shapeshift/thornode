@@ -114,7 +114,7 @@ if [ "$VALIDATOR" = "true" ]; then
 
   # calculate Gaia chain sync progress
   if [ -z "$GAIA_DISABLED" ]; then
-    GAIA_HEIGHT=$(curl -sL --fail -m 10 https://api.cosmos.network/blocks/latest | jq -e -r ".block.header.height")
+    GAIA_HEIGHT=$(curl -sL --fail -m 10 https://gaia.ninerealms.com/status | jq -r ".result.sync_info.latest_block_height")
     GAIA_SYNC_HEIGHT=$(curl -sL --fail -m 10 "$GAIA_ENDPOINT/status" | jq -r ".result.sync_info.latest_block_height")
     GAIA_PROGRESS=$(calc_progress "$GAIA_SYNC_HEIGHT" "$GAIA_HEIGHT")
   fi
