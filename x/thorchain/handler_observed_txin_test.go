@@ -78,6 +78,9 @@ type TestObservedTxInFailureKeeper struct {
 }
 
 func (k *TestObservedTxInFailureKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
+	if k.pool.IsEmpty() {
+		return NewPool(), nil
+	}
 	return k.pool, nil
 }
 
@@ -144,6 +147,9 @@ func (k *TestObservedTxInHandleKeeper) SetLastChainHeight(_ cosmos.Context, _ co
 }
 
 func (k *TestObservedTxInHandleKeeper) GetPool(_ cosmos.Context, _ common.Asset) (Pool, error) {
+	if k.pool.IsEmpty() {
+		return NewPool(), nil
+	}
 	return k.pool, nil
 }
 

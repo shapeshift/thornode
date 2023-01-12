@@ -303,16 +303,25 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 
 func fuzzyAssetMatch(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset) common.Asset {
 	version := keeper.GetVersion()
-	if version.GTE(semver.MustParse("1.83.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.103.0")):
+		return fuzzyAssetMatchV103(ctx, keeper, asset)
+	case version.GTE(semver.MustParse("1.83.0")):
 		return fuzzyAssetMatchV83(ctx, keeper, asset)
+	default:
+		return fuzzyAssetMatchV1(ctx, keeper, asset)
 	}
-	return fuzzyAssetMatchV1(ctx, keeper, asset)
 }
 
-func fuzzyAssetMatchV83(ctx cosmos.Context, keeper keeper.Keeper, origAsset common.Asset) common.Asset {
+func fuzzyAssetMatchV103(ctx cosmos.Context, keeper keeper.Keeper, origAsset common.Asset) common.Asset {
 	asset := origAsset.GetLayer1Asset()
-	// if its already an exact match, return it immediately
-	if keeper.PoolExist(ctx, asset.GetLayer1Asset()) {
+	// if it's already an exact match with successfully-added liquidity, return it immediately
+	pool, err := keeper.GetPool(ctx, asset)
+	if err != nil {
+		return origAsset
+	}
+	// Only check BalanceRune after checking the error so that no panic if there were an error.
+	if !pool.BalanceRune.IsZero() {
 		return origAsset
 	}
 
@@ -359,7 +368,9 @@ func fuzzyAssetMatchV83(ctx cosmos.Context, keeper keeper.Keeper, origAsset comm
 	// find the deepest pool
 	winner := NewPool()
 	for _, pool := range matches {
-		if winner.BalanceRune.LT(pool.BalanceRune) {
+		// Use LTE rather than LT so this function can only return origAsset or a match,
+		// never NewPool()'s empty Asset.
+		if winner.BalanceRune.LTE(pool.BalanceRune) {
 			winner = pool
 		}
 	}
