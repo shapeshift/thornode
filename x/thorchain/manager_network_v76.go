@@ -71,6 +71,8 @@ func (vm *NetworkMgrV76) processGenesisSetup(ctx cosmos.Context) error {
 	return nil
 }
 
+func (vm *NetworkMgrV76) SpawnDerivedAsset(ctx cosmos.Context, asset common.Asset, mgr Manager) {}
+
 func (vm *NetworkMgrV76) BeginBlock(ctx cosmos.Context, mgr Manager) error {
 	return nil
 }

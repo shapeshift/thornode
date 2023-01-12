@@ -103,6 +103,7 @@ type NetworkManager interface {
 	EndBlock(ctx cosmos.Context, mgr Manager) error
 	UpdateNetwork(ctx cosmos.Context, constAccessor constants.ConstantValues, gasManager GasManager, eventMgr EventManager) error
 	RecallChainFunds(ctx cosmos.Context, chain common.Chain, mgr Manager, excludeNode common.PubKeys) error
+	SpawnDerivedAsset(ctx cosmos.Context, asset common.Asset, mgr Manager)
 }
 
 // PoolManager interface define the contract of PoolManager

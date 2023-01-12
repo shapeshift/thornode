@@ -15,6 +15,8 @@ func NewNetworkMgrDummy() *NetworkMgrDummy {
 	return &NetworkMgrDummy{}
 }
 
+func (vm *NetworkMgrDummy) SpawnDerivedAsset(ctx cosmos.Context, asset common.Asset, mgr Manager) {}
+
 func (vm *NetworkMgrDummy) BeginBlock(ctx cosmos.Context, mgr Manager) error {
 	return nil
 }
