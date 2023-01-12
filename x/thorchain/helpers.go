@@ -275,6 +275,8 @@ func getTotalYggValueInRune(ctx cosmos.Context, keeper keeper.Keeper, ygg Vault)
 func refundBond(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	version := mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.103.0")):
+		return refundBondV103(ctx, tx, acc, amt, nodeAcc, mgr)
 	case version.GTE(semver.MustParse("1.92.0")):
 		return refundBondV92(ctx, tx, acc, amt, nodeAcc, mgr)
 	case version.GTE(semver.MustParse("1.88.0")):
@@ -286,7 +288,7 @@ func refundBond(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cos
 	}
 }
 
-func refundBondV92(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
+func refundBondV103(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt cosmos.Uint, nodeAcc *NodeAccount, mgr Manager) error {
 	if nodeAcc.Status == NodeActive {
 		ctx.Logger().Info("node still active, cannot refund bond", "node address", nodeAcc.NodeAddress, "node pub key", nodeAcc.PubKeySet.Secp256k1)
 		return nil
@@ -320,16 +322,9 @@ func refundBondV92(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt 
 		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", nodeAcc.NodeAddress))
 	}
 
-	// backfill bond provider information (passive migration code)
-	if len(bp.Providers) == 0 {
-		// no providers yet, add node operator bond address to the bond provider list
-		nodeOpBondAddr, err := nodeAcc.BondAddress.AccAddress()
-		if err != nil {
-			return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", nodeAcc.BondAddress))
-		}
-		p := NewBondProvider(nodeOpBondAddr)
-		p.Bond = nodeAcc.Bond
-		bp.Providers = append(bp.Providers, p)
+	err = passiveBackfill(ctx, mgr, *nodeAcc, &bp)
+	if err != nil {
+		return err
 	}
 
 	// Calculate total value (in rune) the Yggdrasil pool has
@@ -1208,5 +1203,23 @@ func updateTxOutGasV88(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxO
 
 // No-op
 func updateTxOutGasV1(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxOutItem, gas common.Gas) error {
+	return nil
+}
+
+// backfill bond provider information (passive migration code)
+func passiveBackfill(ctx cosmos.Context, mgr Manager, nodeAccount NodeAccount, bp *BondProviders) error {
+	if len(bp.Providers) == 0 {
+		// no providers yet, add node operator bond address to the bond provider list
+		nodeOpBondAddr, err := nodeAccount.BondAddress.AccAddress()
+		if err != nil {
+			return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", nodeAccount.BondAddress))
+		}
+		p := NewBondProvider(nodeOpBondAddr)
+		p.Bond = nodeAccount.Bond
+		bp.Providers = append(bp.Providers, p)
+		defaultNodeOperationFee := fetchConfigInt64(ctx, mgr, constants.NodeOperatorFee)
+		bp.NodeOperatorFee = cosmos.NewUint(uint64(defaultNodeOperationFee))
+	}
+
 	return nil
 }

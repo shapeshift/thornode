@@ -134,6 +134,8 @@ func (h BondHandler) validateV96(ctx cosmos.Context, msg MsgBond) error {
 func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.103.0")):
+		return h.handleV103(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
 		return h.handleV95(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.0")):
@@ -148,7 +150,7 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	return errBadVersion
 }
 
-func (h BondHandler) handleV95(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) handleV103(ctx cosmos.Context, msg MsgBond) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -167,7 +169,19 @@ func (h BondHandler) handleV95(ctx cosmos.Context, msg MsgBond) error {
 				cosmos.NewAttribute("address", msg.NodeAddress.String()),
 			))
 	}
-	originalBond := nodeAccount.Bond
+
+	// Get the bond providers initially in order before adding the msg.Bond to the original bond.
+	bp, err := h.mgr.Keeper().GetBondProviders(ctx, nodeAccount.NodeAddress)
+	if err != nil {
+		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
+	}
+	err = passiveBackfill(ctx, h.mgr, nodeAccount, &bp)
+	if err != nil {
+		return err
+	}
+	// Re-distribute current bond if needed
+	bp.Adjust(nodeAccount.Bond)
+
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
 
 	acct := h.mgr.Keeper().GetAccount(ctx, msg.NodeAddress)
@@ -189,28 +203,6 @@ func (h BondHandler) handleV95(ctx cosmos.Context, msg MsgBond) error {
 		if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
 			ctx.Logger().Error("fail to emit bond event", "error", err)
 		}
-	}
-
-	bp, err := h.mgr.Keeper().GetBondProviders(ctx, nodeAccount.NodeAddress)
-	if err != nil {
-		return ErrInternal(err, fmt.Sprintf("fail to get bond providers(%s)", msg.NodeAddress))
-	}
-
-	// Re-distribute current bond if needed
-	bp.Adjust(originalBond)
-
-	// backfill bond provider information (passive migration code)
-	if len(bp.Providers) == 0 {
-		// no providers yet, add node operator bond address to the bond provider list
-		nodeOpBondAddr, err := nodeAccount.BondAddress.AccAddress()
-		if err != nil {
-			return ErrInternal(err, fmt.Sprintf("fail to parse bond address(%s)", msg.BondAddress))
-		}
-		p := NewBondProvider(nodeOpBondAddr)
-		p.Bond = originalBond
-		bp.Providers = append(bp.Providers, p)
-		defaultNodeOperationFee := fetchConfigInt64(ctx, h.mgr, constants.NodeOperatorFee)
-		bp.NodeOperatorFee = cosmos.NewUint(uint64(defaultNodeOperationFee))
 	}
 
 	// if bonder is node operator, add additional bonding address
