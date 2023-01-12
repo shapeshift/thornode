@@ -29,6 +29,7 @@ const (
 	fromAssetParam            = "from_asset"
 	toAssetParam              = "to_asset"
 	assetParam                = "asset"
+	fromAddressParam          = "from_address"
 	addressParam              = "address"
 	withdrawBasisPointsParam  = "withdraw_bps"
 	amountParam               = "amount"
@@ -323,6 +324,26 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	amount, err := cosmos.ParseUint(params[amountParam][0])
 	if err != nil {
 		return quoteErrorResponse(fmt.Errorf("bad amount: %w", err))
+	}
+
+	// if from asset is a synth, transfer asset to asgard module
+	if fromAsset.IsSyntheticAsset() {
+		if len(params[fromAddressParam]) == 0 {
+			return quoteErrorResponse(fmt.Errorf("missing required parameter %s", fromAddressParam))
+		}
+		fromAddress, err := quoteParseAddress(ctx, mgr, params[fromAddressParam][0], fromAsset.Chain)
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("bad from address: %w", err))
+		}
+
+		fromAccAddress, err := fromAddress.AccAddress()
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("failed to get account address: %w", err))
+		}
+		err = mgr.Keeper().SendFromAccountToModule(ctx, fromAccAddress, AsgardName, common.NewCoins(common.NewCoin(fromAsset, amount)))
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("failed to send from account to module: %w", err))
+		}
 	}
 
 	// parse affiliate
