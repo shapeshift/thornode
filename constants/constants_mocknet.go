@@ -4,6 +4,11 @@
 // For internal testing and mockneting
 package constants
 
+import (
+	"os"
+	"strconv"
+)
+
 func init() {
 	int64Overrides = map[ConstantName]int64{
 		// ArtificialRagnarokBlockHeight: 200,
@@ -31,5 +36,13 @@ func init() {
 	}
 	stringOverrides = map[ConstantName]string{
 		DefaultPoolStatus: "Available",
+	}
+
+	if os.Getenv("CHURN_MIGRATION_ROUNDS") != "" {
+		int64Overrides[ChurnMigrateRounds], _ = strconv.ParseInt(os.Getenv("CHURN_MIGRATION_ROUNDS"), 10, 64)
+	}
+
+	if os.Getenv("FUND_MIGRATION_INTERVAL") != "" {
+		int64Overrides[FundMigrationInterval], _ = strconv.ParseInt(os.Getenv("FUND_MIGRATION_INTERVAL"), 10, 64)
 	}
 }

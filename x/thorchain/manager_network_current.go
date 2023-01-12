@@ -326,6 +326,8 @@ func (vm *NetworkMgrV102) EndBlock(ctx cosmos.Context, mgr Manager) error {
 		}
 	}
 
+	migrationRounds := mgr.GetConstants().GetInt64Value(constants.ChurnMigrateRounds)
+
 	for _, vault := range retiring {
 		if !vault.HasFunds() {
 			vault.Status = InactiveVault
@@ -387,14 +389,14 @@ func (vm *NetworkMgrV102) EndBlock(ctx cosmos.Context, mgr Manager) error {
 				// signer, to successfully send these funds while respecting
 				// gas requirements (so it'll actually send slightly less)
 				amt := coin.Amount
-				if nth < 5 { // migrate partial funds 4 times
+				if nth < migrationRounds { // migrate partial funds 4 times (migrationRounds is 5 in mainnet)
 					// each round of migration, we are increasing the amount 20%.
 					// Round 1 = 20%
 					// Round 2 = 40%
 					// Round 3 = 60%
 					// Round 4 = 80%
 					// Round 5 = 100%
-					amt = amt.MulUint64(uint64(nth)).QuoUint64(5)
+					amt = amt.MulUint64(uint64(nth)).QuoUint64(uint64(migrationRounds))
 				}
 				amt = cosmos.RoundToDecimal(amt, coin.Decimals)
 
@@ -417,7 +419,7 @@ func (vm *NetworkMgrV102) EndBlock(ctx cosmos.Context, mgr Manager) error {
 
 					// the left amount is not enough to pay for gas, likely only dust left, the network can't migrate it across
 					// and this will only happen after 5th round
-					if amt.IsZero() && nth > 5 {
+					if amt.IsZero() && nth > migrationRounds {
 						ctx.Logger().Info("left coin is not enough to pay for gas, thus burn it", "coin", coin, "gas", gasAmount)
 						vault.SubFunds(common.Coins{
 							coin,

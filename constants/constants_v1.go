@@ -83,6 +83,7 @@ func NewConstantValue010() *ConstantVals {
 			MinimumL1OutboundFeeUSD:            1000000,            // Minimum fee in USD to charge for LP swap, default to $0.01 , nodes need to vote it to a larger value
 			MinimumPoolLiquidityFee:            0,                  // Minimum liquidity fee made by the pool,active pool fail to meet this within a PoolCycle will be demoted
 			ILPCutoff:                          0,                  // the cutoff height for impermanent loss protection
+			ChurnMigrateRounds:                 5,                  // Number of rounds to migrate vaults during churn
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,

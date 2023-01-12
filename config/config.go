@@ -603,7 +603,7 @@ type BifrostTSSConfiguration struct {
 func (c BifrostTSSConfiguration) GetBootstrapPeers() ([]maddr.Multiaddr, error) {
 	var addrs []maddr.Multiaddr
 
-	for _, ip := range c.BootstrapPeers {
+	for _, ip := range resolveAddrs(c.BootstrapPeers) {
 		if len(ip) == 0 {
 			continue
 		}
