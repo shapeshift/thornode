@@ -134,6 +134,8 @@ func (h BondHandler) validateV96(ctx cosmos.Context, msg MsgBond) error {
 func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.104.0")):
+		return h.handleV104(ctx, msg)
 	case version.GTE(semver.MustParse("1.103.0")):
 		return h.handleV103(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
@@ -150,7 +152,7 @@ func (h BondHandler) handle(ctx cosmos.Context, msg MsgBond) error {
 	return errBadVersion
 }
 
-func (h BondHandler) handleV103(ctx cosmos.Context, msg MsgBond) error {
+func (h BondHandler) handleV104(ctx cosmos.Context, msg MsgBond) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.NodeAddress)
 	if err != nil {
 		return ErrInternal(err, fmt.Sprintf("fail to get node account(%s)", msg.NodeAddress))
@@ -228,7 +230,7 @@ func (h BondHandler) handleV103(ctx cosmos.Context, msg MsgBond) error {
 	}
 
 	// Update operator fee (-1 means operator fee is not being set)
-	if msg.OperatorFee > -1 && msg.OperatorFee < 10000 {
+	if msg.OperatorFee > -1 && msg.OperatorFee <= 10000 {
 		bp.NodeOperatorFee = cosmos.NewUint(uint64(msg.OperatorFee))
 	}
 
