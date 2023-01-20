@@ -202,6 +202,8 @@ func (h AddLiquidityHandler) validateV99(ctx cosmos.Context, msg MsgAddLiquidity
 func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.104.0")):
+		return h.handleV104(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
 		return h.handleV98(ctx, msg)
 	case version.GTE(semver.MustParse("1.96.0")):
@@ -215,10 +217,10 @@ func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) err
 	}
 }
 
-func (h AddLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
+func (h AddLiquidityHandler) handleV104(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
 	// check if we need to swap before adding asset
 	if h.needsSwap(msg) {
-		return h.swapV93(ctx, msg)
+		return h.swap(ctx, msg)
 	}
 
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
@@ -323,7 +325,19 @@ func (h AddLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgAddLiquidity) 
 	return nil
 }
 
-func (h AddLiquidityHandler) swapV93(ctx cosmos.Context, msg MsgAddLiquidity) error {
+func (h AddLiquidityHandler) swap(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	version := h.mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.104.0")):
+		return h.swapV104(ctx, msg)
+	case version.GTE(semver.MustParse("1.93.0")):
+		return h.swapV93(ctx, msg)
+	default:
+		return errBadVersion
+	}
+}
+
+func (h AddLiquidityHandler) swapV104(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	// ensure TxID does NOT have a collision with another swap, this could
 	// happen if the user submits two identical loan requests in the same
 	// block
@@ -337,14 +351,34 @@ func (h AddLiquidityHandler) swapV93(ctx cosmos.Context, msg MsgAddLiquidity) er
 	}
 	memo := fmt.Sprintf("+:%s::%s:%d", msg.Asset, msg.AffiliateAddress, msg.AffiliateBasisPoints.Uint64())
 	msg.Tx.Memo = memo
-	swapMsg := NewMsgSwap(msg.Tx, msg.Asset, common.NoopAddress, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, msg.Signer)
+	swapMsg := *NewMsgSwap(msg.Tx, msg.Asset, common.NoopAddress, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, msg.Signer)
 
 	// sanity check swap msg
 	handler := NewSwapHandler(h.mgr)
-	if err := handler.validate(ctx, *swapMsg); err != nil {
+	if err := handler.validate(ctx, swapMsg); err != nil {
 		return err
 	}
-	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
+
+	enableOrderBooks := fetchConfigInt64(ctx, h.mgr, constants.EnableOrderBooks)
+	if enableOrderBooks <= 0 {
+		return h.addToSwapQueueV104(ctx, swapMsg)
+	}
+
+	source := swapMsg.Tx.Coins[0]
+	target := common.NewCoin(swapMsg.TargetAsset, swapMsg.TradeTarget)
+	evt := NewEventLimitOrder(source, target, swapMsg.Tx.ID)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+		ctx.Logger().Error("fail to emit limit order event", "error", err)
+	}
+	if err := h.mgr.Keeper().SetOrderBookItem(ctx, swapMsg); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+	}
+
+	return nil
+}
+
+func (h AddLiquidityHandler) addToSwapQueueV104(ctx cosmos.Context, swapMsg MsgSwap) error {
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, swapMsg, 0); err != nil {
 		ctx.Logger().Error("fail to add swap to queue", "error", err)
 		return err
 	}
