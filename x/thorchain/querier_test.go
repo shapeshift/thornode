@@ -370,7 +370,7 @@ func (s *QuerierSuite) TestQueryTxInVoter(c *C) {
 	result, err = s.querier(s.ctx, []string{query.QueryTxVoter.Key, tx.ID.String()}, req)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
-	var voter ObservedTxVoter
+	var voter QueryTxSigners
 	c.Assert(json.Unmarshal(result, &voter), IsNil)
 	c.Assert(voter.Valid(), IsNil)
 }
@@ -434,8 +434,8 @@ func (s *QuerierSuite) TestQueryTx(c *C) {
 	result, err = s.querier(s.ctx, []string{query.QueryTx.Key, tx.ID.String()}, req)
 	c.Assert(err, IsNil)
 	var newTx struct {
-		ObservedTx    `json:"observed_tx"`
-		KeygenMetrics types.TssKeysignMetric `json:"keysign_metric,omitempty"`
+		QueryObservedTx `json:"observed_tx"`
+		KeysignMetrics  types.TssKeysignMetric `json:"keysign_metric,omitempty"`
 	}
 	c.Assert(json.Unmarshal(result, &newTx), IsNil)
 	c.Assert(newTx.Valid(), IsNil)

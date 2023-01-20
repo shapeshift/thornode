@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -219,6 +220,42 @@ func NewQueryNodeAccount(na NodeAccount) QueryNodeAccount {
 		LeaveScore:          na.LeaveScore,
 		IPAddress:           na.IPAddress,
 		Version:             na.GetVersion(),
+	}
+}
+
+// QueryObservedTx holds all the information related to the ObservedTx
+type QueryObservedTx struct {
+	Tx                              common.Tx     `json:"tx"`
+	Status                          Status        `json:"status,omitempty"`
+	OutHashes                       []string      `json:"out_hashes,omitempty"`
+	BlockHeight                     int64         `json:"block_height,omitempty"`
+	ExternalObservedHeight          int64         `json:"external_observed_height,omitempty"`
+	Signers                         []string      `json:"signers,omitempty"`
+	ObservedPubKey                  common.PubKey `json:"observed_pub_key,omitempty"`
+	KeysignMs                       int64         `json:"keysign_ms,omitempty"`
+	FinaliseHeight                  int64         `json:"finalise_height,omitempty"`
+	ExternalConfirmationDelayHeight int64         `json:"external_confirmation_delay_height,omitempty"`
+	Aggregator                      string        `json:"aggregator,omitempty"`
+	AggregatorTarget                string        `json:"aggregator_target,omitempty"`
+	AggregatorTargetLimit           *cosmos.Uint  `json:"aggregator_target_limit,omitempty"`
+}
+
+// NewQueryObservedTx create a new QueryObservedTx based on the given ObservedTx parameters
+func NewQueryObservedTx(obTx ObservedTx) QueryObservedTx {
+	return QueryObservedTx{
+		Tx:                              obTx.Tx,
+		Status:                          obTx.Status,
+		OutHashes:                       obTx.OutHashes,
+		BlockHeight:                     obTx.BlockHeight,
+		ExternalObservedHeight:          obTx.BlockHeight,
+		Signers:                         obTx.Signers,
+		ObservedPubKey:                  obTx.ObservedPubKey,
+		KeysignMs:                       obTx.KeysignMs,
+		FinaliseHeight:                  obTx.FinaliseHeight,
+		ExternalConfirmationDelayHeight: obTx.FinaliseHeight,
+		Aggregator:                      obTx.Aggregator,
+		AggregatorTarget:                obTx.AggregatorTarget,
+		AggregatorTargetLimit:           obTx.AggregatorTargetLimit,
 	}
 }
 
@@ -450,6 +487,77 @@ func NewQueryTxStatus(ctx cosmos.Context, voter ObservedTxVoter, isSwap, isPendi
 	result.Stages = NewQueryTxStages(ctx, voter, isSwap, isPending)
 
 	return result
+}
+
+// Valid checks whether the QueryObservedTx represents valid information
+func (m *QueryObservedTx) Valid() error {
+	if err := m.Tx.Valid(); err != nil {
+		return err
+	}
+	// Memo should not be empty, but it can't be checked here, because a
+	// message failed validation will be rejected by THORNode.
+	// Thus THORNode can't refund customer accordingly , which will result fund lost
+	if m.ExternalObservedHeight <= 0 {
+		return errors.New("external observed height can't be zero")
+	}
+	if m.ObservedPubKey.IsEmpty() {
+		return errors.New("observed pool pubkey is empty")
+	}
+	if m.ExternalConfirmationDelayHeight <= 0 {
+		return errors.New("external confirmation delay height can't be zero")
+	}
+	return nil
+}
+
+type QueryTxSigners struct {
+	TxID            common.TxID       `json:"tx_id,omitempty"`
+	Tx              QueryObservedTx   `json:"tx"`
+	Height          int64             `json:"height,omitempty"`
+	Txs             []QueryObservedTx `json:"txs"`
+	Actions         []TxOutItem       `json:"actions"`
+	OutTxs          []common.Tx       `json:"out_txs"`
+	FinalisedHeight int64             `json:"finalised_height,omitempty"`
+	UpdatedVault    bool              `json:"updated_vault,omitempty"`
+	Reverted        bool              `json:"reverted,omitempty"`
+	OutboundHeight  int64             `json:"outbound_height,omitempty"`
+}
+
+// NewQueryTxSigners creates a new QueryTxSigners based on the given ObservedTxVoter parameters
+func NewQueryTxSigners(voter ObservedTxVoter) QueryTxSigners {
+	result := QueryTxSigners{
+		TxID:            voter.TxID,
+		Height:          voter.Height,
+		Actions:         voter.Actions,
+		OutTxs:          voter.OutTxs,
+		FinalisedHeight: voter.FinalisedHeight,
+		UpdatedVault:    voter.UpdatedVault,
+		Reverted:        voter.Reverted,
+		OutboundHeight:  voter.OutboundHeight,
+	}
+
+	result.Tx = NewQueryObservedTx(voter.Tx)
+
+	for _, obTx := range voter.Txs {
+		result.Txs = append(result.Txs, NewQueryObservedTx(obTx))
+	}
+
+	return result
+}
+
+// Valid checks whether the QueryTxSigners represents valid information
+func (m *QueryTxSigners) Valid() error {
+	if m.TxID.IsEmpty() {
+		return errors.New("cannot have an empty tx id")
+	}
+
+	// check all other normal tx
+	for _, in := range m.Txs {
+		if err := in.Valid(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // QuerySaver holds all the information related to a saver
