@@ -285,6 +285,8 @@ func (h ObservedTxInHandler) handleV89(ctx cosmos.Context, msg MsgObservedTxIn) 
 func (h ObservedTxInHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.104.0")):
+		h.addSwapV104(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
 		h.addSwapV98(ctx, msg)
 	default:
@@ -292,23 +294,62 @@ func (h ObservedTxInHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
 	}
 }
 
-func (h ObservedTxInHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
+func (h ObservedTxInHandler) addSwapV104(ctx cosmos.Context, msg MsgSwap) {
 	enableOrderBooks := fetchConfigInt64(ctx, h.mgr, constants.EnableOrderBooks)
-	if enableOrderBooks > 0 {
-		// TODO: swap to synth if layer1 asset (follow on PR)
-		// TODO: create handler to modify/cancel an order (follow on PR)
+	if enableOrderBooks <= 0 {
+		h.addToSwapQueueV104(ctx, msg)
+		return
+	}
 
-		source := msg.Tx.Coins[0]
-		target := common.NewCoin(msg.TargetAsset, msg.TradeTarget)
-		evt := NewEventLimitOrder(source, target, msg.Tx.ID)
-		if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
-			ctx.Logger().Error("fail to emit swap event", "error", err)
+	// TODO: swap to synth if layer1 asset (follow on PR)
+	// TODO: create handler to modify/cancel an order (follow on PR)
+
+	source := msg.Tx.Coins[0]
+	target := common.NewCoin(msg.TargetAsset, msg.TradeTarget)
+	evt := NewEventLimitOrder(source, target, msg.Tx.ID)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+		ctx.Logger().Error("fail to emit swap event", "error", err)
+	}
+	if err := h.mgr.Keeper().SetOrderBookItem(ctx, msg); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+	}
+}
+
+func (h ObservedTxInHandler) addToSwapQueueV104(ctx cosmos.Context, msg MsgSwap) {
+	amt := cosmos.ZeroUint()
+	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
+		amt = common.GetSafeShare(
+			msg.AffiliateBasisPoints,
+			cosmos.NewUint(10000),
+			msg.Tx.Coins[0].Amount,
+		)
+		msg.Tx.Coins[0].Amount = common.SafeSub(msg.Tx.Coins[0].Amount, amt)
+	}
+
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, msg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+	}
+
+	if !amt.IsZero() {
+		affiliateSwap := NewMsgSwap(
+			msg.Tx,
+			common.RuneAsset(),
+			msg.AffiliateAddress,
+			cosmos.ZeroUint(),
+			common.NoAddress,
+			cosmos.ZeroUint(),
+			"",
+			"", nil,
+			MarketOrder,
+			msg.Signer,
+		)
+		if affiliateSwap.Tx.Coins[0].Amount.GTE(amt) {
+			affiliateSwap.Tx.Coins[0].Amount = amt
 		}
-		if err := h.mgr.Keeper().SetOrderBookItem(ctx, msg); err != nil {
+
+		if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *affiliateSwap, 1); err != nil {
 			ctx.Logger().Error("fail to add swap to queue", "error", err)
 		}
-	} else {
-		h.addSwapV63(ctx, msg)
 	}
 }
 
