@@ -455,6 +455,8 @@ func GetSwapQueue(version semver.Version, keeper keeper.Keeper) (SwapQueue, erro
 // GetOrderBook retrieve a OrderBook that is compatible with the given version
 func GetOrderBook(version semver.Version, keeper keeper.Keeper) (OrderBook, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.104.0")):
+		return newOrderBookV104(keeper), nil
 	case version.GTE(semver.MustParse("1.103.0")):
 		return newOrderBookV103(keeper), nil
 	case version.GTE(semver.MustParse("0.1.0")):
