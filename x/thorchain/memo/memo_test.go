@@ -4,15 +4,31 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/cosmos/cosmos-sdk/store"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
+	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	"github.com/tendermint/tendermint/libs/log"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	dbm "github.com/tendermint/tm-db"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-type MemoSuite struct{}
+type MemoSuite struct {
+	ctx sdk.Context
+	k   keeper.Keeper
+}
 
 func TestPackage(t *testing.T) { TestingT(t) }
 
@@ -20,6 +36,42 @@ var _ = Suite(&MemoSuite{})
 
 func (s *MemoSuite) SetUpSuite(c *C) {
 	types.SetupConfigForTest()
+	keyAcc := cosmos.NewKVStoreKey(authtypes.StoreKey)
+	keyBank := cosmos.NewKVStoreKey(banktypes.StoreKey)
+	keyParams := cosmos.NewKVStoreKey(paramstypes.StoreKey)
+	tkeyParams := cosmos.NewTransientStoreKey(paramstypes.TStoreKey)
+	keyThorchain := cosmos.NewKVStoreKey(types.StoreKey)
+
+	db := dbm.NewMemDB()
+	ms := store.NewCommitMultiStore(db)
+	ms.MountStoreWithDB(keyAcc, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyParams, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyThorchain, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyBank, cosmos.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(tkeyParams, cosmos.StoreTypeTransient, db)
+	err := ms.LoadLatestVersion()
+	c.Assert(err, IsNil)
+
+	ctx := cosmos.NewContext(ms, tmproto.Header{ChainID: "thorchain"}, false, log.NewNopLogger())
+	s.ctx = ctx.WithBlockHeight(18)
+
+	legacyCodec := types.MakeTestCodec()
+	marshaler := simapp.MakeTestEncodingConfig().Marshaler
+
+	pk := paramskeeper.NewKeeper(marshaler, legacyCodec, keyParams, tkeyParams)
+	ak := authkeeper.NewAccountKeeper(marshaler, keyAcc, pk.Subspace(authtypes.ModuleName), authtypes.ProtoBaseAccount, map[string][]string{
+		types.ModuleName:  {authtypes.Minter, authtypes.Burner},
+		types.AsgardName:  {},
+		types.BondName:    {},
+		types.ReserveName: {},
+		types.LendingName: {},
+	})
+
+	bk := bankkeeper.NewBaseKeeper(marshaler, keyBank, ak, pk.Subspace(banktypes.ModuleName), nil)
+	c.Assert(bk.MintCoins(ctx, types.ModuleName, cosmos.Coins{
+		cosmos.NewCoin(common.RuneAsset().Native(), cosmos.NewInt(200_000_000_00000000)),
+	}), IsNil)
+	s.k = kv1.NewKVStore(marshaler, bk, ak, keyThorchain, types.GetCurrentVersion())
 }
 
 func (s *MemoSuite) TestTxType(c *C) {
@@ -32,9 +84,8 @@ func (s *MemoSuite) TestTxType(c *C) {
 }
 
 func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
-	ctx := cosmos.Context{}
-	k := kv1.KVStore{}
-	k.SetVersion(kv1.GetCurrentVersion())
+	ctx := s.ctx
+	k := s.k
 
 	// happy paths
 	memo, err := ParseMemoWithTHORNames(ctx, k, "d:"+common.RuneAsset().String())
@@ -195,9 +246,8 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 }
 
 func (s *MemoSuite) TestParse(c *C) {
-	ctx := cosmos.Context{}
-	k := kv1.KVStore{}
-	k.SetVersion(types.GetCurrentVersion())
+	ctx := s.ctx
+	k := s.k
 
 	// happy paths
 	memo, err := ParseMemoWithTHORNames(ctx, k, "d:"+common.RuneAsset().String())
@@ -210,7 +260,7 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxAdd), Equals, true, Commentf("MEMO: %+v", memo))
-	c.Check(memo.String(), Equals, "")
+	c.Check(memo.String(), Equals, "+:THOR.RUNE")
 
 	_, err = ParseMemoWithTHORNames(ctx, k, "ADD:BTC.BTC")
 	c.Assert(err, IsNil)
@@ -329,6 +379,46 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(baseMemo.GetAccAddress().Empty(), Equals, true)
 	c.Check(baseMemo.IsEmpty(), Equals, true)
 	c.Check(baseMemo.GetBlockHeight(), Equals, int64(0))
+
+	// swap memo parsing
+
+	// aff fee too high, should be reset to 10_000
+	memo, err = ParseMemoWithTHORNames(ctx, k, "swap:bnb.bnb:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:100:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:20000")
+	c.Assert(err, IsNil)
+	c.Check(memo.IsType(TxSwap), Equals, true)
+	c.Check(memo.String(), Equals, "=:BNB.BNB:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:100:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:10000")
+
+	// aff fee valid, don't change
+	memo, err = ParseMemoWithTHORNames(ctx, k, "swap:bnb.bnb:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:100:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:5000")
+	c.Assert(err, IsNil)
+	c.Check(memo.IsType(TxSwap), Equals, true)
+	c.Check(memo.String(), Equals, "=:BNB.BNB:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:100:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:5000")
+
+	// add memo parsing
+
+	// aff fee too high, should be reset to 10_000
+	memo, err = ParseMemoWithTHORNames(ctx, k, "add:bnb.bnb:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:20000")
+	c.Assert(err, IsNil)
+	c.Check(memo.IsType(TxAdd), Equals, true)
+	c.Check(memo.String(), Equals, "+:BNB.BNB:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:10000")
+
+	// aff fee valid, don't change
+	memo, err = ParseMemoWithTHORNames(ctx, k, "add:bnb.bnb:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:5000")
+	c.Assert(err, IsNil)
+	c.Check(memo.IsType(TxAdd), Equals, true)
+	c.Check(memo.String(), Equals, "+:BNB.BNB:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:5000")
+
+	// no address or aff fee
+	memo, err = ParseMemoWithTHORNames(ctx, k, "add:bnb.bnb")
+	c.Assert(err, IsNil)
+	c.Check(memo.IsType(TxAdd), Equals, true)
+	c.Check(memo.String(), Equals, "+:BNB.BNB")
+
+	// no aff fee
+	memo, err = ParseMemoWithTHORNames(ctx, k, "add:bnb.bnb:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj")
+	c.Assert(err, IsNil)
+	c.Check(memo.IsType(TxAdd), Equals, true)
+	c.Check(memo.String(), Equals, "+:BNB.BNB:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj")
 
 	// unhappy paths
 	memo, err = ParseMemoWithTHORNames(ctx, k, "")

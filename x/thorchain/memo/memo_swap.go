@@ -2,7 +2,6 @@ package thorchain
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/blang/semver"
@@ -100,6 +99,8 @@ func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset,
 		return ParseSwapMemoV1(ctx, keeper, asset, parts)
 	}
 	switch {
+	case keeper.GetVersion().GTE(semver.MustParse("1.104.0")):
+		return ParseSwapMemoV104(ctx, keeper, asset, parts)
 	case keeper.GetVersion().GTE(semver.MustParse("1.98.0")):
 		return ParseSwapMemoV98(ctx, keeper, asset, parts)
 	case keeper.GetVersion().GTE(semver.MustParse("1.92.0")):
@@ -109,7 +110,7 @@ func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset,
 	}
 }
 
-func ParseSwapMemoV98(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
+func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
 	var err error
 	var order types.OrderType
 	dexAgg := ""
@@ -156,11 +157,11 @@ func ParseSwapMemoV98(ctx cosmos.Context, keeper keeper.Keeper, asset common.Ass
 		if err != nil {
 			return SwapMemo{}, err
 		}
-		pts, err := strconv.ParseUint(parts[5], 10, 64)
+
+		affPts, err = ParseAffiliateBasisPoints(ctx, keeper, parts[5])
 		if err != nil {
 			return SwapMemo{}, err
 		}
-		affPts = cosmos.NewUint(pts)
 	}
 
 	if len(parts) > 6 && len(parts[6]) > 0 {

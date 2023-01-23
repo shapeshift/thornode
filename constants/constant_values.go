@@ -99,6 +99,7 @@ const (
 	MinimumPoolLiquidityFee
 	ILPCutoff
 	ChurnMigrateRounds
+	MaxAffiliateFeeBasisPoints
 )
 
 var nameToString = map[ConstantName]string{
@@ -191,6 +192,7 @@ var nameToString = map[ConstantName]string{
 	MinimumPoolLiquidityFee:            "MinimumPoolLiquidityFee",
 	ILPCutoff:                          "ILPCutoff",
 	ChurnMigrateRounds:                 "ChurnMigrateRounds",
+	MaxAffiliateFeeBasisPoints:         "MaxAffiliateFeeBasisPoints",
 }
 
 // String implement fmt.stringer

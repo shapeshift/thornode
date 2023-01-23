@@ -2,10 +2,12 @@ package thorchain
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 
 	"github.com/blang/semver"
@@ -362,4 +364,23 @@ func FetchAddress(ctx cosmos.Context, keeper keeper.Keeper, name string, chain c
 	}
 
 	return common.NoAddress, fmt.Errorf("%s is not recognizable", name)
+}
+
+func ParseAffiliateBasisPoints(ctx cosmos.Context, keeper keeper.Keeper, affBasisPoints string) (cosmos.Uint, error) {
+	maxAffFeeBasisPoints := int64(10_000)
+	if keeper != nil {
+		mimirMaxAffFeeBasisPoints, err := keeper.GetMimir(ctx, constants.MaxAffiliateFeeBasisPoints.String())
+		if mimirMaxAffFeeBasisPoints >= 0 && mimirMaxAffFeeBasisPoints <= 10_000 && err == nil {
+			maxAffFeeBasisPoints = mimirMaxAffFeeBasisPoints
+		}
+	}
+
+	pts, err := strconv.ParseUint(affBasisPoints, 10, 64)
+	if err != nil {
+		return cosmos.ZeroUint(), err
+	}
+	if pts > uint64(maxAffFeeBasisPoints) {
+		pts = uint64(maxAffFeeBasisPoints)
+	}
+	return cosmos.NewUint(pts), nil
 }

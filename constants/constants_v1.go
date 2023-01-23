@@ -84,6 +84,7 @@ func NewConstantValue010() *ConstantVals {
 			MinimumPoolLiquidityFee:            0,                  // Minimum liquidity fee made by the pool,active pool fail to meet this within a PoolCycle will be demoted
 			ILPCutoff:                          0,                  // the cutoff height for impermanent loss protection
 			ChurnMigrateRounds:                 5,                  // Number of rounds to migrate vaults during churn
+			MaxAffiliateFeeBasisPoints:         10_000,             // Max allowed affiliate fee basis points
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,
