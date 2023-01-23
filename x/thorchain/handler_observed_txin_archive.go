@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 )
 
 func (h ObservedTxInHandler) handleV78(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
@@ -156,26 +155,6 @@ func (h ObservedTxInHandler) handleV78(ctx cosmos.Context, msg MsgObservedTxIn) 
 		}
 	}
 	return &cosmos.Result{}, nil
-}
-
-func (h ObservedTxInHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
-	enableOrderBooks := fetchConfigInt64(ctx, h.mgr, constants.EnableOrderBooks)
-	if enableOrderBooks > 0 {
-		// TODO: swap to synth if layer1 asset (follow on PR)
-		// TODO: create handler to modify/cancel an order (follow on PR)
-
-		source := msg.Tx.Coins[0]
-		target := common.NewCoin(msg.TargetAsset, msg.TradeTarget)
-		evt := NewEventLimitOrder(source, target, msg.Tx.ID)
-		if err := h.mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
-			ctx.Logger().Error("fail to emit swap event", "error", err)
-		}
-		if err := h.mgr.Keeper().SetOrderBookItem(ctx, msg); err != nil {
-			ctx.Logger().Error("fail to add swap to queue", "error", err)
-		}
-	} else {
-		h.addSwapV63(ctx, msg)
-	}
 }
 
 func (h ObservedTxInHandler) addSwapV63(ctx cosmos.Context, msg MsgSwap) {

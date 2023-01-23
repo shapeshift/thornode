@@ -147,12 +147,10 @@ var (
 	NewMsgRagnarok                 = types.NewMsgRagnarok
 	NewQueryLiquidityProvider      = types.NewQueryLiquidityProvider
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
-	NewQueryObservedTx             = types.NewQueryObservedTx
-	NewQuerySaver                  = types.NewQuerySaver
 	NewQueryTxOutItem              = types.NewQueryTxOutItem
-	NewQueryTxSigners              = types.NewQueryTxSigners
 	NewQueryTxStages               = types.NewQueryTxStages
 	NewQueryTxStatus               = types.NewQueryTxStatus
+	NewQuerySaver                  = types.NewQuerySaver
 	ModuleCdc                      = types.ModuleCdc
 	RegisterCodec                  = types.RegisterCodec
 	RegisterInterfaces             = types.RegisterInterfaces
@@ -261,9 +259,7 @@ type (
 	QueryVaultsPubKeys             = types.QueryVaultsPubKeys
 	QueryVaultPubKeyContract       = types.QueryVaultPubKeyContract
 	QueryNodeAccount               = types.QueryNodeAccount
-	QueryObservedTx                = types.QueryObservedTx
 	QueryTxOutItem                 = types.QueryTxOutItem
-	QueryTxSigners                 = types.QueryTxSigners
 	QueryTxStages                  = types.QueryTxStages
 	QueryTxStatus                  = types.QueryTxStatus
 	QuerySaver                     = types.QuerySaver

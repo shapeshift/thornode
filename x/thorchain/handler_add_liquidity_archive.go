@@ -3,7 +3,6 @@ package thorchain
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/armon/go-metrics"
 	"github.com/cosmos/cosmos-sdk/telemetry"
@@ -11,54 +10,6 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 )
-
-// r = rune provided;
-// a = asset provided
-// R = rune Balance (before)
-// A = asset Balance (before)
-// P = existing Pool Units
-// slipAdjustment = (1 - ABS((R a - r A)/((r + R) (a + A))))
-// units = ((P (a R + A r))/(2 A R))*slidAdjustment
-func calculatePoolUnitsV1(oldPoolUnits, poolRune, poolAsset, addRune, addAsset cosmos.Uint) (cosmos.Uint, cosmos.Uint, error) {
-	if addRune.Add(poolRune).IsZero() {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total RUNE in the pool is zero")
-	}
-	if addAsset.Add(poolAsset).IsZero() {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total asset in the pool is zero")
-	}
-	if poolRune.IsZero() || poolAsset.IsZero() {
-		return addRune, addRune, nil
-	}
-	P := cosmos.NewDecFromBigInt(oldPoolUnits.BigInt())
-	R := cosmos.NewDecFromBigInt(poolRune.BigInt())
-	A := cosmos.NewDecFromBigInt(poolAsset.BigInt())
-	r := cosmos.NewDecFromBigInt(addRune.BigInt())
-	a := cosmos.NewDecFromBigInt(addAsset.BigInt())
-
-	// (r + R) (a + A)
-	slipAdjDenominator := (r.Add(R)).Mul(a.Add(A))
-	// ABS((R a - r A)/((r + R) (a + A)))
-	var slipAdjustment cosmos.Dec
-	if R.Mul(a).GT(r.Mul(A)) {
-		slipAdjustment = R.Mul(a).Sub(r.Mul(A)).Quo(slipAdjDenominator)
-	} else {
-		slipAdjustment = r.Mul(A).Sub(R.Mul(a)).Quo(slipAdjDenominator)
-	}
-	// (1 - ABS((R a - r A)/((r + R) (a + A))))
-	slipAdjustment = cosmos.NewDec(1).Sub(slipAdjustment)
-
-	// (P (a R + A r))
-	numerator := P.Mul(a.Mul(R).Add(A.Mul(r)))
-	// 2AR
-	denominator := cosmos.NewDec(2).Mul(A).Mul(R)
-	liquidityUnits := numerator.Quo(denominator).Mul(slipAdjustment)
-	newPoolUnit := P.Add(liquidityUnits)
-
-	pUnits := cosmos.NewUintFromBigInt(newPoolUnit.TruncateInt().BigInt())
-	sUnits := cosmos.NewUintFromBigInt(liquidityUnits.TruncateInt().BigInt())
-
-	return pUnits, sUnits, nil
-}
 
 func (h AddLiquidityHandler) validateV98(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if err := msg.ValidateBasicV98(); err != nil {
@@ -156,94 +107,56 @@ func (h AddLiquidityHandler) validateV98(ctx cosmos.Context, msg MsgAddLiquidity
 	return nil
 }
 
-func (h AddLiquidityHandler) validateV96(ctx cosmos.Context, msg MsgAddLiquidity) error {
-	if err := msg.ValidateBasicV93(); err != nil {
-		ctx.Logger().Error(err.Error())
-		return errAddLiquidityFailValidation
+// r = rune provided;
+// a = asset provided
+// R = rune Balance (before)
+// A = asset Balance (before)
+// P = existing Pool Units
+// slipAdjustment = (1 - ABS((R a - r A)/((r + R) (a + A))))
+// units = ((P (a R + A r))/(2 A R))*slidAdjustment
+func calculatePoolUnitsV1(oldPoolUnits, poolRune, poolAsset, addRune, addAsset cosmos.Uint) (cosmos.Uint, cosmos.Uint, error) {
+	if addRune.Add(poolRune).IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total RUNE in the pool is zero")
 	}
+	if addAsset.Add(poolAsset).IsZero() {
+		return cosmos.ZeroUint(), cosmos.ZeroUint(), errors.New("total asset in the pool is zero")
+	}
+	if poolRune.IsZero() || poolAsset.IsZero() {
+		return addRune, addRune, nil
+	}
+	P := cosmos.NewDecFromBigInt(oldPoolUnits.BigInt())
+	R := cosmos.NewDecFromBigInt(poolRune.BigInt())
+	A := cosmos.NewDecFromBigInt(poolAsset.BigInt())
+	r := cosmos.NewDecFromBigInt(addRune.BigInt())
+	a := cosmos.NewDecFromBigInt(addAsset.BigInt())
 
-	if msg.Asset.IsVaultAsset() {
-		if !msg.Asset.GetLayer1Asset().IsGasAsset() {
-			return fmt.Errorf("asset must be a gas asset for the layer1 protocol")
-		}
-		if !msg.AssetAddress.IsChain(common.THORChain) {
-			return fmt.Errorf("asset address must be a thor address")
-		}
-		if !msg.RuneAmount.IsZero() {
-			return fmt.Errorf("cannot deposit rune into a vault")
-		}
+	// (r + R) (a + A)
+	slipAdjDenominator := (r.Add(R)).Mul(a.Add(A))
+	// ABS((R a - r A)/((r + R) (a + A)))
+	var slipAdjustment cosmos.Dec
+	if R.Mul(a).GT(r.Mul(A)) {
+		slipAdjustment = R.Mul(a).Sub(r.Mul(A)).Quo(slipAdjDenominator)
+	} else {
+		slipAdjustment = r.Mul(A).Sub(R.Mul(a)).Quo(slipAdjDenominator)
 	}
+	// (1 - ABS((R a - r A)/((r + R) (a + A))))
+	slipAdjustment = cosmos.NewDec(1).Sub(slipAdjustment)
 
-	if !msg.RuneAddress.IsEmpty() && !msg.RuneAddress.IsChain(common.THORChain) {
-		ctx.Logger().Error("rune address must be THORChain")
-		return errAddLiquidityFailValidation
-	}
+	// (P (a R + A r))
+	numerator := P.Mul(a.Mul(R).Add(A.Mul(r)))
+	// 2AR
+	denominator := cosmos.NewDec(2).Mul(A).Mul(R)
+	liquidityUnits := numerator.Quo(denominator).Mul(slipAdjustment)
+	newPoolUnit := P.Add(liquidityUnits)
 
-	// check if swap meets standards
-	if h.needsSwap(msg) {
-		if !msg.Asset.IsVaultAsset() {
-			return fmt.Errorf("swap & add liquidity is only available for synthetic pools")
-		}
-		if !msg.Asset.GetLayer1Asset().Equals(msg.Tx.Coins[0].Asset) {
-			return fmt.Errorf("deposit asset must be the layer1 equivalent for the synthetic asset")
-		}
-	}
+	pUnits := cosmos.NewUintFromBigInt(newPoolUnit.TruncateInt().BigInt())
+	sUnits := cosmos.NewUintFromBigInt(liquidityUnits.TruncateInt().BigInt())
 
-	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
-	if err != nil {
-		return ErrInternal(err, "fail to get pool")
-	}
-	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
-		ctx.Logger().Error("fail to check pool status", "error", err)
-		return errInvalidPoolStatus
-	}
-
-	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
-		return fmt.Errorf("unable to add liquidity while chain has paused LP actions")
-	}
-
-	ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
-	// if the pool is THORChain no need to check economic security
-	if msg.Asset.IsVaultAsset() || !ensureLiquidityNoLargerThanBond {
-		return nil
-	}
-
-	// the following  only applicable for chaosnet
-	totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
-	if err != nil {
-		return ErrInternal(err, "fail to get total liquidity RUNE")
-	}
-
-	// total liquidity RUNE after current add liquidity
-	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
-	totalLiquidityRUNE = totalLiquidityRUNE.Add(pool.AssetValueInRune(msg.AssetAmount))
-	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
-	if maximumLiquidityRune < 0 || err != nil {
-		maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
-	}
-	if maximumLiquidityRune > 0 {
-		if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
-			return errAddLiquidityRUNEOverLimit
-		}
-	}
-
-	if !ensureLiquidityNoLargerThanBond {
-		return nil
-	}
-	securityBond, err := h.getEffectiveSecurityBond(ctx)
-	if err != nil {
-		return ErrInternal(err, "fail to get security bond RUNE")
-	}
-	if totalLiquidityRUNE.GT(securityBond) {
-		ctx.Logger().Info("total liquidity RUNE is more than effective security bond", "rune", totalLiquidityRUNE.String(), "bond", securityBond.String())
-		return errAddLiquidityRUNEMoreThanBond
-	}
-
-	return nil
+	return pUnits, sUnits, nil
 }
 
-func (h AddLiquidityHandler) validateV95(ctx cosmos.Context, msg MsgAddLiquidity) error {
-	if err := msg.ValidateBasicV93(); err != nil {
+func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	if err := msg.ValidateBasicV63(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
 	}
@@ -253,28 +166,20 @@ func (h AddLiquidityHandler) validateV95(ctx cosmos.Context, msg MsgAddLiquidity
 		return errAddLiquidityFailValidation
 	}
 
-	if !msg.RuneAddress.IsEmpty() && !msg.RuneAddress.IsChain(common.THORChain) {
-		ctx.Logger().Error("rune address must be THORChain")
+	// Synths coins are not compatible with add liquidity
+	if msg.Tx.Coins.HasSynthetic() {
+		ctx.Logger().Error("asset coins cannot be synth", "error", errAddLiquidityFailValidation)
 		return errAddLiquidityFailValidation
 	}
 
-	// check if swap meets standards
-	if h.needsSwap(msg) {
-		if !msg.Asset.IsSyntheticAsset() {
-			return fmt.Errorf("swap & add liquidity is only available for synthetic pools")
-		}
-		if !msg.Asset.GetLayer1Asset().Equals(msg.Tx.Coins[0].Asset) {
-			return fmt.Errorf("deposit asset must be the layer1 equivalent for the synthetic asset")
-		}
+	if !msg.AssetAddress.IsEmpty() && !msg.AssetAddress.IsChain(msg.Asset.Chain) {
+		ctx.Logger().Error("asset address must match asset chain")
+		return errAddLiquidityFailValidation
 	}
 
-	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
-	if err != nil {
-		return ErrInternal(err, "fail to get pool")
-	}
-	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
-		ctx.Logger().Error("fail to check pool status", "error", err)
-		return errInvalidPoolStatus
+	if !msg.RuneAddress.IsEmpty() && !msg.RuneAddress.IsChain(common.THORChain) {
+		ctx.Logger().Error("rune address must be THORChain")
+		return errAddLiquidityFailValidation
 	}
 
 	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
@@ -289,6 +194,10 @@ func (h AddLiquidityHandler) validateV95(ctx cosmos.Context, msg MsgAddLiquidity
 	}
 
 	// total liquidity RUNE after current add liquidity
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
+	if err != nil {
+		return ErrInternal(err, "fail to get pool")
+	}
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(pool.AssetValueInRune(msg.AssetAmount))
 	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
@@ -304,12 +213,12 @@ func (h AddLiquidityHandler) validateV95(ctx cosmos.Context, msg MsgAddLiquidity
 	if !ensureLiquidityNoLargerThanBond {
 		return nil
 	}
-	securityBond, err := h.getEffectiveSecurityBond(ctx)
+	totalBondRune, err := h.getTotalActiveBond(ctx)
 	if err != nil {
-		return ErrInternal(err, "fail to get security bond RUNE")
+		return ErrInternal(err, "fail to get total bond RUNE")
 	}
-	if totalLiquidityRUNE.GT(securityBond) {
-		ctx.Logger().Info("total liquidity RUNE is more than effective security bond", "rune", totalLiquidityRUNE.String(), "bond", securityBond.String())
+	if totalLiquidityRUNE.GT(totalBondRune) {
+		ctx.Logger().Info("total liquidity RUNE is more than total Bond", "rune", totalLiquidityRUNE.String(), "bond", totalBondRune.String())
 		return errAddLiquidityRUNEMoreThanBond
 	}
 
@@ -390,8 +299,8 @@ func (h AddLiquidityHandler) validateV93(ctx cosmos.Context, msg MsgAddLiquidity
 	return nil
 }
 
-func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity) error {
-	if err := msg.ValidateBasicV63(); err != nil {
+func (h AddLiquidityHandler) validateV95(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	if err := msg.ValidateBasicV93(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
 	}
@@ -401,20 +310,28 @@ func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity
 		return errAddLiquidityFailValidation
 	}
 
-	// Synths coins are not compatible with add liquidity
-	if msg.Tx.Coins.HasSynthetic() {
-		ctx.Logger().Error("asset coins cannot be synth", "error", errAddLiquidityFailValidation)
-		return errAddLiquidityFailValidation
-	}
-
-	if !msg.AssetAddress.IsEmpty() && !msg.AssetAddress.IsChain(msg.Asset.Chain) {
-		ctx.Logger().Error("asset address must match asset chain")
-		return errAddLiquidityFailValidation
-	}
-
 	if !msg.RuneAddress.IsEmpty() && !msg.RuneAddress.IsChain(common.THORChain) {
 		ctx.Logger().Error("rune address must be THORChain")
 		return errAddLiquidityFailValidation
+	}
+
+	// check if swap meets standards
+	if h.needsSwap(msg) {
+		if !msg.Asset.IsSyntheticAsset() {
+			return fmt.Errorf("swap & add liquidity is only available for synthetic pools")
+		}
+		if !msg.Asset.GetLayer1Asset().Equals(msg.Tx.Coins[0].Asset) {
+			return fmt.Errorf("deposit asset must be the layer1 equivalent for the synthetic asset")
+		}
+	}
+
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
+	if err != nil {
+		return ErrInternal(err, "fail to get pool")
+	}
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
+		ctx.Logger().Error("fail to check pool status", "error", err)
+		return errInvalidPoolStatus
 	}
 
 	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
@@ -429,10 +346,6 @@ func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity
 	}
 
 	// total liquidity RUNE after current add liquidity
-	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
-	if err != nil {
-		return ErrInternal(err, "fail to get pool")
-	}
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(pool.AssetValueInRune(msg.AssetAmount))
 	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
@@ -448,12 +361,12 @@ func (h AddLiquidityHandler) validateV76(ctx cosmos.Context, msg MsgAddLiquidity
 	if !ensureLiquidityNoLargerThanBond {
 		return nil
 	}
-	totalBondRune, err := h.getTotalActiveBond(ctx)
+	securityBond, err := h.getEffectiveSecurityBond(ctx)
 	if err != nil {
-		return ErrInternal(err, "fail to get total bond RUNE")
+		return ErrInternal(err, "fail to get security bond RUNE")
 	}
-	if totalLiquidityRUNE.GT(totalBondRune) {
-		ctx.Logger().Info("total liquidity RUNE is more than total Bond", "rune", totalLiquidityRUNE.String(), "bond", totalBondRune.String())
+	if totalLiquidityRUNE.GT(securityBond) {
+		ctx.Logger().Info("total liquidity RUNE is more than effective security bond", "rune", totalLiquidityRUNE.String(), "bond", securityBond.String())
 		return errAddLiquidityRUNEMoreThanBond
 	}
 
@@ -1025,6 +938,123 @@ func (h AddLiquidityHandler) addLiquidityV90(ctx cosmos.Context,
 	return nil
 }
 
+// getTotalActiveBond
+func (h AddLiquidityHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
+	nodeAccounts, err := h.mgr.Keeper().ListValidatorsWithBond(ctx)
+	if err != nil {
+		return cosmos.ZeroUint(), err
+	}
+	total := cosmos.ZeroUint()
+	for _, na := range nodeAccounts {
+		if na.Status != NodeActive {
+			continue
+		}
+		total = total.Add(na.Bond)
+	}
+	return total, nil
+}
+
+func (h AddLiquidityHandler) handleV63(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
+	if err != nil {
+		return ErrInternal(err, "fail to get pool")
+	}
+
+	if pool.IsEmpty() {
+		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
+		pool.Asset = msg.Asset
+		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
+			return ErrInternal(err, "fail to save pool to key value store")
+		}
+	}
+
+	// if the pool decimals hasn't been set, it will still be 0. If we have a
+	// pool asset coin, get the decimals from that transaction. This will only
+	// set the decimals once.
+	if pool.Decimals == 0 {
+		coin := msg.GetTx().Coins.GetCoin(pool.Asset)
+		if !coin.IsEmpty() {
+			if coin.Decimals > 0 {
+				pool.Decimals = coin.Decimals
+			}
+			ctx.Logger().Info("try update pool decimals", "asset", msg.Asset, "pool decimals", pool.Decimals)
+			if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
+				return ErrInternal(err, "fail to save pool to key value store")
+			}
+		}
+	}
+
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
+		ctx.Logger().Error("fail to check pool status", "error", err)
+		return errInvalidPoolStatus
+	}
+
+	// figure out if we need to stage the funds and wait for a follow on
+	// transaction to commit all funds atomically
+	stage := false
+	if !msg.AssetAddress.IsEmpty() && msg.AssetAmount.IsZero() {
+		stage = true
+	}
+	if !msg.RuneAddress.IsEmpty() && msg.RuneAmount.IsZero() {
+		stage = true
+	}
+
+	if msg.AffiliateBasisPoints.IsZero() {
+		return h.addLiquidity(
+			ctx,
+			msg.Asset,
+			msg.RuneAmount,
+			msg.AssetAmount,
+			msg.RuneAddress,
+			msg.AssetAddress,
+			msg.Tx.ID,
+			stage,
+			h.mgr.GetConstants())
+	}
+
+	// add liquidity has an affiliate fee, add liquidity for both the user and their affiliate
+	affiliateRune := common.GetSafeShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.RuneAmount)
+	affiliateAsset := common.GetSafeShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.AssetAmount)
+	userRune := common.SafeSub(msg.RuneAmount, affiliateRune)
+	userAsset := common.SafeSub(msg.AssetAmount, affiliateAsset)
+
+	err = h.addLiquidity(
+		ctx,
+		msg.Asset,
+		userRune,
+		userAsset,
+		msg.RuneAddress,
+		msg.AssetAddress,
+		msg.Tx.ID,
+		stage,
+		h.mgr.GetConstants(),
+	)
+	if err != nil {
+		return err
+	}
+
+	err = h.addLiquidity(
+		ctx,
+		msg.Asset,
+		affiliateRune,
+		affiliateAsset,
+		msg.AffiliateAddress,
+		common.NoAddress,
+		msg.Tx.ID,
+		stage,
+		h.mgr.GetConstants(),
+	)
+	if err != nil {
+		// we swallow this error so we don't trigger a refund, when we've
+		// already successfully added liquidity for the user. If we were to
+		// refund here, funds could be leaked from the network. In order, to
+		// error here, we would need to revert the user addLiquidity
+		// function first (TODO).
+		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
+	}
+	return nil
+}
+
 func (h AddLiquidityHandler) addLiquidityV79(ctx cosmos.Context,
 	asset common.Asset,
 	addRuneAmount, addAssetAmount cosmos.Uint,
@@ -1193,23 +1223,7 @@ func (h AddLiquidityHandler) addLiquidityV79(ctx cosmos.Context,
 	return nil
 }
 
-// getTotalActiveBond
-func (h AddLiquidityHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error) {
-	nodeAccounts, err := h.mgr.Keeper().ListValidatorsWithBond(ctx)
-	if err != nil {
-		return cosmos.ZeroUint(), err
-	}
-	total := cosmos.ZeroUint()
-	for _, na := range nodeAccounts {
-		if na.Status != NodeActive {
-			continue
-		}
-		total = total.Add(na.Bond)
-	}
-	return total, nil
-}
-
-func (h AddLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
+func (h AddLiquidityHandler) handleV93(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
 	// check if we need to swap before adding asset
 	if h.needsSwap(msg) {
 		return h.swapV93(ctx, msg)
@@ -1245,16 +1259,13 @@ func (h AddLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgAddLiquidity) 
 	}
 
 	// figure out if we need to stage the funds and wait for a follow on
-	// transaction to commit all funds atomically. For pools of native assets
-	// only, stage is always false
+	// transaction to commit all funds atomically
 	stage := false
-	if !msg.Asset.IsVaultAsset() {
-		if !msg.AssetAddress.IsEmpty() && msg.AssetAmount.IsZero() {
-			stage = true
-		}
-		if !msg.RuneAddress.IsEmpty() && msg.RuneAmount.IsZero() {
-			stage = true
-		}
+	if !msg.AssetAddress.IsEmpty() && msg.AssetAmount.IsZero() {
+		stage = true
+	}
+	if !msg.RuneAddress.IsEmpty() && msg.RuneAmount.IsZero() {
+		stage = true
 	}
 
 	if msg.AffiliateBasisPoints.IsZero() {
@@ -1291,28 +1302,24 @@ func (h AddLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgAddLiquidity) 
 		return err
 	}
 
-	affiliateRuneAddress := common.NoAddress
-	affiliateAssetAddress := common.NoAddress
-	if msg.AffiliateAddress.IsChain(common.THORChain) {
-		affiliateRuneAddress = msg.AffiliateAddress
-	} else {
-		affiliateAssetAddress = msg.AffiliateAddress
-	}
-
 	err = h.addLiquidity(
 		ctx,
 		msg.Asset,
 		affiliateRune,
 		affiliateAsset,
-		affiliateRuneAddress,
-		affiliateAssetAddress,
+		msg.AffiliateAddress,
+		common.NoAddress,
 		msg.Tx.ID,
-		false,
+		stage,
 		h.mgr.GetConstants(),
 	)
 	if err != nil {
+		// we swallow this error so we don't trigger a refund, when we've
+		// already successfully added liquidity for the user. If we were to
+		// refund here, funds could be leaked from the network. In order, to
+		// error here, we would need to revert the user addLiquidity
+		// function first (TODO).
 		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
-		return err
 	}
 	return nil
 }
@@ -1421,232 +1428,87 @@ func (h AddLiquidityHandler) handleV96(ctx cosmos.Context, msg MsgAddLiquidity) 
 	return nil
 }
 
-func (h AddLiquidityHandler) handleV93(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
-	// check if we need to swap before adding asset
+func (h AddLiquidityHandler) validateV96(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	if err := msg.ValidateBasicV93(); err != nil {
+		ctx.Logger().Error(err.Error())
+		return errAddLiquidityFailValidation
+	}
+
+	if msg.Asset.IsVaultAsset() {
+		if !msg.Asset.GetLayer1Asset().IsGasAsset() {
+			return fmt.Errorf("asset must be a gas asset for the layer1 protocol")
+		}
+		if !msg.AssetAddress.IsChain(common.THORChain) {
+			return fmt.Errorf("asset address must be a thor address")
+		}
+		if !msg.RuneAmount.IsZero() {
+			return fmt.Errorf("cannot deposit rune into a vault")
+		}
+	}
+
+	if !msg.RuneAddress.IsEmpty() && !msg.RuneAddress.IsChain(common.THORChain) {
+		ctx.Logger().Error("rune address must be THORChain")
+		return errAddLiquidityFailValidation
+	}
+
+	// check if swap meets standards
 	if h.needsSwap(msg) {
-		return h.swapV93(ctx, msg)
+		if !msg.Asset.IsVaultAsset() {
+			return fmt.Errorf("swap & add liquidity is only available for synthetic pools")
+		}
+		if !msg.Asset.GetLayer1Asset().Equals(msg.Tx.Coins[0].Asset) {
+			return fmt.Errorf("deposit asset must be the layer1 equivalent for the synthetic asset")
+		}
 	}
 
 	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
 	if err != nil {
 		return ErrInternal(err, "fail to get pool")
 	}
-
-	if pool.IsEmpty() {
-		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
-		pool.Asset = msg.Asset
-		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
-			return ErrInternal(err, "fail to save pool to key value store")
-		}
-	}
-
-	// if the pool decimals hasn't been set, it will still be 0. If we have a
-	// pool asset coin, get the decimals from that transaction. This will only
-	// set the decimals once.
-	if pool.Decimals == 0 {
-		coin := msg.GetTx().Coins.GetCoin(pool.Asset)
-		if !coin.IsEmpty() {
-			if coin.Decimals > 0 {
-				pool.Decimals = coin.Decimals
-			}
-			ctx.Logger().Info("try update pool decimals", "asset", msg.Asset, "pool decimals", pool.Decimals)
-			if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
-				return ErrInternal(err, "fail to save pool to key value store")
-			}
-		}
-	}
-
-	// figure out if we need to stage the funds and wait for a follow on
-	// transaction to commit all funds atomically
-	stage := false
-	if !msg.AssetAddress.IsEmpty() && msg.AssetAmount.IsZero() {
-		stage = true
-	}
-	if !msg.RuneAddress.IsEmpty() && msg.RuneAmount.IsZero() {
-		stage = true
-	}
-
-	if msg.AffiliateBasisPoints.IsZero() {
-		return h.addLiquidity(
-			ctx,
-			msg.Asset,
-			msg.RuneAmount,
-			msg.AssetAmount,
-			msg.RuneAddress,
-			msg.AssetAddress,
-			msg.Tx.ID,
-			stage,
-			h.mgr.GetConstants())
-	}
-
-	// add liquidity has an affiliate fee, add liquidity for both the user and their affiliate
-	affiliateRune := common.GetSafeShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.RuneAmount)
-	affiliateAsset := common.GetSafeShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.AssetAmount)
-	userRune := common.SafeSub(msg.RuneAmount, affiliateRune)
-	userAsset := common.SafeSub(msg.AssetAmount, affiliateAsset)
-
-	err = h.addLiquidity(
-		ctx,
-		msg.Asset,
-		userRune,
-		userAsset,
-		msg.RuneAddress,
-		msg.AssetAddress,
-		msg.Tx.ID,
-		stage,
-		h.mgr.GetConstants(),
-	)
-	if err != nil {
-		return err
-	}
-
-	err = h.addLiquidity(
-		ctx,
-		msg.Asset,
-		affiliateRune,
-		affiliateAsset,
-		msg.AffiliateAddress,
-		common.NoAddress,
-		msg.Tx.ID,
-		stage,
-		h.mgr.GetConstants(),
-	)
-	if err != nil {
-		// we swallow this error so we don't trigger a refund, when we've
-		// already successfully added liquidity for the user. If we were to
-		// refund here, funds could be leaked from the network. In order, to
-		// error here, we would need to revert the user addLiquidity
-		// function first (TODO).
-		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
-	}
-	return nil
-}
-
-func (h AddLiquidityHandler) handleV63(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
-	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
-	if err != nil {
-		return ErrInternal(err, "fail to get pool")
-	}
-
-	if pool.IsEmpty() {
-		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
-		pool.Asset = msg.Asset
-		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
-			return ErrInternal(err, "fail to save pool to key value store")
-		}
-	}
-
-	// if the pool decimals hasn't been set, it will still be 0. If we have a
-	// pool asset coin, get the decimals from that transaction. This will only
-	// set the decimals once.
-	if pool.Decimals == 0 {
-		coin := msg.GetTx().Coins.GetCoin(pool.Asset)
-		if !coin.IsEmpty() {
-			if coin.Decimals > 0 {
-				pool.Decimals = coin.Decimals
-			}
-			ctx.Logger().Info("try update pool decimals", "asset", msg.Asset, "pool decimals", pool.Decimals)
-			if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
-				return ErrInternal(err, "fail to save pool to key value store")
-			}
-		}
-	}
-
 	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
 		ctx.Logger().Error("fail to check pool status", "error", err)
 		return errInvalidPoolStatus
 	}
 
-	// figure out if we need to stage the funds and wait for a follow on
-	// transaction to commit all funds atomically
-	stage := false
-	if !msg.AssetAddress.IsEmpty() && msg.AssetAmount.IsZero() {
-		stage = true
-	}
-	if !msg.RuneAddress.IsEmpty() && msg.RuneAmount.IsZero() {
-		stage = true
+	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
+		return fmt.Errorf("unable to add liquidity while chain has paused LP actions")
 	}
 
-	if msg.AffiliateBasisPoints.IsZero() {
-		return h.addLiquidity(
-			ctx,
-			msg.Asset,
-			msg.RuneAmount,
-			msg.AssetAmount,
-			msg.RuneAddress,
-			msg.AssetAddress,
-			msg.Tx.ID,
-			stage,
-			h.mgr.GetConstants())
+	ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
+	// if the pool is THORChain no need to check economic security
+	if msg.Asset.IsVaultAsset() || !ensureLiquidityNoLargerThanBond {
+		return nil
 	}
 
-	// add liquidity has an affiliate fee, add liquidity for both the user and their affiliate
-	affiliateRune := common.GetSafeShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.RuneAmount)
-	affiliateAsset := common.GetSafeShare(msg.AffiliateBasisPoints, cosmos.NewUint(10000), msg.AssetAmount)
-	userRune := common.SafeSub(msg.RuneAmount, affiliateRune)
-	userAsset := common.SafeSub(msg.AssetAmount, affiliateAsset)
-
-	err = h.addLiquidity(
-		ctx,
-		msg.Asset,
-		userRune,
-		userAsset,
-		msg.RuneAddress,
-		msg.AssetAddress,
-		msg.Tx.ID,
-		stage,
-		h.mgr.GetConstants(),
-	)
+	// the following  only applicable for chaosnet
+	totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
 	if err != nil {
-		return err
+		return ErrInternal(err, "fail to get total liquidity RUNE")
 	}
 
-	err = h.addLiquidity(
-		ctx,
-		msg.Asset,
-		affiliateRune,
-		affiliateAsset,
-		msg.AffiliateAddress,
-		common.NoAddress,
-		msg.Tx.ID,
-		stage,
-		h.mgr.GetConstants(),
-	)
+	// total liquidity RUNE after current add liquidity
+	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
+	totalLiquidityRUNE = totalLiquidityRUNE.Add(pool.AssetValueInRune(msg.AssetAmount))
+	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
+	if maximumLiquidityRune < 0 || err != nil {
+		maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
+	}
+	if maximumLiquidityRune > 0 {
+		if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
+			return errAddLiquidityRUNEOverLimit
+		}
+	}
+
+	if !ensureLiquidityNoLargerThanBond {
+		return nil
+	}
+	securityBond, err := h.getEffectiveSecurityBond(ctx)
 	if err != nil {
-		// we swallow this error so we don't trigger a refund, when we've
-		// already successfully added liquidity for the user. If we were to
-		// refund here, funds could be leaked from the network. In order, to
-		// error here, we would need to revert the user addLiquidity
-		// function first (TODO).
-		ctx.Logger().Error("fail to add liquidity for affiliate", "address", msg.AffiliateAddress, "error", err)
+		return ErrInternal(err, "fail to get security bond RUNE")
 	}
-	return nil
-}
-
-func (h AddLiquidityHandler) swapV93(ctx cosmos.Context, msg MsgAddLiquidity) error {
-	// ensure TxID does NOT have a collision with another swap, this could
-	// happen if the user submits two identical loan requests in the same
-	// block
-	if ok := h.mgr.Keeper().HasSwapQueueItem(ctx, msg.Tx.ID, 0); ok {
-		return fmt.Errorf("txn hash conflict")
-	}
-
-	// sanity check, ensure address or asset doesn't have separator within them
-	if strings.Contains(fmt.Sprintf("%s%s", msg.Asset, msg.AffiliateAddress), ":") {
-		return fmt.Errorf("illegal character")
-	}
-	memo := fmt.Sprintf("+:%s::%s:%d", msg.Asset, msg.AffiliateAddress, msg.AffiliateBasisPoints.Uint64())
-	msg.Tx.Memo = memo
-	swapMsg := NewMsgSwap(msg.Tx, msg.Asset, common.NoopAddress, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, msg.Signer)
-
-	// sanity check swap msg
-	handler := NewSwapHandler(h.mgr)
-	if err := handler.validate(ctx, *swapMsg); err != nil {
-		return err
-	}
-	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
-		ctx.Logger().Error("fail to add swap to queue", "error", err)
-		return err
+	if totalLiquidityRUNE.GT(securityBond) {
+		ctx.Logger().Info("total liquidity RUNE is more than effective security bond", "rune", totalLiquidityRUNE.String(), "bond", securityBond.String())
+		return errAddLiquidityRUNEMoreThanBond
 	}
 
 	return nil

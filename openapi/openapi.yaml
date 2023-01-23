@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Thornode API
-  version: 1.104.0
+  version: 1.103.0
   contact:
     email: devs@thorchain.org
   description: Thornode REST API.
@@ -741,12 +741,6 @@ paths:
         schema:
           type: string
           example: "0x1c7b17362c84287bd1184447e6dfeaf920c31bbe"
-      - name: from_address
-        in: query
-        description: the from address, required if the from asset is a synth
-        schema:
-          type: string
-          example: "thor1zupk5lmc84r2dh738a9g3zscavannjy3nzplwt"
       - name: tolerance_bps
         in: query
         description: the maximum basis points from the current feeless swap price to set the limit in the generated memo
@@ -1366,12 +1360,7 @@ components:
           type: integer
           format: int64
           example: 7581334
-          description: same as external_observed_height, to be deprecated in favour of external_observed_height
-        external_observed_height:
-          type: integer
-          format: int64
-          example: 7581334
-          description: the block height on the external source chain when the transaction was observed, not provided if chain is THOR
+          description: the block height of the observed transaction on the source chain, not provided if chain is THOR
         signers:
           type: array
           items:
@@ -1388,12 +1377,7 @@ components:
           type: integer
           format: int64
           example: 7581334
-          description: same as external_confirmation_delay_height, to be deprecated in favour of external_confirmation_delay_height
-        external_confirmation_delay_height:
-          type: integer
-          format: int64
-          example: 7581334
-          description: the block height on the external source chain when confirmation counting will be complete, not provided if chain is THOR
+          description: the finalised height of the observed transaction on the source chain, not provided if chain is THOR
         aggregator:
           type: string
           description: the outbound aggregator to use, will also match a suffix
@@ -1724,16 +1708,6 @@ components:
       properties:
         observed_tx:
           $ref: "#/components/schemas/ObservedTx"
-        finalised_height:
-          type: integer
-          format: int64
-          example: 7581334
-          description: the thorchain height at which the outbound was finalised
-        outbound_height:
-          type: integer
-          format: int64
-          example: 1234
-          description: the thorchain height for which the outbound was scheduled
         keysign_metric:
           $ref: "#/components/schemas/TssKeysignMetric"
 
@@ -1781,7 +1755,6 @@ components:
           type: integer
           format: int64
           example: 1234
-          description: the thorchain height for which the outbound was scheduled
 
     TxSignersResponse: *tx-details-response
 
