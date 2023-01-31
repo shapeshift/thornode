@@ -59,6 +59,8 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	ctx.Logger().Info("receive MsgDeposit", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.105.0")):
+		return h.handleV105(ctx, msg)
 	case version.GTE(semver.MustParse("1.99.0")):
 		return h.handleV99(ctx, msg)
 	case version.GTE(semver.MustParse("1.87.0")):
@@ -69,7 +71,7 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	return nil, errInvalidVersion
 }
 
-func (h DepositHandler) handleV99(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+func (h DepositHandler) handleV105(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
@@ -108,6 +110,13 @@ func (h DepositHandler) handleV99(ctx cosmos.Context, msg MsgDeposit) (*cosmos.R
 	txID, err := common.NewTxID(fmt.Sprintf("%X", hash))
 	if err != nil {
 		return nil, fmt.Errorf("fail to get tx hash: %w", err)
+	}
+	existingVoter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, txID)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get existing voter")
+	}
+	if len(existingVoter.Txs) > 0 {
+		return nil, fmt.Errorf("txid: %s already exist", txID.String())
 	}
 	from, err := common.NewAddress(msg.GetSigners()[0].String())
 	if err != nil {

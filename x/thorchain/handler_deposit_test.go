@@ -79,6 +79,12 @@ func (s *HandlerDepositSuite) TestHandle(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(voter.Tx.IsEmpty(), Equals, false)
 	c.Assert(voter.Tx.Status, Equals, types.Status_done)
+
+	err = k.AddCoins(ctx, addr, cosmos.NewCoins(funds))
+	c.Assert(err, IsNil)
+	// do it again, make sure the transaction get rejected
+	_, err = handler.handle(ctx, *msg)
+	c.Assert(err, NotNil)
 }
 
 type HandlerDepositTestHelper struct {
