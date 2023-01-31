@@ -15,7 +15,6 @@ import (
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -28,7 +27,6 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
-	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -69,7 +67,6 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 		},
 	}
 	ctypes.Network = ctypes.TestNetwork
-	c.Assert(os.Setenv("NET", "testnet"), IsNil)
 
 	ns := strconv.Itoa(time.Now().Nanosecond())
 	thordir := filepath.Join(os.TempDir(), ns, ".thorcli")
@@ -162,15 +159,6 @@ func (s *BitcoinSignerSuite) TestGetBTCPrivateKey(c *C) {
 	btcPrivateKey, err := getBTCPrivateKey(pk)
 	c.Assert(err, IsNil)
 	c.Assert(btcPrivateKey, NotNil)
-}
-
-func (s *BitcoinSignerSuite) TestGetChainCfg(c *C) {
-	defer os.Setenv("NET", "testnet")
-	param := s.client.getChainCfg()
-	c.Assert(param, Equals, &chaincfg.TestNet3Params)
-	os.Setenv("NET", "mainnet")
-	param = s.client.getChainCfg()
-	c.Assert(param, Equals, &chaincfg.MainNetParams)
 }
 
 func (s *BitcoinSignerSuite) TestSignTx(c *C) {
@@ -293,39 +281,6 @@ func (s *BitcoinSignerSuite) TestSignTxWithoutPredefinedMaxGas(c *C) {
 
 	c.Assert(s.client.temporalStorage.UpsertTransactionFee(0.001, 10), IsNil)
 	buf, err = s.client.SignTx(txOutItem, 1)
-	c.Assert(err, IsNil)
-	c.Assert(buf, NotNil)
-}
-
-func (s *BitcoinSignerSuite) TestSignTxWithTSS(c *C) {
-	pubkey, err := common.NewPubKey("tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn")
-	c.Assert(err, IsNil)
-	addr, err := pubkey.GetAddress(common.BTCChain)
-	c.Assert(err, IsNil)
-	txOutItem := stypes.TxOutItem{
-		Chain:       common.BTCChain,
-		ToAddress:   addr,
-		VaultPubKey: "tthorpub1addwnpepqwznsrgk2t5vn2cszr6ku6zned6tqxknugzw3vhdcjza284d7djp5rql6vn",
-		Coins: common.Coins{
-			common.NewCoin(common.BTCAsset, cosmos.NewUint(10)),
-		},
-		MaxGas: common.Gas{
-			common.NewCoin(common.BTCAsset, cosmos.NewUint(1000)),
-		},
-		InHash:  "",
-		OutHash: "",
-	}
-	thorKeyManager := &tss.MockThorchainKeyManager{}
-	s.client.ksWrapper, err = NewKeySignWrapper(s.client.privateKey, thorKeyManager)
-	txHash := "66d2d6b5eb564972c59e4797683a1225a02515a41119f0a8919381236b63e948"
-	c.Assert(err, IsNil)
-	// utxo := NewUnspentTransactionOutput(*txHash, 0, 0.00018, 100, txOutItem.VaultPubKey)
-	blockMeta := utxo.NewBlockMeta("000000000000008a0da55afa8432af3b15c225cc7e04d32f0de912702dd9e2ae",
-		100,
-		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
-	blockMeta.AddCustomerTransaction(txHash)
-	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
-	buf, err := s.client.SignTx(txOutItem, 1)
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
 }

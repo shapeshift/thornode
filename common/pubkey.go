@@ -100,7 +100,7 @@ func (pubKey PubKey) GetAddress(chain Chain) (Address, error) {
 	if pubKey.IsEmpty() {
 		return NoAddress, nil
 	}
-	chainNetwork := GetCurrentChainNetwork()
+	chainNetwork := CurrentChainNetwork
 	if chain.IsEVM() {
 		return pubKey.EVMPubkeyToAddress()
 	}

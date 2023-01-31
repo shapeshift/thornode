@@ -148,7 +148,7 @@ func ConvertToNewBCHAddressFormat(addr Address) (Address, error) {
 	if !addr.IsChain(BCHChain) {
 		return NoAddress, fmt.Errorf("address(%s) is not BCH chain", addr)
 	}
-	network := GetCurrentChainNetwork()
+	network := CurrentChainNetwork
 	var param *bchchaincfg.Params
 	switch network {
 	case MockNet:
@@ -190,7 +190,7 @@ func ConvertToNewBCHAddressFormatV83(addr Address) (Address, error) {
 	if !addr.IsChain(BCHChain) {
 		return NoAddress, fmt.Errorf("address(%s) is not BCH chain", addr)
 	}
-	network := GetCurrentChainNetwork()
+	network := CurrentChainNetwork
 	var param *bchchaincfg.Params
 	switch network {
 	case MockNet:
@@ -330,7 +330,7 @@ func (addr Address) GetChain() Chain {
 }
 
 func (addr Address) GetNetwork(ver semver.Version, chain Chain) ChainNetwork {
-	currentNetwork := GetCurrentChainNetwork()
+	currentNetwork := CurrentChainNetwork
 	mainNetPredicate := func() ChainNetwork {
 		if currentNetwork == StageNet {
 			return StageNet

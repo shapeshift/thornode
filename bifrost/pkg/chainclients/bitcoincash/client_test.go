@@ -89,7 +89,6 @@ func (s *BitcoinCashSuite) SetUpTest(c *C) {
 	}
 	ns := strconv.Itoa(time.Now().Nanosecond())
 	ctypes.Network = ctypes.TestNetwork
-	c.Assert(os.Setenv("NET", "testnet"), IsNil)
 
 	thordir := filepath.Join(os.TempDir(), ns, ".thorcli")
 	cfg := config.BifrostClientConfiguration{
@@ -628,31 +627,10 @@ func (s *BitcoinCashSuite) TestGetChain(c *C) {
 	c.Assert(chain, Equals, common.BCHChain)
 }
 
-func (s *BitcoinCashSuite) TestGetAddress(c *C) {
-	c.Assert(os.Setenv("NET", "mainnet"), IsNil)
-	pubkey := common.PubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
-	addr := s.client.GetAddress(pubkey)
-	c.Assert(addr, Equals, "qpfztpuwwujkvvenjm7mg9d6mzqkmqwshv07z34njm")
-}
-
 func (s *BitcoinCashSuite) TestGetHeight(c *C) {
 	height, err := s.client.GetHeight()
 	c.Assert(err, IsNil)
 	c.Assert(height, Equals, int64(10))
-}
-
-func (s *BitcoinCashSuite) TestGetAccount(c *C) {
-	acct, err := s.client.GetAccount("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv", nil)
-	c.Assert(err, IsNil)
-	c.Assert(acct.AccountNumber, Equals, int64(0))
-	c.Assert(acct.Sequence, Equals, int64(0))
-	c.Assert(acct.Coins[0].Equals(common.NewCoin(common.BCHAsset, cosmos.NewUint(2502000000))), Equals, true)
-
-	acct1, err := s.client.GetAccount("", nil)
-	c.Assert(err, NotNil)
-	c.Assert(acct1.AccountNumber, Equals, int64(0))
-	c.Assert(acct1.Sequence, Equals, int64(0))
-	c.Assert(acct1.Coins, HasLen, 0)
 }
 
 func (s *BitcoinCashSuite) TestOnObservedTxIn(c *C) {

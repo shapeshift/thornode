@@ -44,7 +44,7 @@ func getDOGEPrivateKey(key cryptotypes.PrivKey) (*btcec.PrivateKey, error) {
 }
 
 func (c *Client) getChainCfg() *chaincfg.Params {
-	cn := common.GetCurrentChainNetwork()
+	cn := common.CurrentChainNetwork
 	switch cn {
 	case common.MockNet:
 		return &chaincfg.RegressionNetParams

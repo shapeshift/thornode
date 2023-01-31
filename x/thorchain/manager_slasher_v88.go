@@ -207,7 +207,7 @@ func (s *SlasherV88) LackSigning(ctx cosmos.Context, mgr Manager) error {
 		return fmt.Errorf("fail to get txout from block height(%d): %w", height, err)
 	}
 	for i, tx := range txs.TxArray {
-		if !common.GetCurrentChainNetwork().SoftEquals(tx.ToAddress.GetNetwork(mgr.GetVersion(), tx.Chain)) {
+		if !common.CurrentChainNetwork.SoftEquals(tx.ToAddress.GetNetwork(mgr.GetVersion(), tx.Chain)) {
 			continue // skip this transaction
 		}
 		if tx.OutHash.IsEmpty() {

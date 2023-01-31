@@ -33,6 +33,10 @@ BUILD_FLAGS := -ldflags '$(ldflags)' -tags ${TAG}
 TEST_BUILD_FLAGS := -parallel=1 -tags=mocknet
 GOBIN?=${GOPATH}/bin
 BINARIES=./cmd/thornode ./cmd/bifrost ./tools/generate
+BIFROST_UTXO_CLIENT_PKGS := ./bifrost/pkg/chainclients/dogecoin/... \
+		  ./bifrost/pkg/chainclients/bitcoin/... \
+		  ./bifrost/pkg/chainclients/bitcoincash/... \
+		  ./bifrost/pkg/chainclients/litecoin/...
 
 # pull branch name from CI if unset and available
 ifdef CI_COMMIT_BRANCH
@@ -135,6 +139,10 @@ test-coverage-sum:
 
 test:
 	@CGO_ENABLED=0 go test ${TEST_BUILD_FLAGS} ${TEST_DIR}
+	# network specific tests
+	@CGO_ENABLED=0 go test -tags stagenet ./common
+	@CGO_ENABLED=0 go test -tags testnet ./common ${BIFROST_UTXO_CLIENT_PKGS}
+	@CGO_ENABLED=0 go test -tags mainnet ./common ${BIFROST_UTXO_CLIENT_PKGS}
 
 test-race:
 	@go test -race ${TEST_BUILD_FLAGS} ${TEST_DIR}

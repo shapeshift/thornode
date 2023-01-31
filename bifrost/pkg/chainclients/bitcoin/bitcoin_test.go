@@ -89,7 +89,6 @@ func (s *BitcoinSuite) SetUpTest(c *C) {
 	}
 	ns := strconv.Itoa(time.Now().Nanosecond())
 	ctypes.Network = ctypes.TestNetwork
-	c.Assert(os.Setenv("NET", "testnet"), IsNil)
 
 	thordir := filepath.Join(os.TempDir(), ns, ".thorcli")
 	cfg := config.BifrostClientConfiguration{
@@ -221,30 +220,6 @@ func (s *BitcoinSuite) TestGetSender(c *C) {
 	sender, err = s.client.getSender(&tx)
 	c.Assert(err, IsNil)
 	c.Assert(sender, Equals, "tb1qdxxlx4r4jk63cve3rjpj428m26xcukjn5yegff")
-}
-
-func (s *BitcoinSuite) TestGetAddressesFromScriptPubKeyResult(c *C) {
-	addresses := s.client.getAddressesFromScriptPubKey(btcjson.ScriptPubKeyResult{
-		Asm:     "0 de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",
-		Hex:     "0014de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",
-		ReqSigs: 1,
-		Type:    "witness_v0_keyhash",
-		Addresses: []string{
-			"tb1qme85ln3xg2f462ulc7eghnyaug8t72ryhwzs8f",
-		},
-	})
-	c.Assert(addresses, HasLen, 1)
-	c.Assert(addresses[0], Equals, "tb1qme85ln3xg2f462ulc7eghnyaug8t72ryhwzs8f")
-
-	addresses = s.client.getAddressesFromScriptPubKey(btcjson.ScriptPubKeyResult{
-		Asm:       "0 de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",
-		Hex:       "0014de4f4fce2642935d2b9fc7b28bcc9de20ebf2864",
-		ReqSigs:   1,
-		Type:      "witness_v0_keyhash",
-		Addresses: nil,
-	})
-	c.Assert(addresses, HasLen, 1)
-	c.Assert(addresses[0], Equals, "tb1qme85ln3xg2f462ulc7eghnyaug8t72ryhwzs8f")
 }
 
 func (s *BitcoinSuite) TestGetMemo(c *C) {
@@ -655,31 +630,10 @@ func (s *BitcoinSuite) TestGetChain(c *C) {
 	c.Assert(chain, Equals, common.BTCChain)
 }
 
-func (s *BitcoinSuite) TestGetAddress(c *C) {
-	c.Assert(os.Setenv("NET", "mainnet"), IsNil)
-	pubkey := common.PubKey("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv")
-	addr := s.client.GetAddress(pubkey)
-	c.Assert(addr, Equals, "bc1q2gjc0rnhy4nrxvuklk6ptwkcs9kcr59mcl2q9j")
-}
-
 func (s *BitcoinSuite) TestGetHeight(c *C) {
 	height, err := s.client.GetHeight()
 	c.Assert(err, IsNil)
 	c.Assert(height, Equals, int64(10))
-}
-
-func (s *BitcoinSuite) TestGetAccount(c *C) {
-	acct, err := s.client.GetAccount("tthorpub1addwnpepqt7qug8vk9r3saw8n4r803ydj2g3dqwx0mvq5akhnze86fc536xcycgtrnv", nil)
-	c.Assert(err, IsNil)
-	c.Assert(acct.AccountNumber, Equals, int64(0))
-	c.Assert(acct.Sequence, Equals, int64(0))
-	c.Assert(acct.Coins[0].Amount.Uint64(), Equals, uint64(2502000000))
-
-	acct1, err := s.client.GetAccount("", nil)
-	c.Assert(err, NotNil)
-	c.Assert(acct1.AccountNumber, Equals, int64(0))
-	c.Assert(acct1.Sequence, Equals, int64(0))
-	c.Assert(acct1.Coins, HasLen, 0)
 }
 
 func (s *BitcoinSuite) TestOnObservedTxIn(c *C) {
@@ -1158,11 +1112,6 @@ func (s *BitcoinSuite) TestGetOutput(c *C) {
 }
 
 func (s *BitcoinSuite) TestIsValidUTXO(c *C) {
-	netValue := os.Getenv("NET")
-	defer func() {
-		c.Assert(os.Setenv("NET", netValue), IsNil)
-	}()
-	c.Assert(os.Unsetenv("NET"), IsNil)
 	// normal pay to pubkey hash segwit
 	c.Assert(s.client.isValidUTXO("00140653096f54ae1ae2d73291d15854aef08ebcfa8c"), Equals, true)
 	// pubkey hash , bitcoin client doesn't use it

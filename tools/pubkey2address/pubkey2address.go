@@ -17,7 +17,7 @@ func main() {
 	}
 
 	// Read in the configuration file for the sdk
-	nw := common.GetCurrentChainNetwork()
+	nw := common.CurrentChainNetwork
 	switch nw {
 	case common.TestNet:
 		fmt.Println("THORChain testnet:")

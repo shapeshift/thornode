@@ -181,7 +181,7 @@ func (c Chain) GetGasAssetDecimal() int64 {
 // IsValidAddress make sure the address is correct for the chain
 // And this also make sure testnet doesn't use mainnet address vice versa
 func (c Chain) IsValidAddress(addr Address) bool {
-	network := GetCurrentChainNetwork()
+	network := CurrentChainNetwork
 	prefix := c.AddressPrefix(network)
 	return strings.HasPrefix(addr.String(), prefix)
 }

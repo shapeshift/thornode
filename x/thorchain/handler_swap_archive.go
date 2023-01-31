@@ -107,7 +107,7 @@ func (h SwapHandler) validateV98(ctx cosmos.Context, msg MsgSwap) error {
 
 func (h SwapHandler) handleV95(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
-	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
+	if !common.CurrentChainNetwork.SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
 	}
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
@@ -390,7 +390,7 @@ func (h SwapHandler) getTotalActiveBond(ctx cosmos.Context) (cosmos.Uint, error)
 
 func (h SwapHandler) handleV92(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
-	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
+	if !common.CurrentChainNetwork.SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
 	}
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
@@ -438,7 +438,7 @@ func (h SwapHandler) handleV92(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 
 func (h SwapHandler) handleV93(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
-	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
+	if !common.CurrentChainNetwork.SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
 	}
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
@@ -660,7 +660,7 @@ func (h SwapHandler) validateV65(ctx cosmos.Context, msg MsgSwap) error {
 
 func (h SwapHandler) handleV81(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
-	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
+	if !common.CurrentChainNetwork.SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
 	}
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.Destination.GetChain(), common.RuneAsset())
@@ -701,7 +701,7 @@ func (h SwapHandler) handleV98(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 	// test that the network we are running matches the destination network
 	// Don't change msg.Destination here; this line was introduced to avoid people from swapping mainnet asset,
 	// but using testnet address.
-	if !common.GetCurrentChainNetwork().SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
+	if !common.CurrentChainNetwork.SoftEquals(msg.Destination.GetNetwork(h.mgr.GetVersion(), msg.Destination.GetChain())) {
 		return nil, fmt.Errorf("address(%s) is not same network", msg.Destination)
 	}
 	transactionFee := h.mgr.GasMgr().GetFee(ctx, msg.TargetAsset.GetChain(), common.RuneAsset())

@@ -1,10 +1,5 @@
 package common
 
-import (
-	"os"
-	"strings"
-)
-
 // ChainNetwork is to indicate which chain environment THORNode are working with
 type ChainNetwork uint8
 
@@ -18,20 +13,6 @@ const (
 	// Stagenet network for stage net
 	StageNet
 )
-
-// GetCurrentChainNetwork determinate what kind of network currently it is working with
-func GetCurrentChainNetwork() ChainNetwork {
-	if strings.EqualFold(os.Getenv("NET"), "mocknet") {
-		return MockNet
-	}
-	if strings.EqualFold(os.Getenv("NET"), "testnet") {
-		return TestNet
-	}
-	if strings.EqualFold(os.Getenv("NET"), "stagenet") {
-		return StageNet
-	}
-	return MainNet
-}
 
 // Soft Equals check is mainnet == mainet, or (testnet/mocknet == testnet/mocknet)
 func (net ChainNetwork) SoftEquals(net2 ChainNetwork) bool {
