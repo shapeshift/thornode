@@ -498,6 +498,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/QueueResponse"
 
+  /thorchain/queue/swap:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+    get:
+      description: Returns the swap queue.
+      operationId: queueSwap
+      tags:
+        - Queue
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SwapQueueResponse"
+
   /thorchain/queue/scheduled:
     parameters:
       - $ref: "#/components/parameters/queryHeight"
@@ -1397,6 +1413,51 @@ components:
           description: the aggregator target asset limit provided to transferOutAndCall
           example: "0x0a44986b70527154e9F4290eC14e5f0D1C861822"
 
+    MsgSwap:
+      type: object
+      required:
+        - tx
+        - target_asset
+        - trade_target
+        - affiliate_basis_points
+      properties:
+        tx:
+          $ref: "#/components/schemas/Tx"
+        target_asset:
+          type: string
+          example: "ETH.ETH"
+          description: the asset to be swapped to
+        destination:
+          type: string
+          example: "0x66fb1cd65b97fa40457b90b7d1ca6b92cb64b32b"
+          description: the destination address to receive the swap output
+        trade_target:
+          type: string
+          description: the minimum amount of output asset to receive (else cancelling and refunding the swap)
+        affiliate_address:
+          type: string
+          example: "thor1f3s7q037eancht7sg0aj995dht25rwrnu4ats5"
+          description: the affiliate address which will receive any affiliate fee
+        affiliate_basis_points:
+          type: string
+          description: the affiliate fee in basis points
+        signer:
+          type: string
+          description: the signer (sender) of the transaction
+        aggregator:
+          type: string
+          description: the contract address if an aggregator is specified for a non-THORChain SwapOut
+        aggregator_target_address:
+          type: string
+          description: the desired output asset of the aggregator SwapOut
+        aggregator_target_limit:
+          type: string
+          description: the minimum amount of SwapOut asset to receive (else cancelling the SwapOut and receiving THORChain's output)
+        order_type:
+          type: integer
+          format: int64
+          description: 0 if a market order (immediately completed or refunded), 1 if a limit order (held until fulfillable)
+
     TxOutItem:
       type: object
       required:
@@ -2093,6 +2154,11 @@ components:
         scheduled_outbound_value:
           type: string
           description: scheduled outbound value in RUNE
+
+    SwapQueueResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/MsgSwap"
 
     OutboundResponse:
       type: array

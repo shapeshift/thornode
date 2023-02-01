@@ -104,6 +104,8 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryPendingOutbound(ctx, mgr)
 		case q.QueryScheduledOutbound.Key:
 			return queryScheduledOutbound(ctx, mgr)
+		case q.QuerySwapQueue.Key:
+			return querySwapQueue(ctx, mgr)
 		case q.QueryTssKeygenMetrics.Key:
 			return queryTssKeygenMetric(ctx, path[1:], req, mgr)
 		case q.QueryTssMetrics.Key:
@@ -1586,6 +1588,22 @@ func queryPendingOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 				result = append(result, tx)
 			}
 		}
+	}
+
+	return jsonify(ctx, result)
+}
+
+func querySwapQueue(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
+	var result []MsgSwap
+
+	iterator := mgr.Keeper().GetSwapQueueIterator(ctx)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var msg MsgSwap
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &msg); err != nil {
+			continue
+		}
+		result = append(result, msg)
 	}
 
 	return jsonify(ctx, result)
