@@ -1527,6 +1527,7 @@ components:
         - status
         - pub_key_set
         - validator_cons_pub_key
+        - peer_id
         - active_block_height
         - status_since
         - node_operator_address
@@ -1565,6 +1566,10 @@ components:
           type: string
           description: the consensus pub key for the node
           example: "thor104gsqwta048e80j909g6y9kkqdjrw0lff866ew"
+        peer_id:
+          type: string
+          description: the P2PID (:6040/p2pid endpoint) of the node
+          example: "16Uiu2HAmRgsiryer3pWCPJz18PQZDFFs1GBqCPGGJczrQXdoTBMk"
         active_block_height:
           type: integer
           format: int64

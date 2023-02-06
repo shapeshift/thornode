@@ -19,6 +19,7 @@ import (
 	openapi "gitlab.com/thorchain/thornode/openapi/gen"
 	q "gitlab.com/thorchain/thornode/x/thorchain/query"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
+	"gitlab.com/thorchain/tss/go-tss/conversion"
 )
 
 // NewQuerier is the module level router for state queries
@@ -151,6 +152,16 @@ func checkPending(ctx cosmos.Context, mgr *Mgrs, voter ObservedTxVoter) (bool, b
 	}
 
 	return isSwap, isPending
+}
+
+func getPeerIDFromPubKey(pubkey common.PubKey) string {
+	peerID, err := conversion.GetPeerIDFromPubKey(pubkey.String())
+	if err != nil {
+		// Don't break the entire endpoint if something goes wrong with the Peer ID derivation.
+		return err.Error()
+	}
+
+	return peerID.String()
 }
 
 func jsonify(ctx cosmos.Context, r any) ([]byte, error) {
@@ -573,6 +584,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	}
 
 	result := NewQueryNodeAccount(nodeAcc)
+	result.PeerID = getPeerIDFromPubKey(nodeAcc.PubKeySet.Secp256k1)
 	result.SlashPoints = slashPts
 
 	result.Jail = Jail{
@@ -749,12 +761,14 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 			// ignore the node , it left and also has very little bond
 			continue
 		}
+
 		slashPts, err := mgr.Keeper().GetNodeAccountSlashPoints(ctx, na.NodeAddress)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get node slash points: %w", err)
 		}
 
 		result[i] = NewQueryNodeAccount(na)
+		result[i].PeerID = getPeerIDFromPubKey(na.PubKeySet.Secp256k1)
 		result[i].SlashPoints = slashPts
 		if na.Status == NodeActive {
 			reward, err := getNodeCurrentRewards(ctx, mgr, na, lastChurnHeight, network.BondRewardRune, totalEffectiveBond, bondHardCap)

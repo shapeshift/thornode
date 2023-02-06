@@ -817,3 +817,13 @@ func (s *QuerierSuite) TestQueryVersion(c *C) {
 	c.Assert(r.Current.String(), Equals, "4.5.6",
 		Commentf("query should use stored version"))
 }
+
+func (s *QuerierSuite) TestPeerIDFromPubKey(c *C) {
+	// Success example, secp256k1 pubkey from Mocknet node tthor1jgnk2mg88m57csrmrlrd6c3qe4lag3e33y2f3k
+	var mocknetPubKey common.PubKey = "tthorpub1addwnpepqt8tnluxnk3y5quyq952klgqnlmz2vmaynm40fp592s0um7ucvjh5lc2l2z"
+	c.Assert(getPeerIDFromPubKey(mocknetPubKey), Equals, "16Uiu2HAm9LeTqHJWSa67eHNZzSz3yKb64dbj7A4V1Ckv9hXyDkQR")
+
+	// Failure example.
+	expectedErrorString := "fail to parse account pub key(nonsense): decoding bech32 failed: invalid separator index -1"
+	c.Assert(getPeerIDFromPubKey("nonsense"), Equals, expectedErrorString)
+}

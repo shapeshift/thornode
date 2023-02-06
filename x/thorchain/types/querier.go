@@ -184,6 +184,7 @@ type QueryNodeAccount struct {
 	Status              NodeStatus                     `json:"status"`
 	PubKeySet           common.PubKeySet               `json:"pub_key_set"`
 	ValidatorConsPubKey string                         `json:"validator_cons_pub_key"`
+	PeerID              string                         `json:"peer_id"`
 	ActiveBlockHeight   int64                          `json:"active_block_height"`
 	StatusSince         int64                          `json:"status_since"`
 	NodeOperatorAddress common.Address                 `json:"node_operator_address"`
