@@ -1382,7 +1382,12 @@ components:
           type: integer
           format: int64
           example: 7581334
-          description: the block height of the observed transaction on the source chain, not provided if chain is THOR
+          description: same as external_observed_height, to be deprecated in favour of external_observed_height
+        external_observed_height:
+          type: integer
+          format: int64
+          example: 7581334
+          description: the block height on the external source chain when the transaction was observed, not provided if chain is THOR
         signers:
           type: array
           items:
@@ -1399,7 +1404,12 @@ components:
           type: integer
           format: int64
           example: 7581334
-          description: the finalised height of the observed transaction on the source chain, not provided if chain is THOR
+          description: same as external_confirmation_delay_height, to be deprecated in favour of external_confirmation_delay_height
+        external_confirmation_delay_height:
+          type: integer
+          format: int64
+          example: 7581334
+          description: the block height on the external source chain when confirmation counting will be complete, not provided if chain is THOR
         aggregator:
           type: string
           description: the outbound aggregator to use, will also match a suffix
@@ -1780,6 +1790,16 @@ components:
       properties:
         observed_tx:
           $ref: "#/components/schemas/ObservedTx"
+        finalised_height:
+          type: integer
+          format: int64
+          example: 7581334
+          description: the thorchain height at which the outbound was finalised
+        outbound_height:
+          type: integer
+          format: int64
+          example: 1234
+          description: the thorchain height for which the outbound was scheduled
         keysign_metric:
           $ref: "#/components/schemas/TssKeysignMetric"
 
@@ -1827,6 +1847,7 @@ components:
           type: integer
           format: int64
           example: 1234
+          description: the thorchain height for which the outbound was scheduled
 
     TxSignersResponse: *tx-details-response
 

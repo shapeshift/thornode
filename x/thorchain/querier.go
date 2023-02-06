@@ -1090,7 +1090,9 @@ func queryTxVoters(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 		}
 	}
 
-	return jsonify(ctx, voter)
+	result := NewQueryTxSigners(voter)
+
+	return jsonify(ctx, result)
 }
 
 func queryTxStages(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
@@ -1149,12 +1151,16 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs
 		ctx.Logger().Error("fail to get keysign metrics", "error", err)
 	}
 	result := struct {
-		ObservedTx     `json:"observed_tx"`
-		KeysignMetrics types.TssKeysignMetric `json:"keysign_metric"`
+		QueryObservedTx `json:"observed_tx"`
+		FinalisedHeight int64                  `json:"finalised_height,omitempty"`
+		OutboundHeight  int64                  `json:"outbound_height,omitempty"`
+		KeysignMetrics  types.TssKeysignMetric `json:"keysign_metric"`
 	}{
-		KeysignMetrics: *keysignMetric,
+		FinalisedHeight: voter.FinalisedHeight,
+		OutboundHeight:  voter.OutboundHeight,
+		KeysignMetrics:  *keysignMetric,
 	}
-	result.ObservedTx = voter.GetTx(nodeAccounts)
+	result.QueryObservedTx = NewQueryObservedTx(voter.GetTx(nodeAccounts))
 	return jsonify(ctx, result)
 }
 
