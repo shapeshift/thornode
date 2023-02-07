@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // VersionHandler is to handle Version message
@@ -147,5 +148,12 @@ func (h VersionHandler) handleV57(ctx cosmos.Context, msg MsgSetVersion) error {
 			cosmos.NewAttribute("thor_address", msg.Signer.String()),
 			cosmos.NewAttribute("version", msg.Version)))
 
+	return nil
+}
+
+// VersionAnteHandler called by the ante handler to gate mempool entry
+// and also during deliver. Store changes will persist if this function
+// succeeds, regardless of the success of the transaction.
+func VersionAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgSetVersion) error {
 	return nil
 }

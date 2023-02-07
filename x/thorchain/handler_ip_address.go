@@ -8,6 +8,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // IPAddressHandler is to handle ip address message
@@ -132,5 +133,12 @@ func (h IPAddressHandler) handleV57(ctx cosmos.Context, msg MsgSetIPAddress) err
 			cosmos.NewAttribute("thor_address", msg.Signer.String()),
 			cosmos.NewAttribute("address", msg.IPAddress)))
 
+	return nil
+}
+
+// IPAddressAnteHandler called by the ante handler to gate mempool entry
+// and also during deliver. Store changes will persist if this function
+// succeeds, regardless of the success of the transaction.
+func IPAddressAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgSetIPAddress) error {
 	return nil
 }

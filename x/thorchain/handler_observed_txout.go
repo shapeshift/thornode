@@ -12,6 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // ObservedTxOutHandler process MsgObservedTxOut messages
@@ -265,4 +266,11 @@ func (h ObservedTxOutHandler) handleV96(ctx cosmos.Context, msg MsgObservedTxOut
 		}
 	}
 	return &cosmos.Result{}, nil
+}
+
+// ObservedTxOutAnteHandler called by the ante handler to gate mempool entry
+// and also during deliver. Store changes will persist if this function
+// succeeds, regardless of the success of the transaction.
+func ObservedTxOutAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgObservedTxOut) error {
+	return nil
 }

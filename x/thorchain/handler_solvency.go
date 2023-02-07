@@ -13,6 +13,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SolvencyHandler is to process MsgSolvency message from bifrost
@@ -280,4 +281,11 @@ func (h SolvencyHandler) deductVaultBlockPendingOutbound(vault Vault, block *TxO
 		}
 	}
 	return vault
+}
+
+// SolvencyAnteHandler called by the ante handler to gate mempool entry
+// and also during deliver. Store changes will persist if this function
+// succeeds, regardless of the success of the transaction.
+func SolvencyAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgSolvency) error {
+	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // SendHandler handle MsgSend
@@ -120,4 +121,11 @@ func (h SendHandler) handleV1(ctx cosmos.Context, msg MsgSend) (*cosmos.Result, 
 	)
 
 	return &cosmos.Result{}, nil
+}
+
+// SendAnteHandler called by the ante handler to gate mempool entry
+// and also during deliver. Store changes will persist if this function
+// succeeds, regardless of the success of the transaction.
+func SendAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgSend) error {
+	return nil
 }

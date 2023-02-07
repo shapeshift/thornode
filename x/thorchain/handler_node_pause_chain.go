@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // NodePauseChainHandler is to handle node pause chain messages
@@ -126,5 +127,12 @@ func (h NodePauseChainHandler) handleV87(ctx cosmos.Context, msg MsgNodePauseCha
 		ctx.Logger().Error("fail to emit set_mimir event", "error", err)
 	}
 
+	return nil
+}
+
+// NodePauseChainAnteHandler called by the ante handler to gate mempool entry
+// and also during deliver. Store changes will persist if this function
+// succeeds, regardless of the success of the transaction.
+func NodePauseChainAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgNodePauseChain) error {
 	return nil
 }

@@ -11,6 +11,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 var (
@@ -220,5 +221,12 @@ func (h MimirHandler) handleV92(ctx cosmos.Context, msg MsgMimir) error {
 			ctx.Logger().Error("fail to emit set_mimir event", "error", err)
 		}
 	}
+	return nil
+}
+
+// MimirAnteHandler called by the ante handler to gate mempool entry
+// and also during deliver. Store changes will persist if this function
+// succeeds, regardless of the success of the transaction.
+func MimirAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgMimir) error {
 	return nil
 }

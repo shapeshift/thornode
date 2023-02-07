@@ -11,6 +11,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // DepositHandler is to process native messages on THORChain
@@ -248,4 +249,11 @@ func (h DepositHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
 	} else {
 		h.addSwapV65(ctx, msg)
 	}
+}
+
+// DepositAnteHandler called by the ante handler to gate mempool entry
+// and also during deliver. Store changes will persist if this function
+// succeeds, regardless of the success of the transaction.
+func DepositAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgDeposit) error {
+	return nil
 }

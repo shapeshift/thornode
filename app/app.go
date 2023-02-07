@@ -276,15 +276,18 @@ func New(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	anteHandler, err := ante.NewAnteHandler(ante.HandlerOptions{
+
+	anteHandler, err := NewAnteHandler(AnteHandlerOptions{
 		AccountKeeper:   app.AccountKeeper,
 		BankKeeper:      app.BankKeeper,
 		SigGasConsumer:  ante.DefaultSigVerificationGasConsumer,
 		SignModeHandler: encodingConfig.TxConfig.SignModeHandler(),
+		THORChainKeeper: app.thorchainKeeper,
 	})
 	if err != nil {
 		tmos.Exit(err.Error())
 	}
+
 	app.SetAnteHandler(anteHandler)
 	app.SetEndBlocker(app.EndBlocker)
 

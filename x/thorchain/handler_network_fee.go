@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // NetworkFeeHandler a handler to process MsgNetworkFee messages
@@ -118,4 +119,11 @@ func (h NetworkFeeHandler) handleV47(ctx cosmos.Context, msg MsgNetworkFee) (*co
 		return nil, ErrInternal(err, "fail to save network fee")
 	}
 	return &cosmos.Result{}, nil
+}
+
+// NetworkFeeAnteHandler called by the ante handler to gate mempool entry
+// and also during deliver. Store changes will persist if this function
+// succeeds, regardless of the success of the transaction.
+func NetworkFeeAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgNetworkFee) error {
+	return nil
 }
