@@ -539,7 +539,7 @@ func (c *Client) getMemPool(height int64) (types.TxIn, error) {
 			}
 			txInItem, err := c.getTxIn(result, height, true)
 			if err != nil {
-				c.logger.Error().Err(err).Msg("fail to get TxInItem")
+				c.logger.Debug().Err(err).Msg("fail to get TxInItem")
 				return nil
 			}
 			if txInItem.IsEmpty() {
@@ -854,7 +854,7 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 		c.removeFromMemPoolCache(tx.Hash)
 		txInItem, err := c.getTxIn(&block.Tx[idx], block.Height, false)
 		if err != nil {
-			c.logger.Err(err).Msg("fail to get TxInItem")
+			c.logger.Debug().Err(err).Msg("fail to get TxInItem")
 			continue
 		}
 		if txInItem.IsEmpty() {
