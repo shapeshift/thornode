@@ -1,7 +1,10 @@
 package thorchain
 
 import (
+	"crypto/sha256"
 	"fmt"
+
+	"github.com/blang/semver"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -123,6 +126,16 @@ type DroppedSwapOutTx struct {
 //
 //nolint:unused,deadcode
 func refundDroppedSwapOutFromRUNE(ctx cosmos.Context, mgr *Mgrs, droppedTx DroppedSwapOutTx) error {
+	version := mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.106.0")):
+		return refundDroppedSwapOutFromRUNEV106(ctx, mgr, droppedTx)
+	default:
+		return refundDroppedSwapOutFromRUNEV103(ctx, mgr, droppedTx)
+	}
+}
+
+func refundDroppedSwapOutFromRUNEV106(ctx cosmos.Context, mgr *Mgrs, droppedTx DroppedSwapOutTx) error {
 	txId, err := common.NewTxID(droppedTx.inboundHash)
 	if err != nil {
 		return err
@@ -197,14 +210,24 @@ func refundDroppedSwapOutFromRUNE(ctx cosmos.Context, mgr *Mgrs, droppedTx Dropp
 		return err
 	}
 
+	memo := fmt.Sprintf("REFUND:%s", inboundTx.ID)
+
+	// Generate a fake TxID from the refund memo for Midgard to record.
+	// Since the inbound hash is expected to be unique, the sha256 hash is expected to be unique.
+	hash := fmt.Sprintf("%X", sha256.Sum256([]byte(memo)))
+	fakeTxID, err := common.NewTxID(hash)
+	if err != nil {
+		return err
+	}
+
 	// create and emit a fake tx and swap event to keep pools balanced in Midgard
 	fakeSwapTx := common.Tx{
-		ID:          "",
+		ID:          fakeTxID,
 		Chain:       common.ETHChain,
 		FromAddress: txVoter.Actions[0].ToAddress,
 		ToAddress:   common.Address(txVoter.Actions[0].Aggregator),
 		Coins:       common.NewCoins(gasAssetCoin),
-		Memo:        fmt.Sprintf("REFUND:%s", inboundTx.ID),
+		Memo:        memo,
 	}
 
 	swapEvt := NewEventSwap(

@@ -1,6 +1,9 @@
 package thorchain
 
 import (
+	"crypto/sha256"
+	"fmt"
+
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -281,4 +284,17 @@ func (s *StoreManagerTestSuite) TestMigrateStoreV94(c *C) {
 	poolLunaAfter, err := mgr.Keeper().GetPool(ctx, common.LUNAAsset)
 	c.Assert(err, IsNil)
 	c.Assert(poolLunaAfter.IsEmpty(), Equals, true)
+}
+
+// Check that the hashing behaves as expeected.
+func (s *StoreManagerTestSuite) TestMemoHash(c *C) {
+	inboundTxID := "B07A6B1B40ADBA2E404D9BCE1BEF6EDE6F70AD135E83806E4F4B6863CF637D0B"
+	memo := fmt.Sprintf("REFUND:%s", inboundTxID)
+
+	// This is the hash produced if using sha256 instead of Keccak-256
+	// (which gave EE31ACC02D631DC3220990A1DD2E9030F4CFC227A61E975B5DEF1037106D1CCD)
+	hash := fmt.Sprintf("%X", sha256.Sum256([]byte(memo)))
+	fakeTxID, err := common.NewTxID(hash)
+	c.Assert(err, IsNil)
+	c.Assert(fakeTxID.String(), Equals, "AC0605F714563B3D5A34C64CCB6D90C1EA4EF13E1BA5E8638FE1FC796547332F")
 }
