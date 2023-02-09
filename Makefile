@@ -155,7 +155,7 @@ test-race:
 # ------------------------------ Test Regressions ------------------------------
 
 test-regression:
-	@docker build -t thornode-regtest -f ci/Dockerfile.regtest .
+	@DOCKER_BUILDKIT=1 docker build -t thornode-regtest -f ci/Dockerfile.regtest .
 	@docker run --rm ${DOCKER_TTY_ARGS} \
 		-e DEBUG -e RUN -e EXPORT \
 		-e HOME=/regtest -e UID=$(shell id -u) -e GID=$(shell id -g) \
