@@ -304,8 +304,8 @@ func (op *OpCreateBlocks) Execute(p *os.Process, logs chan string) error {
 		return errors.New("expected exit code")
 	}
 
-	// avoid minor raciness in lock release after end block
-	time.Sleep(50 * time.Millisecond)
+	// avoid minor raciness after end block
+	time.Sleep(200 * time.Millisecond)
 
 	return nil
 }
