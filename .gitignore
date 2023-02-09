@@ -15,6 +15,7 @@ observe
 openapi/openapi.json
 openapi/gen/
 test/smoke/thornode_proto
+test/regression/mnt/coverage
 __pycache__
 
 # IDE

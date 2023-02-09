@@ -38,6 +38,11 @@ BIFROST_UTXO_CLIENT_PKGS := ./bifrost/pkg/chainclients/dogecoin/... \
 		  ./bifrost/pkg/chainclients/bitcoincash/... \
 		  ./bifrost/pkg/chainclients/litecoin/...
 
+# docker tty args are disabled in CI
+ifndef CI
+DOCKER_TTY_ARGS=-it
+endif
+
 # pull branch name from CI if unset and available
 ifdef CI_COMMIT_BRANCH
 	BRANCH?=$(shell echo ${CI_COMMIT_BRANCH})
@@ -147,8 +152,36 @@ test:
 test-race:
 	@go test -race ${TEST_BUILD_FLAGS} ${TEST_DIR}
 
-test-watch:
-	@gow -c test ${TEST_BUILD_FLAGS} ${TEST_DIR}
+# ------------------------------ Test Regressions ------------------------------
+
+test-regression:
+	@docker build -t thornode-regtest -f ci/Dockerfile.regtest .
+	@docker run --rm ${DOCKER_TTY_ARGS} \
+		-e DEBUG -e RUN -e EXPORT \
+		-e HOME=/regtest -e UID=$(shell id -u) -e GID=$(shell id -g) \
+		-p 1317:1317 -p 26657:26657 \
+		-v $(shell pwd)/test/regression/mnt:/mnt \
+		-w /app thornode-regtest sh -c 'make _test-regression'
+
+test-regression-coverage:
+	@go tool cover -html=test/regression/mnt/coverage/coverage.txt
+
+# internal target used in docker build
+_build-test-regression:
+	@go install -ldflags '$(ldflags)' -tags=mocknet,regtest ./cmd/thornode
+	@go build -ldflags '$(ldflags)' -cover -tags=mocknet,regtest -o /regtest/cover-thornode ./cmd/thornode
+	@go build -ldflags '$(ldflags)' -tags mocknet -o /regtest/regtest ./test/regression/cmd
+
+# internal target used in test run
+_test-regression:
+	@rm -rf /mnt/coverage && mkdir -p /mnt/coverage
+	@cd test/regression && /regtest/regtest
+	@go tool covdata textfmt -i /mnt/coverage -o /mnt/coverage/coverage.txt
+	@grep -v -E -e archive.go -e 'v[0-9]+.go' -e openapi/gen /mnt/coverage/coverage.txt > /mnt/coverage/coverage-filtered.txt
+	@go tool cover -func /mnt/coverage/coverage-filtered.txt > /mnt/coverage/func-coverage.txt
+	@awk '/^total:/ {print "Regression Coverage: " $$3}' /mnt/coverage/func-coverage.txt > /mnt/total-coverage.txt
+	@cat /mnt/total-coverage.txt
+	@chown -R ${UID}:${GID} /mnt
 
 # ------------------------------ Test Sync ------------------------------
 

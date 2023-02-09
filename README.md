@@ -239,14 +239,25 @@ Run tests
 make test
 ```
 
-To run test live when you change a file, use...
+### Regression Tests
+
+We expose a testing framework that allows the definition of test cases and suites using a DSL in YAML. Providing a regular expression to the `RUN` environment variable will match against files in `test/regression/suites` to filter tests to run.
 
 ```bash
-go get -u github.com/mitranim/gow
-make test-watch
+make test-regression
+
+# with more detailed logs
+DEBUG=1 make test-regression
+
+# with specific test filters
+RUN=core make test-regression
+RUN=mimir/deprecate-ilp test-regression
+
+# overwrite export state
+EXPORT=1 make test-regression
 ```
 
-Ledger cli support:
+### Ledger CLI Support
 
 ```bash
 cd cmd/thornode

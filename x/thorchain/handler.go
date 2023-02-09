@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/blang/semver"
@@ -20,7 +21,21 @@ type MsgHandler interface {
 
 // NewExternalHandler returns a handler for "thorchain" type messages.
 func NewExternalHandler(mgr Manager) cosmos.Handler {
-	return func(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error) {
+	return func(ctx cosmos.Context, msg cosmos.Msg) (_ *cosmos.Result, err error) {
+		// recover
+		if mgr.GetVersion().GTE(semver.MustParse("1.106.0")) {
+			defer func() {
+				if r := recover(); r != nil {
+					// print stack
+					stack := make([]byte, 1024)
+					length := runtime.Stack(stack, true)
+					ctx.Logger().Error("panic", "msg", msg)
+					fmt.Println(string(stack[:length]))
+					err = fmt.Errorf("panic: %v", r)
+				}
+			}()
+		}
+
 		ctx = ctx.WithEventManager(cosmos.NewEventManager())
 		if mgr.GetVersion().LT(semver.MustParse("1.90.0")) {
 			_ = mgr.Keeper().GetLowestActiveVersion(ctx) // TODO: remove me on hard fork

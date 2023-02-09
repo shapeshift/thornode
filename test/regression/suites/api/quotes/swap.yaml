@@ -1,0 +1,162 @@
+{{ template "default-state.yaml" }}
+---
+{{ template "btc-eth-pool-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: eth and btc pools should exist
+endpoint: http://localhost:1317/thorchain/pools
+asserts:
+  - .|length == 2
+---
+########################################################################################
+# quote and swap rune to btc
+########################################################################################
+type: check
+description: check swap quote
+endpoint: http://localhost:1317/thorchain/quote/swap
+params:
+  from_asset: THOR.RUNE
+  to_asset: BTC.BTC
+  amount: 1000000000
+  destination: {{ addr_btc_fox }}
+asserts:
+  - .expected_amount_out|tonumber == 959290
+  - .memo == "=:BTC.BTC:{{ addr_btc_fox }}"
+  - .inbound_address == "{{ addr_thor_dog }}"
+---
+type: tx-deposit
+signer: {{ addr_thor_fox }}
+coins:
+  - amount: "1000000000"
+    asset: "rune"
+memo: "=:BTC.BTC:{{ addr_btc_fox }}"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: rune balance should decrease for swap
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
+asserts:
+  - .balances|length == 1
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2498998000000
+---
+type: check
+description: outbound should be scheduled
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+  - .[0]|.in_hash == "{{ native_txid -1 }}"
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 1 }}'
+    chain: BTC
+    from_address: {{ addr_btc_dog }}
+    to_address: {{ addr_btc_fox }}
+    coins:
+      - amount: "959290"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10500"
+        asset: "BTC.BTC"
+    memo: "OUT:{{ native_txid -1 }}"
+  block_height: 2
+  finalise_height: 2
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: outbound should have been observed
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+########################################################################################
+# quote and swap btc to rune
+########################################################################################
+type: check
+description: check swap quote
+endpoint: http://localhost:1317/thorchain/quote/swap
+params:
+  from_asset: BTC.BTC
+  to_asset: THOR.RUNE
+  amount: 50000000
+  destination: {{ addr_thor_fox }}
+asserts:
+  - .expected_amount_out|tonumber == 22513064028
+  - .memo == "=:THOR.RUNE:{{ addr_thor_fox }}"
+  - .inbound_address == "{{ addr_btc_dog }}"
+---
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 2 }}'
+    chain: BTC
+    from_address: {{ addr_btc_fox }}
+    to_address: {{ addr_btc_dog }}
+    coins:
+      - amount: "50000000"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10500"
+        asset: "BTC.BTC"
+    memo: "=:THOR.RUNE:{{ addr_thor_fox }}"
+  block_height: 3
+  finalise_height: 3
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: rune balance should increase after swap
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
+asserts:
+  - .balances|length == 1
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2521511064028
+---
+########################################################################################
+# quote and swap rune to btc synth
+########################################################################################
+type: check
+description: check swap quote
+endpoint: http://localhost:1317/thorchain/quote/swap
+params:
+  from_asset: THOR.RUNE
+  to_asset: BTC/BTC
+  amount: 1000000000
+asserts:
+  - .expected_amount_out|tonumber == 1880902
+---
+type: tx-deposit
+signer: {{ addr_thor_fox }}
+coins:
+  - amount: "1000000000"
+    asset: "rune"
+memo: "=:BTC/BTC"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: account should have spent rune and received synth btc
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
+asserts:
+  - .balances|length == 2
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2520509064028
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 1880902
+---
+########################################################################################
+# TODO: (fix required) quote and swap rune to btc synth with tolerance
+########################################################################################

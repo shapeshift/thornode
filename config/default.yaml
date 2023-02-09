@@ -175,10 +175,10 @@ thor:
       allow_duplicate_ip: true
     consensus:
       timeout_commit: 5s
-      # these are temporarily set to recover from consensus failure
-      timeout_propose_delta: 1ms
-      timeout_prevote_delta: 1ms
-      timeout_precommit_delta: 1ms
+      # these can be set to 1ms temporarily to recover from consensus failure faster
+      timeout_propose_delta: 500ms
+      timeout_prevote_delta: 500ms
+      timeout_precommit_delta: 500ms
     state_sync:
       enable: false
       # The thorchain.info RPC is unreliable, so Nine Realms will be the trusted source

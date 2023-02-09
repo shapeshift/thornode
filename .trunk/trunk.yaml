@@ -26,6 +26,10 @@ lint:
         - prettier
       paths:
         - "test/fixtures/endpoints/auth/accounts/malformed.json"
+        - "test/regression/README.md"
+        - "test/regression/mnt/exports/*"
+        - "test/regression/suites/*"
+        - "test/regression/templates/*"
 actions:
   disabled:
     - trunk-announce

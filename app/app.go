@@ -305,17 +305,6 @@ func New(
 // Name returns the name of the App
 func (app *THORChainApp) Name() string { return app.BaseApp.Name() }
 
-// BeginBlocker application updates every begin block
-func (app *THORChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
-	res := app.mm.BeginBlock(ctx, req)
-	return res
-}
-
-// EndBlocker application updates every end block
-func (app *THORChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	return app.mm.EndBlock(ctx, req)
-}
-
 // InitChainer application update at chain initialization
 func (app *THORChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	var genesisState GenesisState

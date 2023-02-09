@@ -29,7 +29,7 @@ stages:
   - generate
   - test
   - build
-  - smoke-test
+  - test-long
 
 generate:
   cache: []
@@ -137,7 +137,7 @@ build-smoke:
     - make smoke-push-image
 
 smoke-test:
-  stage: smoke-test
+  stage: test-long
   cache: {}
   image: docker:20.10.12
   services:
@@ -154,21 +154,7 @@ smoke-test:
   variables:
     MIDGARD_REPO: https://gitlab.com/thorchain/midgard.git
     MIDGARD_IMAGE: registry.gitlab.com/thorchain/midgard:develop
-    THOR_BLOCK_TIME: 0.8s
-    BLOCK_TIME: 0.8s
-    TERRA_BLOCK_TIME: 0.8s
-    GAIA_BLOCK_TIME: 0.8s
-    BLOCK_SCANNER_BACKOFF: 0.8s
-    ETH_BLOCK_TIME: "1"
   before_script:
-    # https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27384#note_497228752
-    - |
-      for i in $(seq 1 30)
-      do
-          docker info && break
-          echo "Waiting for docker to start"
-          sleep 1s
-      done
     - apk -U add git make protoc bash
     - (git clone --single-branch -b $CI_COMMIT_REF_NAME $MIDGARD_REPO && cd ./midgard && IMAGE_NAME=$MIDGARD_IMAGE make build && cd ..) || (git clone --single-branch -b develop $MIDGARD_REPO && docker pull $MIDGARD_IMAGE)
     - |
@@ -186,6 +172,26 @@ smoke-test:
       for name in $(docker ps --format '{{.Names}}'); do
         docker logs "$name" >"./logs/$name.log" 2>&1
       done
+
+test-regression:
+  stage: test-long
+  cache: {}
+  image: docker:20.10.12
+  services:
+    - docker:20.10.12-dind
+  except:
+    - schedules
+  environment:
+    name: integration
+  variables:
+    DOCKER_BUILDKIT: "1"
+  before_script:
+    - apk -U add make git bash
+  script:
+    - make test-regression
+    # committed coverage number must be accurate
+    - git diff -- test/regression/mnt/total-coverage.txt
+    - git diff --quiet -- test/regression/mnt/total-coverage.txt || (echo "Commit latest regression coverage" && exit 1)
 
 include:
   - template: Security/SAST.gitlab-ci.yml

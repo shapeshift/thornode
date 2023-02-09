@@ -118,7 +118,7 @@ func Init() {
 		"THOR_BLOCK_TIME",
 	))
 	assert(viper.BindEnv(
-		"thornode.tendermint.consensus.timeout_commit",
+		"thor.tendermint.consensus.timeout_commit",
 		"THOR_BLOCK_TIME",
 	))
 	assert(viper.BindEnv("bifrost.tss.bootstrap_peers", "PEER"))
@@ -381,7 +381,11 @@ func InitThornode(ctx context.Context) {
 	}
 
 	// fetch genesis
-	thornodeFetchGenesis(seedAddrs)
+	if len(seedAddrs) > 0 {
+		thornodeFetchGenesis(seedAddrs)
+	} else {
+		log.Warn().Msg("no seeds, skipping genesis fetch")
+	}
 }
 
 // -------------------------------------------------------------------------------------
@@ -683,6 +687,12 @@ func thornodeSeeds() (seedAddrs, tmSeeds []string) {
 
 	// resolve any hostnames
 	seedAddrs = resolveAddrs(seedAddrs)
+
+	// skip further steps if there were no seeds to check
+	if len(seedAddrs) == 0 {
+		log.Warn().Msg("no seeds found")
+		return
+	}
 
 	// initialize seed with their node id if the network matches
 	wg := sync.WaitGroup{}

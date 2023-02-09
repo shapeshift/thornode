@@ -354,7 +354,7 @@ func calcAsymWithdrawalV1(s, t, a cosmos.Uint) cosmos.Uint {
 // calculate percentage (in basis points) of the amount of impermanent loss protection
 func calcImpLossProtectionAmtV1(ctx cosmos.Context, lastDepositHeight, target int64) int64 {
 	age := ctx.BlockHeight() - lastDepositHeight
-	if age < 17280 { // set minimum age to 1 day (17280 blocks)
+	if age < ILPMinimumBlocks {
 		return 0
 	}
 	if age >= target {

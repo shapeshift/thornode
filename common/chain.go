@@ -12,7 +12,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-var (
+const (
 	EmptyChain = Chain("")
 	BNBChain   = Chain("BNB")
 	ETHChain   = Chain("ETH")
@@ -28,6 +28,19 @@ var (
 	SigningAlgoSecp256k1 = SigningAlgo("secp256k1")
 	SigningAlgoEd25519   = SigningAlgo("ed25519")
 )
+
+var AllChains = [...]Chain{
+	BNBChain,
+	ETHChain,
+	BTCChain,
+	LTCChain,
+	BCHChain,
+	DOGEChain,
+	THORChain,
+	TERRAChain,
+	GAIAChain,
+	AVAXChain,
+}
 
 type SigningAlgo string
 
