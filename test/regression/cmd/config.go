@@ -117,10 +117,10 @@ const (
 var httpClient = &http.Client{
 	Transport: &http.Transport{
 		Dial: (&net.Dialer{
-			Timeout: time.Second,
+			Timeout: 5 * time.Second * getTimeFactor(),
 		}).Dial,
 	},
-	Timeout: 3 * time.Second,
+	Timeout: 5 * time.Second * getTimeFactor(),
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

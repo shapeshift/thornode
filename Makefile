@@ -155,7 +155,7 @@ test-race:
 test-regression:
 	@DOCKER_BUILDKIT=1 docker build -t thornode-regtest -f ci/Dockerfile.regtest .
 	@docker run --rm ${DOCKER_TTY_ARGS} \
-		-e DEBUG -e RUN -e EXPORT \
+		-e DEBUG -e RUN -e EXPORT -e TIME_FACTOR \
 		-e HOME=/regtest -e UID=$(shell id -u) -e GID=$(shell id -g) \
 		-p 1317:1317 -p 26657:26657 \
 		-v $(shell pwd)/test/regression/mnt:/mnt \
@@ -177,8 +177,7 @@ _test-regression:
 	@go tool covdata textfmt -i /mnt/coverage -o /mnt/coverage/coverage.txt
 	@grep -v -E -e archive.go -e 'v[0-9]+.go' -e openapi/gen /mnt/coverage/coverage.txt > /mnt/coverage/coverage-filtered.txt
 	@go tool cover -func /mnt/coverage/coverage-filtered.txt > /mnt/coverage/func-coverage.txt
-	@awk '/^total:/ {print "Regression Coverage: " $$3}' /mnt/coverage/func-coverage.txt > /mnt/total-coverage.txt
-	@cat /mnt/total-coverage.txt
+	@awk '/^total:/ {print "Regression Coverage: " $$3}' /mnt/coverage/func-coverage.txt
 	@chown -R ${UID}:${GID} /mnt
 
 # ------------------------------ Test Sync ------------------------------

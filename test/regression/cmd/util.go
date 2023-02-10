@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -68,4 +69,12 @@ func processRunning(pid int) bool {
 	}
 	err = process.Signal(os.Signal(nil))
 	return err == nil
+}
+
+func getTimeFactor() time.Duration {
+	tf, err := strconv.ParseInt(os.Getenv("TIME_FACTOR"), 10, 64)
+	if err != nil {
+		return time.Duration(1)
+	}
+	return time.Duration(tf)
 }

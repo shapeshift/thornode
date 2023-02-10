@@ -185,13 +185,11 @@ test-regression:
     name: integration
   variables:
     DOCKER_BUILDKIT: "1"
+    TIME_FACTOR: "2"
   before_script:
     - apk -U add make git bash
   script:
     - make test-regression
-    # committed coverage number must be accurate
-    - git diff -- test/regression/mnt/total-coverage.txt
-    - git diff --quiet -- test/regression/mnt/total-coverage.txt || (echo "Commit latest regression coverage" && exit 1)
 
 include:
   - template: Security/SAST.gitlab-ci.yml

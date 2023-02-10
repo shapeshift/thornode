@@ -158,7 +158,7 @@ func run(path string) error {
 	log.Debug().Msg("Rendering config")
 	cmd = exec.Command("thornode", "render-config")
 	// block time should be short, but all consecutive checks must complete within timeout
-	cmd.Env = append(os.Environ(), "THOR_TENDERMINT_CONSENSUS_TIMEOUT_COMMIT=1s")
+	cmd.Env = append(os.Environ(), fmt.Sprintf("THOR_TENDERMINT_CONSENSUS_TIMEOUT_COMMIT=%s", time.Second*getTimeFactor()))
 	err = cmd.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to render config")

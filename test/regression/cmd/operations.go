@@ -305,7 +305,7 @@ func (op *OpCreateBlocks) Execute(p *os.Process, logs chan string) error {
 	}
 
 	// avoid minor raciness after end block
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond * getTimeFactor())
 
 	return nil
 }

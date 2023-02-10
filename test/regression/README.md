@@ -214,3 +214,13 @@ We leverage functionality in Golang 1.20 to track code coverage on the `thornode
 ```bash
 make test-regression test-regression-coverage
 ```
+
+### Flakiness
+
+The nature of these tests should be more predictable than the existing smoke tests in the repo, but there are still some caveats. Since block creation acquires a lock in process that will prevent query handling, all checks between blocks must complete within the block time - this block time defaults to `1s`. Additionally there is some raciness between the return of the application `EndBlock` and the time at which Tendermint, Cosmos, and Thorchain endpoints will execute against the new blocks data - we have a default sleep after the return of `EndBlock` set to `200ms`.
+
+In order to avoid raciness more conveniently while running on resource constrained hardware, all time values above can optionally be increased by an integer factor defined in the `TIME_FACTOR` environment variable. If you find tests are hitting timeouts or returning inconsistent data, simply increase this factor (this will slow down the test run):
+
+```bash
+TIME_FACTOR=2 make test-regression
+```
