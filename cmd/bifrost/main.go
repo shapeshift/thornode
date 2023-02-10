@@ -120,7 +120,7 @@ func main() {
 		cfg.TSS.P2PPort,
 		tmPrivateKey,
 		cfg.TSS.Rendezvous,
-		app.DefaultNodeHome(""),
+		app.DefaultNodeHome(),
 		common.TssConfig{
 			EnableMonitor:   true,
 			KeyGenTimeout:   300 * time.Second, // must be shorter than constants.JailTimeKeygen

@@ -87,10 +87,6 @@ func (m *MockAddLiquidityKeeper) AddOwnership(ctx cosmos.Context, coin common.Co
 	return nil
 }
 
-type MockConstant struct {
-	constants.DummyConstants
-}
-
 func (s *HandlerAddLiquiditySuite) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }

@@ -50,7 +50,7 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 		WithInput(os.Stdin).
 		WithAccountRetriever(types.AccountRetriever{}).
 		WithBroadcastMode(flags.BroadcastBlock).
-		WithHomeDir(app.DefaultNodeHome(appName))
+		WithHomeDir(app.DefaultNodeHome())
 
 	rootCmd := &cobra.Command{
 		Use:   appName,
@@ -73,20 +73,20 @@ func NewRootCmd() (*cobra.Command, params.EncodingConfig) {
 
 func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 	rootCmd.AddCommand(
-		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome(appName)),
+		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome()),
 		renderConfigCommand(),
-		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome(appName)),
+		genutilcli.CollectGenTxsCmd(banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome()),
 		genutilcli.MigrateGenesisCmd(),
-		genutilcli.GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome(appName)),
+		genutilcli.GenTxCmd(app.ModuleBasics, encodingConfig.TxConfig, banktypes.GenesisBalancesIterator{}, app.DefaultNodeHome()),
 		genutilcli.ValidateGenesisCmd(app.ModuleBasics),
-		AddGenesisAccountCmd(app.DefaultNodeHome(appName)),
+		AddGenesisAccountCmd(app.DefaultNodeHome()),
 		tmcli.NewCompletionCmd(rootCmd, true),
 		debug.Cmd(),
 		GetEd25519Keys(),
 		GetPubKeyCmd(),
 	)
 	rootCmd.SetOut(rootCmd.OutOrStdout())
-	server.AddCommands(rootCmd, app.DefaultNodeHome(appName), newApp, createAppAndExport, addModuleInitFlags)
+	server.AddCommands(rootCmd, app.DefaultNodeHome(), newApp, createAppAndExport, addModuleInitFlags)
 
 	// add keybase, auxiliary RPC, query, and tx child commands
 	rootCmd.AddCommand(
@@ -95,7 +95,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 		txCommand(),
 		cli.GetUtilCmd(),
 		compactCommand(),
-		keys.Commands(app.DefaultNodeHome(appName)),
+		keys.Commands(app.DefaultNodeHome()),
 	)
 }
 
@@ -193,7 +193,7 @@ func compactCommand() *cobra.Command {
 		DisableFlagParsing:         true,
 		SuggestionsMinimumDistance: 2,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			data := filepath.Join(app.DefaultNodeHome(appName), "data")
+			data := filepath.Join(app.DefaultNodeHome(), "data")
 			db, err := dbm.NewGoLevelDB("application", data)
 			if err != nil {
 				return err

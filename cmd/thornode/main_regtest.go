@@ -35,7 +35,7 @@ func main() {
 	syn := make(chan error)
 	go func() {
 		rootCmd, _ := cmd.NewRootCmd()
-		syn <- svrcmd.Execute(rootCmd, app.DefaultNodeHome(""))
+		syn <- svrcmd.Execute(rootCmd, app.DefaultNodeHome())
 	}()
 
 	sig := make(chan os.Signal, 1)

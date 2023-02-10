@@ -63,7 +63,7 @@ import (
 
 var (
 	// DefaultNodeHome default home directories for the application daemon
-	DefaultNodeHome = func(appName string) string {
+	DefaultNodeHome = func() string {
 		return os.ExpandEnv("$HOME/.thornode")
 	}
 

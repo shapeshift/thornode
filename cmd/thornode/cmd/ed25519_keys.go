@@ -49,7 +49,7 @@ func ed25519Keys(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	db, err := keyring.Open(getKeyringConfig(sdk.KeyringServiceName(), app.DefaultNodeHome(appName), password))
+	db, err := keyring.Open(getKeyringConfig(sdk.KeyringServiceName(), app.DefaultNodeHome(), password))
 	if err != nil {
 		return fmt.Errorf("fail to open key store: %w", err)
 	}

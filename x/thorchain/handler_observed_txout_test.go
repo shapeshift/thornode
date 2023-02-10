@@ -60,10 +60,6 @@ func (s *HandlerObservedTxOutSuite) TestValidate(c *C) {
 	c.Assert(err, NotNil)
 }
 
-type TestObservedTxOutFailureKeeper struct {
-	keeper.KVStoreDummy
-}
-
 type TestObservedTxOutHandleKeeper struct {
 	keeper.KVStoreDummy
 	nas        NodeAccounts

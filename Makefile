@@ -76,11 +76,9 @@ smoke-protob:
 	@rm -rf "${SMOKE_PROTO_DIR}"
 	@mkdir -p "${SMOKE_PROTO_DIR}"
 	@echo "Processing thornode proto files..."
-	@protoc \
-  	-I ./proto \
-  	-I ./third_party/proto \
-  	--python_betterproto_out="${SMOKE_PROTO_DIR}" \
-  	$(shell find ./proto -path -prune -o -name '*.proto' -print0 | xargs -0)
+	@protoc -I ./proto -I ./third_party/proto \
+	--python_betterproto_out="${SMOKE_PROTO_DIR}" \
+	$(shell find ./proto -path -prune -o -name '*.proto' -print0 | xargs -0)
 
 smoke-protob-docker:
 	@docker run --rm -v $(shell pwd):/app -w /app \

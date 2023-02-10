@@ -374,13 +374,7 @@ func queryYggdrasilVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 		}
 	}
 
-	res, err := json.MarshalIndent(respVaults, "", "	")
-	if err != nil {
-		ctx.Logger().Error("fail to marshal vaults response to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal response to json: %w", err)
-	}
-
-	return res, nil
+	return jsonify(ctx, respVaults)
 }
 
 func queryVaultsPubkeys(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
@@ -874,17 +868,11 @@ func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.Request
 			savers = append(savers, NewQuerySaver(lp, pool))
 		}
 	}
-	var res []byte
 	if !isSavers {
-		res, err = json.MarshalIndent(lps, "", "	")
+		return jsonify(ctx, lps)
 	} else {
-		res, err = json.MarshalIndent(savers, "", "	")
+		return jsonify(ctx, savers)
 	}
-	if err != nil {
-		ctx.Logger().Error("fail to marshal liquidity providers to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal liquidity providers to json: %w", err)
-	}
-	return res, nil
 }
 
 // queryLiquidityProvider
@@ -934,19 +922,14 @@ func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQ
 		return nil, fmt.Errorf("fail to get pool: %w", err)
 	}
 
-	var res []byte
 	if !isSavers {
 		synthSupply := mgr.Keeper().GetTotalSupply(ctx, poolAsset.GetSyntheticAsset())
-		res, err = json.MarshalIndent(NewQueryLiquidityProvider(lp, pool, synthSupply, mgr.GetVersion()), "", "	")
+		liqp := NewQueryLiquidityProvider(lp, pool, synthSupply, mgr.GetVersion())
+		return jsonify(ctx, liqp)
 	} else {
 		saver := NewQuerySaver(lp, pool)
-		res, err = json.MarshalIndent(saver, "", "	")
+		return jsonify(ctx, saver)
 	}
-	if err != nil {
-		ctx.Logger().Error("fail to marshal liquidity provider to json", "error", err)
-		return nil, fmt.Errorf("fail to marshal liquidity provider to json: %w", err)
-	}
-	return res, nil
 }
 
 func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
