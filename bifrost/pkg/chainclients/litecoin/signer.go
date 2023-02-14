@@ -2,6 +2,8 @@ package litecoin
 
 import (
 	"bytes"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -454,7 +456,7 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 		}
 	}()
 	// broadcast tx
-	txHash, err := c.client.SendRawTransaction(redeemTx, true)
+	txHash, err := c.sendRawTransaction(redeemTx)
 	if txHash != nil {
 		bm.AddSelfTransaction(txHash.String())
 	}
@@ -477,6 +479,36 @@ func (c *Client) BroadcastTx(txOut stypes.TxOutItem, payload []byte) (string, er
 		c.logger.Err(err).Msgf("fail to mark tx out item (%+v) as signed", txOut)
 	}
 	return txHash.String(), nil
+}
+
+func (c *Client) sendRawTransaction(tx *wire.MsgTx) (*chainhash.Hash, error) {
+	if !c.isBitcoindPost19 {
+		return c.client.SendRawTransaction(tx, true)
+	}
+	buf := bytes.NewBuffer(make([]byte, 0, tx.SerializeSize()))
+	if err := tx.Serialize(buf); err != nil {
+		return nil, fmt.Errorf("fail to serialise transaction,%w", err)
+	}
+	txHex := hex.EncodeToString(buf.Bytes())
+	if c.defaultMaxFee == nil {
+		maxFee, err := json.Marshal(ltcutil.SatoshiPerBitcoin / 10)
+		if err != nil {
+			return nil, fmt.Errorf("fail to serialise default MaxFee,%w", err)
+		}
+		c.defaultMaxFee = maxFee
+	}
+	result, err := c.client.RawRequest("sendrawtransaction", []json.RawMessage{
+		json.RawMessage("\"" + txHex + "\""),
+		c.defaultMaxFee,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var hash string
+	if err := json.Unmarshal(result, &hash); err != nil {
+		return nil, err
+	}
+	return chainhash.NewHashFromStr(hash)
 }
 
 // consolidateUTXOs only required when there is a new block

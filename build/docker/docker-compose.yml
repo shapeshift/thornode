@@ -433,7 +433,7 @@ services:
     profiles:
       - mocknet
       - mocknet-cluster
-    image: registry.gitlab.com/thorchain/devops/node-launcher:litecoin-daemon-0.18.1
+    image: registry.gitlab.com/thorchain/devops/node-launcher:litecoin-daemon-0.21.1rc1 # 0.21.1rc1 is the version can be used with mocknet, 0.21.2 will fail with mocknet at block height 431
     restart: unless-stopped
     environment:
       RPC_PORT: "38443"

@@ -135,6 +135,9 @@ func (s *LitecoinSuite) SetUpTest(c *C) {
 				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/getrawmempool.json")
 			case r.Method == "getblockstats":
 				httpTestHandler(c, rw, "../../../../test/fixtures/ltc/blockstats.json")
+			case r.Method == "createwallet":
+				_, err := rw.Write([]byte(`{ "result": null, "error": null, "id": 1 }`))
+				c.Assert(err, IsNil)
 			}
 		} else if strings.HasPrefix(req.RequestURI, "/thorchain/node/") {
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")

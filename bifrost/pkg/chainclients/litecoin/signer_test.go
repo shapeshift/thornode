@@ -122,6 +122,9 @@ func (s *LitecoinSignerSuite) SetUpTest(c *C) {
 				} else {
 					httpTestHandler(c, rw, "../../../../test/fixtures/ltc/listunspent.json")
 				}
+			case "createwallet":
+				_, err := rw.Write([]byte(`{ "result": null, "error": null, "id": 1 }`))
+				c.Assert(err, IsNil)
 			}
 		}
 	}))
