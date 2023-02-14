@@ -22,7 +22,14 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/conversion"
 )
 
-var initManager = func(mgr *Mgrs, ctx cosmos.Context) {}
+var (
+	initManager   = func(mgr *Mgrs, ctx cosmos.Context) {}
+	optionalQuery = func(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+		return nil, cosmos.ErrUnknownRequest(
+			fmt.Sprintf("unknown thorchain query endpoint: %s", path[0]),
+		)
+	}
+)
 
 // NewQuerier is the module level router for state queries
 func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
@@ -124,9 +131,7 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 		case q.QueryQuoteSaverWithdraw.Key:
 			return queryQuoteSaverWithdraw(ctx, path[1:], req, mgr)
 		default:
-			return nil, cosmos.ErrUnknownRequest(
-				fmt.Sprintf("unknown thorchain query endpoint: %s", path[0]),
-			)
+			return optionalQuery(ctx, path, req, mgr)
 		}
 	}
 }

@@ -79,6 +79,10 @@ var (
 	QueryQuoteSwap           = Query{Key: "quoteswap", EndpointTemplate: "/%s/quote/swap"}
 	QueryQuoteSaverDeposit   = Query{Key: "quotesaverdeposit", EndpointTemplate: "/%s/quote/saver/deposit"}
 	QueryQuoteSaverWithdraw  = Query{Key: "quotesaverwithdraw", EndpointTemplate: "/%s/quote/saver/withdraw"}
+
+	// queries only available on regtest builds
+	QueryExport      = Query{Key: "export", EndpointTemplate: "/%s/export"}
+	QueryBlockEvents = Query{Key: "blockevents", EndpointTemplate: "/%s/blockevents"}
 )
 
 // Queries all queries
@@ -129,4 +133,6 @@ var Queries = []Query{
 	QueryQuoteSwap,
 	QueryQuoteSaverDeposit,
 	QueryQuoteSaverWithdraw,
+	QueryExport,
+	QueryBlockEvents,
 }

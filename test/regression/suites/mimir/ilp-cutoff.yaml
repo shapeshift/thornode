@@ -18,22 +18,22 @@ count: 1
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
 txs:
-- tx:
-    id: '{{ observe_txid 1 }}'
-    chain: BTC
-    from_address: {{ addr_btc_cat }}
-    to_address: {{ addr_btc_dog }}
-    coins:
-      - amount: "100000000"
-        asset: "BTC.BTC"
-        decimals: 8
-    gas:
-      - amount: "10000"
-        asset: "BTC.BTC"
-    memo: "+:BTC.BTC:{{ addr_thor_cat }}"
-  block_height: 1
-  finalise_height: 1
-  observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 1 }}"
+      chain: BTC
+      from_address: {{ addr_btc_cat }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "100000000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "+:BTC.BTC:{{ addr_thor_cat }}"
+    block_height: 1
+    finalise_height: 1
+    observed_pub_key: {{ pubkey_dog }}
 ---
 type: tx-deposit
 signer: {{ addr_thor_cat }}
@@ -93,38 +93,38 @@ asserts:
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
 txs:
-- tx:
-    id: '{{ observe_txid 2 }}'
-    chain: BTC
-    from_address: {{ addr_btc_cat }}
-    to_address: {{ addr_btc_dog }}
-    coins:
-      - amount: "50000000"
-        asset: "BTC.BTC"
-        decimals: 8
-    gas:
-      - amount: "10000"
-        asset: "BTC.BTC"
-    memo: "=:THOR.RUNE:{{ addr_thor_cat }}"
-  block_height: 2
-  finalise_height: 2
-  observed_pub_key: {{ pubkey_dog }}
-- tx:
-    id: '{{ observe_txid 3 }}'
-    chain: BTC
-    from_address: {{ addr_btc_cat }}
-    to_address: {{ addr_btc_dog }}
-    coins:
-      - amount: "50000000"
-        asset: "BTC.BTC"
-        decimals: 8
-    gas:
-      - amount: "10000"
-        asset: "BTC.BTC"
-    memo: "=:THOR.RUNE:{{ addr_thor_cat }}"
-  block_height: 2
-  finalise_height: 2
-  observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 2 }}"
+      chain: BTC
+      from_address: {{ addr_btc_cat }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "50000000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "=:THOR.RUNE:{{ addr_thor_cat }}"
+    block_height: 2
+    finalise_height: 2
+    observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 3 }}"
+      chain: BTC
+      from_address: {{ addr_btc_cat }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "50000000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "=:THOR.RUNE:{{ addr_thor_cat }}"
+    block_height: 2
+    finalise_height: 2
+    observed_pub_key: {{ pubkey_dog }}
 ---
 type: create-blocks
 count: 1
@@ -159,9 +159,9 @@ count: 1
 ---
 type: check
 description: withdraw should have ILP
-endpoint: http://localhost:26657/block_results
+endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
-  - .result.txs_results[0].log | fromjson | .[0].events[] | select(.type=="withdraw") | .attributes[] | select(.key=="imp_loss_protection") | .value | tonumber > 0
+  - .tx[]|select(.imp_loss_protection)|.imp_loss_protection|tonumber == 1331481
 ---
 ########################################################################################
 # verify ILP is paid with cutoff in the future
@@ -189,9 +189,9 @@ count: 1
 ---
 type: check
 description: withdraw should have ILP with cutoff in the future
-endpoint: http://localhost:26657/block_results
+endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
-  - .result.txs_results[0].log | fromjson | .[0].events[] | select(.type=="withdraw") | .attributes[] | select(.key=="imp_loss_protection") | .value | tonumber > 0
+  - .tx[]|select(.imp_loss_protection)|.imp_loss_protection|tonumber == 2706820
 ---
 ########################################################################################
 # verify ILP is not paid with cutoff in the past
@@ -219,6 +219,6 @@ count: 1
 ---
 type: check
 description: withdraw should have no ILP
-endpoint: http://localhost:26657/block_results
+endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
-  - .result.txs_results[0].log | fromjson | .[0].events[] | select(.type=="withdraw") | .attributes[] | select(.key=="imp_loss_protection") | .value | tonumber == 0
+  - .tx[]|select(.imp_loss_protection)|.imp_loss_protection|tonumber == 0
