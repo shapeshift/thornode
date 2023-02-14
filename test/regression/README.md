@@ -209,10 +209,10 @@ ETH == 100 RUNE
 
 ### Coverage
 
-We leverage functionality in Golang 1.20 to track code coverage on the `thornode` binary during live execution. Coverage is cleared after each run and a convenience target exists to open the coverage data in the browser.
+We leverage functionality in Golang 1.20 to track code coverage on the `thornode` binary during live execution. Every run of the regression tests will generate a coverage percentage with archived, versioned, and generated code filtered - the value will be output to the console at the end of the test run. Coverage data is cleared after each run and a convenience target exists to open the coverage data from the last test run in the browser.
 
 ```bash
-make test-regression test-regression-coverage
+make test-regression-coverage
 ```
 
 ### Flakiness

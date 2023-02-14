@@ -386,13 +386,13 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		}
 
 		// get from asset pool
-		fromPool, err := mgr.Keeper().GetPool(ctx, fromAsset)
+		fromPool, err := mgr.Keeper().GetPool(ctx, fromAsset.GetLayer1Asset())
 		if err != nil {
 			return quoteErrorResponse(fmt.Errorf("failed to get pool: %w", err))
 		}
 
 		// get to asset pool
-		toPool, err := mgr.Keeper().GetPool(ctx, toAsset)
+		toPool, err := mgr.Keeper().GetPool(ctx, toAsset.GetLayer1Asset())
 		if err != nil {
 			return quoteErrorResponse(fmt.Errorf("failed to get pool: %w", err))
 		}
