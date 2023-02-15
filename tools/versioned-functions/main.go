@@ -219,6 +219,9 @@ func main() {
 		return strings.ToLower(ii.String()) < strings.ToLower(jj.String())
 	})
 
+	// print package so gofumpt can format
+	fmt.Println("package main")
+
 	// print the versioned functions
 	for _, fn := range fns {
 		pos := fset.Position(fn.Pos())
