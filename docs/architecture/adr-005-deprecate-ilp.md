@@ -6,7 +6,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -25,10 +25,6 @@ While we have seen that THORChain’s Impermanent Loss Protection (ILP) has rema
 ## Alternatives Considered
 
 An alternative to ILP was considered: “Deposit Protection”. The goal of Deposit Protection was to deprecate ILP, while protecting dual-sided LPs from negative LUVI (though not protecting them from impermanent loss). However, upon further consideration, the core team and Nine Realms determined that Deposit Protection does not achieve the stated goal, and that it would still create an unbounded liability to the protocol reserve. This was deemed unacceptable and therefore has been scrapped.
-
-## Decision
-
-TBD.
 
 ## References
 

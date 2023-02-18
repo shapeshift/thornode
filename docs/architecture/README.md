@@ -40,6 +40,7 @@ None
 - [002 - Remove Yggdrasil Vaults](./adr-002-removeyggvaults.md)
 - [003 - Floored Outbound Fee](./adr-003-flooredoutboundfee.md)
 - [004 - Keyshare Backups](./adr-004-keyshare-backups.md)
+- [005 - Deprecate Impermanent Loss Protection](./adr-005-deprecate-ilp.md)
 
 ### Deprecated
 
@@ -51,7 +52,7 @@ None
 
 ### Proposed
 
-- [005 - Deprecate Impermanent Loss Protection](./adr-005-deprecate-ilp.md)
+- [006 - Enable POL](./adr-006-enable-pol.md)
 
 ### On Pause
 
