@@ -63,15 +63,36 @@ func run(path string) error {
 		log.Fatal().Msgf("test name collision: %s", filepath.Base(path))
 	}
 
+	// read the file
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to open test file")
+	}
+	fileBytes, err := io.ReadAll(f)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to read test file")
+	}
+	f.Close()
+
+	// track line numbers
+	opLines := []int{0}
+	scanner := bufio.NewScanner(bytes.NewBuffer(fileBytes))
+	for i := 0; scanner.Scan(); i++ {
+		line := scanner.Text()
+		if line == "---" {
+			opLines = append(opLines, i+2)
+		}
+	}
+
 	// parse the template
-	tmpl, err := tmpls.ParseFiles(path)
+	tmpl, err := tmpls.Parse(string(fileBytes))
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to parse template")
 	}
 
 	// render the template
 	buf := &bytes.Buffer{}
-	err = tmpl.ExecuteTemplate(buf, filepath.Base(path), nil)
+	err = tmpl.Execute(buf, nil)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to render template")
 	}
@@ -122,7 +143,7 @@ func run(path string) error {
 	stateOpCount := 0
 	for i, op := range ops {
 		if _, ok := op.(*OpState); ok {
-			log.Info().Msgf(">>> [%d] %s", i+1, op.OpType())
+			log.Info().Int("line", opLines[i]).Msgf(">>> [%d] %s", i+1, op.OpType())
 			err = op.Execute(nil, nil)
 			if err != nil {
 				log.Fatal().Err(err).Msg("failed to execute state operation")
@@ -131,6 +152,7 @@ func run(path string) error {
 		}
 	}
 	ops = ops[stateOpCount:]
+	opLines = opLines[stateOpCount:]
 
 	// validate genesis
 	log.Debug().Msg("Validating genesis")
@@ -215,10 +237,11 @@ func run(path string) error {
 	var returnErr error
 	log.Info().Msgf("Executing %d operations", len(ops))
 	for i, op := range ops {
-		log.Info().Msgf(">>> [%d] %s", stateOpCount+i+1, op.OpType())
+		log.Info().Int("line", opLines[i]).Msgf(">>> [%d] %s", stateOpCount+i+1, op.OpType())
 		returnErr = op.Execute(thornode.Process, stderrLines)
 		if returnErr != nil {
 			log.Error().Err(returnErr).
+				Int("line", opLines[i]).
 				Int("op", stateOpCount+i+1).
 				Str("type", op.OpType()).
 				Str("path", path).

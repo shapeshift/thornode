@@ -99,8 +99,8 @@ func NewOperation(opMap map[string]any) Operation {
 		log.Fatal().Interface("op", opMap).Err(err).Msg("failed to decode operation")
 	}
 
-	// ensure check operations have a description and default status check to 200
-	if oc, ok := op.(*OpCheck); ok {
+	// require check description and default status check to 200 if endpoint is set
+	if oc, ok := op.(*OpCheck); ok && oc.Endpoint != "" {
 		if oc.Description == "" {
 			log.Fatal().Interface("op", opMap).Msg("check operation must have a description")
 		}
@@ -173,6 +173,11 @@ type OpCheck struct {
 }
 
 func (op *OpCheck) Execute(_ *os.Process, logs chan string) error {
+	// abort if no endpoint is set (empty check op is allowed for breakpoint convenience)
+	if op.Endpoint == "" {
+		return fmt.Errorf("check")
+	}
+
 	// build request
 	req, err := http.NewRequest("GET", op.Endpoint, nil)
 	if err != nil {

@@ -72,6 +72,7 @@ func queryBlockEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	r := response{}
 	for _, event := range blockResults.Result.BeginBlockEvents {
 		m := make(map[string]string)
+		m["type"] = event.Type
 		for _, attr := range event.Attributes {
 			m[string(attr.Key)] = string(attr.Value)
 		}
@@ -79,6 +80,7 @@ func queryBlockEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	}
 	for _, event := range blockResults.Result.EndBlockEvents {
 		m := make(map[string]string)
+		m["type"] = event.Type
 		for _, attr := range event.Attributes {
 			m[string(attr.Key)] = string(attr.Value)
 		}
@@ -87,6 +89,7 @@ func queryBlockEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, 
 	for _, tx := range blockResults.Result.TxsResults {
 		for _, event := range tx.Events {
 			m := make(map[string]string)
+			m["type"] = event.Type
 			for _, attr := range event.Attributes {
 				m[string(attr.Key)] = string(attr.Value)
 			}

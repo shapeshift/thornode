@@ -25,21 +25,21 @@ count: 1
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
 txs:
-- tx:
-    id: '{{ observe_txid 1 }}'
-    chain: BNB
-    from_address: {{ addr_bnb_pig }}
-    to_address: {{ addr_bnb_dog }}
-    coins:
-      - amount: "100000000"
-        asset: "BNB.RUNE-B1A"
-    gas:
-      - amount: "10000"
-        asset: "BNB.BNB"
-    memo: "SWITCH:{{ addr_thor_pig }}"
-  block_height: 1
-  finalise_height: 1
-  observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 1 }}"
+      chain: BNB
+      from_address: {{ addr_bnb_pig }}
+      to_address: {{ addr_bnb_dog }}
+      coins:
+        - amount: "100000000"
+          asset: "BNB.RUNE-B1A"
+      gas:
+        - amount: "10000"
+          asset: "BNB.BNB"
+      memo: "SWITCH:{{ addr_thor_pig }}"
+    block_height: 1
+    finalise_height: 1
+    observed_pub_key: {{ pubkey_dog }}
 ---
 type: create-blocks
 count: 1
@@ -59,21 +59,21 @@ count: 2
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
 txs:
-- tx:
-    id: '{{ observe_txid 2 }}'
-    chain: BNB
-    from_address: {{ addr_bnb_pig }}
-    to_address: {{ addr_bnb_dog }}
-    coins:
-      - amount: "100000000"
-        asset: "BNB.RUNE-B1A"
-    gas:
-      - amount: "10000"
-        asset: "BNB.BNB"
-    memo: "SWITCH:{{ addr_thor_pig }}"
-  block_height: 2
-  finalise_height: 2
-  observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 2 }}"
+      chain: BNB
+      from_address: {{ addr_bnb_pig }}
+      to_address: {{ addr_bnb_dog }}
+      coins:
+        - amount: "100000000"
+          asset: "BNB.RUNE-B1A"
+      gas:
+        - amount: "10000"
+          asset: "BNB.BNB"
+      memo: "SWITCH:{{ addr_thor_pig }}"
+    block_height: 2
+    finalise_height: 2
+    observed_pub_key: {{ pubkey_dog }}
 ---
 type: create-blocks
 count: 1
@@ -93,21 +93,21 @@ count: 2
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
 txs:
-- tx:
-    id: '{{ observe_txid 3 }}'
-    chain: BNB
-    from_address: {{ addr_bnb_pig }}
-    to_address: {{ addr_bnb_dog }}
-    coins:
-      - amount: "100000000"
-        asset: "BNB.RUNE-B1A"
-    gas:
-      - amount: "10000"
-        asset: "BNB.BNB"
-    memo: "SWITCH:{{ addr_thor_pig }}"
-  block_height: 3
-  finalise_height: 3
-  observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 3 }}"
+      chain: BNB
+      from_address: {{ addr_bnb_pig }}
+      to_address: {{ addr_bnb_dog }}
+      coins:
+        - amount: "100000000"
+          asset: "BNB.RUNE-B1A"
+      gas:
+        - amount: "10000"
+          asset: "BNB.BNB"
+      memo: "SWITCH:{{ addr_thor_pig }}"
+    block_height: 3
+    finalise_height: 3
+    observed_pub_key: {{ pubkey_dog }}
 ---
 type: create-blocks
 count: 1
