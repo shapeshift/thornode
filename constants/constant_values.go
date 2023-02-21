@@ -34,9 +34,6 @@ const (
 	ValidatorsChangeWindow
 	LeaveProcessPerBlockHeight
 	BadValidatorRedline
-	BadValidatorRate
-	OldValidatorRate
-	LowBondValidatorRate
 	LackOfObservationPenalty
 	SigningTransactionPeriod
 	DoubleSignMaxAge
@@ -127,9 +124,6 @@ var nameToString = map[ConstantName]string{
 	ValidatorsChangeWindow:             "ValidatorsChangeWindow",
 	LeaveProcessPerBlockHeight:         "LeaveProcessPerBlockHeight",
 	BadValidatorRedline:                "BadValidatorRedline",
-	BadValidatorRate:                   "BadValidatorRate",
-	OldValidatorRate:                   "OldValidatorRate",
-	LowBondValidatorRate:               "LowBondValidatorRate",
 	LackOfObservationPenalty:           "LackOfObservationPenalty",
 	SigningTransactionPeriod:           "SigningTransactionPeriod",
 	DoubleSignMaxAge:                   "DoubleSignMaxAge",

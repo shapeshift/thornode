@@ -23,8 +23,6 @@ func (ConstantsTestSuite) TestConstantName_String(c *C) {
 		ChurnInterval,
 		ValidatorsChangeWindow,
 		LeaveProcessPerBlockHeight,
-		BadValidatorRate,
-		OldValidatorRate,
 		LackOfObservationPenalty,
 		SigningTransactionPeriod,
 		DoubleSignMaxAge,

@@ -1,6 +1,5 @@
 {
   "int_64_values": {
-    "BadValidatorRate": 60,
     "BlocksPerYear": 6311390,
     "DesiredValidatorSet": 12,
     "DoubleSignMaxAge": 24,
@@ -14,7 +13,6 @@
     "MinimumNodesForYggdrasil": 6,
     "PoolCycle": 50000,
     "ObserveSlashPoints": 1,
-    "OldValidatorRate": 60,
     "ChurnInterval": 60,
     "ChurnRetryInterval": 720,
     "SigningTransactionPeriod": 300,

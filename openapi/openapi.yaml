@@ -2127,7 +2127,6 @@ components:
             type: string
           example:
             AsgardSize: 40
-            BadValidatorRate: 43200
         bool_values:
           type: object
           additionalProperties:

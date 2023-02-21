@@ -11,8 +11,6 @@ func init() {
 		AsgardSize:            15,
 		DesiredValidatorSet:   30,
 		ChurnInterval:         240,
-		BadValidatorRate:      2048,
-		OldValidatorRate:      2048,
 		MinimumBondInRune:     10000_00000000, // 10K rune
 		LiquidityLockUpBlocks: 0,
 		StagedPoolCost:        10_00000000,

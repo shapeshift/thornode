@@ -27,9 +27,6 @@ func NewConstantValue010() *ConstantVals {
 			ChurnInterval:                      43200,              // How many blocks THORNode try to rotate validators
 			ChurnRetryInterval:                 720,                // How many blocks until we retry a churn (only if we haven't had a successful churn in ChurnInterval blocks
 			BadValidatorRedline:                3,                  // redline multiplier to find a multitude of bad actors
-			BadValidatorRate:                   43200,              // rate to mark a validator to be rotated out for bad behavior
-			OldValidatorRate:                   43200,              // rate to mark a validator to be rotated out for age
-			LowBondValidatorRate:               43200,              // rate to mark a validator to be rotated out for low bond
 			LackOfObservationPenalty:           2,                  // add two slash point for each block where a node does not observe
 			SigningTransactionPeriod:           300,                // how many blocks before a request to sign a tx by yggdrasil pool, is counted as delinquent.
 			DoubleSignMaxAge:                   24,                 // number of blocks to limit double signing a block
