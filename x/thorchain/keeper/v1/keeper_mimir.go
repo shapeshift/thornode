@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// TODO: Remove Kraken checks on next hard fork.
 const KRAKEN string = "ReleaseTheKraken"
 
 // GetMimir get a mimir value from key value store
@@ -29,10 +30,11 @@ func (k KVStore) GetMimir(ctx cosmos.Context, key string) (int64, error) {
 		}
 	}
 
-	// if we have the kraken, mimir is no more, ignore him
-	if k.haveKraken(ctx) {
-		return -1, nil
-	}
+	// The Kraken functionality has been removed, but we need to maintain
+	// the same KVStore cost accounting. So always check, but ignore the
+	// value.
+	ignored := k.haveKraken(ctx)
+	_ = ignored
 
 	record := int64(-1)
 	_, err := k.getInt64(ctx, k.GetKey(ctx, prefixMimir, key), &record)

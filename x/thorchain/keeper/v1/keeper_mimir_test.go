@@ -21,18 +21,11 @@ func (s *KeeperMimirSuite) TestMimir(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(val, Equals, int64(-1))
 
-	// test that releasing the kraken removes previously set key/values
+	// test that releasing the kraken is ignored (has no effect on other mimir keys)
 	k.SetMimir(ctx, KRAKEN, 0)
 	val, err = k.GetMimir(ctx, "foo")
 	c.Assert(err, IsNil)
-	c.Assert(val, Equals, int64(-1))
-
-	// test that we cannot put the kraken back in the cage
-	k.SetMimir(ctx, KRAKEN, -1)
-	k.SetMimir(ctx, "foo", 33)
-	val, err = k.GetMimir(ctx, "foo")
-	c.Assert(err, IsNil)
-	c.Assert(val, Equals, int64(-1))
+	c.Assert(val, Equals, int64(14))
 	c.Check(k.GetMimirIterator(ctx), NotNil)
 
 	addr := GetRandomBech32Addr()
