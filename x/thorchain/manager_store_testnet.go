@@ -36,3 +36,26 @@ func migrateStoreV102(ctx cosmos.Context, mgr Manager) {}
 
 // no op
 func migrateStoreV103(ctx cosmos.Context, mgr *Mgrs) {}
+
+func migrateStoreV106(ctx cosmos.Context, mgr *Mgrs) {
+	// testing for migrateStoreV106 in chaosnet
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v106", "error", err)
+		}
+	}()
+
+	recipient, err := cosmos.AccAddressFromBech32("tthor1zf3gsk7edzwl9syyefvfhle37cjtql35h6k85m")
+	if err != nil {
+		ctx.Logger().Error("fail to create acc address from bech32", err)
+		return
+	}
+
+	coins := cosmos.NewCoins(cosmos.NewCoin(
+		"btc/btc",
+		cosmos.NewInt(488432852150),
+	))
+	if err := mgr.coinKeeper.SendCoinsFromModuleToAccount(ctx, AsgardName, recipient, coins); err != nil {
+		ctx.Logger().Error("fail to SendCoinsFromModuleToAccount", err)
+	}
+}

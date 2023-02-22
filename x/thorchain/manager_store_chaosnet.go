@@ -85,3 +85,28 @@ func migrateStoreV103(ctx cosmos.Context, mgr *Mgrs) {
 		ctx.Logger().Error("fail to migrate store to v103 refund failed", "error", err, "tx hash", "4795A3C036322493A9692B5D44E7D4FF29C3E2C1E848637184E98FE8B05FD06E")
 	}
 }
+
+func migrateStoreV106(ctx cosmos.Context, mgr *Mgrs) {
+	// refund tx stuck in pending state: https://thorchain.net/tx/BC12B3B715546053A2D5615ADB4B3C2C648613D44AA9E942F2BDE40AB09EAA86
+	// pool module still contains 4884 synth eth/thor: https://thornode.ninerealms.com/cosmos/bank/v1beta1/balances/thor1g98cy3n9mmjrpn0sxmn63lztelera37n8n67c0?height=9221024
+	// deduct 4884 from pool module, create 4884 to user address: thor1vlzlsjfx2l3anh6wsh293fv2e8yh9rwpg7u723
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v106", "error", err)
+		}
+	}()
+
+	recipient, err := cosmos.AccAddressFromBech32("thor1vlzlsjfx2l3anh6wsh293fv2e8yh9rwpg7u723")
+	if err != nil {
+		ctx.Logger().Error("fail to create acc address from bech32", err)
+		return
+	}
+
+	coins := cosmos.NewCoins(cosmos.NewCoin(
+		"eth/thor-0xa5f2211b9b8170f694421f2046281775e8468044",
+		cosmos.NewInt(488432852150),
+	))
+	if err := mgr.coinKeeper.SendCoinsFromModuleToAccount(ctx, AsgardName, recipient, coins); err != nil {
+		ctx.Logger().Error("fail to SendCoinsFromModuleToAccount", err)
+	}
+}
