@@ -52,6 +52,8 @@ func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, err
 func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.106.0")):
+		return h.validateV106(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
 		return h.validateV95(ctx, msg)
 	case version.GTE(semver.MustParse("0.78.0")):
@@ -61,25 +63,20 @@ func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir) error {
 	}
 }
 
-func (h MimirHandler) isAdmin(acc cosmos.AccAddress) bool {
-	for _, admin := range ADMINS {
-		addr, err := cosmos.AccAddressFromBech32(admin)
-		if acc.Equals(addr) && err == nil {
-			return true
-		}
-	}
-	return false
-}
-
-func (h MimirHandler) validateV95(ctx cosmos.Context, msg MsgMimir) error {
+func (h MimirHandler) validateV106(ctx cosmos.Context, msg MsgMimir) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 	if !mimirValidKeyV95(msg.Key) || len(msg.Key) > 64 {
 		return cosmos.ErrUnknownRequest("invalid mimir key")
 	}
-	if !h.isAdmin(msg.Signer) && !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
-		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	if isAdmin(msg.Signer) {
+		// If the signer is an admin key, check the admin access controls for this mimir.
+		if !isAdminAllowedForMimir(msg.Key) {
+			return cosmos.ErrUnauthorized(fmt.Sprintf("%s cannot set this mimir key", msg.Signer))
+		}
+	} else if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 	return nil
 }
@@ -103,7 +100,7 @@ func (h MimirHandler) handleV92(ctx cosmos.Context, msg MsgMimir) error {
 	// Get the current Mimir key value if it exists.
 	currentMimirValue, _ := h.mgr.Keeper().GetMimir(ctx, msg.Key)
 	// Here, an error is assumed to mean the Mimir key is currently unset.
-	if h.isAdmin(msg.Signer) {
+	if isAdmin(msg.Signer) {
 		// If the Mimir key is already the submitted value, don't do anything further.
 		if msg.Value == currentMimirValue {
 			return nil
