@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -11,22 +12,33 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+const (
+	// MinKeysharesBackupEntropy was selected based on a few spot checks of the entropy in
+	// encrypted keyshares for mocknet, which were always greater than 7, this is just a
+	// sanity check and is safe to set lower.
+	MinKeysharesBackupEntropy float64 = 7
+)
+
+// MatchMnemonic will match substrings that look like a 12+ word mnemonic.
+var MatchMnemonic = regexp.MustCompile(`([a-zA-Z]+ ){11}[a-zA-Z]+`)
+
 // NewMsgTssPool is a constructor function for MsgTssPool
-func NewMsgTssPool(pks []string, poolpk common.PubKey, keygenType KeygenType, height int64, bl Blame, chains []string, signer cosmos.AccAddress, keygenTime int64) (*MsgTssPool, error) {
+func NewMsgTssPool(pks []string, poolpk common.PubKey, keysharesBackup []byte, keygenType KeygenType, height int64, bl Blame, chains []string, signer cosmos.AccAddress, keygenTime int64) (*MsgTssPool, error) {
 	id, err := getTssID(pks, poolpk, height, bl)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get tss id: %w", err)
 	}
 	return &MsgTssPool{
-		ID:         id,
-		PubKeys:    pks,
-		PoolPubKey: poolpk,
-		Height:     height,
-		KeygenType: keygenType,
-		Blame:      bl,
-		Chains:     chains,
-		Signer:     signer,
-		KeygenTime: keygenTime,
+		ID:              id,
+		PubKeys:         pks,
+		PoolPubKey:      poolpk,
+		Height:          height,
+		KeygenType:      keygenType,
+		Blame:           bl,
+		Chains:          chains,
+		Signer:          signer,
+		KeygenTime:      keygenTime,
+		KeysharesBackup: keysharesBackup,
 	}, nil
 }
 
@@ -122,6 +134,25 @@ func (m *MsgTssPool) ValidateBasic() error {
 	if len(chains) != len(chains.Distinct()) {
 		return cosmos.ErrUnknownRequest("cannot have duplicate chains")
 	}
+
+	if len(m.KeysharesBackup) != 0 {
+		// sanity check encrypted keyshares do not a mnemonic
+		if MatchMnemonic.Match(m.KeysharesBackup) {
+			return cosmos.ErrUnknownRequest("invalid keyshares backup")
+		}
+
+		// sanity check encrypted keyshares are over 1Kb
+		if len(m.KeysharesBackup) < 1024 {
+			return cosmos.ErrUnknownRequest("invalid keyshares backup")
+		}
+
+		// sanity check probability distribution of keyshares backup bytes
+		entropy := common.Entropy(m.KeysharesBackup)
+		if entropy < MinKeysharesBackupEntropy {
+			return cosmos.ErrUnknownRequest("invalid keyshares backup")
+		}
+	}
+
 	return nil
 }
 

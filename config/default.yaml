@@ -32,6 +32,7 @@ bifrost:
     max_interval: 3m
     max_elapsed_time: 168h
   signer:
+    backup_keyshares: false
     signer_db_path: /var/data/bifrost/signer_db
     retry_interval: 2s
     block_scanner:
@@ -52,6 +53,7 @@ bifrost:
     info_address: ":6040"
     bootstrap_peers: ""
     external_ip: ""
+    max_keyshare_recover_scan_blocks: 100
   chains:
     bnb:
       chain_id: BNB

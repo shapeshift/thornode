@@ -497,9 +497,10 @@ type Bifrost struct {
 }
 
 type BifrostSignerConfiguration struct {
-	SignerDbPath  string                           `mapstructure:"signer_db_path"`
-	BlockScanner  BifrostBlockScannerConfiguration `mapstructure:"block_scanner"`
-	RetryInterval time.Duration                    `mapstructure:"retry_interval"`
+	BackupKeyshares bool                             `mapstructure:"backup_keyshares"`
+	SignerDbPath    string                           `mapstructure:"signer_db_path"`
+	BlockScanner    BifrostBlockScannerConfiguration `mapstructure:"block_scanner"`
+	RetryInterval   time.Duration                    `mapstructure:"retry_interval"`
 }
 
 type BifrostBackOff struct {
@@ -595,11 +596,12 @@ type BifrostMetricsConfiguration struct {
 }
 
 type BifrostTSSConfiguration struct {
-	BootstrapPeers []string `mapstructure:"bootstrap_peers"`
-	Rendezvous     string   `mapstructure:"rendezvous"`
-	P2PPort        int      `mapstructure:"p2p_port"`
-	InfoAddress    string   `mapstructure:"info_address"`
-	ExternalIP     string   `mapstructure:"external_ip"`
+	BootstrapPeers               []string `mapstructure:"bootstrap_peers"`
+	Rendezvous                   string   `mapstructure:"rendezvous"`
+	P2PPort                      int      `mapstructure:"p2p_port"`
+	InfoAddress                  string   `mapstructure:"info_address"`
+	ExternalIP                   string   `mapstructure:"external_ip"`
+	MaxKeyshareRecoverScanBlocks int64    `mapstructure:"max_keyshare_recover_scan_blocks"`
 }
 
 // GetBootstrapPeers return the internal bootstrap peers in a slice of maddr.Multiaddr

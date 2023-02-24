@@ -83,6 +83,8 @@ services:
       NODES: 1
       SEED: thornode
       THOR_BLOCK_TIME: ${THOR_BLOCK_TIME:-5s}
+      THOR_API_LIMIT_COUNT: 100
+      THOR_API_LIMIT_DURATION: 1s
       HARDFORK_BLOCK_HEIGHT: ${HARDFORK_BLOCK_HEIGHT:-}
       NEW_GENESIS_TIME: ${NEW_GENESIS_TIME:-}
       CHURN_MIGRATION_ROUNDS: 2
@@ -137,6 +139,7 @@ services:
       BLOCK_SCANNER_BACKOFF: ${BLOCK_SCANNER_BACKOFF:-5s}
       PEER: ${PEER:-}
       BIFROST_METRICS_PPROF_ENABLED: "true"
+      BIFROST_SIGNER_BACKUP_KEYSHARES: "true"
       TERRA_HOST: ${TERRA_HOST:-http://terra:26657}
       TERRA_DISABLED: "true"
     ports:
@@ -265,6 +268,7 @@ services:
       PEER: bifrost
       CHAIN_API: thornode-cat:1317
       CHAIN_RPC: thornode-cat:26657
+      SIGNER_SEED_PHRASE: "cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat cat crawl"
     ports:
       - 5040
       - 6040
@@ -283,6 +287,7 @@ services:
       PEER: bifrost
       CHAIN_API: thornode-dog:1317
       CHAIN_RPC: thornode-dog:26657
+      SIGNER_SEED_PHRASE: "dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog dog fossil"
     ports:
       - 5040
       - 6040
@@ -301,6 +306,7 @@ services:
       PEER: bifrost
       CHAIN_API: thornode-fox:1317
       CHAIN_RPC: thornode-fox:26657
+      SIGNER_SEED_PHRASE: "fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox fox filter"
     ports:
       - 5040
       - 6040
@@ -319,6 +325,7 @@ services:
       PEER: bifrost
       CHAIN_API: thornode-pig:1317
       CHAIN_RPC: thornode-pig:26657
+      SIGNER_SEED_PHRASE: "pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig pig quick"
     ports:
       - 5040
       - 6040

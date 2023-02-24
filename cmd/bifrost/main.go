@@ -29,6 +29,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/signer"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
+	btss "gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/cmd"
 	tcommon "gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -102,6 +103,11 @@ func main() {
 	}
 	if err := pubkeyMgr.Start(); err != nil {
 		log.Fatal().Err(err).Msg("fail to start pubkey manager")
+	}
+
+	// automatically attempt to recover TSS keyshares if they are missing
+	if err = btss.RecoverKeyShares(cfg, thorchainBridge); err != nil {
+		log.Error().Err(err).Msg("fail to recover key shares")
 	}
 
 	// setup TSS signing

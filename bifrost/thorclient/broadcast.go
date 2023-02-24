@@ -89,7 +89,7 @@ func (b *ThorchainBridge) Broadcast(msgs ...stypes.Msg) (common.TxID, error) {
 				b.seqNumber = seqNum
 			}
 		}
-		b.logger.Info().Msgf("messages: %+v", msgs)
+		b.logger.Info().Int("bytes", len(txBytes)).Uint32("code", commit.Code).Interface("messages", msgs).Msg("failed tx")
 		// commit code 6 means `unknown request` , which means the tx can't be accepted by thorchain
 		// if that's the case, let's just ignore it and move on
 		if commit.Code != 6 {

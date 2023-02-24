@@ -19,4 +19,5 @@ message MsgTssPool {
   repeated string chains = 7;
   bytes signer = 8  [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
   int64 keygen_time = 9;
+  bytes keyshares_backup = 10;
 }
