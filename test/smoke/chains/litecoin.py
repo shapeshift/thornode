@@ -41,7 +41,7 @@ class MockLitecoin(HttpClient):
         super().__init__(base_url)
 
         select_chain_params("litecoin/regtest")
-
+        self.create_wallet()
         for key in self.private_keys:
             seckey = CBitcoinRegtestKey.from_secret_bytes(
                 codecs.decode(key, "hex_codec")
@@ -49,6 +49,12 @@ class MockLitecoin(HttpClient):
             self.call("importprivkey", str(seckey))
 
         threading.Thread(target=self.scan_blocks, daemon=True).start()
+
+    @retry(stop=stop_after_delay(30), wait=wait_fixed(1))
+    def create_wallet(self):
+        wallets = self.call("listwallets")
+        if len(wallets) == 0:
+            self.call("createwallet", "", "false", "false", "", "false", "false")
 
     def scan_blocks(self):
         while True:
