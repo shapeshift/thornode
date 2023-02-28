@@ -440,14 +440,15 @@ services:
     profiles:
       - mocknet
       - mocknet-cluster
-    image: registry.gitlab.com/thorchain/devops/node-launcher:litecoin-daemon-0.21.1rc1 # 0.21.1rc1 is the version can be used with mocknet, 0.21.2 will fail with mocknet at block height 431
+    image: registry.gitlab.com/thorchain/devops/node-launcher:litecoin-daemon-0.21.2.2
     restart: unless-stopped
     environment:
       RPC_PORT: "38443"
-      BLOCK_TIME: ${BLOCK_TIME:-1}
     ports:
       - 38443:38443
-    entrypoint: "/scripts/entrypoint-mock.sh"
+    volumes:
+      - "./mocknet:/mocknet"
+    entrypoint: "/mocknet/litecoin-entrypoint.sh"
 
   # ------------------------------ avalanche ------------------------------
 
