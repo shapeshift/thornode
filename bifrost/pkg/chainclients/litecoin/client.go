@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -55,6 +56,8 @@ const (
 	MaxMempoolScanPerTry  = 500
 	litecoind19Str        = "0.19.0"
 )
+
+var litecoinBadSemVerRegex = regexp.MustCompile(`\d+\.\d+\.\d+\.\d+`)
 
 // Client observes litecoin chain and allows to sign and broadcast tx
 type Client struct {
@@ -214,6 +217,13 @@ func IsLitecoinDaemonPostVersion19(client *rpcclient.Client) (bool, error) {
 		"/LitecoinCore:",
 	)
 	version = strings.TrimPrefix(version, "/Satoshi:")
+
+	// fix litecoin improper semver usage (0.21.2.2) by replacing the last dot
+	if litecoinBadSemVerRegex.MatchString(version) {
+		version = strings.ReplaceAll(version, ".", "-")
+		version = strings.Replace(version, "-", ".", 2)
+	}
+
 	chainVersion, err := semver.Make(version)
 	if err != nil {
 		log.Logger.Err(err).Msg("fail to parse version")
