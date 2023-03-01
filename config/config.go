@@ -97,10 +97,6 @@ func Init() {
 		"BLOCK_SCANNER_BACKOFF",
 	))
 	assert(viper.BindEnv(
-		"bifrost.chains.terra.block_scanner.block_height_discover_back_off",
-		"BLOCK_SCANNER_BACKOFF",
-	))
-	assert(viper.BindEnv(
 		"bifrost.chains.ltc.block_scanner.block_height_discover_back_off",
 		"BLOCK_SCANNER_BACKOFF",
 	))
@@ -193,18 +189,6 @@ func Init() {
 		"DOGE_START_BLOCK_HEIGHT",
 	))
 	assert(viper.BindEnv(
-		"bifrost.chains.TERRA.rpc_host",
-		"TERRA_HOST",
-	))
-	assert(viper.BindEnv(
-		"bifrost.chains.TERRA.block_scanner.rpc_host",
-		"TERRA_HOST",
-	))
-	assert(viper.BindEnv(
-		"bifrost.chains.TERRA.block_scanner.start_block_height",
-		"TERRA_START_BLOCK_HEIGHT",
-	))
-	assert(viper.BindEnv(
 		"bifrost.chains.GAIA.rpc_host",
 		"GAIA_HOST",
 	))
@@ -257,7 +241,6 @@ func Init() {
 		"GAIA_GRPC_TLS",
 	))
 	assert(viper.BindEnv("bifrost.chains.GAIA.disabled", "GAIA_DISABLED"))
-	assert(viper.BindEnv("bifrost.chains.TERRA.disabled", "TERRA_DISABLED"))
 	assert(viper.BindEnv("bifrost.chains.DOGE.disabled", "DOGE_DISABLED"))
 	assert(viper.BindEnv("bifrost.chains.LTC.disabled", "LTC_DISABLED"))
 	assert(viper.BindEnv("bifrost.chains.AVAX.disabled", "AVAX_DISABLED"))

@@ -6,7 +6,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/gaia"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/terra"
 
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/avalanche"
@@ -85,13 +84,6 @@ func LoadChains(thorKeys *thorclient.Keys,
 			}
 			pubKeyValidator.RegisterCallback(doge.RegisterPublicKey)
 			chains[common.DOGEChain] = doge
-		case common.TERRAChain:
-			terra, err := terra.NewCosmosClient(thorKeys, chain, server, thorchainBridge, m)
-			if err != nil {
-				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
-				continue
-			}
-			chains[common.TERRAChain] = terra
 		case common.AVAXChain:
 			avax, err := avalanche.NewAvalancheClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
 			if err != nil {

@@ -18,7 +18,6 @@ bifrost:
       - ETH
       - GAIA
       - LTC
-      - TERRA
   thorchain:
     chain_id: thorchain
     chain_host: localhost:1317
@@ -103,12 +102,6 @@ bifrost:
         <<: *default-block-scanner
         chain_id: DOGE
         gas_price_resolution: 500_000 # sats
-    terra:
-      <<: *default-chain
-      chain_id: TERRA
-      block_scanner:
-        <<: *default-block-scanner
-        chain_id: TERRA
     gaia:
       <<: *default-chain
       chain_id: GAIA
