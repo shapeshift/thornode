@@ -147,8 +147,8 @@ type: tx-send
 from_address: {{ addr_thor_fox }}
 to_address: {{ addr_thor_cat }}
 amount:
-  - amount: "200000000"
-    asset: "rune"
+  - denom: "rune"
+    amount: "200000000"
 ```
 
 ### Create Blocks Definition
