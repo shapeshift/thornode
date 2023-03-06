@@ -448,12 +448,17 @@ type QueryPlannedOutTx struct {
 	Chain     common.Chain   `json:"chain"`
 	ToAddress common.Address `json:"to_address"`
 	Coin      common.Coin    `json:"coin"`
+	Refund    bool           `json:"refund"`
 }
 
 func NewQueryPlannedOutTxs(outTxs ...TxOutItem) []QueryPlannedOutTx {
 	var result []QueryPlannedOutTx
+	var isRefund bool
 	for _, outTx := range outTxs {
-		result = append(result, QueryPlannedOutTx{outTx.Chain, outTx.ToAddress, outTx.Coin})
+		// Assume that any outbound memo not matching the expected pattern isn't a refund memo.
+		isRefund = strings.HasPrefix(outTx.Memo, "REFUND")
+
+		result = append(result, QueryPlannedOutTx{outTx.Chain, outTx.ToAddress, outTx.Coin, isRefund})
 	}
 
 	return result

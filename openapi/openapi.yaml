@@ -1975,6 +1975,7 @@ components:
               - chain
               - to_address
               - coin
+              - refund
             properties:
               chain:
                 type: string
@@ -1984,6 +1985,10 @@ components:
                 example: "bcrt1qf3s7q037eancht7sg0aj995dht25rwrnqsf45e"
               coin:
                 $ref: "#/components/schemas/Coin"
+              refund:
+                type: boolean
+                example: false
+                description: returns true if the planned transaction has a refund memo
         out_txs:
           type: array
           items:
