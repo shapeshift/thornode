@@ -202,6 +202,8 @@ func (h AddLiquidityHandler) validateV99(ctx cosmos.Context, msg MsgAddLiquidity
 func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.107.0")):
+		return h.handleV107(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
 		return h.handleV98(ctx, msg)
 	case version.GTE(semver.MustParse("1.96.0")):
@@ -215,7 +217,7 @@ func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) err
 	}
 }
 
-func (h AddLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
+func (h AddLiquidityHandler) handleV107(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
 	// check if we need to swap before adding asset
 	if h.needsSwap(msg) {
 		return h.swapV93(ctx, msg)
@@ -228,7 +230,17 @@ func (h AddLiquidityHandler) handleV98(ctx cosmos.Context, msg MsgAddLiquidity) 
 
 	if pool.IsEmpty() {
 		ctx.Logger().Info("pool doesn't exist yet, creating a new one...", "symbol", msg.Asset.String(), "creator", msg.RuneAddress)
+
 		pool.Asset = msg.Asset
+
+		defaultPoolStatus := PoolAvailable.String()
+		// only set the pool to default pool status if not for gas asset on the chain
+		if !pool.Asset.Equals(pool.Asset.GetChain().GetGasAsset()) &&
+			!pool.Asset.IsVaultAsset() {
+			defaultPoolStatus = h.mgr.GetConstants().GetStringValue(constants.DefaultPoolStatus)
+		}
+		pool.Status = GetPoolStatus(defaultPoolStatus)
+
 		if err := h.mgr.Keeper().SetPool(ctx, pool); err != nil {
 			return ErrInternal(err, "fail to save pool to key value store")
 		}
@@ -450,6 +462,8 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 ) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.107.0")):
+		return h.addLiquidityV107(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	case version.GTE(semver.MustParse("1.98.0")):
 		return h.addLiquidityV98(ctx, asset, addRuneAmount, addAssetAmount, runeAddr, assetAddr, requestTxHash, stage, constAccessor)
 	case version.GTE(semver.MustParse("1.96.0")):
@@ -465,7 +479,7 @@ func (h AddLiquidityHandler) addLiquidity(ctx cosmos.Context,
 	}
 }
 
-func (h AddLiquidityHandler) addLiquidityV98(ctx cosmos.Context,
+func (h AddLiquidityHandler) addLiquidityV107(ctx cosmos.Context,
 	asset common.Asset,
 	addRuneAmount, addAssetAmount cosmos.Uint,
 	runeAddr, assetAddr common.Address,
@@ -484,17 +498,6 @@ func (h AddLiquidityHandler) addLiquidityV98(ctx cosmos.Context,
 	}
 	synthSupply := h.mgr.Keeper().GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
 	originalUnits := pool.CalcUnits(h.mgr.GetVersion(), synthSupply)
-
-	// if THORNode have no balance, set the default pool status
-	if originalUnits.IsZero() {
-		defaultPoolStatus := PoolAvailable.String()
-		// if the pools is for gas asset on the chain, automatically enable it
-		if !pool.Asset.Equals(pool.Asset.GetChain().GetGasAsset()) &&
-			!pool.Asset.IsVaultAsset() {
-			defaultPoolStatus = constAccessor.GetStringValue(constants.DefaultPoolStatus)
-		}
-		pool.Status = GetPoolStatus(defaultPoolStatus)
-	}
 
 	fetchAddr := runeAddr
 	if fetchAddr.IsEmpty() {
