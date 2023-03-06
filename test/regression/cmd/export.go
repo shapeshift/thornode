@@ -136,14 +136,17 @@ func checkExportInvariants(genesis map[string]any) error {
 		}
 	}
 
-	// print any deficits
+	// print any discrepencies
 	for _, coin := range sumPoolAsset {
 		for _, vaultCoin := range sumVaultAsset {
-			if coin.Asset.Equals(vaultCoin.Asset) {
+			if coin.Asset.Equals(vaultCoin.Asset) && !coin.Amount.Equal(vaultCoin.Amount) {
 				if coin.Amount.GT(vaultCoin.Amount) {
-					fmt.Printf("%s vault deficit: %s\n", coin.Asset, coin.Amount.Sub(vaultCoin.Amount))
-					err = errors.New("vault deficit")
+					fmt.Printf("%s pool has %s more than its vaults\n", coin.Asset, common.SafeSub(vaultCoin.Amount, coin.Amount))
 				}
+				if vaultCoin.Amount.GT(coin.Amount) {
+					fmt.Printf("%s vaults have %s more than their pool\n", coin.Asset, common.SafeSub(vaultCoin.Amount, coin.Amount))
+				}
+				err = errors.New("pool discrepancy")
 			}
 		}
 	}

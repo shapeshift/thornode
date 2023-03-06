@@ -86,6 +86,8 @@ func (h WithdrawLiquidityHandler) validateV96(ctx cosmos.Context, msg MsgWithdra
 func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.107.0")):
+		return h.handleV107(ctx, msg)
 	case version.GTE(semver.MustParse("1.100.0")):
 		return h.handleV100(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
@@ -113,7 +115,7 @@ func (h WithdrawLiquidityHandler) handle(ctx cosmos.Context, msg MsgWithdrawLiqu
 	return nil, errBadVersion
 }
 
-func (h WithdrawLiquidityHandler) handleV100(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
+func (h WithdrawLiquidityHandler) handleV107(ctx cosmos.Context, msg MsgWithdrawLiquidity) (*cosmos.Result, error) {
 	lp, err := h.mgr.Keeper().GetLiquidityProvider(ctx, msg.Asset, msg.WithdrawAddress)
 	if err != nil {
 		return nil, multierror.Append(errFailGetLiquidityProvider, err)
@@ -254,6 +256,27 @@ func (h WithdrawLiquidityHandler) handleV100(ctx cosmos.Context, msg MsgWithdraw
 		if err := h.mgr.Keeper().AddPoolFeeToReserve(ctx, reserveCoin.Amount); err != nil {
 			ctx.Logger().Error("fail to add fee to reserve", "error", err)
 			return nil, err
+		}
+	}
+
+	// any extra non-rune in the transaction will be donated to its pool, if existing
+	for _, withdrawalCoin := range msg.Tx.Coins {
+		if withdrawalCoin.IsEmpty() || withdrawalCoin.Asset == common.RuneAsset() {
+			continue
+		}
+
+		withdrawalCoinPool, err := h.mgr.Keeper().GetPool(ctx, withdrawalCoin.Asset)
+		if err != nil {
+			return nil, ErrInternal(err, "fail to get pool")
+		}
+
+		if withdrawalCoinPool.IsEmpty() {
+			continue
+		}
+
+		withdrawalCoinPool.BalanceAsset = withdrawalCoinPool.BalanceAsset.Add(withdrawalCoin.Amount)
+		if err := h.mgr.Keeper().SetPool(ctx, withdrawalCoinPool); err != nil {
+			return nil, ErrInternal(err, "fail to save pool to key value store")
 		}
 	}
 
