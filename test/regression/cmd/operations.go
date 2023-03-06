@@ -322,22 +322,24 @@ func (op *OpCreateBlocks) Execute(p *os.Process, logs chan string) error {
 // ------------------------------ OpTxObservedIn ------------------------------
 
 type OpTxObservedIn struct {
-	OpBase `yaml:",inline"`
-	Txs    []types.ObservedTx `json:"txs"`
-	Signer sdk.AccAddress     `json:"signer"`
+	OpBase   `yaml:",inline"`
+	Txs      []types.ObservedTx `json:"txs"`
+	Signer   sdk.AccAddress     `json:"signer"`
+	Sequence *int64             `json:"sequence"`
 }
 
 func (op *OpTxObservedIn) Execute(_ *os.Process, logs chan string) error {
 	msg := types.NewMsgObservedTxIn(op.Txs, op.Signer)
-	return sendMsg(msg, op.Signer, op, logs)
+	return sendMsg(msg, op.Signer, op.Sequence, op, logs)
 }
 
 // ------------------------------ OpTxObservedOut ------------------------------
 
 type OpTxObservedOut struct {
-	OpBase `yaml:",inline"`
-	Txs    []types.ObservedTx `json:"txs"`
-	Signer sdk.AccAddress     `json:"signer"`
+	OpBase   `yaml:",inline"`
+	Txs      []types.ObservedTx `json:"txs"`
+	Signer   sdk.AccAddress     `json:"signer"`
+	Sequence *int64             `json:"sequence"`
 }
 
 func (op *OpTxObservedOut) Execute(_ *os.Process, logs chan string) error {
@@ -354,7 +356,7 @@ func (op *OpTxObservedOut) Execute(_ *os.Process, logs chan string) error {
 	}
 
 	msg := types.NewMsgObservedTxOut(op.Txs, op.Signer)
-	return sendMsg(msg, op.Signer, op, logs)
+	return sendMsg(msg, op.Signer, op.Sequence, op, logs)
 }
 
 // ------------------------------ OpTxDeposit ------------------------------
@@ -362,10 +364,11 @@ func (op *OpTxObservedOut) Execute(_ *os.Process, logs chan string) error {
 type OpTxDeposit struct {
 	OpBase           `yaml:",inline"`
 	types.MsgDeposit `yaml:",inline"`
+	Sequence         *int64 `json:"sequence"`
 }
 
 func (op *OpTxDeposit) Execute(_ *os.Process, logs chan string) error {
-	return sendMsg(&op.MsgDeposit, op.Signer, op, logs)
+	return sendMsg(&op.MsgDeposit, op.Signer, op.Sequence, op, logs)
 }
 
 // ------------------------------ OpTxMimir ------------------------------
@@ -373,10 +376,11 @@ func (op *OpTxDeposit) Execute(_ *os.Process, logs chan string) error {
 type OpTxMimir struct {
 	OpBase         `yaml:",inline"`
 	types.MsgMimir `yaml:",inline"`
+	Sequence       *int64 `json:"sequence"`
 }
 
 func (op *OpTxMimir) Execute(_ *os.Process, logs chan string) error {
-	return sendMsg(&op.MsgMimir, op.Signer, op, logs)
+	return sendMsg(&op.MsgMimir, op.Signer, op.Sequence, op, logs)
 }
 
 // ------------------------------ OpTxSend ------------------------------
@@ -384,17 +388,18 @@ func (op *OpTxMimir) Execute(_ *os.Process, logs chan string) error {
 type OpTxSend struct {
 	OpBase        `yaml:",inline"`
 	types.MsgSend `yaml:",inline"`
+	Sequence      *int64 `json:"sequence"`
 }
 
 func (op *OpTxSend) Execute(_ *os.Process, logs chan string) error {
-	return sendMsg(&op.MsgSend, op.FromAddress, op, logs)
+	return sendMsg(&op.MsgSend, op.FromAddress, op.Sequence, op, logs)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Helpers
 ////////////////////////////////////////////////////////////////////////////////////////
 
-func sendMsg(msg sdk.Msg, signer sdk.AccAddress, op any, logs chan string) error {
+func sendMsg(msg sdk.Msg, signer sdk.AccAddress, seq *int64, op any, logs chan string) error {
 	// check that message is valid
 	err := msg.ValidateBasic()
 	if err != nil {
@@ -410,8 +415,14 @@ func sendMsg(msg sdk.Msg, signer sdk.AccAddress, op any, logs chan string) error
 	ctx = ctx.WithFromName(addressToName[signer.String()])
 	ctx = ctx.WithOutput(buf)
 
+	// override the sequence if provided
+	txf := txFactory
+	if seq != nil {
+		txf = txFactory.WithSequence(uint64(*seq))
+	}
+
 	// send message
-	err = tx.GenerateOrBroadcastTxWithFactory(ctx, txFactory, msg)
+	err = tx.GenerateOrBroadcastTxWithFactory(ctx, txf, msg)
 	if err != nil {
 		fmt.Println(ColorPurple + "\nOperation:" + ColorReset)
 		enc := json.NewEncoder(os.Stdout) // json instead of yaml to encode amount
@@ -422,13 +433,19 @@ func sendMsg(msg sdk.Msg, signer sdk.AccAddress, op any, logs chan string) error
 		return err
 	}
 
-	// extract txhash from output json and add to native txids
+	// extract txhash from output json
 	var txRes sdk.TxResponse
 	err = encodingConfig.Marshaler.UnmarshalJSON(buf.Bytes(), &txRes)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to unmarshal tx response")
 	}
-	nativeTxIDs = append(nativeTxIDs, txRes.TxHash)
+
+	// fail if tx did not send, otherwise add to out native tx ids
+	if txRes.Code != 0 {
+		log.Debug().Uint32("code", txRes.Code).Str("log", txRes.RawLog).Msg("tx send failed")
+	} else {
+		nativeTxIDs = append(nativeTxIDs, txRes.TxHash)
+	}
 
 	return err
 }

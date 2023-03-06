@@ -37,6 +37,20 @@ func export(path string) error {
 		log.Fatal().Err(err).Msg("failed to decode export")
 	}
 
+	// ignore genesis time and version for comparison
+	delete(export, "genesis_time")
+	appState, _ := export["app_state"].(map[string]any)
+	thorchain, _ := appState["thorchain"].(map[string]any)
+	delete(thorchain, "store_version")
+
+	// ignore node account version for comparison
+	nodeAccounts, _ := thorchain["node_accounts"].([]interface{})
+	for i, na := range nodeAccounts {
+		na, _ := na.(map[string]interface{})
+		delete(na, "version")
+		nodeAccounts[i] = na
+	}
+
 	// encode export
 	out, err = json.MarshalIndent(export, "", "  ")
 	if err != nil {
@@ -162,24 +176,6 @@ func checkExportChanges(newExport map[string]any, path string) error {
 	err = json.NewDecoder(f).Decode(&oldExport)
 	if err != nil {
 		log.Err(err).Msg("failed to decode existing export")
-	}
-
-	// ignore genesis time and version for comparison
-	newExport["genesis_time"] = oldExport["genesis_time"]
-	newAppState, _ := newExport["app_state"].(map[string]any)
-	oldAppState, _ := oldExport["app_state"].(map[string]any)
-	newThorchain, _ := newAppState["thorchain"].(map[string]any)
-	oldThorchain, _ := oldAppState["thorchain"].(map[string]any)
-	newThorchain["store_version"] = oldThorchain["store_version"]
-
-	// ignore node account version for comparison
-	newNodeAccounts, _ := newThorchain["node_accounts"].([]interface{})
-	oldNodeAccounts, _ := oldThorchain["node_accounts"].([]interface{})
-	for i, na := range newNodeAccounts {
-		na, _ := na.(map[string]interface{})
-		oldNa, _ := oldNodeAccounts[i].(map[string]interface{})
-		na["version"] = oldNa["version"]
-		newNodeAccounts[i] = na
 	}
 
 	// compare exports

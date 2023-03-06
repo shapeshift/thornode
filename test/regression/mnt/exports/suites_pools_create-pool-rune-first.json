@@ -332,8 +332,7 @@
             "secp256k1": "tthorpub1addwnpepqfshsq2y6ejy2ysxmq4gj8n8mzuzyulk9wh4n946jv5w2vpwdn2yuyp6sp4"
           },
           "status": "Active",
-          "validator_cons_pub_key": "tthorcpub1zcjduepqq75h7uy6qhesh9d3a9tuk0mzrnc46u8rye44ze6peua3zmpfh23q8z37sz",
-          "version": "1.105.0"
+          "validator_cons_pub_key": "tthorcpub1zcjduepqq75h7uy6qhesh9d3a9tuk0mzrnc46u8rye44ze6peua3zmpfh23q8z37sz"
         }
       ],
       "observed_tx_in_voters": null,
@@ -352,7 +351,6 @@
         }
       ],
       "reserve_contributors": null,
-      "store_version": "105",
       "tx_outs": null,
       "vaults": [
         {
@@ -416,6 +414,5 @@
     },
     "version": {}
   },
-  "genesis_time": "2023-02-07T22:02:35.009372967Z",
   "initial_height": "4"
 }

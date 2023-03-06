@@ -159,6 +159,8 @@ test-regression:
 		-e HOME=/regtest -e UID=$(shell id -u) -e GID=$(shell id -g) \
 		-p 1317:1317 -p 26657:26657 \
 		-v $(shell pwd)/test/regression/mnt:/mnt \
+		-v $(shell pwd)/test/regression/suites:/app/test/regression/suites \
+		-v $(shell pwd)/test/regression/templates:/app/test/regression/templates \
 		-w /app thornode-regtest sh -c 'make _test-regression'
 
 test-regression-coverage:

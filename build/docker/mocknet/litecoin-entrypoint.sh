@@ -15,10 +15,10 @@ while true; do
 done
 
 # wait a bit while mocknet starts
-sleep 60
+sleep 70
 
 # mine a new block every BLOCK_TIME
 while true; do
   litecoin-cli -regtest -rpcport="$RPC_PORT" -rpcuser="$SIGNER_NAME" -rpcpassword="$SIGNER_PASSWD" generatetoaddress 1 "$MASTER_ADDR"
-  sleep 2.8
+  sleep 2.5
 done

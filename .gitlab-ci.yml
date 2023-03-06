@@ -156,7 +156,7 @@ smoke-test:
     MIDGARD_IMAGE: registry.gitlab.com/thorchain/midgard:develop
     THOR_BLOCK_TIME: 0.5s
     BLOCK_TIME: "2"
-    BLOCK_SCANNER_BACKOFF: 0.5s
+    BLOCK_SCANNER_BACKOFF: 0.3s
   before_script:
     - apk -U add git make protoc bash
     - (git ls-remote $MIDGARD_REPO $CI_COMMIT_REF_NAME && git clone --single-branch -b $CI_COMMIT_REF_NAME $MIDGARD_REPO && cd ./midgard && IMAGE_NAME=$MIDGARD_IMAGE make build && cd ..) || (git ls-remote $MIDGARD_REPO develop && git clone --single-branch -b develop $MIDGARD_REPO && docker pull $MIDGARD_IMAGE)

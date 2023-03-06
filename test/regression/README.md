@@ -151,6 +151,8 @@ amount:
     amount: "200000000"
 ```
 
+All transactions can optionally set a `sequence` parameter to override the transaction sequence - this is required if attempting to send multiple transactions from the same address in the same block.
+
 ### Create Blocks Definition
 
 In order to allow the defining of test cases that are sensitive to the timing of blocks and placement of transactions therein, we expose the ability to explicitly trigger the creation of blocks during the test simulation:
