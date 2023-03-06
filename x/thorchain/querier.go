@@ -280,7 +280,8 @@ func queryAsgardVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 		if !vault.IsAsgard() {
 			continue
 		}
-		if vault.HasFunds() || vault.Status == ActiveVault {
+		// Being in a RetiringVault blocks a node from unbonding, so display them even if having no funds.
+		if vault.HasFunds() || vault.Status == ActiveVault || vault.Status == RetiringVault {
 			vaultsWithFunds = append(vaultsWithFunds, types.QueryVaultResp{
 				BlockHeight:           vault.BlockHeight,
 				PubKey:                vault.PubKey,
