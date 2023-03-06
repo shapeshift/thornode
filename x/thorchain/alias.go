@@ -140,6 +140,7 @@ var (
 	NewEventPendingLiquidity       = types.NewEventPendingLiquidity
 	NewEventTHORName               = types.NewEventTHORName
 	NewEventMintBurn               = types.NewEventMintBurn
+	NewEventVersion                = types.NewEventVersion
 	NewPoolMod                     = types.NewPoolMod
 	NewMsgRefundTx                 = types.NewMsgRefundTx
 	NewMsgOutboundTx               = types.NewMsgOutboundTx

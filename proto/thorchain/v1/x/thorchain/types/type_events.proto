@@ -228,3 +228,6 @@ message EventSetNodeMimir {
   string address = 3;
 }
 
+message EventVersion {
+  string version = 1;
+}

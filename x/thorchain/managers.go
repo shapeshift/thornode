@@ -195,11 +195,18 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 		return fmt.Errorf("fail to create keeper: %w", err)
 	}
 
+	shouldEmitVersion := false
 	if v.GTE(semver.MustParse("1.96.0")) { // TODO remove version checks after fork
 		storedVer, hasStoredVer := mgr.Keeper().GetVersionWithCtx(ctx)
 		if !hasStoredVer || v.GT(storedVer) {
 			// store the version for contextual lookups if it has been upgraded
 			mgr.Keeper().SetVersionWithCtx(ctx, v)
+		}
+
+		if v.GTE(semver.MustParse("1.107.0")) { // TODO remove version checks after fork, here doing 'shouldEmitVersion :='
+			// Managers might be new from a fresh node,
+			// but the keeper should be consistent.
+			shouldEmitVersion = (hasStoredVer && v.GT(storedVer))
 		}
 	}
 
@@ -207,10 +214,21 @@ func (mgr *Mgrs) BeginBlock(ctx cosmos.Context) error {
 	if err != nil {
 		return fmt.Errorf("fail to create gas manager: %w", err)
 	}
+
 	mgr.eventMgr, err = GetEventManager(v)
 	if err != nil {
 		return fmt.Errorf("fail to get event manager: %w", err)
 	}
+	// Having created the event manager, emit a version event
+	// as long as there was indeed a previously-recorded version changed from.
+	// (As indicated by the keeper, rather than by managers created for the first time.)
+	if shouldEmitVersion {
+		evt := NewEventVersion(v)
+		if err := mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+			ctx.Logger().Error("fail to emit version event", "error", err)
+		}
+	}
+
 	mgr.txOutStore, err = GetTxOutStore(v, mgr.K, mgr.eventMgr, mgr.gasMgr)
 	if err != nil {
 		return fmt.Errorf("fail to get tx out store: %w", err)

@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -37,6 +39,7 @@ const (
 	THORNameEventType          = "thorname"
 	TSSKeygenMetricEventType   = "tss_keygen"
 	TSSKeysignMetricEventType  = "tss_keysign"
+	VersionEventType           = "version"
 	WithdrawEventType          = "withdraw"
 )
 
@@ -821,6 +824,25 @@ func (m *EventSetNodeMimir) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("key", m.Key),
 		cosmos.NewAttribute("value", m.Value),
 		cosmos.NewAttribute("address", m.Address),
+	)
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventVersion create a new instance of EventVersion
+func NewEventVersion(version semver.Version) *EventVersion {
+	return &EventVersion{
+		Version: version.String(),
+	}
+}
+
+func (m *EventVersion) Type() string {
+	return VersionEventType
+}
+
+// Events return cosmos sdk events
+func (m *EventVersion) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("version", m.Version),
 	)
 	return cosmos.Events{evt}, nil
 }
