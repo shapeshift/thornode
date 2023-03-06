@@ -670,7 +670,7 @@ func (s *HandlerTssSuite) TestKeygenSuccessHandler(c *C) {
 		c.Assert(err, IsNil)
 		tssMsg, err := NewMsgTssPool(helper.members.Strings(), poolPubKey, nil, AsgardKeygen, helper.ctx.BlockHeight(), Blame{}, common.Chains{common.RuneAsset().Chain}.Strings(), thorAddr, keygenTime)
 		c.Assert(err, IsNil)
-		result, err := handler.handle(helper.ctx, *tssMsg)
+		result, err := handler.handle(helper.ctx, tssMsg)
 		c.Assert(err, IsNil)
 		c.Assert(result, NotNil)
 		if HasSuperMajority(idx+1, len(helper.members)) {

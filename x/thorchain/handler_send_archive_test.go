@@ -17,7 +17,7 @@ func (s *HandlerSendSuiteV1) TestValidate(c *C) {
 	addr1 := GetRandomBech32Addr()
 	addr2 := GetRandomBech32Addr()
 
-	msg := MsgSend{
+	msg := &MsgSend{
 		FromAddress: addr1,
 		ToAddress:   addr2,
 		Amount:      cosmos.NewCoins(cosmos.NewCoin("dummy", cosmos.NewInt(12))),
@@ -27,7 +27,7 @@ func (s *HandlerSendSuiteV1) TestValidate(c *C) {
 	c.Assert(err, IsNil)
 
 	// invalid msg
-	msg = MsgSend{}
+	msg = &MsgSend{}
 	err = handler.validate(ctx, msg)
 	c.Assert(err, NotNil)
 }
@@ -45,7 +45,7 @@ func (s *HandlerSendSuiteV1) TestHandle(c *C) {
 
 	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(12*common.One)).Native()
 	c.Assert(err, IsNil)
-	msg := MsgSend{
+	msg := &MsgSend{
 		FromAddress: addr1,
 		ToAddress:   addr2,
 		Amount:      cosmos.NewCoins(coin),
@@ -62,7 +62,7 @@ func (s *HandlerSendSuiteV1) TestHandle(c *C) {
 	// insufficient funds
 	coin, err = common.NewCoin(common.RuneNative, cosmos.NewUint(3000*common.One)).Native()
 	c.Assert(err, IsNil)
-	msg = MsgSend{
+	msg = &MsgSend{
 		FromAddress: addr1,
 		ToAddress:   addr2,
 		Amount:      cosmos.NewCoins(coin),
