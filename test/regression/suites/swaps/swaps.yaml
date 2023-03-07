@@ -42,7 +42,7 @@ description: rune balance should have increased after swap
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504533175003
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504533171552
 ---
 ########################################################################################
 # swap to asset
@@ -73,7 +73,7 @@ txs:
     from_address: {{ addr_btc_dog }}
     to_address: {{ addr_btc_fox }}
     coins:
-      - amount: "8991460"
+      - amount: "8991477"
         asset: "BTC.BTC"
         decimals: 8
     gas:
@@ -135,7 +135,7 @@ txs:
     from_address: {{ addr_eth_dog }}
     to_address: {{ addr_eth_fox }}
     coins:
-      - amount: "43104181"
+      - amount: "43104073"
         asset: "ETH.ETH"
         decimals: 8
     gas:

@@ -156,7 +156,7 @@
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "40000000000000",
+              "amount": "35000000000000",
               "denom": "rune"
             }
           ]
@@ -175,6 +175,15 @@
           "coins": [
             {
               "amount": "2500000000000",
+              "denom": "rune"
+            }
+          ]
+        },
+        {
+          "address": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
+          "coins": [
+            {
+              "amount": "5000000000000",
               "denom": "rune"
             }
           ]

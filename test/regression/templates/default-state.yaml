@@ -87,7 +87,11 @@ genesis:
               amount: "2500000000000"
         - address: {{ addr_module_reserve }}
           coins:
-            - amount: "40000000000000"
+            - amount: "35000000000000"
+              denom: rune
+        - address: {{ addr_module_bond }}
+          coins:
+            - amount: "5000000000000"
               denom: rune
       params:
         default_send_enabled: false

@@ -130,6 +130,10 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryQuoteSaverDeposit(ctx, path[1:], req, mgr)
 		case q.QueryQuoteSaverWithdraw.Key:
 			return queryQuoteSaverWithdraw(ctx, path[1:], req, mgr)
+		case q.QueryInvariants.Key:
+			return queryInvariants(ctx, mgr)
+		case q.QueryInvariant.Key:
+			return queryInvariant(ctx, path[1:], mgr)
 		default:
 			return optionalQuery(ctx, path, req, mgr)
 		}
@@ -1675,6 +1679,32 @@ func queryTssMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		KeysignMetric: keysignMetric,
 	}
 	return json.MarshalIndent(m, "", "	")
+}
+
+func queryInvariants(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
+	result := openapi.InvariantsResponse{}
+	for _, invarRoute := range mgr.Keeper().InvariantRoutes() {
+		result.Invariants = append(result.Invariants, invarRoute.Route)
+	}
+	return jsonify(ctx, result)
+}
+
+func queryInvariant(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, error) {
+	if len(path) < 1 {
+		return nil, fmt.Errorf("invalid path: %v", path)
+	}
+	for _, invarRoute := range mgr.Keeper().InvariantRoutes() {
+		if strings.EqualFold(invarRoute.Route, path[0]) {
+			msg, broken := invarRoute.Invar(ctx)
+			result := openapi.InvariantResponse{
+				Invariant: invarRoute.Route,
+				Broken:    broken,
+				Msg:       msg,
+			}
+			return jsonify(ctx, result)
+		}
+	}
+	return nil, fmt.Errorf("invariant not registered: %s", path[0])
 }
 
 // -------------------------------------------------------------------------------------

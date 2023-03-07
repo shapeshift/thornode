@@ -96,7 +96,7 @@ description: affiliate should have receieved fee
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_pig }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 296655029
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 296654462
 ---
 type: tx-observed-out
 signer: {{ addr_thor_dog }}
@@ -165,7 +165,7 @@ description: affiliate should have receieved fee
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_pig }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 542029090
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 542027392
 ---
 type: tx-observed-out
 signer: {{ addr_thor_dog }}

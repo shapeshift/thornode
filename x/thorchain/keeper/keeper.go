@@ -5,6 +5,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	crisis "github.com/cosmos/cosmos-sdk/x/crisis/types"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -38,6 +39,8 @@ type Keeper interface {
 	// passthrough funcs
 	SendCoins(ctx cosmos.Context, from, to cosmos.AccAddress, coins cosmos.Coins) error
 	AddCoins(ctx cosmos.Context, addr cosmos.AccAddress, coins cosmos.Coins) error
+
+	InvariantRoutes() []crisis.InvarRoute
 
 	// Keeper Interfaces
 	KeeperPool

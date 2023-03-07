@@ -9,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/simapp"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+	crisis "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -528,6 +529,10 @@ func (k KVStoreDummy) GetTHORName(ctx cosmos.Context, _ string) (THORName, error
 func (k KVStoreDummy) SetTHORName(ctx cosmos.Context, name THORName)          {}
 func (k KVStoreDummy) GetTHORNameIterator(ctx cosmos.Context) cosmos.Iterator { return nil }
 func (k KVStoreDummy) DeleteTHORName(ctx cosmos.Context, _ string) error      { return kaboom }
+
+func (k KVStoreDummy) InvariantRoutes() []crisis.InvarRoute {
+	return nil
+}
 
 // a mock cosmos.Iterator implementation for testing purposes
 type DummyIterator struct {

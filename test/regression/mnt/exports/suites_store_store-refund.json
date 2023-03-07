@@ -157,19 +157,10 @@
           ]
         },
         {
-          "address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2",
-          "coins": [
-            {
-              "amount": "100000000000",
-              "denom": "rune"
-            }
-          ]
-        },
-        {
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "40000000000000",
+              "amount": "35000000000000",
               "denom": "rune"
             }
           ]
@@ -191,6 +182,15 @@
               "denom": "rune"
             }
           ]
+        },
+        {
+          "address": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
+          "coins": [
+            {
+              "amount": "5000000000000",
+              "denom": "rune"
+            }
+          ]
         }
       ],
       "denom_metadata": [],
@@ -204,7 +204,7 @@
           "denom": "btc/btc"
         },
         {
-          "amount": "50100000000000",
+          "amount": "50000000000000",
           "denom": "rune"
         },
         {

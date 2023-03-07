@@ -165,7 +165,7 @@
           "address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2",
           "coins": [
             {
-              "amount": "154213363",
+              "amount": "153253829",
               "denom": "rune"
             }
           ]
@@ -174,7 +174,7 @@
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "40000004546171",
+              "amount": "35000005866042",
               "denom": "rune"
             }
           ]
@@ -183,7 +183,7 @@
           "address": "tthor13wrmhnh2qe98rjse30pl7u6jxszjjwl4f6yycr",
           "coins": [
             {
-              "amount": "2499898613998",
+              "amount": "2499898428789",
               "denom": "rune"
             }
           ]
@@ -192,7 +192,7 @@
           "address": "tthor1uuds8pd92qnnq0udw0rpg0szpgcslc9p8lluej",
           "coins": [
             {
-              "amount": "2499942622663",
+              "amount": "2499942447607",
               "denom": "rune"
             }
           ]
@@ -201,7 +201,7 @@
           "address": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
           "coins": [
             {
-              "amount": "3805",
+              "amount": "5000000003733",
               "denom": "rune"
             }
           ]
@@ -326,7 +326,7 @@
       "msg_swaps": [],
       "network": {
         "LPIncomeSplit": "10000",
-        "bond_reward_rune": "3805",
+        "bond_reward_rune": "3733",
         "burned_bep2_rune": "0",
         "burned_erc20_rune": "0",
         "total_bond_units": "9"
@@ -354,7 +354,7 @@
           "LP_units": "200000000",
           "asset": "BTC.BTC",
           "balance_asset": "200000000",
-          "balance_rune": "154213363",
+          "balance_rune": "153253829",
           "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",

@@ -860,6 +860,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/QuoteSaverWithdrawResponse"
 
+  # ------------------------------ invariants ------------------------------
+
+  /thorchain/invariant/{invariant}:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - $ref: "#/components/parameters/invariant"
+    get:
+      description: Returns result of running the given invariant.
+      operationId: invariant
+      tags:
+        - Invariants
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvariantResponse"
+
+  /thorchain/invariants:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+    get:
+      description: Returns a list of available invariants.
+      operationId: invariants
+      tags:
+        - Invariants
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvariantsResponse"
+
 ########################################################################################
 # Components
 ########################################################################################
@@ -926,6 +961,14 @@ components:
       schema:
         type: string
         example: "BTC"
+
+    invariant:
+      name: invariant
+      in: path
+      required: true
+      schema:
+        type: string
+        example: asgard
 
   # ------------------------------ schemas ------------------------------
 
@@ -2253,6 +2296,34 @@ components:
       example:
         NODEOPERATORFEE: 2000
         NUMBEROFNEWNODESPERCHURN: 2
+
+    InvariantResponse:
+      type: object
+      required:
+        - invariant
+        - broken
+        - msg
+      properties:
+        invariant:
+          type: string
+          example: asgard
+          description: The name of the invariant.
+        broken:
+          type: boolean
+          example: false
+          description: Returns true if the invariant is broken.
+        msg:
+          type: string
+          example: "insolvent: 200000rune\noversolvent: 1btc/btc"
+          description: Informative message about the invariant result.
+
+    InvariantsResponse:
+      type: object
+      properties:
+        invariants:
+          type: array
+          items:
+            type: string
 
     MimirNodesResponse:
       type: object
