@@ -685,3 +685,53 @@ func subsidizePoolWithSlashBondV74(ctx cosmos.Context, ygg Vault, yggTotalStolen
 	}
 	return nil
 }
+
+// isChainHalted check whether the given chain is halt
+// chain halt is different as halt trading , when a chain is halt , there is no observation on the given chain
+// outbound will not be signed and broadcast
+func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool {
+	haltChain, err := mgr.Keeper().GetMimir(ctx, "HaltChainGlobal")
+	if err == nil && (haltChain > 0 && haltChain < ctx.BlockHeight()) {
+		ctx.Logger().Info("global is halt")
+		return true
+	}
+
+	haltChain, err = mgr.Keeper().GetMimir(ctx, "NodePauseChainGlobal")
+	if err == nil && haltChain > ctx.BlockHeight() {
+		ctx.Logger().Info("node global is halt")
+		return true
+	}
+
+	mimirKey := fmt.Sprintf("Halt%sChain", chain)
+	haltChain, err = mgr.Keeper().GetMimir(ctx, mimirKey)
+	if err == nil && (haltChain > 0 && haltChain < ctx.BlockHeight()) {
+		ctx.Logger().Info("chain is halt", "chain", chain)
+		return true
+	}
+	return false
+}
+
+func isSynthMintPausedV99(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
+	maxSynths, err := mgr.Keeper().GetMimir(ctx, constants.MaxSynthPerPoolDepth.String())
+	if maxSynths < 0 || err != nil {
+		maxSynths = mgr.GetConstants().GetInt64Value(constants.MaxSynthPerPoolDepth)
+	}
+
+	synthSupply := mgr.Keeper().GetTotalSupply(ctx, targetAsset.GetSyntheticAsset())
+	pool, err := mgr.Keeper().GetPool(ctx, targetAsset.GetLayer1Asset())
+	if err != nil {
+		return ErrInternal(err, "fail to get pool")
+	}
+
+	if pool.BalanceAsset.IsZero() {
+		return fmt.Errorf("pool(%s) has zero asset balance", pool.Asset.String())
+	}
+
+	synthSupplyAfterSwap := synthSupply.Add(outputAmt)
+	coverage := int64(synthSupplyAfterSwap.MulUint64(MaxWithdrawBasisPoints).Quo(pool.BalanceAsset.MulUint64(2)).Uint64())
+	if coverage > maxSynths {
+		return fmt.Errorf("synth quantity is too high relative to asset depth of related pool (%d/%d)", coverage, maxSynths)
+	}
+
+	return nil
+}
