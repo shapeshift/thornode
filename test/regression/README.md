@@ -79,7 +79,7 @@ The state definition can be any valid data to deep merge with the default genera
 
 ```yaml
 type: state
-data:
+genesis:
   app_state:
     thorchain:
       pools:

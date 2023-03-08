@@ -385,31 +385,37 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 			return quoteErrorResponse(fmt.Errorf("tolerance basis points must be less than 10000"))
 		}
 
-		// get from asset pool
-		fromPool, err := mgr.Keeper().GetPool(ctx, fromAsset.GetLayer1Asset())
-		if err != nil {
-			return quoteErrorResponse(fmt.Errorf("failed to get pool: %w", err))
-		}
-
-		// get to asset pool
-		toPool, err := mgr.Keeper().GetPool(ctx, toAsset.GetLayer1Asset())
-		if err != nil {
-			return quoteErrorResponse(fmt.Errorf("failed to get pool: %w", err))
-		}
-
-		// ensure pool exists
-		if toPool.IsEmpty() {
-			return quoteErrorResponse(fmt.Errorf("pool does not exist"))
-		}
-
 		// convert to a limit of target asset amount assuming zero fees and slip
 		feelessEmit := swapAmount
+
 		// When one asset is RUNE, no conversion is necessary,
 		// and empty fields would cause a divide-by-zero error; skip it.
 		if !fromAsset.IsRune() {
+			// get from asset pool
+			fromPool, err := mgr.Keeper().GetPool(ctx, fromAsset.GetLayer1Asset())
+			if err != nil {
+				return quoteErrorResponse(fmt.Errorf("failed to get pool: %w", err))
+			}
+
+			// ensure pool exists
+			if fromPool.IsEmpty() {
+				return quoteErrorResponse(fmt.Errorf("pool does not exist"))
+			}
+
 			feelessEmit = feelessEmit.Mul(fromPool.BalanceRune).Quo(fromPool.BalanceAsset)
 		}
 		if !toAsset.IsRune() {
+			// get to asset pool
+			toPool, err := mgr.Keeper().GetPool(ctx, toAsset.GetLayer1Asset())
+			if err != nil {
+				return quoteErrorResponse(fmt.Errorf("failed to get pool: %w", err))
+			}
+
+			// ensure pool exists
+			if toPool.IsEmpty() {
+				return quoteErrorResponse(fmt.Errorf("pool does not exist"))
+			}
+
 			feelessEmit = feelessEmit.Mul(toPool.BalanceAsset).Quo(toPool.BalanceRune)
 		}
 		limit = feelessEmit.MulUint64(10000 - toleranceBasisPoints.Uint64()).QuoUint64(10000)

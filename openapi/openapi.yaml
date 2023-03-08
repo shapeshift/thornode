@@ -296,7 +296,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/VaultsResponse"
 
-  /thorchain/vaults/{pubkey}:
+  /thorchain/vault/{pubkey}:
     parameters:
       - $ref: "#/components/parameters/queryHeight"
       - $ref: "#/components/parameters/pubkey"
