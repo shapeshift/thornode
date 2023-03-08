@@ -533,7 +533,7 @@ func (s TxOutStoreV94Suite) TestCalcTxOutHeight(c *C) {
 
 	ctx, _ := setupManagerForTest(c)
 
-	txout := TxOutStorageV83{keeper: keeper}
+	txout := TxOutStorageV94{keeper: keeper}
 
 	toi := TxOutItem{
 		Coin: common.NewCoin(common.BNBAsset, cosmos.NewUint(50*common.One)),
