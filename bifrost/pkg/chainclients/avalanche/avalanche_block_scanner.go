@@ -191,7 +191,7 @@ func (a *AvalancheScanner) GetTokens() ([]*evmtypes.TokenMeta, error) {
 }
 
 // FetchTxs query the AVAX C-Chain to get txs in the given block height
-func (a *AvalancheScanner) FetchTxs(height int64) (stypes.TxIn, error) {
+func (a *AvalancheScanner) FetchTxs(height, chainHeight int64) (stypes.TxIn, error) {
 	if height%100 == 0 {
 		a.logger.Info().Int64("height", height).Msg("Fetching txs for height")
 	}
@@ -206,13 +206,18 @@ func (a *AvalancheScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 		return stypes.TxIn{}, fmt.Errorf("fail to process block: %d, err:%w", height, err)
 	}
 
-	a.reportNetworkFee(height)
+	// skip reporting network fee and solvency if block more than flexibility blocks from tip
+	if chainHeight-height > a.cfg.ObservationFlexibilityBlocks {
+		return txIn, nil
+	}
 
+	a.reportNetworkFee(height)
 	if a.solvencyReporter != nil {
 		if err := a.solvencyReporter(height); err != nil {
 			a.logger.Err(err).Msg("fail to report Solvency info to THORNode")
 		}
 	}
+
 	return txIn, nil
 }
 

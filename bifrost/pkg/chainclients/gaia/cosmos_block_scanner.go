@@ -385,7 +385,7 @@ func (c *CosmosBlockScanner) processTxs(height int64, rawTxs [][]byte) ([]types.
 	return txIn, nil
 }
 
-func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
+func (c *CosmosBlockScanner) FetchTxs(height, chainHeight int64) (types.TxIn, error) {
 	block, err := c.GetBlock(height)
 	if err != nil {
 		return types.TxIn{}, err
@@ -402,6 +402,11 @@ func (c *CosmosBlockScanner) FetchTxs(height int64) (types.TxIn, error) {
 		TxArray:  txs,
 		Filtered: false,
 		MemPool:  false,
+	}
+
+	// skip reporting network fee and solvency if block more than flexibility blocks from tip
+	if chainHeight-height > c.cfg.ObservationFlexibilityBlocks {
+		return txIn, nil
 	}
 
 	err = c.updateGasFees(height)

@@ -551,6 +551,10 @@ type BifrostBlockScannerConfiguration struct {
 	// GasPriceResolution is the resolution of price per gas unit in the base asset of the
 	// chain (wei, tavax, uatom, satoshi, etc) and is transitively the floor price.
 	GasPriceResolution int64 `mapstructure:"gas_price_resolution"`
+
+	// ObservationFlexibilityBlocks is the number of blocks behind the current tip we will
+	// submit network fee and solvency observations.
+	ObservationFlexibilityBlocks int64 `mapstructure:"observation_flexibility_blocks"`
 }
 
 func (b *BifrostBlockScannerConfiguration) Validate() {

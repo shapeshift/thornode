@@ -263,7 +263,7 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 	whitelistSmartContractAddress = append(whitelistSmartContractAddress, "0x40bcd4dB8889a8Bf0b1391d0c819dcd9627f9d0a")
-	txIn, err := bs.FetchTxs(int64(1))
+	txIn, err := bs.FetchTxs(int64(1), int64(1))
 	c.Assert(err, IsNil)
 	c.Check(len(txIn.TxArray), Equals, 1)
 }

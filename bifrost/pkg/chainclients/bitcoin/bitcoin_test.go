@@ -190,7 +190,7 @@ func (s *BitcoinSuite) TestGetBlock(c *C) {
 }
 
 func (s *BitcoinSuite) TestFetchTxs(c *C) {
-	txs, err := s.client.FetchTxs(0)
+	txs, err := s.client.FetchTxs(0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.BTCChain)
 	c.Assert(txs.Count, Equals, "13")

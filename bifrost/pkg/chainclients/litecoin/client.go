@@ -610,7 +610,7 @@ func (c *Client) FetchMemPool(height int64) (types.TxIn, error) {
 }
 
 // FetchTxs retrieves txs for a block height
-func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
+func (c *Client) FetchTxs(height, chainHeight int64) (types.TxIn, error) {
 	txIn := types.TxIn{
 		Chain:   common.LTCChain,
 		TxArray: nil,
@@ -673,16 +673,20 @@ func (c *Client) FetchTxs(height int64) (types.TxIn, error) {
 		txIn.TxArray = append(txIn.TxArray, txInBlock.TxArray...)
 	}
 	c.updateNetworkInfo()
-	if err := c.sendNetworkFee(height); err != nil {
-		c.logger.Err(err).Msg("fail to send network fee")
-	}
 
-	// LTC has faster block time, report every 5 blocks seems fine
-	if height%5 == 0 && c.IsBlockScannerHealthy() {
-		if err := c.ReportSolvency(height); err != nil {
-			c.logger.Err(err).Msg("fail to report solvency to THORChain")
+	// report network fee and solvency if within flexibility blocks of tip
+	if chainHeight-height <= c.cfg.BlockScanner.ObservationFlexibilityBlocks {
+		if err := c.sendNetworkFee(height); err != nil {
+			c.logger.Err(err).Msg("fail to send network fee")
+		}
+		// LTC has faster block time, report every 5 blocks seems fine
+		if height%5 == 0 && c.IsBlockScannerHealthy() {
+			if err := c.ReportSolvency(height); err != nil {
+				c.logger.Err(err).Msg("fail to report solvency to THORChain")
+			}
 		}
 	}
+
 	txIn.Count = strconv.Itoa(len(txIn.TxArray))
 	if !c.consolidateInProgress.Load() {
 		// try to consolidate UTXOs

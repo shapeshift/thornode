@@ -67,6 +67,7 @@ bifrost:
         http_request_write_timeout: 30s
         max_http_request_retry: 10
         db_path: /var/data/bifrost/observer
+        observation_flexibility_blocks: 2
     btc: &default-chain
       chain_id: BTC
       username: thorchain
@@ -78,6 +79,7 @@ bifrost:
         <<: *default-block-scanner
         chain_id: BTC
         block_height_discover_back_off: 5s
+        observation_flexibility_blocks: 3
     eth:
       <<: *default-chain
       chain_id: ETH
@@ -86,6 +88,7 @@ bifrost:
         gas_cache_blocks: 40
         concurrency: 1
         chain_id: ETH
+        observation_flexibility_blocks: 20
     avax:
       <<: *default-chain
       chain_id: AVAX
@@ -95,6 +98,7 @@ bifrost:
         chain_id: AVAX
         gas_cache_blocks: 40
         gas_price_resolution: 50_000_000_000 # 50 navax
+        observation_flexibility_blocks: 80
     doge:
       <<: *default-chain
       chain_id: DOGE
@@ -109,18 +113,21 @@ bifrost:
         <<: *default-block-scanner
         chain_id: GAIA
         gas_price_resolution: 100_000 # uatom
+        observation_flexibility_blocks: 40
     ltc:
       <<: *default-chain
       chain_id: LTC
       block_scanner:
         <<: *default-block-scanner
         chain_id: LTC
+        observation_flexibility_blocks: 3
     bch:
       <<: *default-chain
       chain_id: BCH
       block_scanner:
         <<: *default-block-scanner
         chain_id: BCH
+        observation_flexibility_blocks: 3
 
 ########################################################################################
 # Thor

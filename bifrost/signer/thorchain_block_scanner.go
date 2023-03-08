@@ -71,7 +71,7 @@ func (c *ThorchainBlockScan) FetchMemPool(height int64) (types.TxIn, error) {
 	return types.TxIn{}, nil
 }
 
-func (b *ThorchainBlockScan) FetchTxs(height int64) (types.TxIn, error) {
+func (b *ThorchainBlockScan) FetchTxs(height, _ int64) (types.TxIn, error) {
 	if err := b.processTxOutBlock(height); err != nil {
 		return types.TxIn{}, err
 	}

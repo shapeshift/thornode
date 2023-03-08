@@ -187,7 +187,7 @@ func (s *BitcoinCashSuite) TestGetBlock(c *C) {
 }
 
 func (s *BitcoinCashSuite) TestFetchTxs(c *C) {
-	txs, err := s.client.FetchTxs(0)
+	txs, err := s.client.FetchTxs(0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.BCHChain)
 	c.Assert(txs.Count, Equals, "13")

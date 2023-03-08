@@ -177,7 +177,7 @@ func (e *ETHScanner) GetTokens() ([]*types.TokenMeta, error) {
 }
 
 // FetchTxs query the ETH chain to get txs in the given block height
-func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
+func (e *ETHScanner) FetchTxs(height, chainHeight int64) (stypes.TxIn, error) {
 	block, err := e.getRPCBlock(height)
 	if err != nil {
 		return stypes.TxIn{}, err
@@ -202,6 +202,11 @@ func (e *ETHScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 				e.logger.Err(err).Msgf("fail to prune block meta, height(%d)", pruneHeight)
 			}
 		}()
+	}
+
+	// skip reporting network fee and solvency if block more than flexibility blocks from tip
+	if chainHeight-height > e.cfg.ObservationFlexibilityBlocks {
+		return txIn, nil
 	}
 
 	// gas price to 1e8

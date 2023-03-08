@@ -25,7 +25,7 @@ type BlockScannerFetcher interface {
 	// FetchMemPool scan the mempool
 	FetchMemPool(height int64) (types.TxIn, error)
 	// FetchTxs scan block with the given height
-	FetchTxs(height int64) (types.TxIn, error)
+	FetchTxs(fetchHeight, chainHeight int64) (types.TxIn, error)
 	// GetHeight return current block height
 	GetHeight() (int64, error)
 }
@@ -221,7 +221,7 @@ func (b *BlockScanner) scanBlocks() {
 				time.Sleep(b.cfg.BlockHeightDiscoverBackoff)
 				continue
 			}
-			txIn, err := b.chainScanner.FetchTxs(currentBlock)
+			txIn, err := b.chainScanner.FetchTxs(currentBlock, chainHeight)
 			if err != nil {
 				// don't log an error if its because the block doesn't exist yet
 				if !errors.Is(err, btypes.ErrUnavailableBlock) {

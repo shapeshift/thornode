@@ -190,7 +190,7 @@ func (s *LitecoinSuite) TestGetBlock(c *C) {
 }
 
 func (s *LitecoinSuite) TestFetchTxs(c *C) {
-	txs, err := s.client.FetchTxs(0)
+	txs, err := s.client.FetchTxs(0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.LTCChain)
 	c.Assert(txs.Count, Equals, "13")

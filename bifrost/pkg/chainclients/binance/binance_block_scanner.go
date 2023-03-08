@@ -215,11 +215,6 @@ func (b *BinanceBlockScanner) processBlock(block blockscanner.Block) (stypes.TxI
 		return txIn, nil
 	}
 
-	// update our gas fees from binance RPC node
-	if err := b.updateFees(block.Height); err != nil {
-		b.logger.Error().Err(err).Msg("fail to update Binance gas fees")
-	}
-
 	// TODO implement pagination appropriately
 	for _, txn := range block.Txs {
 		hash, err := b.getTxHash(txn)
@@ -351,7 +346,7 @@ func (c *BinanceBlockScanner) FetchMemPool(height int64) (stypes.TxIn, error) {
 	return stypes.TxIn{}, nil
 }
 
-func (b *BinanceBlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
+func (b *BinanceBlockScanner) FetchTxs(height, chainHeight int64) (stypes.TxIn, error) {
 	rawTxs, err := b.getRPCBlock(height)
 	if err != nil {
 		return stypes.TxIn{}, err
@@ -372,11 +367,21 @@ func (b *BinanceBlockScanner) FetchTxs(height int64) (stypes.TxIn, error) {
 	if err := b.db.RemoveBlockStatus(block.Height); err != nil {
 		b.logger.Error().Err(err).Int64("block", block.Height).Msg("fail to remove block status from data store, thus block will be re processed")
 	}
+
+	// skip reporting network fee and solvency if block more than flexibility blocks from tip
+	if chainHeight-height > b.cfg.ObservationFlexibilityBlocks {
+		return txIn, nil
+	}
+
+	if err := b.updateFees(block.Height); err != nil {
+		b.logger.Error().Err(err).Msg("fail to update Binance gas fees")
+	}
 	if b.solvencyReporter != nil {
 		if err := b.solvencyReporter(height); err != nil {
 			b.logger.Err(err).Msg("fail to report solvency to THORChain")
 		}
 	}
+
 	return txIn, nil
 }
 
