@@ -111,13 +111,6 @@ func (s *SignerStore) Set(item TxOutStoreItem) error {
 		s.logger.Error().Err(err).Msg("fail to marshal to txout store item")
 		return err
 	}
-	if len(s.passphrase) > 0 {
-		buf, err = common.Encrypt(buf, s.passphrase)
-		if err != nil {
-			s.logger.Error().Err(err).Msg("fail to encrypt txout item")
-			return err
-		}
-	}
 	if err := s.db.Put([]byte(key), buf, nil); err != nil {
 		s.logger.Error().Err(err).Msg("fail to set txout item")
 		return err
@@ -134,13 +127,6 @@ func (s *SignerStore) Batch(items []TxOutStoreItem) error {
 			s.logger.Error().Err(err).Msg("fail to marshal to txout store item")
 			return err
 		}
-		if len(s.passphrase) > 0 {
-			buf, err = common.Encrypt(buf, s.passphrase)
-			if err != nil {
-				s.logger.Error().Err(err).Msg("fail to encrypt txout item")
-				return err
-			}
-		}
 		batch.Put([]byte(key), buf)
 	}
 	return s.db.Write(batch, nil)
@@ -151,12 +137,17 @@ func (s *SignerStore) Get(key string) (item TxOutStoreItem, err error) {
 	if !ok || err != nil {
 		return
 	}
-	buf, err := s.db.Get([]byte(key), nil)
+	buf, _ := s.db.Get([]byte(key), nil)
 	if len(s.passphrase) > 0 {
-		buf, err = common.Decrypt(buf, s.passphrase)
+		decrypted, err := common.Decrypt(buf, s.passphrase)
 		if err != nil {
-			s.logger.Error().Err(err).Msg("fail to decrypt txout item")
-			return item, err
+			s.logger.Debug().Err(err).Msg("fail to decrypt txout item")
+			// We fall through here and attempt json decoding.
+			// The decryption attempt can be removed when all
+			// bifrost leveldb's have been recreated after the
+			// encryption removal change was merged.
+		} else {
+			buf = decrypted
 		}
 	}
 	if err := json.Unmarshal(buf, &item); err != nil {
@@ -184,17 +175,21 @@ func (s *SignerStore) List() []TxOutStoreItem {
 	defer iterator.Release()
 	var results []TxOutStoreItem
 	for iterator.Next() {
-		var err error
 		buf := iterator.Value()
 		if len(buf) == 0 {
 			continue
 		}
 
 		if len(s.passphrase) > 0 {
-			buf, err = common.Decrypt(buf, s.passphrase)
+			decrypted, err := common.Decrypt(buf, s.passphrase)
 			if err != nil {
-				s.logger.Error().Err(err).Msg("fail to decrypt txout item")
-				continue
+				s.logger.Debug().Err(err).Msg("fail to decrypt txout item")
+				// We fall through here and attempt json decoding.
+				// The decryption attempt can be removed when all
+				// bifrost leveldb's have been recreated after the
+				// encryption removal change was merged.
+			} else {
+				buf = decrypted
 			}
 		}
 

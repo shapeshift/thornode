@@ -3,9 +3,7 @@ package common
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"encoding/hex"
-	"io"
 
 	"crypto/md5" // nolint
 )
@@ -14,28 +12,6 @@ func createHash(key string) (string, error) {
 	hasher := md5.New() // nolint
 	_, err := hasher.Write([]byte(key))
 	return hex.EncodeToString(hasher.Sum(nil)), err
-}
-
-// Encrypt the input data with passphrase
-func Encrypt(data []byte, passphrase string) ([]byte, error) {
-	hash, err := createHash(passphrase)
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := aes.NewCipher([]byte(hash))
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
-	}
-
-	ciphertext := gcm.Seal(nonce, nonce, data, nil)
-	return ciphertext, nil
 }
 
 // Decrypt the input data with passphrase
