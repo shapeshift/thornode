@@ -162,6 +162,8 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.107.0")):
+		return h.handleV107(ctx, msg)
 	case version.GTE(semver.MustParse("1.99.0")):
 		return h.handleV99(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
@@ -179,7 +181,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	}
 }
 
-func (h SwapHandler) handleV99(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+func (h SwapHandler) handleV107(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	// Don't change msg.Destination here; this line was introduced to avoid people from swapping mainnet asset,
 	// but using testnet address.
@@ -241,7 +243,8 @@ func (h SwapHandler) handleV99(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 		ctx.Logger().Error("swap handler failed to parse memo", "memo", msg.Tx.Memo, "error", err)
 		return nil, err
 	}
-	if mem.IsType(TxAdd) {
+	switch mem.GetType() {
+	case TxAdd:
 		m, ok := mem.(AddLiquidityMemo)
 		if !ok {
 			return nil, fmt.Errorf("fail to cast add liquidity memo")
@@ -259,8 +262,60 @@ func (h SwapHandler) handleV99(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 			ctx.Logger().Error("swap handler failed to add liquidity", "error", err)
 			return nil, err
 		}
-	}
+	case TxLoanOpen:
+		m, ok := mem.(LoanOpenMemo)
+		if !ok {
+			return nil, fmt.Errorf("fail to cast loan open memo")
+		}
+		m.Asset = fuzzyAssetMatch(ctx, h.mgr.Keeper(), m.Asset)
+		msg.Tx.Coins = common.NewCoins(common.NewCoin(
+			msg.TargetAsset, emit,
+		))
 
+		// The transaction id set on the tx in the message is the reversed txid of the
+		// inbound tx - here we reverse it back to the original txid and set it in the
+		// context, which is used in the second run of the handler so that the memo on the
+		// outbound transaction matches the id of the inbound which opened the loan.
+		txid := common.TxID(msg.Tx.ID.String()).Reverse()
+		ctx = ctx.WithValue(constants.CtxLoanTxID, txid)
+
+		obTx := ObservedTx{Tx: msg.Tx}
+		msg, err := getMsgLoanOpenFromMemo(m, obTx, msg.Signer)
+		if err != nil {
+			return nil, err
+		}
+		openLoanHandler := NewLoanOpenHandler(h.mgr)
+
+		_, err = openLoanHandler.Run(ctx, msg) // fire and forget
+		if err != nil {
+			ctx.Logger().Error("swap handler failed to open loan", "error", err)
+			return nil, err
+		}
+	case TxLoanRepayment:
+		m, ok := mem.(LoanRepaymentMemo)
+		if !ok {
+			return nil, fmt.Errorf("fail to cast loan repayment memo")
+		}
+		m.Asset = fuzzyAssetMatch(ctx, h.mgr.Keeper(), m.Asset)
+
+		// The transaction id set on the tx in the message is the reversed txid of the
+		// inbound tx - here we reverse it back to the original txid and set it in the
+		// context, which is used in the second run of the handler so that the memo on the
+		// outbound transaction matches the id of the inbound which closed the loan.
+		txid := common.TxID(msg.Tx.ID.String()).Reverse()
+		ctx = ctx.WithValue(constants.CtxLoanTxID, txid)
+
+		msg, err := getMsgLoanRepaymentFromMemo(m, common.NewCoin(common.TOR, emit), msg.Signer)
+		if err != nil {
+			return nil, err
+		}
+		repayLoanHandler := NewLoanRepaymentHandler(h.mgr)
+		_, err = repayLoanHandler.Run(ctx, msg) // fire and forget
+		if err != nil {
+			ctx.Logger().Error("swap handler failed to repay loan", "error", err)
+			return nil, err
+		}
+	}
 	return &cosmos.Result{}, nil
 }
 

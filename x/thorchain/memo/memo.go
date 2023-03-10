@@ -38,6 +38,8 @@ const (
 	TxNoOp
 	TxConsolidate
 	TxTHORName
+	TxLoanOpen
+	TxLoanRepayment
 )
 
 var stringToTxTypeMap = map[string]TxType{
@@ -69,6 +71,10 @@ var stringToTxTypeMap = map[string]TxType{
 	"name":        TxTHORName,
 	"n":           TxTHORName,
 	"~":           TxTHORName,
+	"$+":          TxLoanOpen,
+	"loan+":       TxLoanOpen,
+	"$-":          TxLoanRepayment,
+	"loan-":       TxLoanRepayment,
 }
 
 var txToStringMap = map[TxType]string{
@@ -91,6 +97,8 @@ var txToStringMap = map[TxType]string{
 	TxNoOp:            "noop",
 	TxConsolidate:     "consolidate",
 	TxTHORName:        "thorname",
+	TxLoanOpen:        "$+",
+	TxLoanRepayment:   "$-",
 }
 
 // converts a string into a txType
@@ -106,7 +114,7 @@ func StringToTxType(s string) (TxType, error) {
 
 func (tx TxType) IsInbound() bool {
 	switch tx {
-	case TxAdd, TxWithdraw, TxSwap, TxLimitOrder, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve, TxNoOp, TxTHORName:
+	case TxAdd, TxWithdraw, TxSwap, TxLimitOrder, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve, TxNoOp, TxTHORName, TxLoanOpen, TxLoanRepayment:
 		return true
 	default:
 		return false
@@ -211,7 +219,7 @@ func parseBase(memo string) (MemoBase, []string, error) {
 	}
 
 	switch mem.TxType {
-	case TxDonate, TxAdd, TxSwap, TxLimitOrder, TxWithdraw:
+	case TxDonate, TxAdd, TxSwap, TxLimitOrder, TxWithdraw, TxLoanOpen, TxLoanRepayment:
 		if len(parts) < 2 {
 			return mem, parts, fmt.Errorf("cannot parse given memo: length %d", len(parts))
 		}
@@ -276,6 +284,10 @@ func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 		return ParseNoOpMemo(parts)
 	case TxConsolidate:
 		return ParseConsolidateMemo(parts)
+	case TxLoanOpen:
+		return ParseLoanOpenMemo(cosmos.Context{}, nil, asset, parts)
+	case TxLoanRepayment:
+		return ParseLoanRepaymentMemo(cosmos.Context{}, nil, asset, parts)
 	default:
 		return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
 	}
@@ -335,6 +347,10 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 		return ParseConsolidateMemo(parts)
 	case TxTHORName:
 		return ParseManageTHORNameMemo(parts)
+	case TxLoanOpen:
+		return ParseLoanOpenMemo(ctx, keeper, asset, parts)
+	case TxLoanRepayment:
+		return ParseLoanRepaymentMemo(ctx, keeper, asset, parts)
 	default:
 		return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
 	}

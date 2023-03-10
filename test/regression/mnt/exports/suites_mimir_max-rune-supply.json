@@ -286,6 +286,7 @@
         }
       ],
       "liquidity_providers": null,
+      "loans": [],
       "mimirs": [
         {
           "key": "HALTCHAINGLOBAL",

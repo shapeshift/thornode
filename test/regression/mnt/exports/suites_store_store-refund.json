@@ -286,6 +286,7 @@
       "chain_contracts": [],
       "last_chain_heights": [],
       "liquidity_providers": null,
+      "loans": [],
       "mimirs": [],
       "msg_swaps": [],
       "network": {

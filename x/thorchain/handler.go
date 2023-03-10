@@ -65,10 +65,14 @@ func NewExternalHandler(mgr Manager) cosmos.Handler {
 }
 
 func getHandlerMapping(mgr Manager) map[string]MsgHandler {
+	version := mgr.GetVersion()
+	if version.GTE(semver.MustParse("1.107.0")) {
+		return getHandlerMappingV107(mgr)
+	}
 	return getHandlerMappingV65(mgr)
 }
 
-func getHandlerMappingV65(mgr Manager) map[string]MsgHandler {
+func getHandlerMappingV107(mgr Manager) map[string]MsgHandler {
 	// New arch handlers
 	m := make(map[string]MsgHandler)
 
@@ -150,6 +154,8 @@ func getInternalHandlerMapping(mgr Manager) map[string]MsgHandler {
 	m[MsgNoOp{}.Type()] = NewNoOpHandler(mgr)
 	m[MsgConsolidate{}.Type()] = NewConsolidateHandler(mgr)
 	m[MsgManageTHORName{}.Type()] = NewManageTHORNameHandler(mgr)
+	m[MsgLoanOpen{}.Type()] = NewLoanOpenHandler(mgr)
+	m[MsgLoanRepayment{}.Type()] = NewLoanRepaymentHandler(mgr)
 	return m
 }
 
@@ -217,6 +223,14 @@ func getMsgLeaveFromMemo(memo LeaveMemo, tx ObservedTx, signer cosmos.AccAddress
 	return NewMsgLeave(tx.Tx, memo.GetAccAddress(), signer), nil
 }
 
+func getMsgLoanOpenFromMemo(memo LoanOpenMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	return NewMsgLoanOpen(tx.Tx.FromAddress, tx.Tx.Coins[0].Asset, tx.Tx.Coins[0].Amount, memo.TargetAddress, memo.TargetAsset, memo.GetMinOut(), memo.GetAffiliateAddress(), memo.GetAffiliateBasisPoints(), memo.GetDexAggregator(), memo.GetDexTargetAddress(), memo.DexTargetLimit, signer), nil
+}
+
+func getMsgLoanRepaymentFromMemo(memo LoanRepaymentMemo, coin common.Coin, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	return NewMsgLoanRepayment(memo.Owner, memo.Asset, coin, signer), nil
+}
+
 func getMsgBondFromMemo(memo BondMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	coin := tx.Tx.Coins.GetCoin(common.RuneAsset())
 	return NewMsgBond(tx.Tx, memo.GetAccAddress(), coin.Amount, tx.Tx.FromAddress, memo.BondProviderAddress, signer, memo.NodeOperatorFee), nil
@@ -234,13 +248,16 @@ func getMsgManageTHORNameFromMemo(memo ManageTHORNameMemo, tx ObservedTx, signer
 }
 
 func processOneTxIn(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	if version.GTE(semver.MustParse("0.63.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.107.0")):
+		return processOneTxInV107(ctx, keeper, tx, signer)
+	case version.GTE(semver.MustParse("0.63.0")):
 		return processOneTxInV63(ctx, keeper, tx, signer)
 	}
 	return nil, errBadVersion
 }
 
-func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+func processOneTxInV107(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	memo, err := ParseMemoWithTHORNames(ctx, keeper, tx.Tx.Memo)
 	if err != nil {
 		ctx.Logger().Error("fail to parse memo", "error", err)
@@ -292,6 +309,12 @@ func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, 
 		newMsg = NewMsgConsolidate(tx, signer)
 	case ManageTHORNameMemo:
 		newMsg, err = getMsgManageTHORNameFromMemo(m, tx, signer)
+	case LoanOpenMemo:
+		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
+		newMsg, err = getMsgLoanOpenFromMemo(m, tx, signer)
+	case LoanRepaymentMemo:
+		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
+		newMsg, err = getMsgLoanRepaymentFromMemo(m, tx.Tx.Coins[0], signer)
 	default:
 		return nil, errInvalidMemo
 	}

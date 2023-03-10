@@ -103,11 +103,12 @@ func (GasManagerTestSuiteV102) TestGetFee(c *C) {
 	c.Assert(k.SetPool(ctx, Pool{
 		BalanceRune:  cosmos.NewUint(500 * common.One),
 		BalanceAsset: cosmos.NewUint(500 * common.One),
+		Decimals:     8,
 		Asset:        busdAsset,
 		Status:       PoolAvailable,
 	}), IsNil)
 	k.SetMimir(ctx, constants.MinimumL1OutboundFeeUSD.String(), 1_0000_0000)
-	k.SetMimir(ctx, "TorAnchor-BNB.BUSD-BD1", 1) // enable BUSD pool as a TOR anchor
+	k.SetMimir(ctx, "TorAnchor-BNB-BUSD-BD1", 1) // enable BUSD pool as a TOR anchor
 
 	fee = gasMgr.GetFee(ctx, common.BTCChain, common.BTCAsset)
 	c.Assert(fee.Uint64(), Equals, uint64(20000000), Commentf("%d", fee.Uint64()))

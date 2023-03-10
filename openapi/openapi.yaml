@@ -140,6 +140,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/SaversResponse"
 
+  # # ------------------------------ loans ------------------------------
+
+  /thorchain/pool/{asset}/borrower/{address}:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - $ref: "#/components/parameters/asset"
+      - $ref: "#/components/parameters/address"
+    get:
+      description: Returns the borrower position given the pool and address.
+      operationId: borrower
+      tags:
+        - Borrowers
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BorrowerResponse"
+
+  /thorchain/pool/{asset}/borrowers:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - $ref: "#/components/parameters/asset"
+    get:
+      description: Returns all borrowers for the given pool.
+      operationId: borrowers
+      tags:
+        - Borrowers
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BorrowersResponse"
+
   # ------------------------------ transactions ------------------------------
 
   /thorchain/tx/{hash}:
@@ -990,6 +1027,7 @@ components:
         - savers_units
         - synth_mint_paused
         - synth_supply_remaining
+        - loan_collateral
       properties:
         balance_rune:
           type: string
@@ -1045,6 +1083,10 @@ components:
           type: string
           example: "123456"
           description: the amount of synth supply remaining before the current max supply is reached
+        loan_collateral:
+          type: string
+          example: "123456"
+          description: the amount of collateral collects for loans
 
     LiquidityProviderSummary:
       type: object
@@ -1194,6 +1236,45 @@ components:
         growth_pct:
           type: string
           example: "0.02"
+
+    Borrower:
+      type: object
+      required:
+        - owner
+        - asset
+        - debt_up
+        - debt_down
+        - collateral_up
+        - collateral_down
+        - last_open_height
+        - last_repay_height
+      properties:
+        owner:
+          type: string
+          example: "bnb1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        asset:
+          type: string
+          example: "BNB.BNB"
+        debt_up:
+          type: string
+          example: "123456"
+        debt_down:
+          type: string
+          example: "123456"
+        collateral_up:
+          type: string
+          example: "123456"
+        collateral_down:
+          type: string
+          example: "123456"
+        last_open_height:
+          type: integer
+          format: int64
+          example: 82745
+        last_repay_height:
+          type: integer
+          format: int64
+          example: 82745
 
     Coin:
       type: object
@@ -1827,6 +1908,14 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/Saver"
+
+    BorrowerResponse:
+      $ref: "#/components/schemas/Borrower"
+
+    BorrowersResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/Borrower"
 
     TxResponse:
       type: object

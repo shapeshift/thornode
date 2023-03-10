@@ -16,6 +16,7 @@ import "thorchain/v1/x/thorchain/types/type_node_account.proto";
 import "thorchain/v1/x/thorchain/types/type_observed_tx.proto";
 import "thorchain/v1/x/thorchain/types/type_liquidity_provider.proto";
 import "thorchain/v1/x/thorchain/types/type_thorname.proto";
+import "thorchain/v1/x/thorchain/types/type_loan.proto";
 import "gogoproto/gogo.proto";
 
 message lastChainHeight {
@@ -51,4 +52,5 @@ message GenesisState {
   int64 store_version = 25;
   repeated types.BondProviders bond_providers = 26 [(gogoproto.nullable) = false];
   types.ProtocolOwnedLiquidity POL = 27 [(gogoproto.nullable) = false];
+  repeated types.Loan loans = 28 [(gogoproto.nullable) = false];
 }

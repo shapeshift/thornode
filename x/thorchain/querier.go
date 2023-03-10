@@ -46,6 +46,10 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryLiquidityProviders(ctx, path[1:], req, mgr, true)
 		case q.QuerySaver.Key:
 			return queryLiquidityProvider(ctx, path[1:], req, mgr, true)
+		case q.QueryBorrowers.Key:
+			return queryBorrowers(ctx, path[1:], req, mgr)
+		case q.QueryBorrower.Key:
+			return queryBorrower(ctx, path[1:], req, mgr)
 		case q.QueryLiquidityProviders.Key:
 			return queryLiquidityProviders(ctx, path[1:], req, mgr, false)
 		case q.QueryLiquidityProvider.Key:
@@ -831,6 +835,69 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	return jsonify(ctx, result)
 }
 
+// queryBorrowers
+func queryBorrowers(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("asset not provided")
+	}
+	asset, err := common.NewAsset(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to get parse asset", "error", err)
+		return nil, fmt.Errorf("fail to parse asset: %w", err)
+	}
+
+	var loans Loans
+	iterator := mgr.Keeper().GetLoanIterator(ctx, asset)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var loan Loan
+		mgr.Keeper().Cdc().MustUnmarshal(iterator.Value(), &loan)
+		if loan.CollateralUp.Equal(loan.CollateralDown) && loan.DebtUp.Equal(loan.DebtDown) {
+			continue
+		}
+		loans = append(loans, loan)
+	}
+	var res []byte
+	res, err = json.MarshalIndent(loans, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal borrowers to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal borrowers to json: %w", err)
+	}
+	return res, nil
+}
+
+// queryBorrower
+func queryBorrower(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, errors.New("asset/loan not provided")
+	}
+	asset, err := common.NewAsset(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to get parse asset", "error", err)
+		return nil, fmt.Errorf("fail to parse asset: %w", err)
+	}
+
+	addr, err := common.NewAddress(path[1])
+	if err != nil {
+		ctx.Logger().Error("fail to get parse address", "error", err)
+		return nil, fmt.Errorf("fail to parse address: %w", err)
+	}
+
+	loan, err := mgr.Keeper().GetLoan(ctx, asset, addr)
+	if err != nil {
+		ctx.Logger().Error("fail to get borrower", "error", err)
+		return nil, fmt.Errorf("fail to borrower: %w", err)
+	}
+
+	var res []byte
+	res, err = json.MarshalIndent(loan, "", "	")
+	if err != nil {
+		ctx.Logger().Error("fail to marshal borrower to json", "error", err)
+		return nil, fmt.Errorf("fail to marshal borrower to json: %w", err)
+	}
+	return res, nil
+}
+
 // queryLiquidityProviders
 // isSavers is true if request is for the savers of a Savers Pool, if false the request is for an L1 pool
 func queryLiquidityProviders(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs, isSavers bool) ([]byte, error) {
@@ -977,6 +1044,11 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	synthMintPausedErr := isSynthMintPaused(ctx, mgr, saversAsset, cosmos.ZeroUint())
 	synthSupplyRemaining, _ := getSynthSupplyRemainingV102(ctx, mgr, saversAsset)
 
+	totalCollateral, err := mgr.Keeper().GetTotalCollateral(ctx, pool.Asset)
+	if err != nil {
+		return nil, fmt.Errorf("fail to fetch total loan collateral: %w", err)
+	}
+
 	p := &openapi.Pool{
 		BalanceRune:          pool.BalanceRune.String(),
 		BalanceAsset:         pool.BalanceAsset.String(),
@@ -991,6 +1063,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		SaversUnits:          saversUnits.String(),
 		SynthMintPaused:      synthMintPausedErr != nil,
 		SynthSupplyRemaining: synthSupplyRemaining.String(),
+		LoanCollateral:       totalCollateral.String(),
 		PendingInboundRune:   pool.PendingInboundRune.String(),
 		PendingInboundAsset:  pool.PendingInboundAsset.String(),
 	}
@@ -1032,6 +1105,10 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		synthMintPausedErr := isSynthMintPaused(ctx, mgr, pool.Asset, cosmos.ZeroUint())
 		synthSupplyRemaining, _ := getSynthSupplyRemainingV102(ctx, mgr, pool.Asset)
 
+		totalCollateral, err := mgr.Keeper().GetTotalCollateral(ctx, pool.Asset)
+		if err != nil {
+			return nil, fmt.Errorf("fail to fetch total loan collateral: %w", err)
+		}
 		p := openapi.Pool{
 			BalanceRune:          pool.BalanceRune.String(),
 			BalanceAsset:         pool.BalanceAsset.String(),
@@ -1046,6 +1123,7 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 			SaversUnits:          saversUnits.String(),
 			SynthMintPaused:      synthMintPausedErr != nil,
 			SynthSupplyRemaining: synthSupplyRemaining.String(),
+			LoanCollateral:       totalCollateral.String(),
 			PendingInboundRune:   pool.PendingInboundRune.String(),
 			PendingInboundAsset:  pool.PendingInboundAsset.String(),
 		}

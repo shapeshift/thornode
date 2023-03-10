@@ -3,10 +3,114 @@ package thorchain
 import (
 	"strings"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
+
+func getHandlerMappingV65(mgr Manager) map[string]MsgHandler {
+	// New arch handlers
+	m := make(map[string]MsgHandler)
+
+	// consensus handlers
+	m[MsgTssPool{}.Type()] = NewTssHandler(mgr)
+	m[MsgObservedTxIn{}.Type()] = NewObservedTxInHandler(mgr)
+	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(mgr)
+	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(mgr)
+	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(mgr)
+	m[MsgBan{}.Type()] = NewBanHandler(mgr)
+	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(mgr)
+	m[MsgSolvency{}.Type()] = NewSolvencyHandler(mgr)
+
+	// cli handlers (non-consensus)
+	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
+	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(mgr)
+	m[MsgSetVersion{}.Type()] = NewVersionHandler(mgr)
+	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(mgr)
+	m[MsgNodePauseChain{}.Type()] = NewNodePauseChainHandler(mgr)
+
+	// native handlers (non-consensus)
+	m[MsgSend{}.Type()] = NewSendHandler(mgr)
+	m[MsgDeposit{}.Type()] = NewDepositHandler(mgr)
+	return m
+}
+
+func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	memo, err := ParseMemoWithTHORNames(ctx, keeper, tx.Tx.Memo)
+	if err != nil {
+		ctx.Logger().Error("fail to parse memo", "error", err)
+		return nil, err
+	}
+	// THORNode should not have one tx across chain, if it is cross chain it should be separate tx
+	var newMsg cosmos.Msg
+	// interpret the memo and initialize a corresponding msg event
+	switch m := memo.(type) {
+	case AddLiquidityMemo:
+		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
+		newMsg, err = getMsgAddLiquidityFromMemo(ctx, m, tx, signer)
+	case WithdrawLiquidityMemo:
+		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
+		newMsg, err = getMsgWithdrawFromMemo(m, tx, signer)
+	case SwapMemo:
+		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
+		m.DexTargetAddress = externalAssetMatch(keeper.GetVersion(), m.Asset.GetChain(), m.DexTargetAddress)
+		newMsg, err = getMsgSwapFromMemo(m, tx, signer)
+	case DonateMemo:
+		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
+		newMsg, err = getMsgDonateFromMemo(m, tx, signer)
+	case RefundMemo:
+		newMsg, err = getMsgRefundFromMemo(m, tx, signer)
+	case OutboundMemo:
+		newMsg, err = getMsgOutboundFromMemo(m, tx, signer)
+	case MigrateMemo:
+		newMsg, err = getMsgMigrateFromMemo(m, tx, signer)
+	case BondMemo:
+		newMsg, err = getMsgBondFromMemo(m, tx, signer)
+	case UnbondMemo:
+		newMsg, err = getMsgUnbondFromMemo(m, tx, signer)
+	case RagnarokMemo:
+		newMsg, err = getMsgRagnarokFromMemo(m, tx, signer)
+	case LeaveMemo:
+		newMsg, err = getMsgLeaveFromMemo(m, tx, signer)
+	case YggdrasilFundMemo:
+		newMsg = NewMsgYggdrasil(tx.Tx, tx.ObservedPubKey, m.GetBlockHeight(), true, tx.Tx.Coins, signer)
+	case YggdrasilReturnMemo:
+		newMsg = NewMsgYggdrasil(tx.Tx, tx.ObservedPubKey, m.GetBlockHeight(), false, tx.Tx.Coins, signer)
+	case ReserveMemo:
+		res := NewReserveContributor(tx.Tx.FromAddress, tx.Tx.Coins.GetCoin(common.RuneAsset()).Amount)
+		newMsg = NewMsgReserveContributor(tx.Tx, res, signer)
+	case SwitchMemo:
+		newMsg = NewMsgSwitch(tx.Tx, memo.GetDestination(), signer)
+	case NoOpMemo:
+		newMsg = NewMsgNoOp(tx, signer, m.Action)
+	case ConsolidateMemo:
+		newMsg = NewMsgConsolidate(tx, signer)
+	case ManageTHORNameMemo:
+		newMsg, err = getMsgManageTHORNameFromMemo(m, tx, signer)
+	default:
+		return nil, errInvalidMemo
+	}
+
+	if err != nil {
+		return newMsg, err
+	}
+	// MsgAddLiquidity & MsgSwap has a new version of validateBasic
+	switch m := newMsg.(type) {
+	case *MsgAddLiquidity:
+		switch {
+		case keeper.GetVersion().GTE(semver.MustParse("1.98.0")):
+			return newMsg, m.ValidateBasicV98()
+		case keeper.GetVersion().GTE(semver.MustParse("1.93.0")):
+			return newMsg, m.ValidateBasicV93()
+		default:
+			return newMsg, m.ValidateBasicV63()
+		}
+	case *MsgSwap:
+		return newMsg, m.ValidateBasicV63()
+	}
+	return newMsg, newMsg.ValidateBasic()
+}
 
 func fuzzyAssetMatchV83(ctx cosmos.Context, keeper keeper.Keeper, origAsset common.Asset) common.Asset {
 	asset := origAsset.GetLayer1Asset()

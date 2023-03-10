@@ -69,6 +69,8 @@ func (h ObservedTxInHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxIn)
 func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.107.0")):
+		return h.handleV107(ctx, msg)
 	case version.GTE(semver.MustParse("1.89.0")):
 		return h.handleV89(ctx, msg)
 	case version.GTE(semver.MustParse("0.78.0")):
@@ -129,7 +131,7 @@ func (h ObservedTxInHandler) preflightV1(ctx cosmos.Context, voter ObservedTxVot
 	return voter, ok
 }
 
-func (h ObservedTxInHandler) handleV89(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
+func (h ObservedTxInHandler) handleV107(ctx cosmos.Context, msg MsgObservedTxIn) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -267,7 +269,15 @@ func (h ObservedTxInHandler) handleV89(ctx cosmos.Context, msg MsgObservedTxIn) 
 			continue
 		}
 
-		_, err = handler(ctx, m)
+		// if it is a loan, inject the observed txid into the context
+		_, isLoanOpen := m.(*MsgLoanOpen)
+		_, isLoanRepayment := m.(*MsgLoanRepayment)
+		mCtx := ctx
+		if isLoanOpen || isLoanRepayment {
+			mCtx = ctx.WithValue(constants.CtxLoanTxID, tx.Tx.ID)
+		}
+
+		_, err = handler(mCtx, m)
 		if err != nil {
 			if err := refundTx(ctx, tx, h.mgr, CodeTxFail, err.Error(), ""); err != nil {
 				ctx.Logger().Error("fail to refund", "error", err)

@@ -42,6 +42,8 @@ const (
 	prefixVaultAsgardIndex        types.DbPrefix = "vault_asgard_index/"
 	prefixNetwork                 types.DbPrefix = "network/"
 	prefixPOL                     types.DbPrefix = "pol/"
+	prefixLoan                    types.DbPrefix = "loan/"
+	prefixLoanTotalCollateral     types.DbPrefix = "loan_col_total/"
 	prefixObservingAddresses      types.DbPrefix = "observing_addresses/"
 	prefixTss                     types.DbPrefix = "tss/"
 	prefixTssKeysignFailure       types.DbPrefix = "tssKeysignFailure/"

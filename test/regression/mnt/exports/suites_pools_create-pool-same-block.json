@@ -310,6 +310,7 @@
           "units": "200000000"
         }
       ],
+      "loans": [],
       "mimirs": [],
       "msg_swaps": [],
       "network": {

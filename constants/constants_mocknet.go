@@ -19,6 +19,7 @@ func init() {
 		ValidatorMaxRewardRatio:      3,
 		FundMigrationInterval:        40,
 		LiquidityLockUpBlocks:        0,
+		MaxRuneSupply:                500_000_000_00000000,
 		JailTimeKeygen:               10,
 		JailTimeKeysign:              10,
 		AsgardSize:                   6,
@@ -28,6 +29,7 @@ func init() {
 		TxOutDelayRate:               2000000_00000000,
 		PoolDepthForYggFundingMin:    500_000_00000000,
 		MaxSynthPerPoolDepth:         3_500,
+		PauseLoans:                   0,
 	}
 	boolOverrides = map[ConstantName]bool{
 		StrictBondLiquidityRatio: false,

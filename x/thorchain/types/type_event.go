@@ -37,6 +37,8 @@ const (
 	SwitchEventType            = "switch"
 	MintBurnType               = "mint_burn"
 	THORNameEventType          = "thorname"
+	LoanOpenEventType          = "loan_open"
+	LoanRepaymentEventType     = "loan_repayment"
 	TSSKeygenMetricEventType   = "tss_keygen"
 	TSSKeysignMetricEventType  = "tss_keysign"
 	VersionEventType           = "version"
@@ -754,6 +756,60 @@ func (m *EventTHORName) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("registration_fee", m.RegistrationFee.String()),
 		cosmos.NewAttribute("fund_amount", m.FundAmt.String()),
 		cosmos.NewAttribute("expire", fmt.Sprintf("%d", m.Expire)),
+		cosmos.NewAttribute("owner", m.Owner.String()))
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventLoanOpen create a new instance of EventLoanOpen
+func NewEventLoanOpen(amt, cr, debt cosmos.Uint, ca, ta common.Asset, owner common.Address) *EventLoanOpen {
+	return &EventLoanOpen{
+		CollateralUp:           amt,
+		DebtUp:                 debt,
+		CollateralizationRatio: cr,
+		CollateralAsset:        ca,
+		TargetAsset:            ta,
+		Owner:                  owner,
+	}
+}
+
+// Type return a string which represent the type of this event
+func (m *EventLoanOpen) Type() string {
+	return LoanOpenEventType
+}
+
+// Events return cosmos sdk events
+func (m *EventLoanOpen) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("collateral_up", m.CollateralUp.String()),
+		cosmos.NewAttribute("debt_up", m.DebtUp.String()),
+		cosmos.NewAttribute("collateralization_ratio", m.CollateralizationRatio.String()),
+		cosmos.NewAttribute("collateral_asset", m.CollateralAsset.String()),
+		cosmos.NewAttribute("target_asset", m.TargetAsset.String()),
+		cosmos.NewAttribute("owner", m.Owner.String()))
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventLoanRepayment create a new instance of NewEventLoanRepayment
+func NewEventLoanRepayment(amt, debt cosmos.Uint, ca common.Asset, owner common.Address) *EventLoanRepayment {
+	return &EventLoanRepayment{
+		CollateralDown:  amt,
+		DebtDown:        debt,
+		CollateralAsset: ca,
+		Owner:           owner,
+	}
+}
+
+// Type return a string which represent the type of this event
+func (m *EventLoanRepayment) Type() string {
+	return LoanRepaymentEventType
+}
+
+// Events return cosmos sdk events
+func (m *EventLoanRepayment) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("collateral_down", m.CollateralDown.String()),
+		cosmos.NewAttribute("debt_down", m.DebtDown.String()),
+		cosmos.NewAttribute("collateral_asset", m.CollateralAsset.String()),
 		cosmos.NewAttribute("owner", m.Owner.String()))
 	return cosmos.Events{evt}, nil
 }

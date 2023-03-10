@@ -6,6 +6,7 @@ func NewConstantValue() *ConstantVals {
 		int64values: map[ConstantName]int64{
 			EmissionCurve:                      6,
 			BlocksPerYear:                      5256000,
+			MaxRuneSupply:                      -1,                 // max supply of rune. Default set to -1 to avoid consensus failure
 			IncentiveCurve:                     100,                // configures incentive pendulum
 			OutboundTransactionFee:             2_000000,           // A 0.02 Rune fee on all swaps and withdrawals
 			NativeTransactionFee:               2_000000,           // A 0.02 Rune fee on all on chain txs
@@ -58,6 +59,11 @@ func NewConstantValue() *ConstantVals {
 			MaxSynthPerPoolDepth:               1700,               // percentage (in basis points) of how many synths are allowed relative to pool depth of the related pool
 			MinSlashPointsForBadValidator:      100,                // The minimum slash point
 			FullImpLossProtectionBlocks:        1440000,            // number of blocks before a liquidity provider gets 100% impermanent loss protection
+			MinCR:                              10_000,             // Minimum collateralization ratio (basis pts)
+			MaxCR:                              60_000,             // Maximum collateralization ratio (basis pts)
+			PauseLoans:                         1,                  // pause opening new loans and repaying loans
+			LoanRepaymentMaturity:              0,                  // number of blocks before loan has reached maturity and can be repaid
+			LendingLever:                       3333,               // This controls (in basis points) how much lending is allowed relative to rune supply
 			MinTxOutVolumeThreshold:            1000_00000000,      // total txout volume (in rune) a block needs to have to slow outbound transactions
 			TxOutDelayRate:                     25_00000000,        // outbound rune per block rate for scheduled transactions (excluding native assets)
 			TxOutDelayMax:                      17280,              // max number of blocks a transaction can be delayed

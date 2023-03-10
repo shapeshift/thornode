@@ -91,6 +91,12 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 
+	for _, loan := range data.Loans {
+		if err := loan.Valid(); err != nil {
+			return fmt.Errorf("invalid loan: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -114,6 +120,7 @@ func DefaultGenesisState() GenesisState {
 		ChainContracts:      make([]ChainContract, 0),
 		THORNames:           make([]THORName, 0),
 		StoreVersion:        38, // refer to func `GetStoreVersion` , let's keep it consistent
+		Loans:               make([]Loan, 0),
 	}
 }
 
@@ -215,6 +222,10 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 
 	for _, n := range data.THORNames {
 		keeper.SetTHORName(ctx, n)
+	}
+
+	for _, loan := range data.Loans {
+		keeper.SetLoan(ctx, loan)
 	}
 
 	// Mint coins into the reserve
@@ -454,6 +465,31 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		})
 	}
 	storeVersion := k.GetStoreVersion(ctx)
+
+	// collect all assets
+	seenAssets := make(map[common.Asset]bool)
+	assets := make([]common.Asset, 0)
+	for _, vault := range vaults {
+		for _, coin := range vault.Coins {
+			if !seenAssets[coin.Asset] {
+				seenAssets[coin.Asset] = true
+				assets = append(assets, coin.Asset)
+			}
+		}
+	}
+
+	// export loans from all assets
+	loans := make([]Loan, 0)
+	for _, asset := range assets {
+		loanIter := k.GetLoanIterator(ctx, asset)
+		defer loanIter.Close()
+		for ; loanIter.Valid(); loanIter.Next() {
+			var loan Loan
+			k.Cdc().MustUnmarshal(loanIter.Value(), &loan)
+			loans = append(loans, loan)
+		}
+	}
+
 	return GenesisState{
 		Pools:              pools,
 		LiquidityProviders: liquidityProviders,
@@ -470,6 +506,7 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		NetworkFees:        networkFees,
 		ChainContracts:     chainContracts,
 		THORNames:          names,
+		Loans:              loans,
 		Mimirs:             mimirs,
 		StoreVersion:       storeVersion,
 	}

@@ -39,6 +39,8 @@ var (
 	QueryLiquidityProvider   = Query{Key: "lp", EndpointTemplate: "/%s/pool/{%s}/liquidity_provider/{%s}"}
 	QuerySavers              = Query{Key: "savers", EndpointTemplate: "/%s/pool/{%s}/savers"}
 	QuerySaver               = Query{Key: "saver", EndpointTemplate: "/%s/pool/{%s}/saver/{%s}"}
+	QueryBorrowers           = Query{Key: "borrowers", EndpointTemplate: "/%s/pool/{%s}/borrowers"}
+	QueryBorrower            = Query{Key: "borrower", EndpointTemplate: "/%s/pool/{%s}/borrower/{%s}"}
 	QueryTx                  = Query{Key: "tx", EndpointTemplate: "/%s/tx/{%s}"}
 	QueryTxVoterOld          = Query{Key: "txvoterold", EndpointTemplate: "/%s/tx/{%s}/signers"}
 	QueryTxVoter             = Query{Key: "txvoter", EndpointTemplate: "/%s/tx/details/{%s}"}
@@ -95,6 +97,8 @@ var Queries = []Query{
 	QueryLiquidityProvider,
 	QuerySavers,
 	QuerySaver,
+	QueryBorrowers,
+	QueryBorrower,
 	QueryTxStages,
 	QueryTxStatus,
 	QueryTxVoter,

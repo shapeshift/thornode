@@ -1,8 +1,6 @@
 package keeperv1
 
 import (
-	"fmt"
-
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -52,7 +50,6 @@ func (s *KeeperOrderBookSuite) TestKeeperOrderBook(c *C) {
 
 	iter = k.GetOrderBookIndexIterator(ctx, msg1.OrderType, msg1.Tx.Coins[0].Asset, msg1.TargetAsset)
 	for ; iter.Valid(); iter.Next() {
-		fmt.Println(iter.Key())
 		hashes := make([]string, 0)
 		ok, err := k.getStrings(ctx, string(iter.Key()), &hashes)
 		c.Assert(err, IsNil)

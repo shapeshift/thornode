@@ -432,9 +432,15 @@ func (tos *TxOutStorageV107) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem)
 
 		runeFee := transactionFeeRune // Fee is the prescribed fee
 
+		// get the lending address to avoid deducting the outbound fee
+		lendAddr, err := tos.keeper.GetModuleAddress(LendingName)
+		if err != nil {
+			return nil, fmt.Errorf("fail to get lending address: %w", err)
+		}
+
 		// Deduct OutboundTransactionFee from TOI and add to Reserve
 		memo, err := ParseMemoWithTHORNames(ctx, tos.keeper, outputs[i].Memo)
-		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) {
+		if err == nil && !memo.IsType(TxYggdrasilFund) && !memo.IsType(TxYggdrasilReturn) && !memo.IsType(TxMigrate) && !memo.IsType(TxRagnarok) && !toi.ToAddress.Equals(lendAddr) {
 			if outputs[i].Coin.Asset.IsRune() {
 				if outputs[i].Coin.Amount.LTE(transactionFeeRune) {
 					runeFee = outputs[i].Coin.Amount // Fee is the full amount

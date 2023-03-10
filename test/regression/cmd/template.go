@@ -57,6 +57,9 @@ var funcMap = template.FuncMap{
 	"addr_module_fee_collector": func() string {
 		return ModuleAddrFeeCollector
 	},
+	"addr_module_lending": func() string {
+		return ModuleAddrLending
+	},
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

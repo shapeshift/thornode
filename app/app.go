@@ -98,7 +98,9 @@ var (
 	}
 
 	// module accounts that are allowed to receive tokens
-	allowedReceivingModAcc = map[string]bool{}
+	allowedReceivingModAcc = map[string]bool{
+		thorchain.LendingName: true,
+	}
 )
 
 var (

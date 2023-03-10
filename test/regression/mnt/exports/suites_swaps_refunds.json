@@ -322,6 +322,7 @@
           "units": "100000000000"
         }
       ],
+      "loans": [],
       "mimirs": [],
       "msg_swaps": [],
       "network": {

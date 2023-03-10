@@ -313,6 +313,7 @@
           "units": "200000000"
         }
       ],
+      "loans": [],
       "mimirs": [
         {
           "key": "FULLIMPLOSSPROTECTIONBLOCKS",

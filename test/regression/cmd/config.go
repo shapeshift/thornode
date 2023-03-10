@@ -135,6 +135,7 @@ const (
 	ModuleAddrTransfer     = "tthor1yl6hdjhmkf37639730gffanpzndzdpmhv07zme"
 	ModuleAddrReserve      = "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw"
 	ModuleAddrFeeCollector = "tthor17xpfvakm2amg962yls6f84z3kell8c5ljftt88"
+	ModuleAddrLending      = "tthor1x0kgm82cnj0vtmzdvz4avk3e7sj427t0al8wky"
 )
 
 ////////////////////////////////////////////////////////////////////////////////////////
