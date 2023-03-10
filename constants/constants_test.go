@@ -13,6 +13,6 @@ type ConstantsSuite struct{}
 var _ = Suite(&ConstantsSuite{})
 
 func (s *ConstantsSuite) Test010(c *C) {
-	consts := NewConstantValue010()
+	consts := NewConstantValue()
 	c.Check(consts.GetInt64Value(PoolCycle), Equals, int64(43200))
 }

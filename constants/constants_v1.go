@@ -1,7 +1,7 @@
 package constants
 
-// NewConstantValue010 get new instance of ConstantValue010
-func NewConstantValue010() *ConstantVals {
+// NewConstantValue get new instance of ConstantValue
+func NewConstantValue() *ConstantVals {
 	return &ConstantVals{
 		int64values: map[ConstantName]int64{
 			EmissionCurve:                      6,
