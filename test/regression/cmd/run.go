@@ -117,7 +117,7 @@ func run(path string) error {
 
 		// warn empty operations
 		if len(op) == 0 {
-			log.Warn().Msg("empty operation")
+			log.Warn().Msg("empty operation, line numbers may be wrong")
 			continue
 		}
 
