@@ -328,8 +328,18 @@ func (h SwapHandler) getEffectiveSecurityBond(ctx cosmos.Context) (cosmos.Uint, 
 	return getEffectiveSecurityBond(nodeAccounts), nil
 }
 
-// getTotalLiquidityRUNE we have in all pools
 func (h SwapHandler) getTotalLiquidityRUNE(ctx cosmos.Context) (cosmos.Uint, error) {
+	version := h.mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.108.0")):
+		return h.getTotalLiquidityRUNEV108(ctx)
+	default:
+		return h.getTotalLiquidityRUNEV1(ctx)
+	}
+}
+
+// getTotalLiquidityRUNE we have in all pools
+func (h SwapHandler) getTotalLiquidityRUNEV108(ctx cosmos.Context) (cosmos.Uint, error) {
 	pools, err := h.mgr.Keeper().GetPools(ctx)
 	if err != nil {
 		return cosmos.ZeroUint(), fmt.Errorf("fail to get pools from data store: %w", err)
@@ -340,7 +350,10 @@ func (h SwapHandler) getTotalLiquidityRUNE(ctx cosmos.Context) (cosmos.Uint, err
 		if p.Status == PoolSuspended {
 			continue
 		}
-		if p.Asset.IsNative() {
+		if p.Asset.IsVaultAsset() {
+			continue
+		}
+		if p.Asset.IsDerivedAsset() {
 			continue
 		}
 		total = total.Add(p.BalanceRune)

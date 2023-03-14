@@ -858,3 +858,22 @@ func (h SwapHandler) handleV98(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result,
 
 	return &cosmos.Result{}, nil
 }
+
+func (h SwapHandler) getTotalLiquidityRUNEV1(ctx cosmos.Context) (cosmos.Uint, error) {
+	pools, err := h.mgr.Keeper().GetPools(ctx)
+	if err != nil {
+		return cosmos.ZeroUint(), fmt.Errorf("fail to get pools from data store: %w", err)
+	}
+	total := cosmos.ZeroUint()
+	for _, p := range pools {
+		// ignore suspended pools
+		if p.Status == PoolSuspended {
+			continue
+		}
+		if p.Asset.IsVaultAsset() {
+			continue
+		}
+		total = total.Add(p.BalanceRune)
+	}
+	return total, nil
+}
