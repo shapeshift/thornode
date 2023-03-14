@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -21,6 +22,12 @@ import (
 // new length.
 // A value of 18 means that granularity is maxed out at 1 trillion to 1 ratio.
 const ratioLength int = 18
+
+// OrderBooksEnabled return true if the orderbooks feature is enabled
+func (k KVStore) OrderBooksEnabled(ctx cosmos.Context) bool {
+	val := k.GetConfigInt64(ctx, constants.EnableOrderBooks)
+	return val > 0
+}
 
 // SetOrderBookItem - writes a order book item to the kv store
 func (k KVStore) SetOrderBookItem(ctx cosmos.Context, msg MsgSwap) error {

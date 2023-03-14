@@ -14,6 +14,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -414,6 +415,11 @@ func (k KVStoreDummy) GetSwapQueueItem(ctx cosmos.Context, txID common.TxID, _ i
 func (k KVStoreDummy) HasSwapQueueItem(ctx cosmos.Context, txID common.TxID, _ int) bool {
 	return false
 }
+
+func (k KVStoreDummy) OrderBooksEnabled(ctx cosmos.Context) bool {
+	return false
+}
+
 func (k KVStoreDummy) SetOrderBookItem(ctx cosmos.Context, msg MsgSwap) error      { return kaboom }
 func (k KVStoreDummy) GetOrderBookItemIterator(ctx cosmos.Context) cosmos.Iterator { return nil }
 func (k KVStoreDummy) RemoveOrderBookItem(ctx cosmos.Context, _ common.TxID) error {
@@ -546,6 +552,14 @@ func (k KVStoreDummy) DeleteTHORName(ctx cosmos.Context, _ string) error      { 
 
 func (k KVStoreDummy) InvariantRoutes() []crisis.InvarRoute {
 	return nil
+}
+
+func (k KVStoreDummy) GetConstants() constants.ConstantValues {
+	return constants.GetConstantValues(semver.MustParse("9999999.0.0"))
+}
+
+func (k KVStoreDummy) GetConfigInt64(ctx cosmos.Context, key constants.ConstantName) int64 {
+	return -1
 }
 
 // a mock cosmos.Iterator implementation for testing purposes

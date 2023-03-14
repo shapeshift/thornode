@@ -77,7 +77,7 @@ func withdrawV102(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (co
 	// fail if the last add height less than the lockup period in the past
 	cv := mgr.GetConstants()
 	height := ctx.BlockHeight()
-	lockupBlocks := fetchConfigInt64(ctx, mgr, constants.LiquidityLockUpBlocks)
+	lockupBlocks := mgr.Keeper().GetConfigInt64(ctx, constants.LiquidityLockUpBlocks)
 	if height < (lp.LastAddHeight + lockupBlocks) {
 		return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint(), errWithdrawLockup
 	}
@@ -106,7 +106,7 @@ func withdrawV102(ctx cosmos.Context, msg MsgWithdrawLiquidity, mgr Manager) (co
 		ctx.Logger().Error("fail to get ILP-DISABLED mimir", "error", err, "key", ilpPoolMimirKey)
 		ilpDisabled = 0
 	}
-	ilpCutoff := fetchConfigInt64(ctx, mgr, constants.ILPCutoff)
+	ilpCutoff := mgr.Keeper().GetConfigInt64(ctx, constants.ILPCutoff)
 
 	if (ilpCutoff <= 0 || ilpCutoff > lp.LastAddHeight) && // ilp cutoff must be after the last add height
 		fullProtectionLine > 0 && // full protection line must be greater than 0

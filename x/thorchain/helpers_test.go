@@ -24,6 +24,11 @@ type TestRefundBondKeeper struct {
 	na      NodeAccount
 	vaults  Vaults
 	modules map[string]int64
+	consts  constants.ConstantValues
+}
+
+func (k *TestRefundBondKeeper) GetConfigInt64(ctx cosmos.Context, key constants.ConstantName) int64 {
+	return k.consts.GetInt64Value(key)
 }
 
 func (k *TestRefundBondKeeper) GetAsgardVaultsByStatus(_ cosmos.Context, _ VaultStatus) (Vaults, error) {
@@ -248,6 +253,7 @@ func (s *HelperSuite) TestRefundBondError(c *C) {
 	tx.FromAddress = GetRandomTHORAddress()
 	keeper1 := &TestRefundBondKeeper{
 		modules: make(map[string]int64),
+		consts:  constants.GetConstantValues(GetCurrentVersion()),
 	}
 	mgr := NewDummyMgrWithKeeper(keeper1)
 	c.Assert(refundBond(ctx, tx, na.NodeAddress, cosmos.ZeroUint(), &na, mgr), IsNil)
@@ -310,6 +316,7 @@ func (s *HelperSuite) TestRefundBondHappyPath(c *C) {
 		ygg:     ygg,
 		vaults:  Vaults{GetRandomVault()},
 		modules: make(map[string]int64),
+		consts:  constants.GetConstantValues(GetCurrentVersion()),
 	}
 	na.Status = NodeStandby
 	mgr := NewDummyMgrWithKeeper(keeper)
@@ -352,6 +359,7 @@ func (s *HelperSuite) TestRefundBondDisableRequestToLeaveNode(c *C) {
 		ygg:     ygg,
 		vaults:  Vaults{GetRandomVault()},
 		modules: make(map[string]int64),
+		consts:  constants.GetConstantValues(GetCurrentVersion()),
 	}
 	na.Status = NodeStandby
 	na.RequestedToLeave = true

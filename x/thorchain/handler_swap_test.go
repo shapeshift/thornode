@@ -66,6 +66,11 @@ type TestSwapHandleKeeper struct {
 	derivedAssets     bool
 }
 
+func (k *TestSwapHandleKeeper) GetConfigInt64(ctx cosmos.Context, key constants.ConstantName) int64 {
+	val, _ := k.GetMimir(ctx, key.String())
+	return val
+}
+
 func (k *TestSwapHandleKeeper) PoolExist(_ cosmos.Context, asset common.Asset) bool {
 	asset = asset.GetLayer1Asset()
 	_, ok := k.pools[asset]

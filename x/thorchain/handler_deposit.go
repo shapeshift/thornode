@@ -235,8 +235,7 @@ func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
 }
 
 func (h DepositHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
-	enableOrderBooks := fetchConfigInt64(ctx, h.mgr, constants.EnableOrderBooks)
-	if enableOrderBooks > 0 {
+	if h.mgr.Keeper().OrderBooksEnabled(ctx) {
 		source := msg.Tx.Coins[0]
 		target := common.NewCoin(msg.TargetAsset, msg.TradeTarget)
 		evt := NewEventLimitOrder(source, target, msg.Tx.ID)

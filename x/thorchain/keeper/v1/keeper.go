@@ -11,6 +11,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 )
 
@@ -90,6 +91,7 @@ type KVStore struct {
 	accountKeeper authkeeper.AccountKeeper
 	storeKey      cosmos.StoreKey // Unexposed key to access store from cosmos.Context
 	version       semver.Version
+	constAccessor constants.ConstantValues
 }
 
 // NewKVStore creates new instances of the thorchain Keeper
@@ -100,6 +102,7 @@ func NewKVStore(cdc codec.BinaryCodec, coinKeeper bankkeeper.Keeper, accountKeep
 		storeKey:      storeKey,
 		cdc:           cdc,
 		version:       version,
+		constAccessor: constants.GetConstantValues(version),
 	}
 }
 

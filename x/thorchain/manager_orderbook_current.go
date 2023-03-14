@@ -181,7 +181,7 @@ func (ob *OrderBookV104) FetchQueue(ctx cosmos.Context, mgr Manager, pairs trade
 	// block. This is because the change of active pools can cause the
 	// mechanism to index/encode the selected pools/trading pairs that need to
 	// be checked (proc).
-	poolCycle := fetchConfigInt64(ctx, mgr, constants.PoolCycle)
+	poolCycle := mgr.Keeper().GetConfigInt64(ctx, constants.PoolCycle)
 	if ctx.BlockHeight()%poolCycle == 0 {
 		return nil, nil
 	}

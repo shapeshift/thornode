@@ -55,7 +55,7 @@ func (pm *PoolMgrV108) cyclePools(ctx cosmos.Context, maxAvailablePools, minRune
 	onDeck := NewPool()        // currently staged pool that could get promoted
 	choppingBlock := NewPool() // currently available pool that is on the chopping block to being demoted
 	minRuneDepth := cosmos.NewUint(uint64(minRunePoolDepth))
-	minPoolLiquidityFee := fetchConfigInt64(ctx, mgr, constants.MinimumPoolLiquidityFee)
+	minPoolLiquidityFee := mgr.Keeper().GetConfigInt64(ctx, constants.MinimumPoolLiquidityFee)
 	// quick func to check the validity of a pool
 	validPool := func(pool Pool) bool {
 		if pool.BalanceAsset.IsZero() || pool.BalanceRune.IsZero() || pool.BalanceRune.LT(minRuneDepth) {

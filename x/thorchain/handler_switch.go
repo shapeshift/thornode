@@ -56,8 +56,8 @@ func (h SwitchHandler) validateV87(ctx cosmos.Context, msg MsgSwitch) error {
 		return err
 	}
 
-	killSwitchStart := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchStart)
-	killSwitchDuration := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchDuration)
+	killSwitchStart := h.mgr.Keeper().GetConfigInt64(ctx, constants.KillSwitchStart)
+	killSwitchDuration := h.mgr.Keeper().GetConfigInt64(ctx, constants.KillSwitchDuration)
 
 	if killSwitchStart > 0 && ctx.BlockHeight() > killSwitchStart+killSwitchDuration {
 		return fmt.Errorf("switch is deprecated")
@@ -159,9 +159,9 @@ func (h SwitchHandler) calcCoin(ctx cosmos.Context, in cosmos.Uint) cosmos.Uint 
 }
 
 func (h SwitchHandler) calcCoinV93(ctx cosmos.Context, in cosmos.Uint) cosmos.Uint {
-	killSwitchStart := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchStart)
+	killSwitchStart := h.mgr.Keeper().GetConfigInt64(ctx, constants.KillSwitchStart)
 	if killSwitchStart > 0 && ctx.BlockHeight() >= killSwitchStart {
-		killSwitchDuration := fetchConfigInt64(ctx, h.mgr, constants.KillSwitchDuration)
+		killSwitchDuration := h.mgr.Keeper().GetConfigInt64(ctx, constants.KillSwitchDuration)
 		remainBlocks := (killSwitchStart + killSwitchDuration) - ctx.BlockHeight()
 		if remainBlocks <= 0 {
 			return cosmos.ZeroUint()

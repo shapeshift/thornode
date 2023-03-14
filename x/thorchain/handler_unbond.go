@@ -72,7 +72,7 @@ func (h UnBondHandler) validateV88(ctx cosmos.Context, msg MsgUnBond) error {
 	}
 
 	if h.mgr.GetVersion().GTE(semver.MustParse("1.88.1")) {
-		if fetchConfigInt64(ctx, h.mgr, constants.PauseUnbond) > 0 {
+		if h.mgr.Keeper().GetConfigInt64(ctx, constants.PauseUnbond) > 0 {
 			return ErrInternal(err, "unbonding has been paused")
 		}
 	}
@@ -177,7 +177,7 @@ func (h UnBondHandler) handleV92(ctx cosmos.Context, msg MsgUnBond) error {
 			}
 			return nil
 		}
-		penaltyPts := fetchConfigInt64(ctx, h.mgr, constants.SlashPenalty)
+		penaltyPts := h.mgr.Keeper().GetConfigInt64(ctx, constants.SlashPenalty)
 		totalRuneValue = common.GetUncappedShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), totalRuneValue)
 		totalAmountCanBeUnbond := common.SafeSub(na.Bond, totalRuneValue)
 		if msg.Amount.GT(totalAmountCanBeUnbond) {

@@ -9,6 +9,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	kvTypes "gitlab.com/thorchain/thornode/x/thorchain/keeper/types"
 	kv1 "gitlab.com/thorchain/thornode/x/thorchain/keeper/v1"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -42,7 +43,11 @@ type Keeper interface {
 
 	InvariantRoutes() []crisis.InvarRoute
 
+	GetConstants() constants.ConstantValues
+	GetConfigInt64(ctx cosmos.Context, key constants.ConstantName) int64
+
 	// Keeper Interfaces
+	KeeperConfig
 	KeeperPool
 	KeeperLastHeight
 	KeeperLiquidityProvider
@@ -70,6 +75,11 @@ type Keeper interface {
 	KeeperChainContract
 	KeeperSolvencyVoter
 	KeeperTHORName
+}
+
+type KeeperConfig interface {
+	GetConstants() constants.ConstantValues
+	GetConfigInt64(ctx cosmos.Context, key constants.ConstantName) int64
 }
 
 type KeeperPool interface {
@@ -261,6 +271,7 @@ type KeeperSwapQueue interface {
 }
 
 type KeeperOrderBooks interface {
+	OrderBooksEnabled(ctx cosmos.Context) bool
 	SetOrderBookItem(ctx cosmos.Context, msg MsgSwap) error
 	GetOrderBookItemIterator(ctx cosmos.Context) cosmos.Iterator
 	GetOrderBookItem(ctx cosmos.Context, txID common.TxID) (MsgSwap, error)

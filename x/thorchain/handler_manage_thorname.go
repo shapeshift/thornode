@@ -138,12 +138,12 @@ func (h ManageTHORNameHandler) handleV1(ctx cosmos.Context, msg MsgManageTHORNam
 		// registration fee is for THORChain addresses only
 		if !exists {
 			// minus registration fee
-			registrationFee := fetchConfigInt64(ctx, h.mgr, constants.TNSRegisterFee)
+			registrationFee := h.mgr.Keeper().GetConfigInt64(ctx, constants.TNSRegisterFee)
 			msg.Coin.Amount = common.SafeSub(msg.Coin.Amount, cosmos.NewUint(uint64(registrationFee)))
 			registrationFeePaid = cosmos.NewUint(uint64(registrationFee))
 			addBlocks = h.mgr.GetConstants().GetInt64Value(constants.BlocksPerYear) // registration comes with 1 free year
 		}
-		feePerBlock := fetchConfigInt64(ctx, h.mgr, constants.TNSFeePerBlock)
+		feePerBlock := h.mgr.Keeper().GetConfigInt64(ctx, constants.TNSFeePerBlock)
 		fundPaid = msg.Coin.Amount
 		addBlocks += (int64(msg.Coin.Amount.Uint64()) / feePerBlock)
 		if tn.ExpireBlockHeight < ctx.BlockHeight() {

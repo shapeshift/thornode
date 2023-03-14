@@ -267,7 +267,7 @@ func (s *SlasherV92) LackSigning(ctx cosmos.Context, mgr Manager) error {
 				}
 			}
 
-			maxOutboundAttempts := fetchConfigInt64(ctx, mgr, constants.MaxOutboundAttempts)
+			maxOutboundAttempts := mgr.Keeper().GetConfigInt64(ctx, constants.MaxOutboundAttempts)
 			if maxOutboundAttempts > 0 {
 				age := ctx.BlockHeight() - voter.FinalisedHeight
 				attempts := age / signingTransPeriod
@@ -449,11 +449,11 @@ func (s *SlasherV92) SlashVault(ctx cosmos.Context, vaultPK common.PubKey, coins
 			continue
 		}
 
-		penaltyPts := fetchConfigInt64(ctx, mgr, constants.SlashPenalty)
+		penaltyPts := mgr.Keeper().GetConfigInt64(ctx, constants.SlashPenalty)
 		// total slash amount is penaltyPts the RUNE value of the missing funds
 		totalRuneToSlash := common.GetUncappedShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), stolenRuneValue)
 		totalRuneSlashed := cosmos.ZeroUint()
-		pauseOnSlashThreshold := fetchConfigInt64(ctx, mgr, constants.PauseOnSlashThreshold)
+		pauseOnSlashThreshold := mgr.Keeper().GetConfigInt64(ctx, constants.PauseOnSlashThreshold)
 		if pauseOnSlashThreshold > 0 && totalRuneToSlash.GTE(cosmos.NewUint(uint64(pauseOnSlashThreshold))) {
 			// set mimirs to pause the chain and ygg funding
 			s.keeper.SetMimir(ctx, mimirStopFundYggdrasil, ctx.BlockHeight())

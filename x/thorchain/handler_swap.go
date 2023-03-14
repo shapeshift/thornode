@@ -71,7 +71,7 @@ func (h SwapHandler) validateV99(ctx cosmos.Context, msg MsgSwap) error {
 		return errors.New("trading is halted, can't process swap")
 	}
 	if target.IsDerivedAsset() || msg.Tx.Coins[0].Asset.IsDerivedAsset() {
-		if fetchConfigInt64(ctx, h.mgr, constants.EnableDerivedAssets) == 0 {
+		if h.mgr.Keeper().GetConfigInt64(ctx, constants.EnableDerivedAssets) == 0 {
 			// since derived assets are disabled, only the protocol can use
 			// them (specifically lending)
 			acc, err := h.mgr.Keeper().GetModuleAddress(LendingName)
@@ -135,7 +135,7 @@ func (h SwapHandler) validateV99(ctx cosmos.Context, msg MsgSwap) error {
 	}
 
 	if len(msg.Aggregator) > 0 {
-		swapOutDisabled := fetchConfigInt64(ctx, h.mgr, constants.SwapOutDexAggregationDisabled)
+		swapOutDisabled := h.mgr.Keeper().GetConfigInt64(ctx, constants.SwapOutDexAggregationDisabled)
 		if swapOutDisabled > 0 {
 			return errors.New("swap out dex integration disabled")
 		}

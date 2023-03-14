@@ -339,7 +339,7 @@ func refundBondV103(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt
 		ctx.Logger().Error("Node Account left with more funds in their Yggdrasil vault than their bond's value", "address", nodeAcc.NodeAddress, "ygg-value", yggRune, "bond", nodeAcc.Bond)
 	}
 	// slash yggdrasil remains
-	penaltyPts := fetchConfigInt64(ctx, mgr, constants.SlashPenalty)
+	penaltyPts := mgr.Keeper().GetConfigInt64(ctx, constants.SlashPenalty)
 	slashRune := common.GetUncappedShare(cosmos.NewUint(uint64(penaltyPts)), cosmos.NewUint(10_000), yggRune)
 	if slashRune.GT(nodeAcc.Bond) {
 		slashRune = nodeAcc.Bond
@@ -462,6 +462,7 @@ func isSignedByActiveNodeAccounts(ctx cosmos.Context, k keeper.Keeper, signers [
 	return true
 }
 
+// TODO remove after hard fork
 func fetchConfigInt64(ctx cosmos.Context, mgr Manager, key constants.ConstantName) int64 {
 	val, err := mgr.Keeper().GetMimir(ctx, key.String())
 	if val < 0 || err != nil {
@@ -1171,7 +1172,7 @@ func passiveBackfill(ctx cosmos.Context, mgr Manager, nodeAccount NodeAccount, b
 		p := NewBondProvider(nodeOpBondAddr)
 		p.Bond = nodeAccount.Bond
 		bp.Providers = append(bp.Providers, p)
-		defaultNodeOperationFee := fetchConfigInt64(ctx, mgr, constants.NodeOperatorFee)
+		defaultNodeOperationFee := mgr.Keeper().GetConfigInt64(ctx, constants.NodeOperatorFee)
 		bp.NodeOperatorFee = cosmos.NewUint(uint64(defaultNodeOperationFee))
 	}
 

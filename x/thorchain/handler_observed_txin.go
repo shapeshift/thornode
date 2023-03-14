@@ -304,8 +304,7 @@ func (h ObservedTxInHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
 }
 
 func (h ObservedTxInHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
-	enableOrderBooks := fetchConfigInt64(ctx, h.mgr, constants.EnableOrderBooks)
-	if enableOrderBooks > 0 {
+	if h.mgr.Keeper().OrderBooksEnabled(ctx) {
 		// TODO: swap to synth if layer1 asset (follow on PR)
 		// TODO: create handler to modify/cancel an order (follow on PR)
 
