@@ -870,7 +870,7 @@ func (h SwapHandler) getTotalLiquidityRUNEV1(ctx cosmos.Context) (cosmos.Uint, e
 		if p.Status == PoolSuspended {
 			continue
 		}
-		if p.Asset.IsVaultAsset() {
+		if p.Asset.IsNative() {
 			continue
 		}
 		total = total.Add(p.BalanceRune)
