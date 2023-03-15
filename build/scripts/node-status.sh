@@ -21,6 +21,7 @@ calc_progress() {
 
 API=http://thornode:1317
 THORNODE_PORT="${THORNODE_SERVICE_PORT_RPC:-27147}"
+RPC=http://thornode:${THORNODE_PORT}
 
 BINANCE_ENDPOINT="${BINANCE_HOST:-binance-daemon:${BINANCE_DAEMON_SERVICE_PORT_RPC:-26657}}"
 BITCOIN_ENDPOINT="${BTC_HOST:-bitcoin-daemon:${BITCOIN_DAEMON_SERVICE_PORT_RPC:-8332}}"
@@ -42,6 +43,7 @@ REWARDS=$(echo "$JSON" | jq -r ".current_award")
 SLASH=$(echo "$JSON" | jq -r ".slash_points")
 STATUS=$(echo "$JSON" | jq -r ".status")
 PREFLIGHT=$(echo "$JSON" | jq -r ".preflight_status")
+PUB_KEY=$(echo "$JSON" | jq -r ".pub_key_set.secp256k1")
 [ "$VALIDATOR" = "false" ] && IP=$EXTERNAL_IP
 
 if [ "$VALIDATOR" = "true" ]; then
@@ -199,19 +201,106 @@ GAIA_SYNC_HEIGHT=${GAIA_SYNC_HEIGHT:=0}
 echo
 printf "%-18s %-10s %-14s %-10s\n" CHAIN SYNC BEHIND TIP
 printf "%-18s %-10s %-14s %-10s\n" THOR "$THOR_PROGRESS" "$(format_int $((THOR_SYNC_HEIGHT - THOR_HEIGHT)))" "$(format_int "$THOR_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" BNB "$BNB_PROGRESS" "$(format_int $((BNB_SYNC_HEIGHT - BNB_HEIGHT)))" "$(format_int "$BNB_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" BTC "$BTC_PROGRESS" "$(format_int $((BTC_SYNC_HEIGHT - BTC_HEIGHT)))" "$(format_int "$BTC_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" "ETH" "$ETH_PROGRESS" "$(format_int $((ETH_SYNC_HEIGHT - ETH_HEIGHT)))" "$(format_int "$ETH_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" "ETH (beacon slot)" "$ETH_BEACON_PROGRESS" "$(format_int $((ETH_BEACON_SYNC_HEIGHT - ETH_BEACON_HEIGHT)))" "$(format_int "$ETH_BEACON_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" LTC "$LTC_PROGRESS" "$(format_int $((LTC_SYNC_HEIGHT - LTC_HEIGHT)))" "$(format_int "$LTC_HEIGHT")"
-[ "$VALIDATOR" = "true" ] && printf "%-18s %-10s %-14s %-10s\n" BCH "$BCH_PROGRESS" "$(format_int $((BCH_SYNC_HEIGHT - BCH_HEIGHT)))" "$(format_int "$BCH_HEIGHT")"
-if [ "$VALIDATOR" = "true" ] && [ -z "$DOGECOIN_DISABLED" ]; then
-  printf "%-18s %-10s %-14s %-10s\n" DOGE "$DOGE_PROGRESS" "$(format_int $((DOGE_SYNC_HEIGHT - DOGE_HEIGHT)))" "$(format_int "$DOGE_HEIGHT")"
+
+if [ "$VALIDATOR" = "true" ]; then
+  printf "%-18s %-10s %-14s %-10s\n" BNB "$BNB_PROGRESS" "$(format_int $((BNB_SYNC_HEIGHT - BNB_HEIGHT)))" "$(format_int "$BNB_HEIGHT")"
+  printf "%-18s %-10s %-14s %-10s\n" BTC "$BTC_PROGRESS" "$(format_int $((BTC_SYNC_HEIGHT - BTC_HEIGHT)))" "$(format_int "$BTC_HEIGHT")"
+  printf "%-18s %-10s %-14s %-10s\n" "ETH" "$ETH_PROGRESS" "$(format_int $((ETH_SYNC_HEIGHT - ETH_HEIGHT)))" "$(format_int "$ETH_HEIGHT")"
+  printf "%-18s %-10s %-14s %-10s\n" "ETH (beacon slot)" "$ETH_BEACON_PROGRESS" "$(format_int $((ETH_BEACON_SYNC_HEIGHT - ETH_BEACON_HEIGHT)))" "$(format_int "$ETH_BEACON_HEIGHT")"
+  printf "%-18s %-10s %-14s %-10s\n" LTC "$LTC_PROGRESS" "$(format_int $((LTC_SYNC_HEIGHT - LTC_HEIGHT)))" "$(format_int "$LTC_HEIGHT")"
+  printf "%-18s %-10s %-14s %-10s\n" BCH "$BCH_PROGRESS" "$(format_int $((BCH_SYNC_HEIGHT - BCH_HEIGHT)))" "$(format_int "$BCH_HEIGHT")"
+  if [ -z "$DOGECOIN_DISABLED" ]; then
+    printf "%-18s %-10s %-14s %-10s\n" DOGE "$DOGE_PROGRESS" "$(format_int $((DOGE_SYNC_HEIGHT - DOGE_HEIGHT)))" "$(format_int "$DOGE_HEIGHT")"
+  fi
+  if [ -z "$GAIA_DISABLED" ]; then
+    printf "%-18s %-10s %-14s %-10s\n" GAIA "$GAIA_PROGRESS" "$(format_int $((GAIA_SYNC_HEIGHT - GAIA_HEIGHT)))" "$(format_int "$GAIA_HEIGHT")"
+  fi
+  if [ -z "$AVALANCHE_DISABLED" ]; then
+    printf "%-18s %-10s %-14s %-10s\n" AVAX "$AVAX_PROGRESS" "$(format_int $((AVAX_SYNC_HEIGHT - AVAX_HEIGHT)))" "$(format_int "$AVAX_HEIGHT")"
+  fi
 fi
-if [ "$VALIDATOR" = "true" ] && [ -z "$GAIA_DISABLED" ]; then
-  printf "%-18s %-10s %-14s %-10s\n" GAIA "$GAIA_PROGRESS" "$(format_int $((GAIA_SYNC_HEIGHT - GAIA_HEIGHT)))" "$(format_int "$GAIA_HEIGHT")"
+
+# skip unbond eta calculation if not within 100 blocks of tip
+if [ "$((THOR_SYNC_HEIGHT - THOR_HEIGHT))" -gt 100 ]; then
+  exit 0
 fi
-if [ "$VALIDATOR" = "true" ] && [ -z "$AVALANCHE_DISABLED" ]; then
-  printf "%-18s %-10s %-14s %-10s\n" AVAX "$AVAX_PROGRESS" "$(format_int $((AVAX_SYNC_HEIGHT - AVAX_HEIGHT)))" "$(format_int "$AVAX_HEIGHT")"
+
+# get values for churn calculations
+MIMIR=$(curl -sL --fail -m 10 "$API/thorchain/mimir")
+CONSTANTS=$(curl -sL --fail -m 10 "$API/thorchain/constants")
+VAULTS=$(curl -sL --fail -m 10 "$API/thorchain/vaults/asgard")
+CHURN_MIGRATE_ROUNDS=$(echo "$CONSTANTS" | jq -r ".int_64_values.ChurnMigrateRounds")
+FUND_MIGRATION_INTERVAL=$(echo "$MIMIR" | jq -r ".FUNDMIGRATIONINTERVAL")
+CHURN_INTERVAL=$(echo "$MIMIR" | jq -r ".CHURNINTERVAL")
+
+# fallback to constants
+[ "$FUND_MIGRATION_INTERVAL" = "null" ] && FUND_MIGRATION_INTERVAL=$(echo "$CONSTANTS" | jq -r ".int_64_values.FundMigrationInterval")
+[ "$CHURN_INTERVAL" = "null" ] && CHURN_INTERVAL=$(echo "$CONSTANTS" | jq -r ".int_64_values.ChurnInterval")
+
+# calculate churn height
+CHURN_START=$(echo "$VAULTS" | jq -r '[.[]|.block_height]|max')
+CHURNING=$(echo "$VAULTS" | jq '[.[]|select(.status=="RetiringVault")]|length > 0')
+if [ "$CHURNING" = "false" ]; then
+  # set churn height to last churn plus interval
+  CHURN_START=$((CHURN_START + CHURN_INTERVAL))
+
+  # calculate start churn eta
+  PAST=$(curl -sL --fail -m 10 "${RPC}"/block?height=$((THOR_HEIGHT + THOR_HEIGHT - CHURN_START)) | jq '.result.block.header.time|split(".")[0]+"Z"|fromdateiso8601')
+  NOW=$(date +%s)
+  SECONDS_LEFT=$((NOW - PAST))
+  DAYS_LEFT=$((SECONDS_LEFT / 86400))
+  START_ETA=$(date -d @${SECONDS_LEFT} -u +"${DAYS_LEFT}d %-Hh %-Mm %-Ss")
+else
+  START_ETA="in progress"
 fi
-exit 0
+
+# calculate finish churn eta
+CHURN_FINISH=$((CHURN_START + ((CHURN_MIGRATE_ROUNDS + 1) * FUND_MIGRATION_INTERVAL) + 1))
+BLOCKS_LEFT=$((CHURN_FINISH - THOR_HEIGHT))
+if [ "$BLOCKS_LEFT" -lt 0 ]; then
+  FINISH_ETA="final migration pending - check for stuck migration or insolvency"
+else
+  PAST=$(curl -sL --fail -m 10 "${RPC}"/block?height=$((THOR_HEIGHT - BLOCKS_LEFT)) | jq '.result.block.header.time|split(".")[0]+"Z"|fromdateiso8601')
+  NOW=$(date +%s)
+  SECONDS_LEFT=$((NOW - PAST))
+  DAYS_LEFT=$((SECONDS_LEFT / 86400))
+  FINISH_ETA=$(date -d @${SECONDS_LEFT} -u +"${DAYS_LEFT}d %-Hh %-Mm %-Ss")
+fi
+
+echo
+echo
+echo "CHURN ESTIMATES - failed keygens, halted chains, and stuck migrations not considered"
+echo
+echo "    Churn Interval: $CHURN_INTERVAL"
+echo "Migration Interval: $FUND_MIGRATION_INTERVAL"
+echo "  Migration Rounds: $CHURN_MIGRATE_ROUNDS (plus one additional round expected for dust)"
+echo
+echo "      Start Height: $CHURN_START"
+echo "   ETA Churn Start: $START_ETA"
+echo
+echo "     Finish Height: $CHURN_FINISH"
+echo "  ETA Churn Finish: $FINISH_ETA"
+
+# find retiring and active member vaults
+if [ "$PUB_KEY" != "null" ]; then
+  echo
+
+  MEMBER_ACTIVE=$(echo "$VAULTS" | jq -r ".[] | select(.status == \"ActiveVault\") | select([.membership[] == \"$PUB_KEY\"] | any) | .addresses[] | select(.chain == \"THOR\") | .address")
+  MEMBER_RETIRING=$(echo "$VAULTS" | jq -r ".[] | select(.status == \"RetiringVault\") | select([.membership[] == \"$PUB_KEY\"] | any) | .addresses[] | select(.chain == \"THOR\") | .address")
+  UNBOND_ALLOWED="true"
+
+  EXPLORER="https://thorchain.net"
+  if [ "$NET" = "stagenet" ]; then
+    EXPLORER="https://stagenet.thorchain.net"
+  fi
+  if [ -n "$MEMBER_ACTIVE" ]; then
+    echo "  Active Member: $EXPLORER/address/$MEMBER_ACTIVE"
+    UNBOND_ALLOWED="false"
+  fi
+  if [ -n "$MEMBER_RETIRING" ]; then
+    echo "Retiring Member: $EXPLORER/address/$MEMBER_RETIRING"
+    UNBOND_ALLOWED="false"
+  fi
+
+  echo " Unbond Allowed: $UNBOND_ALLOWED"
+fi
