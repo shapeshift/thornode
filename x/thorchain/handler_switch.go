@@ -78,6 +78,8 @@ func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	ctx.Logger().Info("handleMsgSwitch request", "destination address", msg.Destination.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.108.0")):
+		return h.handleV108(ctx, msg)
 	case version.GTE(semver.MustParse("1.93.0")):
 		return h.handleV93(ctx, msg)
 	case version.GTE(semver.MustParse("1.87.0")):
@@ -89,13 +91,9 @@ func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	}
 }
 
-func (h SwitchHandler) handleV93(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
-	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
-	}
-	if haltHeight > 0 && ctx.BlockHeight() > haltHeight {
-		return nil, fmt.Errorf("mimir has halted THORChain transactions")
+func (h SwitchHandler) handleV108(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
+	if isChainHalted(ctx, h.mgr, common.THORChain) {
+		return nil, fmt.Errorf("unable to switch while THORChain is halted")
 	}
 
 	if !msg.Tx.Coins[0].IsNative() && msg.Tx.Coins[0].Asset.IsRune() {

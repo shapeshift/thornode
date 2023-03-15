@@ -22,6 +22,7 @@ func NewSendHandler(mgr Manager) BaseHandler[*MsgSend] {
 			Register("1.87.0", MsgSendValidateV87).
 			Register("0.1.0", MsgSendValidateV1),
 		handlers: NewHandlers[*MsgSend]().
+			Register("1.108.0", MsgSendHandleV108).
 			Register("0.1.0", MsgSendHandleV1),
 	}
 }
@@ -46,13 +47,9 @@ func MsgSendLogger(ctx cosmos.Context, msg *MsgSend) {
 	ctx.Logger().Info("receive MsgSend", "from", msg.FromAddress, "to", msg.ToAddress, "coins", msg.Amount)
 }
 
-func MsgSendHandleV1(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
-	haltHeight, err := mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
-	}
-	if haltHeight > 0 && ctx.BlockHeight() > haltHeight {
-		return nil, fmt.Errorf("mimir has halted THORChain transactions")
+func MsgSendHandleV108(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
+	if isChainHalted(ctx, mgr, common.THORChain) {
+		return nil, fmt.Errorf("unable to use MsgSend while THORChain is halted")
 	}
 
 	nativeTxFee, err := mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())

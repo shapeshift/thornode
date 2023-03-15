@@ -60,6 +60,8 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	ctx.Logger().Info("receive MsgDeposit", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.108.0")):
+		return h.handleV108(ctx, msg)
 	case version.GTE(semver.MustParse("1.105.0")):
 		return h.handleV105(ctx, msg)
 	case version.GTE(semver.MustParse("1.99.0")):
@@ -72,13 +74,9 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	return nil, errInvalidVersion
 }
 
-func (h DepositHandler) handleV105(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
-	haltHeight, err := h.mgr.Keeper().GetMimir(ctx, "HaltTHORChain")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get mimir setting: %w", err)
-	}
-	if haltHeight > 0 && ctx.BlockHeight() > haltHeight {
-		return nil, fmt.Errorf("mimir has halted THORChain transactions")
+func (h DepositHandler) handleV108(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+	if isChainHalted(ctx, h.mgr, common.THORChain) {
+		return nil, fmt.Errorf("unable to use MsgDeposit while THORChain is halted")
 	}
 
 	nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
