@@ -309,8 +309,8 @@ func (o *Observer) filterBinanceMemoFlag(chain common.Chain, items []types.TxInI
 	fetchAddr := func(memo string, bridge *thorclient.ThorchainBridge) common.Address {
 		m, err := mem.ParseMemo(common.LatestVersion, memo)
 		if err != nil {
-			o.logger.Error().Err(err).Msgf("Unable to parse memo: %s", memo)
-			// don't return yet, in case a thorname destination caused the error
+			o.logger.Debug().Err(err).Msgf("fail to parse memo: %s", memo)
+			// don't return yet, in case a thorname destination or affiliate caused the error
 		}
 		if !m.GetDestination().IsEmpty() {
 			return m.GetDestination()

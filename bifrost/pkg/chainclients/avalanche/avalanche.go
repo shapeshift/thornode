@@ -700,7 +700,8 @@ func (c *AvalancheClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
 func (c *AvalancheClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	m, err := mem.ParseMemo(common.LatestVersion, txIn.Memo)
 	if err != nil {
-		c.logger.Err(err).Str("memo", txIn.Memo).Msg("fail to parse memo")
+		// Debug log only as ParseMemo error is expected for THORName inbounds.
+		c.logger.Debug().Err(err).Str("memo", txIn.Memo).Msg("fail to parse memo")
 		return
 	}
 	if !m.IsOutbound() {

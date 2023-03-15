@@ -624,7 +624,8 @@ func (b *Binance) ReportSolvency(bnbBlockHeight int64) error {
 func (b *Binance) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	m, err := memo.ParseMemo(common.LatestVersion, txIn.Memo)
 	if err != nil {
-		b.logger.Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
+		// Debug log only as ParseMemo error is expected for THORName inbounds.
+		b.logger.Debug().Err(err).Msgf("fail to parse memo: %s", txIn.Memo)
 		return
 	}
 	if !m.IsOutbound() {
