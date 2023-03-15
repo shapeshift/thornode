@@ -126,56 +126,51 @@ func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 	if strings.EqualFold(parts[0], "limito") || strings.EqualFold(parts[0], "lo") {
 		order = types.OrderType_limit
 	}
-	if len(parts) > 2 {
-		if len(parts[2]) > 0 {
-			if keeper == nil {
-				destination, err = common.NewAddress(parts[2])
-			} else {
-				destination, err = FetchAddress(ctx, keeper, parts[2], asset.Chain)
-			}
-			if err != nil {
-				return SwapMemo{}, err
-			}
+	if destStr := getPart(parts, 2); destStr != "" {
+		if keeper == nil {
+			destination, err = common.NewAddress(destStr)
+		} else {
+			destination, err = FetchAddress(ctx, keeper, destStr, asset.Chain)
+		}
+		if err != nil {
+			return SwapMemo{}, err
 		}
 	}
 	// price limit can be empty , when it is empty , there is no price protection
 	slip := cosmos.ZeroUint()
-	if len(parts) > 3 && len(parts[3]) > 0 {
-		amount, err := cosmos.ParseUint(parts[3])
+	if limitStr := getPart(parts, 3); limitStr != "" {
+		amount, err := cosmos.ParseUint(limitStr)
 		if err != nil {
-			return SwapMemo{}, fmt.Errorf("swap price limit:%s is invalid", parts[3])
+			return SwapMemo{}, fmt.Errorf("swap price limit:%s is invalid", limitStr)
 		}
 		slip = amount
 	}
 
-	if len(parts) > 5 && len(parts[4]) > 0 && len(parts[5]) > 0 {
+	affAddrStr := getPart(parts, 4)
+	affPtsStr := getPart(parts, 5)
+	if affAddrStr != "" && affPtsStr != "" {
 		if keeper == nil {
-			affAddr, err = common.NewAddress(parts[4])
+			affAddr, err = common.NewAddress(affAddrStr)
 		} else {
-			affAddr, err = FetchAddress(ctx, keeper, parts[4], common.THORChain)
+			affAddr, err = FetchAddress(ctx, keeper, affAddrStr, common.THORChain)
 		}
 		if err != nil {
 			return SwapMemo{}, err
 		}
 
-		affPts, err = ParseAffiliateBasisPoints(ctx, keeper, parts[5])
+		affPts, err = ParseAffiliateBasisPoints(ctx, keeper, affPtsStr)
 		if err != nil {
 			return SwapMemo{}, err
 		}
 	}
 
-	if len(parts) > 6 && len(parts[6]) > 0 {
-		dexAgg = parts[6]
-	}
+	dexAgg = getPart(parts, 6)
+	dexTargetAddress = getPart(parts, 7)
 
-	if len(parts) > 7 && len(parts[7]) > 0 {
-		dexTargetAddress = parts[7]
-	}
-
-	if len(parts) > 8 && len(parts[8]) > 0 {
-		dexTargetLimit, err = cosmos.ParseUint(parts[8])
+	if x := getPart(parts, 8); x != "" {
+		dexTargetLimit, err = cosmos.ParseUint(x)
 		if err != nil {
-			ctx.Logger().Error("invalid dex target limit, ignore it", "limit", parts[8])
+			ctx.Logger().Error("invalid dex target limit, ignore it", "limit", x)
 			dexTargetLimit = cosmos.ZeroUint()
 		}
 	}

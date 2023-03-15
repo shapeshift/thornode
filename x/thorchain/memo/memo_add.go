@@ -69,27 +69,29 @@ func ParseAddLiquidityMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset c
 	addr := common.NoAddress
 	affAddr := common.NoAddress
 	affPts := cosmos.ZeroUint()
-	if len(parts) >= 3 && len(parts[2]) > 0 {
+	if addrStr := getPart(parts, 2); addrStr != "" {
 		if keeper == nil {
-			addr, err = common.NewAddress(parts[2])
+			addr, err = common.NewAddress(addrStr)
 		} else {
-			addr, err = FetchAddress(ctx, keeper, parts[2], asset.Chain)
+			addr, err = FetchAddress(ctx, keeper, addrStr, asset.Chain)
 		}
 		if err != nil {
 			return AddLiquidityMemo{}, err
 		}
 	}
 
-	if len(parts) > 4 && len(parts[3]) > 0 && len(parts[4]) > 0 {
+	affAddrStr := getPart(parts, 3)
+	affPtsStr := getPart(parts, 4)
+	if affAddrStr != "" && affPtsStr != "" {
 		if keeper == nil {
-			affAddr, err = common.NewAddress(parts[3])
+			affAddr, err = common.NewAddress(affAddrStr)
 		} else {
-			affAddr, err = FetchAddress(ctx, keeper, parts[3], common.THORChain)
+			affAddr, err = FetchAddress(ctx, keeper, affAddrStr, common.THORChain)
 		}
 		if err != nil {
 			return AddLiquidityMemo{}, err
 		}
-		affPts, err = ParseAffiliateBasisPoints(ctx, keeper, parts[4])
+		affPts, err = ParseAffiliateBasisPoints(ctx, keeper, affPtsStr)
 		if err != nil {
 			return AddLiquidityMemo{}, err
 		}

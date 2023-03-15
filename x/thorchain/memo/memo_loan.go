@@ -57,52 +57,50 @@ func ParseLoanOpenMemo(ctx cosmos.Context, keeper keeper.Keeper, targetAsset com
 		return LoanOpenMemo{}, fmt.Errorf("Not enough loan parameters")
 	}
 
+	destStr := getPart(parts, 2)
 	if keeper == nil {
-		targetAddress, err = common.NewAddress(parts[2])
+		targetAddress, err = common.NewAddress(destStr)
 	} else {
-		targetAddress, err = FetchAddress(ctx, keeper, parts[2], targetAsset.GetChain())
+		targetAddress, err = FetchAddress(ctx, keeper, destStr, targetAsset.GetChain())
 	}
 	if err != nil {
 		return LoanOpenMemo{}, err
 	}
 
-	if len(parts) > 3 && len(parts[3]) > 0 {
-		minOutUint, err := strconv.ParseUint(parts[3], 10, 64)
+	if minOutStr := getPart(parts, 3); minOutStr != "" {
+		minOutUint, err := strconv.ParseUint(minOutStr, 10, 64)
 		if err != nil {
 			return LoanOpenMemo{}, err
 		}
 		minOut = cosmos.NewUint(minOutUint)
 	}
 
-	if len(parts) > 5 && len(parts[4]) > 0 && len(parts[5]) > 0 {
+	affAddrStr := getPart(parts, 4)
+	affPtsStr := getPart(parts, 5)
+	if affAddrStr != "" && affPtsStr != "" {
 		if keeper == nil {
-			affAddr, err = common.NewAddress(parts[4])
+			affAddr, err = common.NewAddress(affAddrStr)
 		} else {
-			affAddr, err = FetchAddress(ctx, keeper, parts[4], common.THORChain)
+			affAddr, err = FetchAddress(ctx, keeper, affAddrStr, common.THORChain)
 		}
 		if err != nil {
 			return LoanOpenMemo{}, err
 		}
-		pts, err := strconv.ParseUint(parts[5], 10, 64)
+		pts, err := strconv.ParseUint(affPtsStr, 10, 64)
 		if err != nil {
 			return LoanOpenMemo{}, err
 		}
 		affPts = cosmos.NewUint(pts)
 	}
 
-	if len(parts) > 6 && len(parts[6]) > 0 {
-		dexAgg = parts[6]
-	}
+	dexAgg = getPart(parts, 6)
+	dexTargetAddr = getPart(parts, 7)
 
-	if len(parts) > 7 && len(parts[7]) > 0 {
-		dexTargetAddr = parts[7]
-	}
-
-	if len(parts) > 8 && len(parts[8]) > 0 {
-		dexTargetLimit, err = cosmos.ParseUint(parts[8])
+	if x := getPart(parts, 8); x != "" {
+		dexTargetLimit, err = cosmos.ParseUint(x)
 		if err != nil {
 			if keeper != nil {
-				ctx.Logger().Error("invalid dex target limit, ignore it", "limit", parts[8])
+				ctx.Logger().Error("invalid dex target limit, ignore it", "limit", x)
 			}
 			dexTargetLimit = cosmos.ZeroUint()
 		}
@@ -135,17 +133,18 @@ func ParseLoanRepaymentMemo(ctx cosmos.Context, keeper keeper.Keeper, asset comm
 		return LoanRepaymentMemo{}, fmt.Errorf("Not enough loan parameters")
 	}
 
+	ownerStr := getPart(parts, 2)
 	if keeper == nil {
-		owner, err = common.NewAddress(parts[2])
+		owner, err = common.NewAddress(ownerStr)
 	} else {
-		owner, err = FetchAddress(ctx, keeper, parts[2], asset.Chain)
+		owner, err = FetchAddress(ctx, keeper, ownerStr, asset.Chain)
 	}
 	if err != nil {
 		return LoanRepaymentMemo{}, err
 	}
 
-	if len(parts) > 3 && len(parts[3]) > 0 {
-		min, err := strconv.ParseUint(parts[3], 10, 64)
+	if minOutStr := getPart(parts, 3); minOutStr != "" {
+		min, err := strconv.ParseUint(minOutStr, 10, 64)
 		if err != nil {
 			return LoanRepaymentMemo{}, err
 		}
