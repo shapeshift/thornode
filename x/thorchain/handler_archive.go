@@ -9,33 +9,6 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-func getHandlerMappingV65(mgr Manager) map[string]MsgHandler {
-	// New arch handlers
-	m := make(map[string]MsgHandler)
-
-	// consensus handlers
-	m[MsgTssPool{}.Type()] = NewTssHandler(mgr)
-	m[MsgObservedTxIn{}.Type()] = NewObservedTxInHandler(mgr)
-	m[MsgObservedTxOut{}.Type()] = NewObservedTxOutHandler(mgr)
-	m[MsgTssKeysignFail{}.Type()] = NewTssKeysignHandler(mgr)
-	m[MsgErrataTx{}.Type()] = NewErrataTxHandler(mgr)
-	m[MsgBan{}.Type()] = NewBanHandler(mgr)
-	m[MsgNetworkFee{}.Type()] = NewNetworkFeeHandler(mgr)
-	m[MsgSolvency{}.Type()] = NewSolvencyHandler(mgr)
-
-	// cli handlers (non-consensus)
-	m[MsgMimir{}.Type()] = NewMimirHandler(mgr)
-	m[MsgSetNodeKeys{}.Type()] = NewSetNodeKeysHandler(mgr)
-	m[MsgSetVersion{}.Type()] = NewVersionHandler(mgr)
-	m[MsgSetIPAddress{}.Type()] = NewIPAddressHandler(mgr)
-	m[MsgNodePauseChain{}.Type()] = NewNodePauseChainHandler(mgr)
-
-	// native handlers (non-consensus)
-	m[MsgSend{}.Type()] = NewSendHandler(mgr)
-	m[MsgDeposit{}.Type()] = NewDepositHandler(mgr)
-	return m
-}
-
 func processOneTxInV63(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	memo, err := ParseMemoWithTHORNames(ctx, keeper, tx.Tx.Memo)
 	if err != nil {
