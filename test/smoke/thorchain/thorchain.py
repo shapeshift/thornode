@@ -438,18 +438,19 @@ class ThorchainState:
                     coin.amount -= rune_fee
                     if coin.amount > 0:
                         outbounds.append(tx)
-                    if rune_fee > 0:
-                        # add fee event
-                        event = Event(
-                            "fee",
-                            [
-                                {"tx_id": in_tx.id},
-                                {"coins": f"{rune_fee} {coin.asset}"},
-                                {"pool_deduct": 0},
-                            ],
-                        )
-                        self.events.append(event)
-                        tx.fee = Coin(coin.asset, rune_fee)
+                        # only do the fee logic state changes if there's an outbound
+                        if rune_fee > 0:
+                            # add fee event
+                            event = Event(
+                                "fee",
+                                [
+                                    {"tx_id": in_tx.id},
+                                    {"coins": f"{rune_fee} {coin.asset}"},
+                                    {"pool_deduct": 0},
+                                ],
+                            )
+                            self.events.append(event)
+                            tx.fee = Coin(coin.asset, rune_fee)
 
                 else:
                     pool = self.get_pool(coin.asset)
@@ -462,7 +463,8 @@ class ThorchainState:
                         else:
                             asset_fee = pool.get_rune_in_asset(rune_fee)
                         if coin.amount <= asset_fee:
-                            asset_fee = coin.amount
+                            # No outbound, so don't do any state changes for this tx
+                            continue
 
                         rune_fee = pool.get_rune_disbursement_for_asset_add(asset_fee)
                         if rune_fee > pool.rune_balance:
@@ -717,19 +719,35 @@ class ThorchainState:
 
         in_tx = deepcopy(tx)  # copy of transaction
 
+        out_txs = self.handle_fee(tx, out_txs)
+
+        if len(out_txs) == 0:
+            reason = f"{reason}; fail to refund ({in_tx.coins[0].amount} {in_tx.coins[0].asset.upper()}): not enough asset to pay for fees"
+
         # generate event REFUND for the transaction
         event = Event(
             "refund",
             [{"code": code}, {"reason": reason}, *in_tx.get_attributes()],
         )
 
-        if tx.chain == "THOR":
-            self.events.append(event)
-            out_txs = self.handle_fee(tx, out_txs)
-        else:
-            out_txs = self.handle_fee(tx, out_txs)
-            if len(out_txs):
-                self.events.append(event)
+        self.events.append(event)
+        if len(out_txs) == 0:
+            # Since no refund txout, burn all synths and send RUNE to the Reserve
+            for coin in in_tx.coins:
+                if coin.asset.is_synth:
+                    self.get_pool(coin.asset).synth_balance -= coin.amount
+                    self.events.append(Event(
+                        "mint_burn",
+                        [
+                            {"supply": "burn"},
+                            {"denom": f"{coin.asset.lower()}"},
+                            {"amount": f"{coin.amount}"},
+                            {"reason": "failed_refund"},
+                        ],
+                    ))
+                if coin.is_rune():
+                    self.reserve += coin.amount
+
         return out_txs
 
     def generate_scheduled_outbound_events(self, in_tx, evt, outbound):
