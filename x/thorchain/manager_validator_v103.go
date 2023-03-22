@@ -504,7 +504,7 @@ func (vm *ValidatorMgrV103) payNodeAccountBondAward(ctx cosmos.Context, lastChur
 		return err
 	}
 	// Ensure that previous rewards are already accounted for
-	bp.Adjust(na.Bond)
+	bp.Adjust(vm.k.GetVersion(), na.Bond)
 	nodeOperatorProvider := bp.Get(nodeOperatorAccAddr)
 	// Sanity check that the node operator is accounted for
 	if nodeOperatorProvider.IsEmpty() {
@@ -533,7 +533,7 @@ func (vm *ValidatorMgrV103) payNodeAccountBondAward(ctx cosmos.Context, lastChur
 
 	// Distribute reward to bond providers and remove the NodeOperatorFee portion for node operator payout.
 	// (This is the full fee from other bond providers' rewards, plus an equivalent proportion of the node operator's rewards.)
-	bp.Adjust(na.Bond)
+	bp.Adjust(vm.k.GetVersion(), na.Bond)
 	nodeOperatorProvider = bp.Get(nodeOperatorAccAddr)
 	nodeOperatorFees := common.GetSafeShare(bp.NodeOperatorFee, cosmos.NewUint(10000), reward)
 	// Sanity check:  Fees to pay out should never exceed the increase of the node operator's bond.

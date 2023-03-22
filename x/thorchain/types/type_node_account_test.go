@@ -210,7 +210,8 @@ func (s *NodeAccountSuite) TestBondProviders(c *C) {
 	bp.Bond(cosmos.NewUint(100000), acc2)
 	bp.Bond(cosmos.NewUint(50000), acc3)
 
-	bp.Adjust(cosmos.NewUint(500000))
+	version := GetCurrentVersion()
+	bp.Adjust(version, cosmos.NewUint(500000))
 	c.Check(bp.Get(acc1).Bond.Uint64(), Equals, uint64(336667))
 	c.Check(bp.Get(acc2).Bond.Uint64(), Equals, uint64(108889))
 	c.Check(bp.Get(acc3).Bond.Uint64(), Equals, uint64(54444))
@@ -223,8 +224,32 @@ func (s *NodeAccountSuite) TestBondProviders(c *C) {
 	bp.Bond(cosmos.NewUint(100000), acc2)
 	bp.Bond(cosmos.NewUint(50000), acc3)
 
-	bp.Adjust(cosmos.NewUint(500000))
+	bp.Adjust(version, cosmos.NewUint(500000))
 	c.Check(bp.Get(acc1).Bond.Uint64(), Equals, uint64(333333))
 	c.Check(bp.Get(acc2).Bond.Uint64(), Equals, uint64(111111))
 	c.Check(bp.Get(acc3).Bond.Uint64(), Equals, uint64(55556))
+
+	// Using as an example node thor12qwtrq4njj2s29gq56jun43dvxalejaksptqqn's
+	// state at the end of block 4707078.
+	bp.NodeOperatorFee = cosmos.NewUint(500)
+	bp.Providers = []BondProvider{p1}
+	bp.Providers[0].Bond = cosmos.ZeroUint()
+	nodeBond := cosmos.NewUint(75773500000000)
+	bp.Adjust(GetCurrentVersion(), nodeBond)
+	c.Assert(bp.Providers[0].Bond.Equal(nodeBond), Equals, true)
+	// The sole provider's bond equals the node bond after adjustment.
+
+	// TODO remove this comparison paragraph after hard fork
+	//
+	// Using as an example node thor12qwtrq4njj2s29gq56jun43dvxalejaksptqqn's
+	// state at the end of block 4707078.
+	bp.NodeOperatorFee = cosmos.NewUint(500)
+	bp.Providers = []BondProvider{p1}
+	bp.Providers[0].Bond = cosmos.ZeroUint()
+	nodeBond = cosmos.NewUint(75773500000000)
+	bp.AdjustV1(nodeBond)
+	c.Assert(bp.Providers[0].Bond.Equal(nodeBond), Equals, false)
+	// The sole provider's bond doesn't equal the node bond after adjustment.
+	c.Assert(bp.Providers[0].Bond.String(), Equals, "3788675000000")
+	// This is .tqqn's sole provider's displayed bond at the end of block 4707078.
 }

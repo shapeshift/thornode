@@ -182,7 +182,7 @@ func (h BondHandler) handleV105(ctx cosmos.Context, msg MsgBond) error {
 		return err
 	}
 	// Re-distribute current bond if needed
-	bp.Adjust(nodeAccount.Bond)
+	bp.Adjust(h.mgr.GetVersion(), nodeAccount.Bond)
 
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
 

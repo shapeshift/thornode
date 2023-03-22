@@ -588,7 +588,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	if err != nil {
 		return nil, fmt.Errorf("fail to get bond providers: %w", err)
 	}
-	bp.Adjust(nodeAcc.Bond)
+	bp.Adjust(mgr.GetVersion(), nodeAcc.Bond)
 
 	active, err := mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
@@ -767,6 +767,7 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 	}
 
 	lastChurnHeight := vaults[0].BlockHeight
+	version := mgr.GetVersion()
 	result := make([]QueryNodeAccount, len(nodeAccounts))
 	for i, na := range nodeAccounts {
 		if na.RequestedToLeave && na.Bond.LTE(cosmos.NewUint(common.One)) {
@@ -824,7 +825,7 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		if err != nil {
 			ctx.Logger().Error("fail to get bond providers", "error", err)
 		}
-		bp.Adjust(na.Bond)
+		bp.Adjust(version, na.Bond)
 		result[i].BondProviders = BondProviders{
 			// Since redundant, leave out the node address
 			NodeOperatorFee: bp.NodeOperatorFee,

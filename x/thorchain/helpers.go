@@ -372,7 +372,7 @@ func refundBondV103(ctx cosmos.Context, tx common.Tx, acc cosmos.AccAddress, amt
 	}
 	bondBeforeSlash := nodeAcc.Bond
 	nodeAcc.Bond = common.SafeSub(nodeAcc.Bond, slashRune)
-	bp.Adjust(nodeAcc.Bond) // redistribute node bond amongst bond providers
+	bp.Adjust(mgr.GetVersion(), nodeAcc.Bond) // redistribute node bond amongst bond providers
 	provider := bp.Get(acc)
 
 	if !provider.IsEmpty() && !provider.Bond.IsZero() {

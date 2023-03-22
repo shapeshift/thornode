@@ -418,7 +418,7 @@ func (h BondHandler) handleV86(ctx cosmos.Context, msg MsgBond) error {
 	}
 
 	// Re-distribute current bond if needed
-	bp.Adjust(originalBond)
+	bp.Adjust(h.mgr.GetVersion(), originalBond)
 
 	// backfill bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
@@ -519,7 +519,7 @@ func (h BondHandler) handleV87(ctx cosmos.Context, msg MsgBond) error {
 	}
 
 	// Re-distribute current bond if needed
-	bp.Adjust(originalBond)
+	bp.Adjust(h.mgr.GetVersion(), originalBond)
 	bp.NodeOperatorFee = cosmos.NewUint(uint64(fetchConfigInt64(ctx, h.mgr, constants.NodeOperatorFee)))
 
 	// backfill bond provider information (passive migration code)
@@ -621,7 +621,7 @@ func (h BondHandler) handleV88(ctx cosmos.Context, msg MsgBond) error {
 	}
 
 	// Re-distribute current bond if needed
-	bp.Adjust(originalBond)
+	bp.Adjust(h.mgr.GetVersion(), originalBond)
 
 	// backfill bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
@@ -727,7 +727,7 @@ func (h BondHandler) handleV95(ctx cosmos.Context, msg MsgBond) error {
 	}
 
 	// Re-distribute current bond if needed
-	bp.Adjust(originalBond)
+	bp.Adjust(h.mgr.GetVersion(), originalBond)
 
 	// backfill bond provider information (passive migration code)
 	if len(bp.Providers) == 0 {
@@ -816,7 +816,7 @@ func (h BondHandler) handleV103(ctx cosmos.Context, msg MsgBond) error {
 		return err
 	}
 	// Re-distribute current bond if needed
-	bp.Adjust(nodeAccount.Bond)
+	bp.Adjust(h.mgr.GetVersion(), nodeAccount.Bond)
 
 	nodeAccount.Bond = nodeAccount.Bond.Add(msg.Bond)
 

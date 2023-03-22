@@ -303,7 +303,16 @@ func (bp *BondProviders) Remove(acc cosmos.AccAddress) bool {
 }
 
 // realigns the bond providers relative to the node bond
-func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
+func (bp *BondProviders) Adjust(version semver.Version, nodeBond cosmos.Uint) {
+	switch {
+	case version.GTE(semver.MustParse("1.108.0")):
+		bp.AdjustV108(nodeBond)
+	default:
+		bp.AdjustV1(nodeBond)
+	}
+}
+
+func (bp *BondProviders) AdjustV108(nodeBond cosmos.Uint) {
 	totalBond := cosmos.ZeroUint()
 	if len(bp.Providers) == 0 {
 		// no adjustment needed
@@ -327,13 +336,19 @@ func (bp *BondProviders) Adjust(nodeBond cosmos.Uint) {
 	}
 	nodeBond = common.SafeSub(nodeBond, fee)
 
+	// first bond provider is node operator
+	// To have an invariant bond sum, subtract the non-operator bonds from the total.
+	bp.Providers[0].Bond = nodeBond
 	for i := range bp.Providers {
+		if i == 0 {
+			continue
+		}
 		bond := bp.Providers[i].Bond
 		bp.Providers[i].Bond = common.GetSafeShare(bond, totalBond, nodeBond)
-		if i == 0 { // first bond provider is node operator
-			bp.Providers[i].Bond = bp.Providers[i].Bond.Add(fee)
-		}
+		bp.Providers[0].Bond = common.SafeSub(bp.Providers[0].Bond, bp.Providers[i].Bond)
+
 	}
+	bp.Providers[0].Bond = bp.Providers[0].Bond.Add(fee)
 }
 
 // HasProviderBonded: Checks if a bond provider (not the operator) has bonded to the node
