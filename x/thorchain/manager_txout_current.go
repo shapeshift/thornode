@@ -68,6 +68,11 @@ func (tos *TxOutStorageV108) EndBlock(ctx cosmos.Context, mgr Manager) error {
 				ctx.Logger().Error("Failed to update MaxGas of action in ObservedTxVoter", "hash", tx.InHash, "error", err)
 			}
 		}
+		// Equals checks GasRate so update actions GasRate too (before updating in the queue item)
+		// for future updates of MaxGas, which must match for matchActionItem in AddOutTx.
+		if err := updateTxOutGasRate(ctx, tos.keeper, tx, gasRate); err != nil {
+			ctx.Logger().Error("Failed to update GasRate of action in ObservedTxVoter", "hash", tx.InHash, "error", err)
+		}
 		txOut.TxArray[i].GasRate = gasRate
 	}
 

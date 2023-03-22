@@ -1187,6 +1187,37 @@ func updateTxOutGasV1(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxOu
 	return nil
 }
 
+// In the case where the gas rate of the chain of a queued outbound tx has changed
+// Update the ObservedTxVoter so the network can still match the outbound with
+// the observed inbound
+func updateTxOutGasRate(ctx cosmos.Context, keeper keeper.Keeper, txOut types.TxOutItem, gasRate int64) error {
+	// When txOut.InHash is 0000000000000000000000000000000000000000000000000000000000000000 , which means the outbound is trigger by the network internally
+	// For example , migration , yggdrasil funding etc. there is no related inbound observation , thus doesn't need to try to find it and update anything
+	if txOut.InHash == common.BlankTxID {
+		return nil
+	}
+	voter, err := keeper.GetObservedTxInVoter(ctx, txOut.InHash)
+	if err != nil {
+		return err
+	}
+
+	txOutIndex := -1
+	for i, tx := range voter.Actions {
+		if tx.Equals(txOut) {
+			txOutIndex = i
+			voter.Actions[txOutIndex].GasRate = gasRate
+			keeper.SetObservedTxInVoter(ctx, voter)
+			break
+		}
+	}
+
+	if txOutIndex == -1 {
+		return fmt.Errorf("fail to find tx out in ObservedTxVoter %s", txOut.InHash)
+	}
+
+	return nil
+}
+
 // backfill bond provider information (passive migration code)
 func passiveBackfill(ctx cosmos.Context, mgr Manager, nodeAccount NodeAccount, bp *BondProviders) error {
 	if len(bp.Providers) == 0 {
