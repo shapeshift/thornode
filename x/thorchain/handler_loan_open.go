@@ -340,6 +340,8 @@ func (h LoanOpenHandler) swapV108(ctx cosmos.Context, msg MsgLoanOpen) error {
 		return err
 	}
 
+	// TODO: send affiliate fee
+
 	return nil
 }
 

@@ -28,15 +28,19 @@ import (
 const (
 	fromAssetParam            = "from_asset"
 	toAssetParam              = "to_asset"
+	targetAssetParam          = "target_asset"
+	loanAssetParam            = "loan_asset"
 	assetParam                = "asset"
 	fromAddressParam          = "from_address"
 	addressParam              = "address"
+	loanOwnerParam            = "loan_owner"
 	withdrawBasisPointsParam  = "withdraw_bps"
 	amountParam               = "amount"
 	destinationParam          = "destination"
 	toleranceBasisPointsParam = "tolerance_bps"
 	affiliateParam            = "affiliate"
 	affiliateBpsParam         = "affiliate_bps"
+	minOutParam               = "min_out"
 
 	quoteWarning    = "Do not cache this response. Do not send funds after the expiry."
 	quoteExpiration = 15 * time.Minute
@@ -242,7 +246,7 @@ func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgS
 		ExpectedAmountOut: emitAmount.String(),
 		Fees: openapi.QuoteFees{
 			Asset:     msg.TargetAsset.String(),
-			Affiliate: affiliateFee.String(),
+			Affiliate: wrapString(affiliateFee.String()),
 			Outbound:  "0", // set by the caller if non-zero
 		},
 		SlippageBps: slippageBps.BigInt().Int64(),
@@ -794,6 +798,565 @@ func queryQuoteSaverWithdraw(ctx cosmos.Context, path []string, req abci.Request
 	res.Notes = chain.InboundNotes()
 	res.Warning = quoteWarning
 	res.Expiry = time.Now().Add(quoteExpiration).Unix()
+
+	return json.MarshalIndent(res, "", "  ")
+}
+
+// -------------------------------------------------------------------------------------
+// Loan Open
+// -------------------------------------------------------------------------------------
+
+func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	// extract parameters
+	params, err := quoteParseParams(req.Data)
+	if err != nil {
+		return quoteErrorResponse(err)
+	}
+
+	// validate required parameters
+	for _, p := range []string{assetParam, amountParam, targetAssetParam} {
+		if len(params[p]) == 0 {
+			return quoteErrorResponse(fmt.Errorf("missing required parameter %s", p))
+		}
+	}
+
+	// invalidate unexpected parameters
+	allowed := map[string]bool{
+		assetParam:        true,
+		amountParam:       true,
+		minOutParam:       true,
+		targetAssetParam:  true,
+		destinationParam:  true,
+		affiliateParam:    true,
+		affiliateBpsParam: true,
+	}
+	for p := range params {
+		if !allowed[p] {
+			return quoteErrorResponse(fmt.Errorf("unexpected parameter %s", p))
+		}
+	}
+
+	// parse asset
+	asset, err := common.NewAsset(params[assetParam][0])
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("bad asset: %w", err))
+	}
+
+	// parse amount
+	amount, err := cosmos.ParseUint(params[amountParam][0])
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("bad amount: %w", err))
+	}
+
+	// parse min out
+	minOut := sdk.ZeroUint()
+	if len(params[minOutParam]) > 0 {
+		minOut, err = cosmos.ParseUint(params[minOutParam][0])
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("bad min out: %w", err))
+		}
+	}
+
+	// parse affiliate
+	affiliate, affiliateMemo, affiliateBps, _, err := quoteHandleAffiliate(ctx, mgr, params, amount)
+	if err != nil {
+		return quoteErrorResponse(err)
+	}
+
+	// TODO: remove after affiliates work
+	if !affiliate.IsEmpty() || len(params[affiliateBpsParam]) > 0 {
+		return quoteErrorResponse(fmt.Errorf("affiliate not yet supported"))
+	}
+
+	// parse target asset
+	targetAsset, err := common.NewAsset(params[targetAssetParam][0])
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("bad target asset: %w", err))
+	}
+
+	// parse destination address or generate a random one
+	sendMemo := true
+	var destination common.Address
+	if len(params[destinationParam]) > 0 {
+		destination, err = quoteParseAddress(ctx, mgr, params[destinationParam][0], targetAsset.Chain)
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("bad destination address: %w", err))
+		}
+
+	} else {
+		destination, err = types.GetRandomPubKey().GetAddress(targetAsset.Chain)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate address: %w", err)
+		}
+		sendMemo = false // do not send memo if destination was random
+	}
+
+	// check that destination and affiliate are not the same
+	if destination.Equals(affiliate) {
+		return quoteErrorResponse(fmt.Errorf("destination and affiliate should not be the same"))
+	}
+
+	// generate random adddress for collateral owner
+	collateralOwner, err := types.GetRandomPubKey().GetAddress(asset.Chain)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate address: %w", err)
+	}
+
+	// create message for simulation
+	msg := &types.MsgLoanOpen{
+		Owner:                collateralOwner,
+		CollateralAsset:      asset,
+		CollateralAmount:     amount,
+		TargetAddress:        destination,
+		TargetAsset:          targetAsset,
+		MinOut:               minOut,
+		AffiliateAddress:     affiliate,
+		AffiliateBasisPoints: affiliateBps,
+
+		// TODO: support aggregator
+		Aggregator:              "",
+		AggregatorTargetAddress: "",
+		AggregatorTargetLimit:   sdk.ZeroUint(),
+	}
+
+	// simulate message handling
+	events, err := simulate(ctx, mgr, msg)
+	if err != nil {
+		return quoteErrorResponse(err)
+	}
+
+	// create response
+	res := &openapi.QuoteLoanOpenResponse{
+		Fees: openapi.QuoteFees{
+			Asset: targetAsset.String(),
+		},
+		Expiry:  time.Now().Add(quoteExpiration).Unix(),
+		Warning: quoteWarning,
+		Notes:   asset.Chain.InboundNotes(),
+	}
+
+	// estimate the inbound info
+	inboundAddress, routerAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, asset.Chain)
+	if err != nil {
+		return quoteErrorResponse(err)
+	}
+	res.InboundAddress = inboundAddress.String()
+	if inboundConfirmations > 0 {
+		res.InboundConfirmationBlocks = wrapInt64(inboundConfirmations)
+		res.InboundConfirmationSeconds = wrapInt64(inboundConfirmations * asset.Chain.ApproximateBlockMilliseconds() / 1000)
+	}
+
+	// set info fields
+	if asset.Chain.IsEVM() {
+		res.Router = wrapString(routerAddress.String())
+	}
+	if !asset.Chain.DustThreshold().IsZero() {
+		res.DustThreshold = wrapString(asset.Chain.DustThreshold().String())
+	}
+
+	// sum liquidity fees in rune from all swap events
+	outboundFee := sdk.ZeroUint()
+	liquidityFee := sdk.ZeroUint()
+	affiliateFee := sdk.ZeroUint()
+	expectedAmountOut := sdk.ZeroUint()
+
+	// iterate events in reverse order
+	for i := len(events) - 1; i >= 0; i-- {
+		e := events[i]
+
+		switch e.Type {
+
+		// use final outbound event as expected amount - scheduled_outbound (L1) or outbound (native)
+		case "scheduled_outbound":
+			if res.ExpectedAmountOut == "" { // if not empty we already saw the last outbound event
+				for _, attr := range e.Attributes {
+					switch string(attr.Key) {
+					case "coin_amount":
+						res.ExpectedAmountOut = string(attr.Value)
+						expectedAmountOut = sdk.NewUintFromString(string(attr.Value))
+					case "coin_asset":
+						if string(attr.Value) != targetAsset.String() { // should be unreachable
+							return quoteErrorResponse(fmt.Errorf("unexpected outbound asset: %s", string(attr.Value)))
+						}
+					}
+				}
+
+				// estimate the outbound info
+				outboundDelay, err := quoteOutboundInfo(ctx, mgr, common.NewCoin(targetAsset, sdk.NewUintFromString(res.ExpectedAmountOut)))
+				if err != nil {
+					return quoteErrorResponse(err)
+				}
+				res.OutboundDelayBlocks = outboundDelay
+				res.OutboundDelaySeconds = outboundDelay * targetAsset.Chain.ApproximateBlockMilliseconds() / 1000
+			}
+		case "outbound":
+			// track coin and to address
+			var coin common.Coin
+			var toAddress common.Address
+
+			for _, attr := range e.Attributes {
+				switch string(attr.Key) {
+				case "coin":
+					// parse coin string for the outbound amount
+					coin, err = common.ParseCoin(string(attr.Value))
+					if err != nil {
+						return quoteErrorResponse(fmt.Errorf("failed to parse coin: %w", err))
+					}
+				case "to":
+					// ignore errors since the field may be a module name
+					toAddress, _ = common.NewAddress(string(attr.Value))
+				}
+			}
+
+			// check for the outbound event
+			if toAddress.Equals(destination) {
+				res.ExpectedAmountOut = coin.Amount.String()
+				expectedAmountOut = coin.Amount
+
+				if !coin.Asset.Equals(targetAsset) { // should be unreachable
+					return quoteErrorResponse(fmt.Errorf("unexpected outbound asset: %s", coin.Asset))
+				}
+			}
+
+			// check for affiliate
+			if !affiliate.IsEmpty() && toAddress.Equals(affiliate) {
+				if !coin.Asset.Equals(common.RuneNative) { // should be unreachable
+					return quoteErrorResponse(fmt.Errorf("unexpected affiliate outbound asset: %s", coin.Asset))
+				}
+				affiliateFee = affiliateFee.Add(coin.Amount)
+			}
+
+		// sum liquidity fee in rune for all swap events
+		case "swap":
+			for _, attr := range e.Attributes {
+				if string(attr.Key) == "liquidity_fee_in_rune" {
+					liquidityFee = liquidityFee.Add(sdk.NewUintFromString(string(attr.Value)))
+				}
+			}
+
+		// extract loan data from loan open event
+		case "loan_open":
+			for _, attr := range e.Attributes {
+				switch string(attr.Key) {
+				case "collateralization_ratio":
+					res.ExpectedCollateralizationRatio = string(attr.Value)
+				case "collateral_up":
+					res.ExpectedCollateralUp = string(attr.Value)
+				case "debt_up":
+					res.ExpectedDebtUp = string(attr.Value)
+				}
+			}
+
+		// catch refund if there was an issue
+		case "refund":
+			for _, attr := range e.Attributes {
+				if string(attr.Key) == "reason" {
+					return quoteErrorResponse(fmt.Errorf("failed to simulate loan open: %s", string(attr.Value)))
+				}
+			}
+
+		// set outbound fee from fee event
+		case "fee":
+			for _, attr := range e.Attributes {
+				if string(attr.Key) == "coins" {
+					coin, err := common.ParseCoin(string(attr.Value))
+					if err != nil {
+						return quoteErrorResponse(fmt.Errorf("failed to parse coin: %w", err))
+					}
+					res.Fees.Outbound = coin.Amount.String() // already in target asset
+					res.Fees.Asset = coin.Asset.String()
+					outboundFee = coin.Amount
+
+					if !coin.Asset.Equals(targetAsset) { // should be unreachable
+						return quoteErrorResponse(fmt.Errorf("unexpected fee asset: %s", coin.Asset))
+					}
+				}
+			}
+		}
+	}
+
+	// convert fees to target asset if it is not rune
+	if !targetAsset.Equals(common.RuneNative) {
+		targetPool, err := mgr.Keeper().GetPool(ctx, targetAsset)
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("failed to get pool: %w", err))
+		}
+		affiliateFee = targetPool.RuneValueInAsset(affiliateFee)
+		liquidityFee = targetPool.RuneValueInAsset(liquidityFee)
+	}
+
+	// set fee info
+	res.Fees.Liquidity = wrapString(liquidityFee.String())
+	totalFees := liquidityFee.Add(outboundFee).Add(affiliateFee)
+	res.Fees.TotalBps = wrapString(totalFees.MulUint64(10000).Quo(expectedAmountOut).String())
+	if !affiliateFee.IsZero() {
+		res.Fees.Affiliate = wrapString(affiliateFee.String())
+	}
+
+	// generate memo
+	if sendMemo {
+		memo := &mem.LoanOpenMemo{
+			MemoBase: mem.MemoBase{
+				TxType: TxLoanOpen,
+			},
+			TargetAsset:          targetAsset,
+			TargetAddress:        destination,
+			MinOut:               minOut,
+			AffiliateAddress:     common.Address(affiliateMemo),
+			AffiliateBasisPoints: affiliateBps,
+			DexTargetLimit:       sdk.ZeroUint(),
+		}
+		res.Memo = wrapString(memo.String())
+	}
+
+	return json.MarshalIndent(res, "", "  ")
+}
+
+// -------------------------------------------------------------------------------------
+// Loan Close
+// -------------------------------------------------------------------------------------
+
+func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	// extract parameters
+	params, err := quoteParseParams(req.Data)
+	if err != nil {
+		return quoteErrorResponse(err)
+	}
+
+	// validate required parameters
+	for _, p := range []string{assetParam, amountParam, loanAssetParam, loanOwnerParam} {
+		if len(params[p]) == 0 {
+			return quoteErrorResponse(fmt.Errorf("missing required parameter %s", p))
+		}
+	}
+
+	// invalidate unexpected parameters
+	allowed := map[string]bool{
+		assetParam:     true,
+		amountParam:    true,
+		loanAssetParam: true,
+		loanOwnerParam: true,
+		minOutParam:    true,
+	}
+	for p := range params {
+		if !allowed[p] {
+			return quoteErrorResponse(fmt.Errorf("unexpected parameter %s", p))
+		}
+	}
+
+	// parse asset
+	asset, err := common.NewAsset(params[assetParam][0])
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("bad asset: %w", err))
+	}
+
+	// parse amount
+	amount, err := cosmos.ParseUint(params[amountParam][0])
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("bad amount: %w", err))
+	}
+
+	// parse min out
+	minOut := sdk.ZeroUint()
+	if len(params[minOutParam]) > 0 {
+		minOut, err = cosmos.ParseUint(params[minOutParam][0])
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("bad min out: %w", err))
+		}
+	}
+
+	// parse loan asset
+	loanAsset, err := common.NewAsset(params[loanAssetParam][0])
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("bad loan asset: %w", err))
+	}
+
+	// parse loan owner
+	loanOwner, err := common.NewAddress(params[loanOwnerParam][0])
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("bad loan owner: %w", err))
+	}
+
+	// create message for simulation
+	msg := &types.MsgLoanRepayment{
+		Owner:           loanOwner,
+		CollateralAsset: loanAsset,
+		Coin:            common.NewCoin(asset, amount),
+		MinOut:          minOut,
+	}
+
+	// simulate message handling
+	events, err := simulate(ctx, mgr, msg)
+	if err != nil {
+		return quoteErrorResponse(err)
+	}
+
+	// create response
+	res := &openapi.QuoteLoanCloseResponse{
+		Fees: openapi.QuoteFees{
+			Asset: loanAsset.String(),
+		},
+		Expiry:  time.Now().Add(quoteExpiration).Unix(),
+		Warning: quoteWarning,
+		Notes:   asset.Chain.InboundNotes(),
+	}
+
+	// estimate the inbound info
+	inboundAddress, routerAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, asset.Chain)
+	if err != nil {
+		return quoteErrorResponse(err)
+	}
+	res.InboundAddress = inboundAddress.String()
+	if inboundConfirmations > 0 {
+		res.InboundConfirmationBlocks = wrapInt64(inboundConfirmations)
+		res.InboundConfirmationSeconds = wrapInt64(inboundConfirmations * asset.Chain.ApproximateBlockMilliseconds() / 1000)
+	}
+
+	// set info fields
+	if asset.Chain.IsEVM() {
+		res.Router = wrapString(routerAddress.String())
+	}
+	if !asset.Chain.DustThreshold().IsZero() {
+		res.DustThreshold = wrapString(asset.Chain.DustThreshold().String())
+	}
+
+	// sum liquidity fees in rune from all swap events
+	outboundFee := sdk.ZeroUint()
+	liquidityFee := sdk.ZeroUint()
+	affiliateFee := sdk.ZeroUint()
+	expectedAmountOut := sdk.ZeroUint()
+
+	// iterate events in reverse order
+	for i := len(events) - 1; i >= 0; i-- {
+		e := events[i]
+
+		switch e.Type {
+
+		// use final outbound event as expected amount - scheduled_outbound (L1) or outbound (native)
+		case "scheduled_outbound":
+			if res.ExpectedAmountOut == "" { // if not empty we already saw the last outbound event
+				for _, attr := range e.Attributes {
+					switch string(attr.Key) {
+					case "coin_amount":
+						res.ExpectedAmountOut = string(attr.Value)
+						expectedAmountOut = sdk.NewUintFromString(string(attr.Value))
+					case "coin_asset":
+						if string(attr.Value) != loanAsset.String() { // should be unreachable
+							return quoteErrorResponse(fmt.Errorf("unexpected outbound asset: %s", string(attr.Value)))
+						}
+					}
+				}
+
+				// estimate the outbound info
+				outboundDelay, err := quoteOutboundInfo(ctx, mgr, common.NewCoin(loanAsset, sdk.NewUintFromString(res.ExpectedAmountOut)))
+				if err != nil {
+					return quoteErrorResponse(err)
+				}
+				res.OutboundDelayBlocks = outboundDelay
+				res.OutboundDelaySeconds = outboundDelay * loanAsset.Chain.ApproximateBlockMilliseconds() / 1000
+			}
+		case "outbound":
+			// track coin and to address
+			var coin common.Coin
+			var toAddress common.Address
+
+			for _, attr := range e.Attributes {
+				switch string(attr.Key) {
+				case "coin":
+					// parse coin string for the outbound amount
+					coin, err = common.ParseCoin(string(attr.Value))
+					if err != nil {
+						return quoteErrorResponse(fmt.Errorf("failed to parse coin: %w", err))
+					}
+				case "to":
+					// ignore errors since the field may be a module name
+					toAddress, _ = common.NewAddress(string(attr.Value))
+				}
+			}
+
+			// check for the outbound event
+			if toAddress.Equals(loanOwner) {
+				res.ExpectedAmountOut = coin.Amount.String()
+				expectedAmountOut = coin.Amount
+
+				if !coin.Asset.Equals(loanAsset) { // should be unreachable
+					return quoteErrorResponse(fmt.Errorf("unexpected outbound asset: %s", coin.Asset))
+				}
+			}
+
+		// sum liquidity fee in rune for all swap events
+		case "swap":
+			for _, attr := range e.Attributes {
+				if string(attr.Key) == "liquidity_fee_in_rune" {
+					liquidityFee = liquidityFee.Add(sdk.NewUintFromString(string(attr.Value)))
+				}
+			}
+
+		// extract loan data from loan close event
+		case "loan_repayment":
+			for _, attr := range e.Attributes {
+				switch string(attr.Key) {
+				case "collateral_down":
+					res.ExpectedCollateralDown = string(attr.Value)
+				case "debt_down":
+					res.ExpectedDebtDown = string(attr.Value)
+				}
+			}
+
+		// catch refund if there was an issue
+		case "refund":
+			for _, attr := range e.Attributes {
+				if string(attr.Key) == "reason" {
+					return quoteErrorResponse(fmt.Errorf("failed to simulate loan close: %s", string(attr.Value)))
+				}
+			}
+
+		// set outbound fee from fee event
+		case "fee":
+			for _, attr := range e.Attributes {
+				if string(attr.Key) == "coins" {
+					coin, err := common.ParseCoin(string(attr.Value))
+					if err != nil {
+						return quoteErrorResponse(fmt.Errorf("failed to parse coin: %w", err))
+					}
+					res.Fees.Outbound = coin.Amount.String() // already in collateral asset
+					res.Fees.Asset = coin.Asset.String()
+					outboundFee = coin.Amount
+
+					if !coin.Asset.Equals(loanAsset) { // should be unreachable
+						return quoteErrorResponse(fmt.Errorf("unexpected fee asset: %s", coin.Asset))
+					}
+				}
+			}
+		}
+	}
+
+	// convert fees to target asset if it is not rune
+	loanPool, err := mgr.Keeper().GetPool(ctx, loanAsset)
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("failed to get pool: %w", err))
+	}
+	affiliateFee = loanPool.RuneValueInAsset(affiliateFee)
+	liquidityFee = loanPool.RuneValueInAsset(liquidityFee)
+
+	// set fee info
+	res.Fees.Liquidity = wrapString(liquidityFee.String())
+	totalFees := liquidityFee.Add(outboundFee).Add(affiliateFee)
+	res.Fees.TotalBps = wrapString(totalFees.MulUint64(10000).Quo(expectedAmountOut).String())
+	if !affiliateFee.IsZero() {
+		res.Fees.Affiliate = wrapString(affiliateFee.String())
+	}
+
+	// generate memo
+	memo := &mem.LoanRepaymentMemo{
+		MemoBase: mem.MemoBase{
+			TxType: TxLoanRepayment,
+			Asset:  loanAsset,
+		},
+		Owner:  loanOwner,
+		MinOut: minOut,
+	}
+	res.Memo = memo.String()
 
 	return json.MarshalIndent(res, "", "  ")
 }

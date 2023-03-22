@@ -3,6 +3,7 @@ package thorchain
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
@@ -30,6 +31,38 @@ func (m LoanOpenMemo) GetAffiliateAddress() common.Address  { return m.Affiliate
 func (m LoanOpenMemo) GetAffiliateBasisPoints() cosmos.Uint { return m.AffiliateBasisPoints }
 func (m LoanOpenMemo) GetDexAggregator() string             { return m.DexAggregator }
 func (m LoanOpenMemo) GetDexTargetAddress() string          { return m.DexTargetAddress }
+
+func (m LoanOpenMemo) String() string {
+	args := []string{
+		TxLoanOpen.String(),
+		m.TargetAsset.String(),
+		m.TargetAddress.String(),
+		m.MinOut.String(),
+		m.AffiliateAddress.String(),
+		m.AffiliateBasisPoints.String(),
+		m.DexAggregator,
+		m.DexTargetAddress,
+		m.DexTargetLimit.String(),
+	}
+	last := 3
+
+	switch {
+	case !m.DexTargetLimit.IsZero():
+		last = 9
+	case m.DexTargetAddress != "":
+		last = 8
+	case m.DexAggregator != "":
+		last = 7
+	case !m.AffiliateBasisPoints.IsZero():
+		last = 6
+	case !m.AffiliateAddress.IsEmpty():
+		last = 5
+	case !m.MinOut.IsZero():
+		last = 4
+	}
+
+	return strings.Join(args[:last], ":")
+}
 
 func NewLoanOpenMemo(targetAsset common.Asset, targetAddr common.Address, minOut cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, dexAgg, dexTargetAddr string, dexTargetLimit cosmos.Uint) LoanOpenMemo {
 	return LoanOpenMemo{
@@ -115,6 +148,14 @@ type LoanRepaymentMemo struct {
 	MemoBase
 	Owner  common.Address
 	MinOut cosmos.Uint
+}
+
+func (m LoanRepaymentMemo) String() string {
+	args := []string{TxLoanRepayment.String(), m.Asset.String(), m.Owner.String()}
+	if !m.MinOut.IsZero() {
+		args = append(args, m.MinOut.String())
+	}
+	return strings.Join(args, ":")
 }
 
 func NewLoanRepaymentMemo(asset common.Asset, owner common.Address, minOut cosmos.Uint) LoanRepaymentMemo {

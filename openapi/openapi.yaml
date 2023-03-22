@@ -897,6 +897,113 @@ paths:
               schema:
                 $ref: "#/components/schemas/QuoteSaverWithdrawResponse"
 
+  /thorchain/quote/loan/open:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - name: asset
+        in: query
+        description: the collateral asset
+        schema:
+          type: string
+          example: "BTC.BTC"
+      - name: amount
+        in: query
+        description: the collateral asset amount in 1e8 decimals
+        schema:
+          type: integer
+          format: int64
+          example: 1000000
+      - name: target_asset
+        in: query
+        description: the target asset to receive (loan denominated in TOR regardless)
+        schema:
+          type: string
+          example: "ETH.ETH"
+      - name: destination
+        in: query
+        description: the destination address, required to generate memo
+        schema:
+          type: string
+          example: "0x1c7b17362c84287bd1184447e6dfeaf920c31bbe"
+      - name: min_out
+        in: query
+        description: the minimum amount of the target asset to accept
+        schema:
+          type: string
+          example: "1234"
+      - name: affiliate_bps
+        in: query
+        description: the affiliate fee in basis points
+        schema:
+          type: integer
+          format: int64
+          example: 100
+      - name: affiliate
+        in: query
+        description: the affiliate (address or thorname)
+        schema:
+          type: string
+          example: "t"
+    get:
+      description: Provide a quote estimate for the provided loan open.
+      operationId: quoteloanopen
+      tags:
+        - Quote
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteLoanOpenResponse"
+
+  /thorchain/quote/loan/close:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - name: asset
+        in: query
+        description: the asset used to repay the loan
+        schema:
+          type: string
+          example: "ETH.ETH"
+      - name: amount
+        in: query
+        description: the asset amount in 1e8 decimals
+        schema:
+          type: integer
+          format: int64
+          example: 1000000
+      - name: loan_asset
+        in: query
+        description: the collateral asset of the loan
+        schema:
+          type: string
+          example: "BTC.BTC"
+      - name: loan_owner
+        in: query
+        description: the owner of the loan collateral
+        schema:
+          type: string
+          example: "BTC.BTC"
+      - name: min_out
+        in: query
+        description: the minimum amount of the target asset to accept
+        schema:
+          type: string
+          example: "1234"
+    get:
+      description: Provide a quote estimate for the provided loan close.
+      operationId: quoteloanclose
+      tags:
+        - Quote
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuoteLoanCloseResponse"
+
   # ------------------------------ invariants ------------------------------
 
   /thorchain/invariant/{invariant}:
@@ -1870,8 +1977,9 @@ components:
       type: object
       required:
         - asset
-        - affiliate
         - outbound
+        # TODO: require after migrating all quotes to new fee format
+        # - liquidity
       properties:
         asset:
           type: string
@@ -1882,6 +1990,14 @@ components:
         outbound:
           type: string
           example: "1234"
+        liquidity:
+          type: string
+          example: "1234"
+          description: liquidity fees paid to pools
+        total_bps:
+          type: string
+          example: "500"
+          description: total basis points in fees relative to amount out
 
     # ------------------------------ responses ------------------------------
 
@@ -2445,31 +2561,12 @@ components:
               signer:
                 type: string
 
-    QuoteSwapResponse:
-      type: object
-      required:
-        - inbound_address
-        - expected_amount_out
-        - outbound_delay_blocks
-        - outbound_delay_seconds
-        - fees
-        - slippage_bps
-        - warning
-        - notes
-        - expiry
-      properties:
+    baseQuoteResponse:
+      properties: &quote-properties
         inbound_address:
           type: string
           description: the inbound address for the transaction on the source chain
           example: "bc1qjk3xzu5slu7mtmc8jc9yed3zqvkhkttm700g9a"
-        memo:
-          type: string
-          description: generated memo for the swap
-          example: "=:ETH.ETH:0x1c7b17362c84287bd1184447e6dfeaf920c31bbe:1440450000:thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv:100"
-        expected_amount_out:
-          type: string
-          description: the minimum amount of the target asset the user can expect to receive after fees
-          example: "10000"
         inbound_confirmation_blocks:
           type: integer
           format: int64
@@ -2491,7 +2588,7 @@ components:
         slippage_bps:
           type: integer
           format: int64
-          description: the swap slippage in basis points
+          description: the total swap slippage in basis points
         router:
           type: string
           description: the EVM chain router contract address
@@ -2514,6 +2611,29 @@ components:
           example: "10000"
           description: Defines the minimum transaction size for the chain in base units (sats, wei, uatom). Transctions with asset amounts lower than the dust_threshold are ignored.
 
+    QuoteSwapResponse:
+      type: object
+      required:
+        - inbound_address
+        - expected_amount_out
+        - outbound_delay_blocks
+        - outbound_delay_seconds
+        - fees
+        - slippage_bps
+        - warning
+        - notes
+        - expiry
+      properties:
+        <<: *quote-properties
+        memo:
+          type: string
+          description: generated memo for the swap
+          example: "=:ETH.ETH:0x1c7b17362c84287bd1184447e6dfeaf920c31bbe:1440450000:thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv:100"
+        expected_amount_out:
+          type: string
+          description: the amount of the target asset the user can expect to receive after fees
+          example: "10000"
+
     QuoteSaverDepositResponse:
       type: object
       required:
@@ -2526,10 +2646,7 @@ components:
         - notes
         - expiry
       properties:
-        inbound_address:
-          type: string
-          description: the inbound address for the transaction on the source chain
-          example: "bc1qjk3xzu5slu7mtmc8jc9yed3zqvkhkttm700g9a"
+        <<: *quote-properties
         memo:
           type: string
           description: generated memo for the deposit
@@ -2540,39 +2657,8 @@ components:
           example: "10000"
         expected_amount_deposit:
           type: string
-          description: the minimum amount of the target asset the user can expect to deposit after fees
+          description: the amount of the target asset the user can expect to deposit after fees
           example: "10000"
-        inbound_confirmation_blocks:
-          type: integer
-          format: int64
-          description: the approximate number of source chain blocks required before processing
-        inbound_confirmation_seconds:
-          type: integer
-          format: int64
-          description: the approximate seconds for block confirmations required before processing
-        fees:
-          $ref: "#/components/schemas/QuoteFees"
-        slippage_bps:
-          type: integer
-          format: int64
-          description: the swap slippage in basis points
-        expiry:
-          type: integer
-          format: int64
-          description: expiration timestamp in unix seconds
-          example: 1671660285
-        warning:
-          type: string
-          description: static warning message
-          example: Do not cache this response. Do not send funds after the expiry.
-        notes:
-          type: string
-          description: chain specific quote notes
-          example: Transfer the inbound_address the asset with the memo. Do not use multi-in, multi-out transactions.
-        dust_threshold:
-          type: string
-          example: "10000"
-          description: Defines the minimum transaction size for the chain in base units (sats, wei, uatom). Transctions with asset amounts lower than the dust_threshold are ignored.
 
     QuoteSaverWithdrawResponse:
       type: object
@@ -2589,50 +2675,86 @@ components:
         - notes
         - expiry
       properties:
-        inbound_address:
-          type: string
-          description: the inbound address for the transaction on the source chain
-          example: "bc1qjk3xzu5slu7mtmc8jc9yed3zqvkhkttm700g9a"
+        <<: *quote-properties
         memo:
           type: string
           description: generated memo for the withdraw, the client can use this OR send the dust amount
-          example: "=:ETH.ETH:0x1c7b17362c84287bd1184447e6dfeaf920c31bbe:1440450000:thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv:100"
+          example: "-:ETH.ETH:0x1c7b17362c84287bd1184447e6dfeaf920c31bbe:1440450000:thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv:100"
         dust_amount:
           type: string
           description: the dust amount of the target asset the user should send to initialize the withdraw, the client can send this OR provide the memo
           example: "10000"
         expected_amount_out:
           type: string
-          description: the minimum amount of the target asset the user can expect to withdraw after fees in 1e8 decimals
+          description: the amount of the target asset the user can expect to withdraw after fees in 1e8 decimals
           example: "10000"
-        outbound_delay_blocks:
-          type: integer
-          format: int64
-          description: the number of thorchain blocks the outbound will be delayed
-        outbound_delay_seconds:
-          type: integer
-          format: int64
-          description: the approximate seconds for the outbound delay before it will be sent
-        fees:
-          $ref: "#/components/schemas/QuoteFees"
-        slippage_bps:
-          type: integer
-          format: int64
-          description: the swap slippage in basis points
-        expiry:
-          type: integer
-          format: int64
-          description: expiration timestamp in unix seconds
-          example: 1671660285
-        warning:
+
+    QuoteLoanOpenResponse:
+      type: object
+      required:
+        - inbound_address
+        - expected_amount_out
+        - expected_collateralization_ratio
+        - expected_collateral_up
+        - expected_debt_up
+        - outbound_delay_blocks
+        - outbound_delay_seconds
+        - fees
+        - warning
+        - notes
+        - expiry
+      properties:
+        <<: *quote-properties
+        memo:
           type: string
-          description: static warning message
-          example: Do not cache this response. Do not send funds after the expiry.
-        notes:
+          description: generated memo for the loan open
+          example: "$+:ETH.ETH:0x1c7b17362c84287bd1184447e6dfeaf920c31bbe"
+        expected_amount_out:
           type: string
-          description: chain specific quote notes
-          example: Transfer the inbound_address the asset with the memo. Do not use multi-in, multi-out transactions.
-        dust_threshold:
-          type: string
+          description: the amount of the target asset the user can expect to receive after fees in 1e8 decimals
           example: "10000"
-          description: Defines the minimum transaction size for the chain in base units (sats, wei, uatom). Transctions with asset amounts lower than the dust_threshold are ignored.
+        expected_collateralization_ratio:
+          type: string
+          description: the expected collateralization ratio in basis points
+          example: "30000"
+        expected_collateral_up:
+          type: string
+          description: the expected amount of collateral increase on the loan
+          example: "1000000"
+        expected_debt_up:
+          type: string
+          description: the expected amount of TOR debt increase on the loan
+          example: "1000000"
+
+    QuoteLoanCloseResponse:
+      type: object
+      required:
+        - inbound_address
+        - expected_amount_out
+        - expected_collateral_down
+        - expected_debt_down
+        - memo
+        - outbound_delay_blocks
+        - outbound_delay_seconds
+        - fees
+        - warning
+        - notes
+        - expiry
+      properties:
+        <<: *quote-properties
+        memo:
+          type: string
+          description: generated memo for the loan close
+          example: "$-:ETH.ETH:0x1c7b17362c84287bd1184447e6dfeaf920c31bbe"
+        expected_amount_out:
+          type: string
+          description: the amount of collateral asset the user can expect to receive after fees in 1e8 decimals
+          example: "10000"
+        expected_collateral_down:
+          type: string
+          description: the expected amount of collateral decrease on the loan
+          example: "1000000"
+        expected_debt_down:
+          type: string
+          description: the expected amount of TOR debt decrease on the loan
+          example: "1000000"

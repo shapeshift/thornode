@@ -218,6 +218,19 @@ func (op *OpCheck) Execute(_ *os.Process, logs chan string) error {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
+	// ensure response is not empty
+	if len(buf) == 0 {
+		if os.Getenv("DEBUG") == "" {
+			fmt.Println(ColorPurple + "\nLogs:" + ColorReset)
+			dumpLogs(logs)
+		}
+
+		fmt.Println(ColorPurple + "\nOperation:" + ColorReset)
+		_ = yaml.NewEncoder(os.Stdout).Encode(op)
+		fmt.Println()
+		return fmt.Errorf("empty response")
+	}
+
 	// pipe response to jq for assertions
 	for _, a := range op.Asserts {
 		// render the assert expression (used for native_txid)
@@ -233,7 +246,7 @@ func (op *OpCheck) Execute(_ *os.Process, logs chan string) error {
 		cmd.Stdin = bytes.NewReader(buf)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
-			if cmd.ProcessState.ExitCode() == 1 {
+			if cmd.ProcessState.ExitCode() == 1 && os.Getenv("DEBUG") == "" {
 				// dump process logs if the assert expression failed
 				fmt.Println(ColorPurple + "\nLogs:" + ColorReset)
 				dumpLogs(logs)

@@ -81,6 +81,8 @@ var (
 	QueryQuoteSwap           = Query{Key: "quoteswap", EndpointTemplate: "/%s/quote/swap"}
 	QueryQuoteSaverDeposit   = Query{Key: "quotesaverdeposit", EndpointTemplate: "/%s/quote/saver/deposit"}
 	QueryQuoteSaverWithdraw  = Query{Key: "quotesaverwithdraw", EndpointTemplate: "/%s/quote/saver/withdraw"}
+	QueryQuoteLoanOpen       = Query{Key: "quoteloanopen", EndpointTemplate: "/%s/quote/loan/open"}
+	QueryQuoteLoanClose      = Query{Key: "quoteloanclose", EndpointTemplate: "/%s/quote/loan/close"}
 	QueryInvariants          = Query{Key: "invariants", EndpointTemplate: "/%s/invariants"}
 	QueryInvariant           = Query{Key: "invariant", EndpointTemplate: "/%s/invariant/{%s}"}
 
@@ -139,6 +141,8 @@ var Queries = []Query{
 	QueryQuoteSwap,
 	QueryQuoteSaverDeposit,
 	QueryQuoteSaverWithdraw,
+	QueryQuoteLoanOpen,
+	QueryQuoteLoanClose,
 	QueryInvariants,
 	QueryInvariant,
 	QueryExport,

@@ -134,6 +134,10 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryQuoteSaverDeposit(ctx, path[1:], req, mgr)
 		case q.QueryQuoteSaverWithdraw.Key:
 			return queryQuoteSaverWithdraw(ctx, path[1:], req, mgr)
+		case q.QueryQuoteLoanOpen.Key:
+			return queryQuoteLoanOpen(ctx, path[1:], req, mgr)
+		case q.QueryQuoteLoanClose.Key:
+			return queryQuoteLoanClose(ctx, path[1:], req, mgr)
 		case q.QueryInvariants.Key:
 			return queryInvariants(ctx, mgr)
 		case q.QueryInvariant.Key:
@@ -1812,6 +1816,7 @@ func wrapInt64(d int64) *int64 {
 	return &d
 }
 
+// TODO: Migrate callers to use simulate instead.
 func simulateInternal(ctx cosmos.Context, mgr *Mgrs, msg sdk.Msg) (sdk.Events, error) {
 	// validate
 	err := msg.ValidateBasic()
@@ -1839,4 +1844,75 @@ func eventMap(e sdk.Event) map[string]string {
 		m[string(a.Key)] = string(a.Value)
 	}
 	return m
+}
+
+func simulate(ctx cosmos.Context, mgr *Mgrs, msg sdk.Msg) (sdk.Events, error) {
+	// use the first active node account as the signer
+	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("no active node accounts: %w", err)
+	}
+
+	// set the signer
+	switch m := msg.(type) {
+	case *MsgLoanOpen:
+		m.Signer = nodeAccounts[0].NodeAddress
+	case *MsgLoanRepayment:
+		m.Signer = nodeAccounts[0].NodeAddress
+	}
+
+	// set random txid
+	txid := common.TxID(common.RandStringBytesMask(64))
+	ctx = ctx.WithValue(constants.CtxLoanTxID, txid)
+
+	// validate
+	err = msg.ValidateBasic()
+	if err != nil {
+		return nil, fmt.Errorf("failed to validate message: %w", err)
+	}
+
+	// intercept events and avoid modifying state
+	cms := ctx.MultiStore().CacheMultiStore() // never call cms.Write()
+	em := cosmos.NewEventManager()
+	ctx = ctx.WithMultiStore(cms).WithEventManager(em)
+
+	// disable logging
+	// ctx = ctx.WithLogger(nullLogger)
+
+	// reset the swap queue
+	iter := mgr.Keeper().GetSwapQueueIterator(ctx)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+
+		// unmarshal message
+		var qm MsgSwap
+		err := mgr.cdc.Unmarshal(iter.Value(), &qm)
+		if err != nil {
+			continue
+		}
+
+		// split txid and index
+		ss := strings.Split(string(iter.Key()), "-")
+		i, err := strconv.Atoi(ss[len(ss)-1])
+		if err != nil {
+			continue
+		}
+
+		// remove from queue
+		mgr.Keeper().RemoveSwapQueueItem(ctx, common.TxID(ss[0]), i)
+	}
+
+	// simulate the loan open
+	_, err = NewInternalHandler(mgr)(ctx, msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to simulate loan: %w", err)
+	}
+
+	// simulate end block
+	err = mgr.swapQ.EndBlock(ctx, mgr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to simulate end block: %w", err)
+	}
+
+	return em.Events(), nil
 }
