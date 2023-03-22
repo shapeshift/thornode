@@ -54,6 +54,7 @@ func (s *HandlerLoanRepaymentSuite) TestLoanValidate(c *C) {
 
 func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithTOR(c *C) {
 	ctx, mgr := setupManagerForTest(c)
+	mgr.Keeper().SetMimir(ctx, "DerivedDepthBasisPts", 10_000)
 
 	pool := NewPool()
 	pool.Asset = common.BTCAsset
@@ -64,6 +65,12 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithTOR(c *C) {
 
 	signer := GetRandomBech32Addr()
 	owner, _ := common.NewAddress("bcrt1q8ln0p2d4mwng7x20nl7hku25d282sjgf2v74nt")
+
+	vault := GetRandomVault()
+	vault.AddFunds(common.NewCoins(common.NewCoin(common.BTCAsset, cosmos.NewUint(10*common.One))))
+	c.Assert(mgr.Keeper().SetVault(ctx, vault), IsNil)
+	// set max gas
+	c.Assert(mgr.Keeper().SaveNetworkFee(ctx, common.BTCChain, NewNetworkFee(common.BTCChain, 10, 10)), IsNil)
 
 	// mint TOR to burn later
 	coin := common.NewCoin(common.TOR, cosmos.NewUint(1000*common.One))

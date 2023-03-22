@@ -9,6 +9,11 @@ genesis:
             - amount: "300000000000"
               denom: rune
     thorchain:
+      mimirs:
+        - key: LENDING-THOR-BTC
+          value: "1"
+        - key: LENDING-THOR-ETH
+          value: "1"
       liquidity_providers:
         - asset: BTC.BTC
           asset_address: {{ addr_btc_cat }}
