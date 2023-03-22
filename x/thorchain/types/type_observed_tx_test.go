@@ -257,10 +257,11 @@ func (TypeObservedTxSuite) TestSetTxToComplete(c *C) {
 		GasRate:     1,
 	}
 	voter.Actions = append(voter.Actions, toi)
-	c.Assert(voter.AddOutTx(tx), Equals, true)
+	version := GetCurrentVersion()
+	c.Assert(voter.AddOutTx(version, tx), Equals, true)
 	// add it again should return true, but without any real action
-	c.Assert(voter.AddOutTx(tx), Equals, true)
-	c.Assert(voter.AddOutTx(GetRandomTx()), Equals, false)
+	c.Assert(voter.AddOutTx(version, tx), Equals, true)
+	c.Assert(voter.AddOutTx(version, GetRandomTx()), Equals, false)
 	c.Assert(voter.Tx.Status, Equals, Status_done)
 	c.Assert(voter.Tx.OutHashes[0], Equals, tx.ID.String())
 
@@ -318,10 +319,11 @@ func (TypeObservedTxSuite) TestAddOutTx(c *C) {
 		},
 	}
 	voter.Actions = append(voter.Actions, toi)
-	c.Assert(voter.AddOutTx(tx), Equals, true)
+	version := GetCurrentVersion()
+	c.Assert(voter.AddOutTx(version, tx), Equals, true)
 	// add it again should return true, but without any real action
-	c.Assert(voter.AddOutTx(tx), Equals, true)
-	c.Assert(voter.AddOutTx(GetRandomTx()), Equals, false)
+	c.Assert(voter.AddOutTx(version, tx), Equals, true)
+	c.Assert(voter.AddOutTx(version, GetRandomTx()), Equals, false)
 	if !voter.Tx.IsEmpty() {
 		c.Assert(voter.Tx.Status, Equals, Status_done)
 		c.Assert(voter.Tx.OutHashes[0], Equals, tx.ID.String())
@@ -450,8 +452,9 @@ func (TypeObservedTxSuite) TestObservedTxVote(c *C) {
 	observedTx1 := NewObservedTx(observedTx.Tx, 1024, GetRandomPubKey(), 1024)
 	c.Assert(observedTx.Equals(observedTx1), Equals, false)
 	txID := GetRandomTxHash()
-	observedTx1.SetDone(txID, 2)
-	observedTx1.SetDone(txID, 2)
+	version := GetCurrentVersion()
+	observedTx1.SetDone(version, txID, 2)
+	observedTx1.SetDone(version, txID, 2)
 	c.Check(observedTx1.IsDone(2), Equals, false)
 }
 

@@ -21,7 +21,7 @@ func (h CommonOutboundTxHandler) handleV94(ctx cosmos.Context, tx ObservedTx, in
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
-	if voter.AddOutTx(tx.Tx) {
+	if voter.AddOutTx(h.mgr.GetVersion(), tx.Tx) {
 		if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventOutbound(inTxID, tx.Tx)); err != nil {
 			return nil, ErrInternal(err, "fail to emit outbound event")
 		}
@@ -177,7 +177,7 @@ func (h CommonOutboundTxHandler) handleV92(ctx cosmos.Context, tx ObservedTx, in
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
-	voter.AddOutTx(tx.Tx)
+	voter.AddOutTx(h.mgr.GetVersion(), tx.Tx)
 	h.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 
 	// complete events
@@ -327,7 +327,7 @@ func (h CommonOutboundTxHandler) handleV69(ctx cosmos.Context, tx ObservedTx, in
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
-	voter.AddOutTx(tx.Tx)
+	voter.AddOutTx(h.mgr.GetVersion(), tx.Tx)
 	h.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 
 	// complete events
@@ -452,7 +452,7 @@ func (h CommonOutboundTxHandler) handleV85(ctx cosmos.Context, tx ObservedTx, in
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
-	voter.AddOutTx(tx.Tx)
+	voter.AddOutTx(h.mgr.GetVersion(), tx.Tx)
 	h.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 
 	// complete events
@@ -589,7 +589,7 @@ func (h CommonOutboundTxHandler) handleV87(ctx cosmos.Context, tx ObservedTx, in
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
-	voter.AddOutTx(tx.Tx)
+	voter.AddOutTx(h.mgr.GetVersion(), tx.Tx)
 	h.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 
 	// complete events
@@ -735,7 +735,7 @@ func (h CommonOutboundTxHandler) handleV88(ctx cosmos.Context, tx ObservedTx, in
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
-	voter.AddOutTx(tx.Tx)
+	voter.AddOutTx(h.mgr.GetVersion(), tx.Tx)
 	h.mgr.Keeper().SetObservedTxInVoter(ctx, voter)
 
 	// complete events
@@ -883,7 +883,7 @@ func (h CommonOutboundTxHandler) handleV96(ctx cosmos.Context, tx ObservedTx, in
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get observed tx voter")
 	}
-	if voter.AddOutTx(tx.Tx) {
+	if voter.AddOutTx(h.mgr.GetVersion(), tx.Tx) {
 		if err := h.mgr.EventMgr().EmitEvent(ctx, NewEventOutbound(inTxID, tx.Tx)); err != nil {
 			return nil, ErrInternal(err, "fail to emit outbound event")
 		}

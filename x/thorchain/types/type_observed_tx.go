@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/blang/semver"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -138,10 +140,24 @@ func (m *ObservedTx) Sign(signer cosmos.AccAddress) bool {
 }
 
 // SetDone check the ObservedTx status, update it's status to done if the outbound tx had been processed
-func (m *ObservedTx) SetDone(hash common.TxID, numOuts int) {
-	for _, done := range m.GetOutHashes() {
-		if done.Equals(hash) {
-			return
+func (m *ObservedTx) SetDone(version semver.Version, hash common.TxID, numOuts int) {
+	switch {
+	case version.GTE(semver.MustParse("1.108.0")):
+		m.SetDoneV108(hash, numOuts)
+	default:
+		m.SetDoneV1(hash, numOuts)
+	}
+}
+
+func (m *ObservedTx) SetDoneV108(hash common.TxID, numOuts int) {
+	// As an Asset->RUNE affiliate fee could also be RUNE,
+	// allow multiple blank TxID OutHashes.
+	// SetDone is still expected to only be called once (per ObservedTx) for each.
+	if !hash.Equals(common.BlankTxID) {
+		for _, done := range m.GetOutHashes() {
+			if done.Equals(hash) {
+				return
+			}
 		}
 	}
 	m.OutHashes = append(m.OutHashes, hash.String())
@@ -222,23 +238,37 @@ func (m *ObservedTxVoter) matchActionItem(outboundTx common.Tx) bool {
 // actions items , node account should be slashed for a malicious tx
 // true indicated the outbound tx matched an action item , and it has been
 // added into internal OutTxs
-func (m *ObservedTxVoter) AddOutTx(in common.Tx) bool {
+func (m *ObservedTxVoter) AddOutTx(version semver.Version, in common.Tx) bool {
+	switch {
+	case version.GTE(semver.MustParse("1.108.0")):
+		return m.AddOutTxV108(version, in)
+	default:
+		return m.AddOutTxV1(version, in)
+	}
+}
+
+func (m *ObservedTxVoter) AddOutTxV108(version semver.Version, in common.Tx) bool {
 	if !m.matchActionItem(in) {
 		// no action item match the outbound tx
 		return false
 	}
-	for _, t := range m.OutTxs {
-		if in.ID.Equals(t.ID) {
-			return true
+	// As an Asset->RUNE affiliate fee could also be RUNE,
+	// allow multiple OutTxs with blank TxIDs.
+	// AddOutTxs is still expected to only be called once for each.
+	if !in.ID.Equals(common.BlankTxID) {
+		for _, t := range m.OutTxs {
+			if in.ID.Equals(t.ID) {
+				return true
+			}
 		}
 	}
 	m.OutTxs = append(m.OutTxs, in)
 	for i := range m.Txs {
-		m.Txs[i].SetDone(in.ID, len(m.Actions))
+		m.Txs[i].SetDone(version, in.ID, len(m.Actions))
 	}
 
 	if !m.Tx.IsEmpty() {
-		m.Tx.SetDone(in.ID, len(m.Actions))
+		m.Tx.SetDone(version, in.ID, len(m.Actions))
 	}
 
 	return true
