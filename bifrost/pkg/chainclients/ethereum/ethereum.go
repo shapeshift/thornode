@@ -813,6 +813,16 @@ func (c *Client) getBlockRequiredConfirmation(txIn stypes.TxIn, height int64) (i
 	}
 	confirm := cosmos.NewUintFromBigInt(totalTxValueInWei).MulUint64(2).Quo(cosmos.NewUintFromBigInt(totalFeeAndSubsidy)).Uint64()
 	c.logger.Info().Msgf("totalTxValue:%s,total fee and Subsidy:%d,confirmation:%d", totalTxValueInWei, totalFeeAndSubsidy, confirm)
+	if confirm < 2 {
+		// in ETH PoS (post merge) reorgs are harder to do but can occur. In
+		// looking at 1k reorg blocks, 10 were reorg'ed at a height of 2, and
+		// the rest were one (none were three or larger). While the odds of
+		// getting reorg'ed are small (as it can only happen for very small
+		// trades), the additional delay to swappers is also small (12 secs or
+		// so). Thus, the determination by thorsec, 9R and devs were to set the
+		// new min conf is 2.
+		return 2, nil
+	}
 	return int64(confirm), nil
 }
 

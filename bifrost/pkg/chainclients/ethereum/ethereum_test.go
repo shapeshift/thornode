@@ -681,7 +681,7 @@ func (s *EthereumSuite) TestGetConfirmationCount(c *C) {
 			},
 		},
 		MemPool: false,
-	}), Equals, int64(0))
+	}), Equals, int64(2))
 	c.Assert(e.GetConfirmationCount(stypes.TxIn{
 		Chain: common.ETHChain,
 		TxArray: []stypes.TxInItem{
