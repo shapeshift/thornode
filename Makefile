@@ -234,7 +234,6 @@ smoke-push-image:
 smoke: reset-mocknet smoke-build-image
 	@docker run ${SMOKE_DOCKER_OPTS} \
 		-e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} \
-		-v ${PWD}/test/smoke:/app \
 		registry.gitlab.com/thorchain/thornode:smoke \
 		python scripts/smoke.py --fast-fail=True
 
@@ -264,8 +263,6 @@ build-mocknet:
 
 bootstrap-mocknet: $(SMOKE_PROTO_DIR)
 	@docker run ${SMOKE_DOCKER_OPTS} \
-		-e BLOCK_SCANNER_BACKOFF=${BLOCK_SCANNER_BACKOFF} \
-		-v ${PWD}/test/smoke:/app \
 		registry.gitlab.com/thorchain/thornode:smoke \
 		python scripts/smoke.py --bootstrap-only=True
 
