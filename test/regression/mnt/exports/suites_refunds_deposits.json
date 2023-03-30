@@ -162,7 +162,7 @@
           "address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2",
           "coins": [
             {
-              "amount": "209962437610",
+              "amount": "209997413971",
               "denom": "rune"
             }
           ]
@@ -171,7 +171,7 @@
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "35000046940983",
+              "amount": "35000011964553",
               "denom": "rune"
             }
           ]
@@ -198,7 +198,7 @@
           "address": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
           "coins": [
             {
-              "amount": "5000000621407",
+              "amount": "5000000621476",
               "denom": "rune"
             }
           ]
@@ -340,9 +340,11 @@
       "network": {
         "LPIncomeSplit": "9600",
         "NodeIncomeSplit": "400",
-        "bond_reward_rune": "621407",
+        "bond_reward_rune": "621476",
         "burned_bep2_rune": "0",
         "burned_erc20_rune": "0",
+        "outbound_gas_spent_rune": "52479913",
+        "outbound_gas_withheld_rune": "69982267",
         "total_bond_units": "14"
       },
       "network_fees": [
@@ -378,8 +380,8 @@
         {
           "LP_units": "100000000000",
           "asset": "BTC.BTC",
-          "balance_asset": "100052500",
-          "balance_rune": "99954977870",
+          "balance_asset": "100017500",
+          "balance_rune": "99989955109",
           "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "10000000000",
@@ -390,7 +392,7 @@
           "LP_units": "100000000000",
           "asset": "ETH.ETH",
           "balance_asset": "1000000000",
-          "balance_rune": "100007459740",
+          "balance_rune": "100007458862",
           "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
@@ -417,7 +419,7 @@
           ],
           "coins": [
             {
-              "amount": "100052500",
+              "amount": "100017500",
               "asset": "BTC.BTC",
               "decimals": "8"
             },

@@ -189,7 +189,7 @@
               "denom": "eth/eth"
             },
             {
-              "amount": "198779405585",
+              "amount": "198885274803",
               "denom": "rune"
             }
           ]
@@ -198,7 +198,7 @@
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "35000151851047",
+              "amount": "35000045981595",
               "denom": "rune"
             }
           ]
@@ -225,7 +225,7 @@
           "address": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
           "coins": [
             {
-              "amount": "5001082743368",
+              "amount": "5001082743602",
               "denom": "rune"
             }
           ]
@@ -407,9 +407,11 @@
       "network": {
         "LPIncomeSplit": "9602",
         "NodeIncomeSplit": "398",
-        "bond_reward_rune": "1082743368",
+        "bond_reward_rune": "1082743602",
         "burned_bep2_rune": "0",
         "burned_erc20_rune": "0",
+        "outbound_gas_spent_rune": "158941495",
+        "outbound_gas_withheld_rune": "212010122",
         "total_bond_units": "19"
       },
       "network_fees": [
@@ -446,7 +448,7 @@
           "LP_units": "133333333333",
           "asset": "BTC.BTC",
           "balance_asset": "300000000",
-          "balance_rune": "99468444753",
+          "balance_rune": "99468441781",
           "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
@@ -466,8 +468,8 @@
         {
           "LP_units": "133333333333",
           "asset": "ETH.ETH",
-          "balance_asset": "3004800000",
-          "balance_rune": "99310960832",
+          "balance_asset": "3001600000",
+          "balance_rune": "99416833022",
           "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
@@ -509,7 +511,7 @@
               "decimals": "8"
             },
             {
-              "amount": "3004800000",
+              "amount": "3001600000",
               "asset": "ETH.ETH",
               "decimals": "8"
             }

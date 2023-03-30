@@ -53,7 +53,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -115,7 +115,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -177,7 +177,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -239,7 +239,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -299,7 +299,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:

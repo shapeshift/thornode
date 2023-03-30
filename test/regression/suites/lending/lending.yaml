@@ -125,7 +125,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "479000"
+        - amount: "486000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -149,14 +149,14 @@ type: check
 description: BTC pool depth (want to confirm pool depths remain unchanged, except for gas used to refund btc deposit)
 endpoint: http://localhost:1317/thorchain/pool/btc.btc
 asserts:
-  - .balance_rune | tonumber == 99991586337
-  - .balance_asset | tonumber == 100010500
+  - .balance_rune | tonumber == 99998585487
+  - .balance_asset | tonumber == 100003500
 ---
 type: check
 description: ETH pool depth (want to confirm pool depths remain unchanged, but depth does change from block rewards it seems)
 endpoint: http://localhost:1317/thorchain/pool/eth.eth
 asserts:
-  - .balance_rune | tonumber == 100002086556
+  - .balance_rune | tonumber == 100002086540
   - .balance_asset | tonumber == 1000000000
 ---
 ########################################################################################
@@ -190,8 +190,8 @@ description: borrower should be recorded
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0]|.collateral_up == "495050"
-  - .[0]|.debt_up == "490040000"
+  - .[0]|.collateral_up == "495049"
+  - .[0]|.debt_up == "490110000"
   - .[0]|.collateral_down == "0"
   - .[0]|.debt_down == "0"
   - .[0]|.owner == "{{ addr_btc_fox }}"
@@ -206,14 +206,14 @@ type: check
 description: derived btc should exist in the lending module
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_module_lending }}
 asserts:
-  - .balances[]|select(.denom == "thor.btc")|.amount|tonumber == 495050
+  - .balances[]|select(.denom == "thor.btc")|.amount|tonumber == 495049
 ---
 type: check
 description: fox account should not receive rune until next block
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500483282415
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500483351059
 ---
 ########################################################################################
 # open loan btc -> eth
@@ -246,8 +246,8 @@ description: borrower should be updated
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0]|.collateral_up == "989776"
-  - .[0]|.debt_up == "974940000"
+  - .[0]|.collateral_up == "989774"
+  - .[0]|.debt_up == "975080000"
   - .[0]|.collateral_down == "0"
   - .[0]|.debt_down == "0"
   - .[0]|.owner == "{{ addr_btc_fox }}"
@@ -268,7 +268,7 @@ txs:
       from_address: {{ addr_eth_dog }}
       to_address: {{ addr_eth_fox }}
       coins:
-        - amount: "2836519"
+        - amount: "3477193"
           asset: "ETH.ETH"
           decimals: 8
       gas:
@@ -319,8 +319,8 @@ description: borrower should NOT be updated
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0]|.collateral_up == "989776"
-  - .[0]|.debt_up == "974940000"
+  - .[0]|.collateral_up == "989774"
+  - .[0]|.debt_up == "975080000"
   - .[0]|.owner == "{{ addr_btc_fox }}"
   # everything above is the same, but now collateral and debt down should exist
   - .[0]|.collateral_down == "0"
@@ -342,7 +342,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "479000"
+        - amount: "486000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -380,12 +380,12 @@ description: borrower should be updated
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0]|.collateral_up == "989776"
-  - .[0]|.debt_up == "974940000"
+  - .[0]|.collateral_up == "989774"
+  - .[0]|.debt_up == "975080000"
   - .[0]|.owner == "{{ addr_btc_fox }}"
   # everything above is the same, but now collateral and debt down should exist
-  - .[0]|.collateral_down == "502555"
-  - .[0]|.debt_down == "495021900"
+  - .[0]|.collateral_down == "502482"
+  - .[0]|.debt_down == "495021902"
 ---
 type: check
 description: btc outbound should be scheduled
@@ -403,7 +403,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "471193"
+        - amount: "478118"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -454,11 +454,11 @@ description: borrower should be updated
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0]|.collateral_up == "989776"
-  - .[0]|.debt_up == "974940000"
+  - .[0]|.collateral_up == "989774"
+  - .[0]|.debt_up == "975080000"
   - .[0]|.owner == "{{ addr_btc_fox }}"
-  - .[0]|.collateral_down == "989776" # should now be fully repaid
-  - .[0]|.debt_down == "4672837347" # over repaid
+  - .[0]|.collateral_down == "989774" # should now be fully repaid
+  - .[0]|.debt_down == "4677510884" # over repaid
 ---
 type: check
 description: btc outbound should be scheduled
@@ -476,7 +476,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "456240"
+        - amount: "463302"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -533,18 +533,18 @@ description: borrower should be updated
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0]|.collateral_up == "1483869"
-  - .[0]|.debt_up == "5161387347"
+  - .[0]|.collateral_up == "1483861"
+  - .[0]|.debt_up == "5166320884"
   - .[0]|.owner == "{{ addr_btc_fox }}"
-  - .[0]|.collateral_down == "989776"
-  - .[0]|.debt_down == "4672837347"
+  - .[0]|.collateral_down == "989774"
+  - .[0]|.debt_down == "4677510884"
 ---
 type: check
 description: fox account balance should be unchanged
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503836195234
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503840324784
 ---
 type: create-blocks
 count: 1
@@ -556,7 +556,7 @@ asserts:
   - .balances|length == 1
   # should receieve significantly more than the first open for the same amount since the
   # excess debt down will be credited on the subsequent open
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503836195234
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503840324784
 ---
 ########################################################################################
 # open loan btc -> rune again should not get extra credit on subsequent open
@@ -589,18 +589,18 @@ description: borrower should be updated
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0]|.collateral_up == "1977750"
-  - .[0]|.debt_up == "5644917347"
+  - .[0]|.collateral_up == "1977735"
+  - .[0]|.debt_up == "5650120884"
   - .[0]|.owner == "{{ addr_btc_fox }}"
-  - .[0]|.collateral_down == "989776"
-  - .[0]|.debt_down == "4672837347"
+  - .[0]|.collateral_down == "989774"
+  - .[0]|.debt_down == "4677510884"
 ---
 type: check
 description: fox account balance should be unchanged
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504313102957
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504317497348
 ---
 type: create-blocks
 count: 1
@@ -612,5 +612,5 @@ asserts:
   - .balances|length == 1
     # this time they should receieve a normal amount relative to the deposit since the
     # excess debt down was credited on the previous open
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504313102957
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504317497348
 ---

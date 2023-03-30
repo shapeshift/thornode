@@ -47,7 +47,7 @@ txs:
     from_address: {{ addr_btc_dog }}
     to_address: {{ addr_btc_fox }}
     coins:
-      - amount: "7902069"
+      - amount: "7909069"
         asset: "BTC.BTC"
         decimals: 8
     gas:
@@ -98,11 +98,11 @@ description: affiliate should have received rune fee
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_pig }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 1965267029
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 1965439271
 ---
 type: check
 description: destination should have received rune
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2514568500442
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2514570965373

@@ -56,6 +56,7 @@ type GasManager interface {
 	GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.Uint
 	GetNetworkFee(ctx cosmos.Context, chain common.Chain) (types.NetworkFee, error)
 	SubGas(gas common.Gas)
+	CalcOutboundFeeMultiplier(ctx cosmos.Context, targetSurplusRune, gasSpentRune, gasWithheldRune, maxMultiplier, minMultiplier cosmos.Uint) cosmos.Uint
 }
 
 // EventManager define methods need to be support to manage events
@@ -324,6 +325,8 @@ func GetKeeper(version semver.Version, cdc codec.BinaryCodec, coinKeeper bankkee
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAccessor := constants.GetConstantValues(version)
 	switch {
+	case version.GTE(semver.MustParse("1.108.0")):
+		return newGasMgrV108(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.102.0")):
 		return newGasMgrV102(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.99.0")):

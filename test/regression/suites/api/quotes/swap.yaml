@@ -23,7 +23,7 @@ params:
   amount: 1000000000
   destination: {{ addr_btc_fox }}
 asserts:
-  - .expected_amount_out|tonumber == 959290
+  - .expected_amount_out|tonumber == 966290
   - .memo == "=:BTC.BTC:{{ addr_btc_fox }}"
   - .inbound_address == "{{ addr_thor_dog }}"
 ---
@@ -60,7 +60,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "959290"
+        - amount: "966290"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -92,7 +92,7 @@ params:
   amount: 5000000
   destination: {{ addr_thor_fox }}
 asserts:
-  - .expected_amount_out|tonumber == 4618633817
+  - .expected_amount_out|tonumber == 4619255704
   - .memo == "=:THOR.RUNE:{{ addr_thor_fox }}"
   - .inbound_address == "{{ addr_btc_dog }}"
 ---
@@ -124,7 +124,7 @@ description: rune balance should increase after swap
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503616633817
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503617255704
 ---
 ########################################################################################
 # quote and swap rune to btc synth
@@ -137,7 +137,7 @@ params:
   to_asset: BTC/BTC
   amount: 1000000000
 asserts:
-  - .expected_amount_out|tonumber == 1066320
+  - .expected_amount_out|tonumber == 1066176
 ---
 type: tx-deposit
 signer: {{ addr_thor_fox }}
@@ -154,8 +154,8 @@ description: account should have spent rune and received synth btc
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2502614633817
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 1066320
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2502615255704
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 1066176
 ---
 ########################################################################################
 # quote and swap rune to btc synth with tolerance
@@ -180,7 +180,7 @@ params:
   amount: 100000000
   tolerance_bps: 300
 asserts:
-  - .expected_amount_out|tonumber == 104605
+  - .expected_amount_out|tonumber == 104590
 ---
 type: tx-deposit
 signer: {{ addr_thor_fox }}
@@ -197,8 +197,8 @@ description: account should have spent rune and received synth btc
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2502512633817
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 1170925
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2502513255704
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 1170766
 ---
 ########################################################################################
 # quote and swap rune to btc with tolerance and affiliate
@@ -228,15 +228,15 @@ params:
   affiliate: {{ addr_thor_pig }}
   affiliate_bps: 500
 asserts:
-  - .memo == "=:BTC.BTC:{{ addr_btc_fox }}:912636:{{ addr_thor_pig }}:500"
-  - .expected_amount_out|tonumber == 973557
+  - .memo == "=:BTC.BTC:{{ addr_btc_fox }}:912514:{{ addr_thor_pig }}:500"
+  - .expected_amount_out|tonumber == 980425
 ---
 type: tx-deposit
 signer: {{ addr_thor_fox }}
 coins:
   - amount: "1000000000"
     asset: "rune"
-memo: "=:BTC.BTC:{{ addr_btc_fox }}:912629:{{ addr_thor_pig }}:500"
+memo: "=:BTC.BTC:{{ addr_btc_fox }}:912514:{{ addr_thor_pig }}:500"
 ---
 type: create-blocks
 count: 1
@@ -257,7 +257,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "973557"
+        - amount: "980425"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -312,8 +312,8 @@ params:
   affiliate_bps: 500
   destination: {{ addr_btc_fox }}
 asserts:
-  - .memo == "=:BTC.BTC:{{ addr_btc_fox }}:895371:{{ addr_thor_pig }}:500"
-  - .expected_amount_out|tonumber == 936984
+  - .memo == "=:BTC.BTC:{{ addr_btc_fox }}:895131:{{ addr_thor_pig }}:500"
+  - .expected_amount_out|tonumber == 943729
 ---
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
@@ -330,7 +330,7 @@ txs:
       gas:
         - amount: "100000"
           asset: "ETH.ETH"
-      memo: "=:BTC.BTC:{{ addr_btc_fox }}:895365:{{ addr_thor_pig }}:500"
+      memo: "=:BTC.BTC:{{ addr_btc_fox }}:895131:{{ addr_thor_pig }}:500"
     block_height: 5
     finalise_height: 5
     observed_pub_key: {{ pubkey_dog }}
@@ -354,7 +354,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "936984"
+        - amount: "943729"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -413,8 +413,8 @@ params:
   affiliate_bps: 500
   destination: {{ addr_thor_fox }}
 asserts:
-  - .memo == "=:THOR.RUNE:{{ addr_thor_fox }}:838252263:xx:500"
-  - .expected_amount_out|tonumber == 912114321
+  - .memo == "=:THOR.RUNE:{{ addr_thor_fox }}:838252262:xx:500"
+  - .expected_amount_out|tonumber == 912114319
 ---
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
@@ -431,7 +431,7 @@ txs:
       gas:
         - amount: "100000"
           asset: "ETH.ETH"
-      memo: "=:THOR.RUNE:{{ addr_thor_fox }}:838256119:xx:500"
+      memo: "=:THOR.RUNE:{{ addr_thor_fox }}:838252262:xx:500"
     block_height: 7
     finalise_height: 7
     observed_pub_key: {{ pubkey_dog }}
@@ -441,8 +441,8 @@ description: establish balance before swap
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 1170925
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500508633816
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 1170766
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500509255703
 ---
 type: check
 description: establish affiliate balance before swap
@@ -459,8 +459,8 @@ description: account should have more rune after swap
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 1170925
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2501420748137
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 1170766
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2501421370022
 ---
 type: check
 description: affiliate should have more rune after swap

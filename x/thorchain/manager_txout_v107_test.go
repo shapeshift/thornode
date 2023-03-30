@@ -113,7 +113,9 @@ func (s TxOutStoreV107Suite) TestAddOutTxItem(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV102(constAccessor, w.keeper))
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -294,7 +296,9 @@ func (s TxOutStoreV107Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
 	}
-	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV102(constAccessor, w.keeper))
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -413,7 +417,9 @@ func (s TxOutStoreV107Suite) TestAddOutTxItemWithoutBFT(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV102(constAccessor, w.keeper))
 	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
@@ -487,7 +493,9 @@ func (s TxOutStoreV107Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(100000000)),
 		},
 	}
-	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV102(constAccessor, w.keeper))
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -626,7 +634,9 @@ func (s TxOutStoreV107Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtT
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
 	}
-	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV102(constAccessor, w.keeper))
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -694,7 +704,9 @@ func (s TxOutStoreV107Suite) TestAddOutTxItemInteractionWithPool(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV107(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV102(constAccessor, w.keeper))
 	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)

@@ -228,6 +228,12 @@ class Asset(str, Jsonable):
         if not self.is_synth:
             return self
         return Asset(str(self).replace("/", "."))
+    
+    def is_synth_asset(self):
+        """
+        Return if asset is synth
+        """
+        return self.is_synth
 
     def __eq__(self, other):
         if isinstance(other, str):

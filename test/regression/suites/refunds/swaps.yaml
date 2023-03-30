@@ -133,7 +133,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -195,7 +195,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -257,7 +257,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -319,7 +319,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -381,7 +381,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "4979000"
+        - amount: "4986000"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -419,14 +419,14 @@ description: fox account should have received btc synth
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9076891
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9070843
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2489982000000
 ---
 type: check
 description: entire btc synth supply should be on fox account
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9076891
+  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9070843
 ---
 ########################################################################################
 # swap synth to rune failed limit
@@ -446,14 +446,14 @@ description: should have lost gas and fee for failed swap, some synth should bur
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9075071
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9069024
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2489980000000
 ---
 type: check
 description: entire btc synth supply should be on fox account
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9075071
+  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9069024
 ---
 ########################################################################################
 # swap synth to l1 failed limit
@@ -473,14 +473,14 @@ description: should have lost gas and fee for failed swap, some synth should bur
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9073251
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9067205
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2489978000000
 ---
 type: check
 description: entire btc synth supply should be on fox account
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9073251
+  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9067205
 ---
 ########################################################################################
 # swap synth to synth failed limit
@@ -500,14 +500,14 @@ description: should have lost gas and fee for failed swap, some synth should bur
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9071431
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9065386
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2489976000000
 ---
 type: check
 description: entire btc synth supply should be on fox account and no eth synth created
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9071431
+  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9065386
   - .supply|length == 3
 ---
 ########################################################################################
@@ -528,14 +528,14 @@ description: should have lost gas and fee for failed swap, some synth should bur
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9069611
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9063567
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2489974000000
 ---
 type: check
 description: entire btc synth supply should be on fox account
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9069611
+  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9063567
 ---
 ########################################################################################
 # swap synth to non-existent synth
@@ -555,12 +555,12 @@ description: should have lost gas and fee for failed swap, some synth should bur
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 2
-  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9067791
+  - .balances[]|select(.denom == "btc/btc")|.amount|tonumber == 9061748
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2489972000000
 ---
 type: check
 description: entire btc synth supply should be on fox account and no eth synth created
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9067791
+  - .supply[]|select(.denom=="btc/btc")|.amount|tonumber == 9061748
   - .supply|length == 3

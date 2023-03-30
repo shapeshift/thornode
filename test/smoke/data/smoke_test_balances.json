@@ -288,7 +288,7 @@
         },
         "POOL.BNB.BNB": {
             "BNB.BNB": 250000000,
-            "THOR.RUNE": 149997994227
+            "THOR.RUNE": 149998000227
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -310,7 +310,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 749812500,
+            "BNB.BNB": 749850000,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -318,11 +318,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 250075000
+            "BNB.BNB": 250037500
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 250075000,
-            "THOR.RUNE": 149953004954
+            "BNB.BNB": 250037500,
+            "THOR.RUNE": 149975500529
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -344,7 +344,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 649775000,
+            "BNB.BNB": 649812500,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -352,11 +352,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 350075000
+            "BNB.BNB": 350037500
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 350075000,
-            "THOR.RUNE": 149951005036
+            "BNB.BNB": 350037500,
+            "THOR.RUNE": 149973500525
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -378,7 +378,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 649775000,
+            "BNB.BNB": 649812500,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -386,11 +386,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 350075000
+            "BNB.BNB": 350037500
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 350075000,
-            "THOR.RUNE": 149951005036
+            "BNB.BNB": 350037500,
+            "THOR.RUNE": 149973500525
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -416,7 +416,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 649775000,
+            "BNB.BNB": 649812500,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -424,11 +424,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 350075000
+            "BNB.BNB": 350037500
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 350075000,
-            "THOR.RUNE": 149951005036
+            "BNB.BNB": 350037500,
+            "THOR.RUNE": 149973500525
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -454,7 +454,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 649775000,
+            "BNB.BNB": 649812500,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -462,11 +462,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 350075000
+            "BNB.BNB": 350037500
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 350075000,
-            "THOR.RUNE": 117154493576
+            "BNB.BNB": 350037500,
+            "THOR.RUNE": 117169433333
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -478,7 +478,7 @@
         },
         "POOL.BTC.BTC": {
             "BTC.BTC": 250000000,
-            "THOR.RUNE": 132794511575
+            "THOR.RUNE": 132802067193
         }
     },
     {
@@ -492,7 +492,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 649775000,
+            "BNB.BNB": 649812500,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -500,11 +500,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 350075000
+            "BNB.BNB": 350037500
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 350075000,
-            "THOR.RUNE": 117154493576
+            "BNB.BNB": 350037500,
+            "THOR.RUNE": 117169433333
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -515,8 +515,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 132786238044
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 132799308734
         }
     },
     {
@@ -530,7 +530,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 664140674,
+            "BNB.BNB": 664214265,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -538,11 +538,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 335671826
+            "BNB.BNB": 335598235
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 335671826,
-            "THOR.RUNE": 122420022094
+            "BNB.BNB": 335598235,
+            "THOR.RUNE": 122449368378
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -553,8 +553,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 127493349272
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 127505688047
         }
     },
     {
@@ -568,7 +568,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -576,11 +576,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -591,8 +591,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122411436215
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122423080657
         }
     },
     {
@@ -606,7 +606,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -614,11 +614,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -629,8 +629,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122409436161
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122421080838
         }
     },
     {
@@ -644,7 +644,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -652,11 +652,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -667,8 +667,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         }
     },
     {
@@ -682,7 +682,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -690,11 +690,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -705,8 +705,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 0,
@@ -724,7 +724,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -732,11 +732,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -747,8 +747,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -766,7 +766,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -774,11 +774,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -789,8 +789,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -812,7 +812,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -820,11 +820,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -835,8 +835,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -858,7 +858,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -866,11 +866,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -881,8 +881,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -908,7 +908,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -916,11 +916,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -931,8 +931,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -958,7 +958,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -966,11 +966,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -981,8 +981,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1012,7 +1012,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676873970,
+            "BNB.BNB": 676981026,
             "BNB.LOK-3C0": 80000000000
         },
         "PROVIDER-2": {
@@ -1020,11 +1020,11 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030
+            "BNB.BNB": 322793974
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1035,8 +1035,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1066,7 +1066,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676836470,
+            "BNB.BNB": 676943526,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
@@ -1074,12 +1074,12 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030,
+            "BNB.BNB": 322793974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1090,8 +1090,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1125,7 +1125,7 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676836470,
+            "BNB.BNB": 676943526,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
@@ -1133,12 +1133,12 @@
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322901030,
+            "BNB.BNB": 322793974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322901030,
-            "THOR.RUNE": 127472318645
+            "BNB.BNB": 322793974,
+            "THOR.RUNE": 127517158254
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1149,8 +1149,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1184,20 +1184,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676836470,
+            "BNB.BNB": 676943526,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 199850000,
+            "BNB.BNB": 199887500,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 322976030,
+            "BNB.BNB": 322831474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 322976030,
-            "THOR.RUNE": 127442715895
+            "BNB.BNB": 322831474,
+            "THOR.RUNE": 127502344182
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1208,8 +1208,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1243,20 +1243,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 199850000,
+            "BNB.BNB": 199887500,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 323051030,
+            "BNB.BNB": 322868974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 323051030,
-            "THOR.RUNE": 127413126891
+            "BNB.BNB": 322868974,
+            "THOR.RUNE": 127487533552
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1267,8 +1267,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1302,20 +1302,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 199850000,
+            "BNB.BNB": 199887500,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 323051030,
+            "BNB.BNB": 322868974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 323051030,
-            "THOR.RUNE": 127413126891
+            "BNB.BNB": 322868974,
+            "THOR.RUNE": 127487533552
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1326,8 +1326,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1361,20 +1361,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 199850000,
+            "BNB.BNB": 199887500,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 323051030,
+            "BNB.BNB": 322868974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 323051030,
-            "THOR.RUNE": 127413126891
+            "BNB.BNB": 322868974,
+            "THOR.RUNE": 127487533552
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1385,8 +1385,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1420,20 +1420,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 169812500,
+            "BNB.BNB": 169850000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 353051030,
+            "BNB.BNB": 352868974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 353051030,
-            "THOR.RUNE": 157413126891
+            "BNB.BNB": 352868974,
+            "THOR.RUNE": 157487533552
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1444,8 +1444,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1479,20 +1479,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 79775000,
+            "BNB.BNB": 79812500,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 443051030,
+            "BNB.BNB": 442868974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 353051030,
-            "THOR.RUNE": 157413126891
+            "BNB.BNB": 352868974,
+            "THOR.RUNE": 157487533552
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1503,8 +1503,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1538,20 +1538,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 79775000,
+            "BNB.BNB": 79812500,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 443051030,
+            "BNB.BNB": 442868974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 353051030,
-            "THOR.RUNE": 162413126891
+            "BNB.BNB": 352868974,
+            "THOR.RUNE": 162487533552
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1562,8 +1562,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1597,20 +1597,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 473051030,
+            "BNB.BNB": 472868974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 383051030,
-            "THOR.RUNE": 162413126891
+            "BNB.BNB": 382868974,
+            "THOR.RUNE": 162487533552
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1621,8 +1621,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1656,20 +1656,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 473051030,
+            "BNB.BNB": 472868974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 383051030,
-            "THOR.RUNE": 162413126891
+            "BNB.BNB": 382868974,
+            "THOR.RUNE": 162487533552
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1680,8 +1680,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1715,20 +1715,20 @@
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 473051030,
+            "BNB.BNB": 472868974,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 383051030,
-            "THOR.RUNE": 162413126891
+            "BNB.BNB": 382868974,
+            "THOR.RUNE": 162487533552
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1739,8 +1739,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1770,24 +1770,24 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 2599850000,
+            "BNB.BNB": 2599887500,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 473126030,
+            "BNB.BNB": 472906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 383126030,
-            "THOR.RUNE": 162381331661
+            "BNB.BNB": 382906474,
+            "THOR.RUNE": 162471618754
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1798,8 +1798,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 240772851,
-            "THOR.RUNE": 122407436140
+            "BTC.BTC": 240762851,
+            "THOR.RUNE": 122419081052
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1829,24 +1829,24 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 2099812500,
+            "BNB.BNB": 2099850000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 973126030,
+            "BNB.BNB": 972906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 883126030,
-            "THOR.RUNE": 122496993390
+            "BNB.BNB": 882906474,
+            "THOR.RUNE": 122568134522
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1857,8 +1857,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 196158077,
-            "THOR.RUNE": 162279363182
+            "BTC.BTC": 196131199,
+            "THOR.RUNE": 162318426223
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1888,24 +1888,24 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 2099812500,
+            "BNB.BNB": 2099850000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 973126030,
+            "BNB.BNB": 972906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 883126030,
-            "THOR.RUNE": 122496993390
+            "BNB.BNB": 882906474,
+            "THOR.RUNE": 122568134522
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 150000000000,
@@ -1916,8 +1916,8 @@
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -1947,36 +1947,36 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1999775000,
+            "BNB.BNB": 1999812500,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1073126030,
+            "BNB.BNB": 1072906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 983126030,
-            "THOR.RUNE": 111304425815
+            "BNB.BNB": 982906474,
+            "THOR.RUNE": 111366848516
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 138706460770,
-            "THOR.RUNE": 12192566257
+            "DOGE.DOGE": 138713800099,
+            "THOR.RUNE": 12201285566
         },
         "POOL.GAIA.ATOM": {
             "GAIA.ATOM": 150000000000,
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -2006,36 +2006,36 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1999775000,
+            "BNB.BNB": 1999812500,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1073126030,
+            "BNB.BNB": 1072906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 983126030,
-            "THOR.RUNE": 111304425815
+            "BNB.BNB": 982906474,
+            "THOR.RUNE": 111366848516
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
             "GAIA.ATOM": 150000000000,
             "THOR.RUNE": 1000000000
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -2065,36 +2065,36 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1899737500,
+            "BNB.BNB": 1899775000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1173126030,
+            "BNB.BNB": 1172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1083126030,
-            "THOR.RUNE": 101976960507
+            "BNB.BNB": 1082906474,
+            "THOR.RUNE": 102032452427
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 136882066500,
-            "THOR.RUNE": 10327460781
+            "GAIA.ATOM": 136889901600,
+            "THOR.RUNE": 10334393069
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -2124,36 +2124,36 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1899737500,
+            "BNB.BNB": 1899775000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1173126030,
+            "BNB.BNB": 1172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1083126030,
-            "THOR.RUNE": 101976960507
+            "BNB.BNB": 1082906474,
+            "THOR.RUNE": 102032452427
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 150000000,
@@ -2183,40 +2183,40 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1399700000,
+            "BNB.BNB": 1399737500,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1673126030,
+            "BNB.BNB": 1672906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1583126030,
-            "THOR.RUNE": 79941603996
+            "BNB.BNB": 1582906474,
+            "THOR.RUNE": 79983458943
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 118166431,
-            "THOR.RUNE": 72026211211
+            "BCH.BCH": 118148784,
+            "THOR.RUNE": 72045943245
         },
         "POOL.LTC.LTC": {
             "LTC.LTC": 150000000,
@@ -2242,44 +2242,44 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899662500,
+            "BNB.BNB": 899700000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173126030,
+            "BNB.BNB": 2172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083126030,
-            "THOR.RUNE": 65359262636
+            "BNB.BNB": 2082906474,
+            "THOR.RUNE": 65392430583
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 118166431,
-            "THOR.RUNE": 72026211211
+            "BCH.BCH": 118148784,
+            "THOR.RUNE": 72045943245
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 123793294,
-            "THOR.RUNE": 64574514987
+            "LTC.LTC": 123774730,
+            "THOR.RUNE": 64588418194
         },
         "POOL.ETH.ETH": {
             "ETH.ETH": 40000000,
@@ -2301,44 +2301,44 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899662500,
+            "BNB.BNB": 899700000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173126030,
+            "BNB.BNB": 2172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083126030,
-            "THOR.RUNE": 65359262636
+            "BNB.BNB": 2082906474,
+            "THOR.RUNE": 65392430583
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 118166431,
-            "THOR.RUNE": 72026211211
+            "BCH.BCH": 118148784,
+            "THOR.RUNE": 72045943245
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
             "ETH.ETH": 40000000,
@@ -2360,48 +2360,48 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899662500,
+            "BNB.BNB": 899700000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173126030,
+            "BNB.BNB": 2172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083126030,
-            "THOR.RUNE": 65359262636
+            "BNB.BNB": 2082906474,
+            "THOR.RUNE": 65392430583
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 118166431,
-            "THOR.RUNE": 72026211211
+            "BCH.BCH": 118148784,
+            "THOR.RUNE": 72045943245
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 30075528,
-            "THOR.RUNE": 99747310638
+            "ETH.ETH": 30010492,
+            "THOR.RUNE": 99963466202
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
             "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 400000000,
@@ -2419,48 +2419,48 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899662500,
+            "BNB.BNB": 899700000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173126030,
+            "BNB.BNB": 2172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083126030,
-            "THOR.RUNE": 65359262636
+            "BNB.BNB": 2082906474,
+            "THOR.RUNE": 65392430583
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 118166431,
-            "THOR.RUNE": 72026211211
+            "BCH.BCH": 118148784,
+            "THOR.RUNE": 72045943245
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 45075528,
-            "THOR.RUNE": 77599843321
+            "ETH.ETH": 45010492,
+            "THOR.RUNE": 77751952273
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
             "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 400000000,
@@ -2478,52 +2478,52 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899662500,
+            "BNB.BNB": 899700000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173126030,
+            "BNB.BNB": 2172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083126030,
-            "THOR.RUNE": 65359262636
+            "BNB.BNB": 2082906474,
+            "THOR.RUNE": 65392430583
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 118166431,
-            "THOR.RUNE": 72026211211
+            "BCH.BCH": 118148784,
+            "THOR.RUNE": 72045943245
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 44915892,
-            "THOR.RUNE": 77874664918
+            "ETH.ETH": 44850856,
+            "THOR.RUNE": 78027710437
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 301007108,
-            "THOR.RUNE": 99665420526
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 300673693,
+            "THOR.RUNE": 99775938828
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -2537,52 +2537,52 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899662500,
+            "BNB.BNB": 899700000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173126030,
+            "BNB.BNB": 2172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083126030,
-            "THOR.RUNE": 65359262636
+            "BNB.BNB": 2082906474,
+            "THOR.RUNE": 65392430583
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 44915892,
-            "THOR.RUNE": 77874664918
+            "ETH.ETH": 44850856,
+            "THOR.RUNE": 78027710437
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 301007108,
-            "THOR.RUNE": 99665420526
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 300673693,
+            "THOR.RUNE": 99775938828
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -2596,52 +2596,52 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899662500,
+            "BNB.BNB": 899700000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173126030,
+            "BNB.BNB": 2172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083126030,
-            "THOR.RUNE": 65359262636
+            "BNB.BNB": 2082906474,
+            "THOR.RUNE": 65392430583
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 44915892,
-            "THOR.RUNE": 77874664918
+            "ETH.ETH": 44850856,
+            "THOR.RUNE": 78027710437
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 316007108,
-            "THOR.RUNE": 95159133910
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 315673693,
+            "THOR.RUNE": 95260128092
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -2655,52 +2655,52 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899662500,
+            "BNB.BNB": 899700000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173126030,
+            "BNB.BNB": 2172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083126030,
-            "THOR.RUNE": 65359262636
+            "BNB.BNB": 2082906474,
+            "THOR.RUNE": 65392430583
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40499795,
-            "THOR.RUNE": 69955949667
+            "ETH.ETH": 40376262,
+            "THOR.RUNE": 70206079607
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 316007108,
-            "THOR.RUNE": 95159133910
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 315673693,
+            "THOR.RUNE": 95260128092
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -2714,52 +2714,52 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899662500,
+            "BNB.BNB": 899700000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173126030,
+            "BNB.BNB": 2172906474,
             "BNB.LOK-3C0": 40000000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083126030,
-            "THOR.RUNE": 65359262636
+            "BNB.BNB": 2082906474,
+            "THOR.RUNE": 65392430583
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -2773,53 +2773,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 899490000,
+            "BNB.BNB": 899565000,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2173201030,
+            "BNB.BNB": 2172943974,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2083201030,
-            "THOR.RUNE": 65356909532
+            "BNB.BNB": 2082943974,
+            "THOR.RUNE": 65391253278
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -2833,53 +2833,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 902555222,
+            "BNB.BNB": 902665667,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 2170098308,
+            "BNB.BNB": 2169805807,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 2080098308,
-            "THOR.RUNE": 65454550397
+            "BNB.BNB": 2079805807,
+            "THOR.RUNE": 65490073415
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -2893,53 +2893,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1141583057,
+            "BNB.BNB": 1141602040,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1931032973,
+            "BNB.BNB": 1930831934,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1841032973,
-            "THOR.RUNE": 75451476498
+            "BNB.BNB": 1840831934,
+            "THOR.RUNE": 75488535558
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -2953,53 +2953,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1331705445,
+            "BNB.BNB": 1331669621,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1740873085,
+            "BNB.BNB": 1740726853,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1650873085,
-            "THOR.RUNE": 85447594351
+            "BNB.BNB": 1650726853,
+            "THOR.RUNE": 85486593448
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 197658077,
-            "THOR.RUNE": 161057193187
+            "BTC.BTC": 197631199,
+            "THOR.RUNE": 161095797049
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3013,53 +3013,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1331705445,
+            "BNB.BNB": 1331669621,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1740873085,
+            "BNB.BNB": 1740726853,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1650873085,
-            "THOR.RUNE": 85447594351
+            "BNB.BNB": 1650726853,
+            "THOR.RUNE": 85486593448
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 148706460770,
-            "THOR.RUNE": 11427793975
+            "DOGE.DOGE": 148713800099,
+            "THOR.RUNE": 11436001417
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3073,53 +3073,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1331705445,
+            "BNB.BNB": 1331669621,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1740873085,
+            "BNB.BNB": 1740726853,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1650873085,
-            "THOR.RUNE": 85447594351
+            "BNB.BNB": 1650726853,
+            "THOR.RUNE": 85486593448
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 146882066500,
-            "THOR.RUNE": 9672217581
+            "GAIA.ATOM": 146889901600,
+            "THOR.RUNE": 9678742469
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3133,53 +3133,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1331705445,
+            "BNB.BNB": 1331669621,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1740873085,
+            "BNB.BNB": 1740726853,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1650873085,
-            "THOR.RUNE": 85447594351
+            "BNB.BNB": 1650726853,
+            "THOR.RUNE": 85486593448
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 119666431,
-            "THOR.RUNE": 71134690841
+            "BCH.BCH": 119648784,
+            "THOR.RUNE": 71154048781
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3193,53 +3193,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1331705445,
+            "BNB.BNB": 1331669621,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1740873085,
+            "BNB.BNB": 1740726853,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1650873085,
-            "THOR.RUNE": 85447594351
+            "BNB.BNB": 1650726853,
+            "THOR.RUNE": 85486593448
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 125293294,
-            "THOR.RUNE": 63810689973
+            "LTC.LTC": 125274730,
+            "THOR.RUNE": 63824316884
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3253,53 +3253,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1331705445,
+            "BNB.BNB": 1331669621,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1740873085,
+            "BNB.BNB": 1740726853,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1650873085,
-            "THOR.RUNE": 85447594351
+            "BNB.BNB": 1650726853,
+            "THOR.RUNE": 85486593448
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3313,53 +3313,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1321667945,
+            "BNB.BNB": 1321632121,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 676686470,
+            "BNB.BNB": 676831026,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1750873085,
+            "BNB.BNB": 1750726853,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1660873085,
-            "THOR.RUNE": 84936218009
+            "BNB.BNB": 1660726853,
+            "THOR.RUNE": 84974938933
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3373,53 +3373,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1321667945,
+            "BNB.BNB": 1321632121,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 833092410,
+            "BNB.BNB": 833204388,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1594429645,
+            "BNB.BNB": 1594315991,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1504429645,
-            "THOR.RUNE": 94931485115
+            "BNB.BNB": 1504315991,
+            "THOR.RUNE": 94972571313
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3433,53 +3433,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1321667945,
+            "BNB.BNB": 1321632121,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 962689031,
+            "BNB.BNB": 962783291,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1464795524,
+            "BNB.BNB": 1464699588,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1374795524,
-            "THOR.RUNE": 104925760650
+            "BNB.BNB": 1374699588,
+            "THOR.RUNE": 104969707721
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3493,53 +3493,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1321517945,
+            "BNB.BNB": 1321519621,
             "BNB.LOK-3C0": 150000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 962689031,
+            "BNB.BNB": 962783291,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1464870524,
+            "BNB.BNB": 1464737088,
             "BNB.LOK-3C0": 40000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1374870524,
-            "THOR.RUNE": 104920036810
+            "BNB.BNB": 1374737088,
+            "THOR.RUNE": 104966844285
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 40000000000,
@@ -3553,53 +3553,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1321480445,
+            "BNB.BNB": 1321482121,
             "BNB.LOK-3C0": 145000000000
         },
         "PROVIDER-1": {
-            "BNB.BNB": 962689031,
+            "BNB.BNB": 962783291,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1464870524,
+            "BNB.BNB": 1464737088,
             "BNB.LOK-3C0": 45000000000,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1374870524,
-            "THOR.RUNE": 104920036810
+            "BNB.BNB": 1374737088,
+            "THOR.RUNE": 104966844285
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 45000000000,
@@ -3613,57 +3613,57 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1321480445,
-            "BNB.LOK-3C0": 149038537001
+            "BNB.BNB": 1321482121,
+            "BNB.LOK-3C0": 149040875574
         },
         "PROVIDER-1": {
-            "BNB.BNB": 962689031,
+            "BNB.BNB": 962783291,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1464833024,
-            "BNB.LOK-3C0": 40961462999,
+            "BNB.BNB": 1464699588,
+            "BNB.LOK-3C0": 40959124426,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1374833024,
-            "THOR.RUNE": 104922898535
+            "BNB.BNB": 1374699588,
+            "THOR.RUNE": 104969707565
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
-            "BNB.LOK-3C0": 40961462999,
-            "THOR.RUNE": 50053144693
+            "BNB.LOK-3C0": 40959124426,
+            "THOR.RUNE": 50056002492
         }
     },
     {
@@ -3673,57 +3673,57 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1379419892,
-            "BNB.LOK-3C0": 144038537001
+            "BNB.BNB": 1379435205,
+            "BNB.LOK-3C0": 144040875574
         },
         "PROVIDER-1": {
-            "BNB.BNB": 962689031,
+            "BNB.BNB": 962783291,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1406818577,
-            "BNB.LOK-3C0": 45961462999,
+            "BNB.BNB": 1406671504,
+            "BNB.LOK-3C0": 45959124426,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1316818577,
-            "THOR.RUNE": 109769409815
+            "BNB.BNB": 1316671504,
+            "THOR.RUNE": 109819837177
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
-            "BNB.LOK-3C0": 45961462999,
-            "THOR.RUNE": 45200381001
+            "BNB.LOK-3C0": 45959124426,
+            "THOR.RUNE": 45202744934
         }
     },
     {
@@ -3733,57 +3733,57 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 962689031,
+            "BNB.BNB": 962783291,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 1411781077,
-            "BNB.LOK-3C0": 45557735444,
+            "BNB.BNB": 1411634004,
+            "BNB.LOK-3C0": 45552112719,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 1321781077,
-            "THOR.RUNE": 109358861717
+            "BNB.BNB": 1321634004,
+            "THOR.RUNE": 109409054944
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
-            "BNB.LOK-3C0": 45557735444,
-            "THOR.RUNE": 45604726150
+            "BNB.LOK-3C0": 45552112719,
+            "THOR.RUNE": 45610423819
         }
     },
     {
@@ -3793,57 +3793,57 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 1515069948,
+            "BNB.BNB": 1515152108,
             "BNB.LOK-3C0": 40000000000
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 859362660,
-            "BNB.LOK-3C0": 45557735444,
+            "BNB.BNB": 859227687,
+            "BNB.LOK-3C0": 45552112719,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 769362660,
-            "THOR.RUNE": 63641568908
+            "BNB.BNB": 769227687,
+            "THOR.RUNE": 63672899112
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
-            "BNB.LOK-3C0": 45557735444,
-            "THOR.RUNE": 45604726150
+            "BNB.LOK-3C0": 45552112719,
+            "THOR.RUNE": 45610423819
         }
     },
     {
@@ -3853,53 +3853,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 1515069948,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 1515152108,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 859325160,
+            "BNB.BNB": 859190187,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 769325160,
-            "THOR.RUNE": 63644670903
+            "BNB.BNB": 769190187,
+            "THOR.RUNE": 63676003178
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 0,
@@ -3913,53 +3913,53 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 17929532597
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 17939847565
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40340123,
-            "THOR.RUNE": 70231753690
+            "ETH.ETH": 40216590,
+            "THOR.RUNE": 70483716629
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
-            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 285524940,
-            "THOR.RUNE": 85307713488
+            "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 284855388,
+            "THOR.RUNE": 85508666364
         },
         "POOL.BNB.LOK-3C0": {
             "BNB.LOK-3C0": 0,
@@ -3973,49 +3973,49 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 17929532597
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 17939847565
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
-            "ETH.ETH": 40205663,
-            "THOR.RUNE": 70465847215
+            "ETH.ETH": 40082130,
+            "THOR.RUNE": 70719371630
         },
         "POOL.ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": {
             "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A": 0,
@@ -4033,45 +4033,45 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 17929532597
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 17939847565
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
             "ETH.ETH": 0,
@@ -4093,45 +4093,45 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 15129170428
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 15136855913
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 146182066523
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 146225830966
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
             "ETH.ETH": 0,
@@ -4153,45 +4153,45 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 15129170428
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 15136855913
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 179432519,
-            "THOR.RUNE": 130230021505
+            "BTC.BTC": 179398830,
+            "THOR.RUNE": 130266360825
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
             "ETH.ETH": 0,
@@ -4213,45 +4213,45 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 15129170428
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 15136855913
         },
         "POOL.DOGE.DOGE": {
-            "DOGE.DOGE": 133835829693,
-            "THOR.RUNE": 10285013425
+            "DOGE.DOGE": 133842425089,
+            "THOR.RUNE": 10292400890
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 4236501,
-            "THOR.RUNE": 3053030080
+            "BTC.BTC": 4231509,
+            "THOR.RUNE": 3065318333
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
             "ETH.ETH": 0,
@@ -4273,45 +4273,45 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 15129170428
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 15136855913
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 0,
             "THOR.RUNE": 0
         },
         "POOL.GAIA.ATOM": {
-            "GAIA.ATOM": 132193919900,
-            "THOR.RUNE": 8704991872
+            "GAIA.ATOM": 132200951500,
+            "THOR.RUNE": 8710865586
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 4236501,
-            "THOR.RUNE": 3053030080
+            "BTC.BTC": 4231509,
+            "THOR.RUNE": 3065318333
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
             "ETH.ETH": 0,
@@ -4333,25 +4333,25 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 15129170428
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 15136855913
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 0,
@@ -4362,16 +4362,16 @@
             "THOR.RUNE": 0
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 4236501,
-            "THOR.RUNE": 3053030080
+            "BTC.BTC": 4231509,
+            "THOR.RUNE": 3065318333
         },
         "POOL.BCH.BCH": {
-            "BCH.BCH": 107714788,
-            "THOR.RUNE": 64012305136
+            "BCH.BCH": 107688906,
+            "THOR.RUNE": 64035669345
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
             "ETH.ETH": 0,
@@ -4393,25 +4393,25 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 15129170428
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 15136855913
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 0,
@@ -4422,16 +4422,16 @@
             "THOR.RUNE": 0
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 4236501,
-            "THOR.RUNE": 3053030080
+            "BTC.BTC": 4231509,
+            "THOR.RUNE": 3065318333
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 0,
             "THOR.RUNE": 0
         },
         "POOL.LTC.LTC": {
-            "LTC.LTC": 112778965,
-            "THOR.RUNE": 57421981618
+            "LTC.LTC": 112752257,
+            "THOR.RUNE": 57439336918
         },
         "POOL.ETH.ETH": {
             "ETH.ETH": 0,
@@ -4453,25 +4453,25 @@
             "BNB.BNB": 1000000000
         },
         "USER-1": {
-            "BNB.BNB": 1374382392,
-            "BNB.LOK-3C0": 144442264556
+            "BNB.BNB": 1374397705,
+            "BNB.LOK-3C0": 144447887281
         },
         "PROVIDER-1": {
-            "BNB.BNB": 2067478711,
-            "BNB.LOK-3C0": 85557735444
+            "BNB.BNB": 2067520925,
+            "BNB.LOK-3C0": 85552112719
         },
         "PROVIDER-2": {
-            "BNB.BNB": 49737500,
+            "BNB.BNB": 49775000,
             "BNB.LOK-3C0": 10000000000
         },
         "VAULT": {
-            "BNB.BNB": 306878897,
+            "BNB.BNB": 306783870,
             "BNB.LOK-3C0": 0,
             "BNB.TCAN-014": 1000000
         },
         "POOL.BNB.BNB": {
-            "BNB.BNB": 216878897,
-            "THOR.RUNE": 15129170428
+            "BNB.BNB": 216783870,
+            "THOR.RUNE": 15136855913
         },
         "POOL.DOGE.DOGE": {
             "DOGE.DOGE": 0,
@@ -4482,8 +4482,8 @@
             "THOR.RUNE": 0
         },
         "POOL.BTC.BTC": {
-            "BTC.BTC": 4236501,
-            "THOR.RUNE": 3053030080
+            "BTC.BTC": 4231509,
+            "THOR.RUNE": 3065318333
         },
         "POOL.BCH.BCH": {
             "BCH.BCH": 0,

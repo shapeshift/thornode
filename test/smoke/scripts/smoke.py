@@ -503,6 +503,7 @@ class Smoker:
                     for out in outbounds:
                         coin_o = out.coins_str()
                         coin_e = evt_t.get("coin")
+
                         if coin_o == coin_e:
                             self.thorchain_state.generate_outbound_events(txn, [out])
                             pending_txs -= 1

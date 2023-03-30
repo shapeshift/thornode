@@ -27,7 +27,9 @@ func (s TxOutStoreV78Suite) TestAddGasFees(c *C) {
 
 func (s TxOutStoreV78Suite) TestEndBlock(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
-	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV81(constAccessor, w.keeper))
 
 	item := TxOutItem{
 		Chain:     common.BNBChain,
@@ -113,7 +115,9 @@ func (s TxOutStoreV78Suite) TestAddOutTxItem(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV81(constAccessor, w.keeper))
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -240,7 +244,9 @@ func (s TxOutStoreV78Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c 
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
 	}
-	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV81(constAccessor, w.keeper))
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -334,7 +340,9 @@ func (s TxOutStoreV78Suite) TestAddOutTxItemNotEnoughForFee(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(30000)),
 	}
-	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV81(constAccessor, w.keeper))
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, NotNil)
 	c.Assert(err, Equals, ErrNotEnoughToPayFee)
@@ -359,7 +367,9 @@ func (s TxOutStoreV78Suite) TestAddOutTxItemWithoutBFT(c *C) {
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(20*common.One)),
 	}
-	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV81(constAccessor, w.keeper))
 	success, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(success, Equals, true)
@@ -433,7 +443,9 @@ func (s TxOutStoreV78Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
 			common.NewCoin(common.BNBAsset, cosmos.NewUint(100000000)),
 		},
 	}
-	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV81(constAccessor, w.keeper))
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)
@@ -572,7 +584,9 @@ func (s TxOutStoreV78Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtTh
 		InHash:    inTxID,
 		Coin:      common.NewCoin(common.BNBAsset, cosmos.NewUint(80*common.One)),
 	}
-	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	version := GetCurrentVersion()
+	constAccessor := constants.GetConstantValues(version)
+	txOutStore := newTxOutStorageV78(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), newGasMgrV81(constAccessor, w.keeper))
 	ok, err := txOutStore.TryAddTxOutItem(w.ctx, w.mgr, item, cosmos.ZeroUint())
 	c.Assert(err, IsNil)
 	c.Assert(ok, Equals, true)

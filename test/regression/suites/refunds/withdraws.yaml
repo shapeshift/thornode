@@ -172,7 +172,7 @@ txs:
       from_address: {{ addr_eth_dog }}
       to_address: {{ addr_eth_fox }}
       coins:
-        - amount: "998080000"
+        - amount: "998720000"
           asset: "ETH.ETH"
           decimals: 8
       gas:
@@ -234,7 +234,7 @@ txs:
       from_address: {{ addr_eth_dog }}
       to_address: {{ addr_eth_pig }}
       coins:
-        - amount: "998080000"
+        - amount: "998720000"
           asset: "ETH.ETH"
           decimals: 8
       gas:
@@ -296,7 +296,7 @@ txs:
       from_address: {{ addr_eth_dog }}
       to_address: {{ addr_eth_fox }}
       coins:
-        - amount: "998080000"
+        - amount: "998720000"
           asset: "ETH.ETH"
           decimals: 8
       gas:
@@ -358,7 +358,7 @@ txs:
       from_address: {{ addr_eth_dog }}
       to_address: {{ addr_eth_fox }}
       coins:
-        - amount: "998080000"
+        - amount: "998720000"
           asset: "ETH.ETH"
           decimals: 8
       gas:
@@ -420,7 +420,7 @@ txs:
       from_address: {{ addr_eth_dog }}
       to_address: {{ addr_eth_pig }}
       coins:
-        - amount: "998080000"
+        - amount: "998720000"
           asset: "ETH.ETH"
           decimals: 8
       gas:

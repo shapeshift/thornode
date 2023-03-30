@@ -12,24 +12,27 @@ import (
 func init() {
 	int64Overrides = map[ConstantName]int64{
 		// ArtificialRagnarokBlockHeight: 200,
-		DesiredValidatorSet:          12,
-		ChurnInterval:                60, // 5 min
-		ChurnRetryInterval:           30,
-		MinimumBondInRune:            100_000_000, // 1 rune
-		ValidatorMaxRewardRatio:      3,
-		FundMigrationInterval:        40,
-		LiquidityLockUpBlocks:        0,
-		MaxRuneSupply:                500_000_000_00000000,
-		JailTimeKeygen:               10,
-		JailTimeKeysign:              10,
-		AsgardSize:                   6,
-		MinimumNodesForYggdrasil:     4,
-		VirtualMultSynthsBasisPoints: 20_000,
-		MinTxOutVolumeThreshold:      2000000_00000000,
-		TxOutDelayRate:               2000000_00000000,
-		PoolDepthForYggFundingMin:    500_000_00000000,
-		MaxSynthPerPoolDepth:         3_500,
-		PauseLoans:                   0,
+		DesiredValidatorSet:                 12,
+		ChurnInterval:                       60, // 5 min
+		ChurnRetryInterval:                  30,
+		MinimumBondInRune:                   100_000_000, // 1 rune
+		ValidatorMaxRewardRatio:             3,
+		FundMigrationInterval:               40,
+		LiquidityLockUpBlocks:               0,
+		MaxRuneSupply:                       500_000_000_00000000,
+		JailTimeKeygen:                      10,
+		JailTimeKeysign:                     10,
+		AsgardSize:                          6,
+		MinimumNodesForYggdrasil:            4,
+		VirtualMultSynthsBasisPoints:        20_000,
+		MinTxOutVolumeThreshold:             2000000_00000000,
+		TxOutDelayRate:                      2000000_00000000,
+		PoolDepthForYggFundingMin:           500_000_00000000,
+		MaxSynthPerPoolDepth:                3_500,
+		PauseLoans:                          0,
+		TargetOutboundFeeSurplusRune:        10_000_00000000,
+		MaxOutboundFeeMultiplierBasisPoints: 20_000,
+		MinOutboundFeeMultiplierBasisPoints: 15_000,
 	}
 	boolOverrides = map[ConstantName]bool{
 		StrictBondLiquidityRatio: false,

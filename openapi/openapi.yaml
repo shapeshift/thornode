@@ -2170,6 +2170,8 @@ components:
         - total_bond_units
         - total_reserve
         - vaults_migrating
+        - gas_spent_rune
+        - gas_withheld_rune
       properties:
         bond_reward_rune:
           type: string
@@ -2195,6 +2197,18 @@ components:
           type: boolean
           example: false
           description: Returns true if there exist RetiringVaults which have not finished migrating funds to new ActiveVaults
+        gas_spent_rune:
+          type: string
+          example: "1000000000"
+          description: Sum of the gas the network has spent to send outbounds
+        gas_withheld_rune:
+          type: string
+          example: "1500000000"
+          description: Sum of the gas withheld from users to cover outbound gas
+        outbound_fee_multiplier:
+          type: string
+          example: "15000"
+          description: Current outbound fee multiplier, in basis points
 
     POLResponse:
       type: object

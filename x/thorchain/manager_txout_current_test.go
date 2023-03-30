@@ -58,6 +58,11 @@ func (s TxOutStoreV108Suite) TestAddOutTxItem(c *C) {
 	}
 	c.Assert(w.keeper.SetVault(w.ctx, vault), IsNil)
 
+	network, err := w.keeper.GetNetwork(w.ctx)
+	c.Assert(err, IsNil)
+	c.Assert(network.OutboundGasSpentRune, Equals, uint64(0))
+	c.Assert(network.OutboundGasWithheldRune, Equals, uint64(0))
+
 	acc1 := GetRandomValidatorNode(NodeActive)
 	acc2 := GetRandomValidatorNode(NodeActive)
 	acc3 := GetRandomValidatorNode(NodeActive)
@@ -121,7 +126,14 @@ func (s TxOutStoreV108Suite) TestAddOutTxItem(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999925000)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+
+	// Gas withheld should be updated
+	network, err = w.keeper.GetNetwork(w.ctx)
+	c.Assert(err, IsNil)
+	c.Assert(network.OutboundGasSpentRune, Equals, uint64(0))
+	c.Assert(network.OutboundGasWithheldRune, Equals, uint64(74999)) // After slippage the 75000 BNB fee is 74999 in RUNE
+
 	// Should get acc1. Acc3 hasn't signed and acc1 now has the highest amount
 	// of coin.
 	item = TxOutItem{
@@ -139,6 +151,11 @@ func (s TxOutStoreV108Suite) TestAddOutTxItem(c *C) {
 	c.Assert(msgs, HasLen, 1)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, acc2.PubKeySet.Secp256k1.String())
 
+	// Gas withheld should be updated
+	network, err = w.keeper.GetNetwork(w.ctx)
+	c.Assert(err, IsNil)
+	c.Assert(network.OutboundGasWithheldRune, Equals, uint64(149997))
+
 	item = TxOutItem{
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),
@@ -153,6 +170,11 @@ func (s TxOutStoreV108Suite) TestAddOutTxItem(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
 	c.Check(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
+
+	// Gas withheld should be updated
+	network, err = w.keeper.GetNetwork(w.ctx)
+	c.Assert(err, IsNil)
+	c.Assert(network.OutboundGasWithheldRune, Equals, uint64(224994))
 
 	item = TxOutItem{
 		Chain:     common.BCHChain,
@@ -308,7 +330,7 @@ func (s TxOutStoreV108Suite) TestAddOutTxItem_OutboundHeightDoesNotGetOverride(c
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999925000)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 
 	// make sure outbound_height has been set correctly
 	afterVoter, err := w.keeper.GetObservedTxInVoter(w.ctx, inTxID)
@@ -420,7 +442,7 @@ func (s TxOutStoreV108Suite) TestAddOutTxItemWithoutBFT(c *C) {
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999925000)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 }
 
 func (s TxOutStoreV108Suite) TestAddOutTxItemDeductMaxGasFromYggdrasil(c *C) {
@@ -651,7 +673,7 @@ func (s TxOutStoreV108Suite) TestAddOutTxItem_MultipleOutboundWillBeScheduledAtT
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 2)
 	c.Assert(msgs[0].VaultPubKey.String(), Equals, vault.PubKey.String())
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(7999925000)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 
 	// make sure outbound_height has been set correctly
 	afterVoter, err := w.keeper.GetObservedTxInVoter(w.ctx, inTxID)
@@ -701,7 +723,7 @@ func (s TxOutStoreV108Suite) TestAddOutTxItemInteractionWithPool(c *C) {
 	msgs, err := txOutStore.GetOutboundItems(w.ctx)
 	c.Assert(err, IsNil)
 	c.Assert(msgs, HasLen, 1)
-	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999887500)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
+	c.Assert(msgs[0].Coin.Amount.Equal(cosmos.NewUint(1999925000)), Equals, true, Commentf("%d", msgs[0].Coin.Amount.Uint64()))
 	pool, err = w.keeper.GetPool(w.ctx, common.BNBAsset)
 	c.Assert(err, IsNil)
 	// Let:
@@ -709,11 +731,11 @@ func (s TxOutStoreV108Suite) TestAddOutTxItemInteractionWithPool(c *C) {
 	//   A_0 := the initial pool Asset balance
 	//   a   := the gas amount in Asset
 	// Then the expected pool balances are:
-	//   A_1 = A_0 + a = 50e8 + (20e8 - 1999887500) = 5000112500
+	//   A_1 = A_0 + a = 50e8 + (20e8 - 1999925000) = 5000075000
 	//   R_1 = R_0 - R_0 * a / (A_0 + a)  // slip formula
-	//       = 100e8 - 100e8 * (20e8 - 1999887500) / (50e8 + (20e8 - 1999887500)) = 9999775005
-	c.Assert(pool.BalanceAsset.Equal(cosmos.NewUint(5000112500)), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
-	c.Assert(pool.BalanceRune.Equal(cosmos.NewUint(9999775005)), Equals, true, Commentf("%d", pool.BalanceRune.Uint64()))
+	//       = 100e8 - 100e8 * (20e8 - 1999925000) / (50e8 + (20e8 - 1999925000)) = 9999850002
+	c.Assert(pool.BalanceAsset.Equal(cosmos.NewUint(5000075000)), Equals, true, Commentf("%d", pool.BalanceAsset.Uint64()))
+	c.Assert(pool.BalanceRune.Equal(cosmos.NewUint(9999850002)), Equals, true, Commentf("%d", pool.BalanceRune.Uint64()))
 }
 
 func (s TxOutStoreV108Suite) TestAddOutTxItemSendingFromRetiredVault(c *C) {
