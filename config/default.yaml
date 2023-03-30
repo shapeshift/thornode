@@ -69,6 +69,7 @@ bifrost:
         db_path: /var/data/bifrost/observer
         observation_flexibility_blocks: 2
     btc: &default-chain
+      disabled: false
       chain_id: BTC
       username: thorchain
       password: password

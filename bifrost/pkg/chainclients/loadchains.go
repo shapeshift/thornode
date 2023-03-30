@@ -1,6 +1,8 @@
 package chainclients
 
 import (
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"gitlab.com/thorchain/tss/go-tss/tss"
 
@@ -28,78 +30,94 @@ func LoadChains(thorKeys *thorclient.Keys,
 	m *metrics.Metrics,
 	pubKeyValidator pubkeymanager.PubKeyValidator,
 	poolMgr thorclient.PoolManager,
-) map[common.Chain]ChainClient {
+) (chains map[common.Chain]ChainClient, restart chan struct{}) {
 	logger := log.Logger.With().Str("module", "bifrost").Logger()
-	chains := make(map[common.Chain]ChainClient)
+
+	chains = make(map[common.Chain]ChainClient)
+	restart = make(chan struct{})
+	failedChains := []common.Chain{}
+
+	loadChain := func(chain config.BifrostChainConfiguration) (ChainClient, error) {
+		switch chain.ChainID {
+		case common.BNBChain:
+			return binance.NewBinance(thorKeys, chain, server, thorchainBridge, m)
+		case common.ETHChain:
+			return ethereum.NewClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
+		case common.AVAXChain:
+			return avalanche.NewAvalancheClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
+		case common.GAIAChain:
+			return gaia.NewCosmosClient(thorKeys, chain, server, thorchainBridge, m)
+		case common.BTCChain:
+			return bitcoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
+		case common.BCHChain:
+			return bitcoincash.NewClient(thorKeys, chain, server, thorchainBridge, m)
+		case common.LTCChain:
+			return litecoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
+		case common.DOGEChain:
+			return dogecoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
+		default:
+			log.Fatal().Msgf("chain %s is not supported", chain.ChainID)
+			return nil, nil
+		}
+	}
 
 	for _, chain := range cfg {
 		if chain.Disabled {
 			logger.Info().Msgf("%s chain is disabled by configure", chain.ChainID)
 			continue
 		}
+
+		client, err := loadChain(chain)
+
+		// trunk-ignore-all(golangci-lint/forcetypeassert)
 		switch chain.ChainID {
-		case common.BNBChain:
-			bnb, err := binance.NewBinance(thorKeys, chain, server, thorchainBridge, m)
-			if err != nil {
-				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
-				continue
-			}
-			chains[common.BNBChain] = bnb
-		case common.ETHChain:
-			eth, err := ethereum.NewClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
-			if err != nil {
-				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
-				continue
-			}
-			chains[common.ETHChain] = eth
 		case common.BTCChain:
-			btc, err := bitcoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
-			if err != nil {
-				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
-				continue
+			if err == nil {
+				pubKeyValidator.RegisterCallback(client.(*bitcoin.Client).RegisterPublicKey)
 			}
-			pubKeyValidator.RegisterCallback(btc.RegisterPublicKey)
-			chains[common.BTCChain] = btc
 		case common.BCHChain:
-			bch, err := bitcoincash.NewClient(thorKeys, chain, server, thorchainBridge, m)
-			if err != nil {
-				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
-				continue
+			if err == nil {
+				pubKeyValidator.RegisterCallback(client.(*bitcoincash.Client).RegisterPublicKey)
 			}
-			pubKeyValidator.RegisterCallback(bch.RegisterPublicKey)
-			chains[common.BCHChain] = bch
 		case common.LTCChain:
-			ltc, err := litecoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
-			if err != nil {
-				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
-				continue
+			if err == nil {
+				pubKeyValidator.RegisterCallback(client.(*litecoin.Client).RegisterPublicKey)
 			}
-			pubKeyValidator.RegisterCallback(ltc.RegisterPublicKey)
-			chains[common.LTCChain] = ltc
 		case common.DOGEChain:
-			doge, err := dogecoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
-			if err != nil {
-				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
-				continue
+			if err == nil {
+				pubKeyValidator.RegisterCallback(client.(*dogecoin.Client).RegisterPublicKey)
 			}
-			pubKeyValidator.RegisterCallback(doge.RegisterPublicKey)
-			chains[common.DOGEChain] = doge
-		case common.AVAXChain:
-			avax, err := avalanche.NewAvalancheClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
-			if err != nil {
-				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
-				continue
-			}
-			chains[common.AVAXChain] = avax
-		case common.GAIAChain:
-			gaia, err := gaia.NewCosmosClient(thorKeys, chain, server, thorchainBridge, m)
-			if err != nil {
-				logger.Fatal().Err(err).Str("chain_id", chain.ChainID.String()).Msg("fail to load chain")
-				continue
-			}
-			chains[common.GAIAChain] = gaia
+		}
+
+		if err != nil {
+			logger.Error().Err(err).Stringer("chain", chain.ChainID).Msg("failed to load chain")
+			failedChains = append(failedChains, chain.ChainID)
+		} else {
+			chains[chain.ChainID] = client
 		}
 	}
 
-	return chains
+	// watch failed chains and restart bifrost if any succeed init
+	if len(failedChains) > 0 {
+		go func() {
+			tick := time.NewTicker(config.GetBifrost().BackOff.MaxInterval)
+			for range tick.C {
+				for _, chain := range failedChains {
+					ccfg := cfg[chain]
+					ccfg.BlockScanner.DBPath = "" // in-memory db
+
+					_, err := loadChain(ccfg)
+					if err == nil {
+						logger.Info().Stringer("chain", chain).Msg("chain loaded, restarting bifrost")
+						close(restart)
+						return
+					} else {
+						logger.Error().Err(err).Stringer("chain", chain).Msg("failed to load chain")
+					}
+				}
+			}
+		}()
+	}
+
+	return chains, restart
 }
