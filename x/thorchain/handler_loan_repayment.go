@@ -115,7 +115,7 @@ func (h LoanRepaymentHandler) handleV108(ctx cosmos.Context, msg MsgLoanRepaymen
 	if msg.Coin.Asset.Equals(common.TOR) {
 		return h.repayV108(ctx, msg)
 	} else {
-		return h.swapV107(ctx, msg)
+		return h.swapV108(ctx, msg)
 	}
 }
 
@@ -163,13 +163,6 @@ func (h LoanRepaymentHandler) repayV108(ctx cosmos.Context, msg MsgLoanRepayment
 		return fmt.Errorf("fail to get txid")
 	}
 
-	// ensure TxID does NOT have a collision with another swap, this could
-	// happen if the user submits two identical loan requests in the same
-	// block
-	if ok := h.mgr.Keeper().HasSwapQueueItem(ctx, txID, 0); ok {
-		return fmt.Errorf("txn hash conflict")
-	}
-
 	coins := common.NewCoins(common.NewCoin(msg.CollateralAsset.GetDerivedAsset(), redeem))
 
 	// transfer derived asset from the lending to asgard before swap to L1 collateral
@@ -201,25 +194,16 @@ func (h LoanRepaymentHandler) repayV108(ctx cosmos.Context, msg MsgLoanRepayment
 	return nil
 }
 
-func (h LoanRepaymentHandler) swapV107(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) swapV108(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	lendAddr, err := h.mgr.Keeper().GetModuleAddress(LendingName)
 	if err != nil {
 		ctx.Logger().Error("fail to get lending address", "error", err)
 		return err
 	}
 
-	// the first swap has a reversed txid
 	txID, ok := ctx.Value(constants.CtxLoanTxID).(common.TxID)
 	if !ok {
 		return fmt.Errorf("fail to get txid")
-	}
-	txID = txID.Reverse()
-
-	// ensure TxID does NOT have a collision with another swap, this could
-	// happen if the user submits two identical loan requests in the same
-	// block
-	if ok := h.mgr.Keeper().HasSwapQueueItem(ctx, txID, 0); ok {
-		return fmt.Errorf("txn hash conflict")
 	}
 
 	memo := fmt.Sprintf("loan-:%s:%s", msg.CollateralAsset, msg.Owner)

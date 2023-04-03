@@ -162,6 +162,8 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.108.0")):
+		return h.handleV108(ctx, msg)
 	case version.GTE(semver.MustParse("1.107.0")):
 		return h.handleV107(ctx, msg)
 	case version.GTE(semver.MustParse("1.99.0")):
@@ -181,7 +183,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	}
 }
 
-func (h SwapHandler) handleV107(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+func (h SwapHandler) handleV108(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	// Don't change msg.Destination here; this line was introduced to avoid people from swapping mainnet asset,
 	// but using testnet address.
@@ -272,12 +274,7 @@ func (h SwapHandler) handleV107(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 			msg.TargetAsset, emit,
 		))
 
-		// The transaction id set on the tx in the message is the reversed txid of the
-		// inbound tx - here we reverse it back to the original txid and set it in the
-		// context, which is used in the second run of the handler so that the memo on the
-		// outbound transaction matches the id of the inbound which opened the loan.
-		txid := common.TxID(msg.Tx.ID.String()).Reverse()
-		ctx = ctx.WithValue(constants.CtxLoanTxID, txid)
+		ctx = ctx.WithValue(constants.CtxLoanTxID, msg.Tx.ID)
 
 		obTx := ObservedTx{Tx: msg.Tx}
 		msg, err := getMsgLoanOpenFromMemo(m, obTx, msg.Signer)
@@ -298,12 +295,7 @@ func (h SwapHandler) handleV107(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		}
 		m.Asset = fuzzyAssetMatch(ctx, h.mgr.Keeper(), m.Asset)
 
-		// The transaction id set on the tx in the message is the reversed txid of the
-		// inbound tx - here we reverse it back to the original txid and set it in the
-		// context, which is used in the second run of the handler so that the memo on the
-		// outbound transaction matches the id of the inbound which closed the loan.
-		txid := common.TxID(msg.Tx.ID.String()).Reverse()
-		ctx = ctx.WithValue(constants.CtxLoanTxID, txid)
+		ctx = ctx.WithValue(constants.CtxLoanTxID, msg.Tx.ID)
 
 		msg, err := getMsgLoanRepaymentFromMemo(m, common.NewCoin(common.TOR, emit), msg.Signer)
 		if err != nil {

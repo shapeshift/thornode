@@ -114,7 +114,7 @@ description: btc outbound should be scheduled
 endpoint: http://localhost:1317/thorchain/queue/outbound
 asserts:
   - .|length == 1
-  - .[0]|.in_hash == "2000000000000000000000000000000000000000000000000000000000000000"
+  - .[0]|.in_hash == "{{ observe_txid 2 }}"
 ---
 type: tx-observed-out
 signer: {{ addr_thor_dog }}
@@ -131,7 +131,7 @@ txs:
       gas:
         - amount: "10500"
           asset: "BTC.BTC"
-      memo: "REFUND:2000000000000000000000000000000000000000000000000000000000000000"
+      memo: "REFUND:{{ observe_txid 2 }}"
     block_height: 3
     finalise_height: 3
     observed_pub_key: {{ pubkey_dog }}
@@ -613,4 +613,3 @@ asserts:
     # this time they should receieve a normal amount relative to the deposit since the
     # excess debt down was credited on the previous open
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504317497348
----
