@@ -110,3 +110,21 @@ func migrateStoreV106(ctx cosmos.Context, mgr *Mgrs) {
 		ctx.Logger().Error("fail to SendCoinsFromModuleToAccount", err)
 	}
 }
+
+func migrateStoreV108(ctx cosmos.Context, mgr *Mgrs) {
+	// Requeue four BCH.BCH txout (dangling actions) items swallowed in a chain halt.
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v108", "error", err)
+		}
+	}()
+
+	danglingInboundTxIDs := []common.TxID{
+		"5840920B63CDB9A02028ABB844B28F0305C2B37ADA4F936B69EBEFA04E2F826B",
+		"BFACE691A12E85083DD2E4E4ADFBE702299DA6F08A98E6B6F7CF95A9D1D71632",
+		"395EBDADA6D0975CF4D3F2E2BD7E246037C672C9CAB97DBFB744CC0F2FFABE95",
+		"5881692D0522D0D5221A61FC0704B018ED51A6C43475063ADF6AC912D748208D",
+	}
+
+	requeueDanglingActionsV108(ctx, mgr, danglingInboundTxIDs)
+}

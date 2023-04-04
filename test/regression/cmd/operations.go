@@ -63,6 +63,8 @@ func NewOperation(opMap map[string]any) Operation {
 		op = &OpTxMimir{}
 	case "tx-send":
 		op = &OpTxSend{}
+	case "tx-version":
+		op = &OpTxVersion{}
 	default:
 		log.Fatal().Str("type", t).Msg("unknown operation type")
 	}
@@ -80,7 +82,7 @@ func NewOperation(opMap map[string]any) Operation {
 
 	switch op.(type) {
 	// internal types have MarshalJSON methods necessary to decode
-	case *OpTxObservedIn, *OpTxObservedOut, *OpTxDeposit, *OpTxMimir, *OpTxSend:
+	case *OpTxObservedIn, *OpTxObservedOut, *OpTxDeposit, *OpTxMimir, *OpTxSend, *OpTxVersion:
 		// encode as json
 		buf := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(buf)
@@ -393,6 +395,18 @@ type OpTxSend struct {
 
 func (op *OpTxSend) Execute(_ *os.Process, logs chan string) error {
 	return sendMsg(&op.MsgSend, op.FromAddress, op.Sequence, op, logs)
+}
+
+// ------------------------------ OpTxVersion ------------------------------
+
+type OpTxVersion struct {
+	OpBase              `yaml:",inline"`
+	types.MsgSetVersion `yaml:",inline"`
+	Sequence            *int64 `json:"sequence"`
+}
+
+func (op *OpTxVersion) Execute(_ *os.Process, logs chan string) error {
+	return sendMsg(&op.MsgSetVersion, op.Signer, op.Sequence, op, logs)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

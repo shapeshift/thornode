@@ -1253,3 +1253,34 @@ func storeContextTxID(ctx cosmos.Context, key interface{}) (cosmos.Context, erro
 	}
 	return ctx, nil
 }
+
+func isActionsItemDangling(voter ObservedTxVoter, i int) bool {
+	if i < 0 || i > len(voter.Actions)-1 {
+		// No such Actions item exists in the voter.
+		return false
+	}
+
+	toi := voter.Actions[i]
+
+	// If any OutTxs item matches an Actions item, deem it to be not dangling.
+	for _, outboundTx := range voter.OutTxs {
+		// The comparison code is based on matchActionItem, as matchActionItem is unimportable.
+		// note: Coins.Contains will match amount as well
+		matchCoin := outboundTx.Coins.Contains(toi.Coin)
+		if !matchCoin && toi.Coin.Asset.Equals(toi.Chain.GetGasAsset()) {
+			asset := toi.Chain.GetGasAsset()
+			intendToSpend := toi.Coin.Amount.Add(toi.MaxGas.ToCoins().GetCoin(asset).Amount)
+			actualSpend := outboundTx.Coins.GetCoin(asset).Amount.Add(outboundTx.Gas.ToCoins().GetCoin(asset).Amount)
+			if intendToSpend.Equal(actualSpend) {
+				matchCoin = true
+			}
+		}
+		if strings.EqualFold(toi.Memo, outboundTx.Memo) &&
+			toi.ToAddress.Equals(outboundTx.ToAddress) &&
+			toi.Chain.Equals(outboundTx.Chain) &&
+			matchCoin {
+			return false
+		}
+	}
+	return true
+}
