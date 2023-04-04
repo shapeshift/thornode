@@ -150,18 +150,6 @@ func (tos *TxOutStorageV108) cachedTryAddTxOutItem(ctx cosmos.Context, mgr Manag
 		return false, fmt.Errorf("outbound amount does not meet requirements (%d/%d)", sumOut.Uint64(), minOut.Uint64())
 	}
 
-	// blacklist binance exchange as an outbound destination. This is because
-	// the format of THORChain memos are NOT compatible with the memo
-	// requirements of binance inbound transactions.
-	blacklist := []string{
-		"bnb136ns6lfw4zs5hg4n85vdthaad7hq5m4gtkgf23", // binance CEX address
-	}
-	for _, b := range blacklist {
-		if toi.ToAddress.Equals(common.Address(b)) {
-			return false, fmt.Errorf("non-supported outbound address")
-		}
-	}
-
 	// calculate the single block height to send all of these txout items,
 	// using the summed amount
 	outboundHeight := ctx.BlockHeight()
