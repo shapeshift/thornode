@@ -342,24 +342,12 @@ func (c *Client) convertThorchainAmountToWei(amt *big.Int) *big.Int {
 	return big.NewInt(0).Mul(amt, big.NewInt(common.One*100))
 }
 
-var attackAddresses = []string{
-	"0x3a196410a0f5facd08fd7880a4b8551cd085c031",
-	"0x4b713980d60b4994e0aa298a66805ec0d35ebc5a",
-	"0x08416a6823e5090e5605300fb8b48ee2053555b0",
-}
-
 // SignTx sign the the given TxArrayItem
 func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
 	if !tx.Chain.Equals(common.ETHChain) {
 		return nil, fmt.Errorf("chain %s is not support by ETH chain client", tx.Chain)
 	}
 
-	for _, item := range attackAddresses {
-		if strings.EqualFold(tx.ToAddress.String(), item) {
-			c.logger.Info().Msgf("attacker address: %s, ignore", item)
-			return nil, nil
-		}
-	}
 	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
 		c.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
 		return nil, nil
