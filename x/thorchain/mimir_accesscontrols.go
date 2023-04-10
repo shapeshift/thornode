@@ -22,4 +22,8 @@ var adminMimirDenyList = []*re.Regexp{
 	re.MustCompile("(?i)FailKeygenSlashPoints"),
 	re.MustCompile("(?i)StagedPoolCost"),
 	re.MustCompile("(?i)Ragnarok.*"),
+	re.MustCompile("(?i)MinTxOutVolumeThreshold"),
+	re.MustCompile("(?i)MaxTxOutOffset"),
+	re.MustCompile("(?i)TxOutDelayRate"),
+	re.MustCompile("(?i)TxOutDelayMax"),
 }
