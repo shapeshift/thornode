@@ -41,6 +41,7 @@ None
 - [003 - Floored Outbound Fee](./adr-003-flooredoutboundfee.md)
 - [004 - Keyshare Backups](./adr-004-keyshare-backups.md)
 - [005 - Deprecate Impermanent Loss Protection](./adr-005-deprecate-ilp.md)
+- [006 - Enable POL](./adr-006-enable-pol.md)
 
 ### Deprecated
 
@@ -52,7 +53,8 @@ None
 
 ### Proposed
 
-- [006 - Enable POL](./adr-006-enable-pol.md)
+- [007 - Increase Fund Migration and Churn Interval](./adr-007-increase-fund-migration-and-churn-interval.md)
+- [008 - Dynamic Outbound Fee Multiplier](./adr-008-implement-dynamic-outbound-fee-multiplier.md)
 
 ### On Pause
 
