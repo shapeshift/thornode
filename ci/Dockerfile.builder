@@ -1,4 +1,4 @@
-FROM golang:1.18.0
+FROM golang:1.20.3
 
 
 # hadolint ignore=DL3008,DL4006
