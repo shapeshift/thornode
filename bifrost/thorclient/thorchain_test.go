@@ -1,9 +1,9 @@
 package thorclient
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -98,7 +98,7 @@ func httpTestHandler(c *C, rw http.ResponseWriter, fixture string) {
 	case "500":
 		rw.WriteHeader(http.StatusInternalServerError)
 	default:
-		content, err = ioutil.ReadFile(fixture)
+		content, err = os.ReadFile(fixture)
 		if err != nil {
 			c.Fatal(err)
 		}

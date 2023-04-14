@@ -1,7 +1,7 @@
 package thorchain
 
 import (
-	"io/ioutil"
+	"os"
 
 	. "gopkg.in/check.v1"
 )
@@ -17,7 +17,7 @@ func (GenesisTestSuite) TestGenesis(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	gs := ExportGenesis(ctx, mgr.Keeper())
 	c.Assert(ValidateGenesis(gs), IsNil)
-	content, err := ioutil.ReadFile("../../test/fixtures/genesis/genesis.json")
+	content, err := os.ReadFile("../../test/fixtures/genesis/genesis.json")
 	c.Assert(err, IsNil)
 	c.Assert(content, NotNil)
 	ctx, mgr = setupManagerForTest(c)

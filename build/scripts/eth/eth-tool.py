@@ -8,7 +8,6 @@ import time
 from contextlib import closing
 from urllib.parse import urlparse
 
-import requests
 from web3 import HTTPProvider, Web3
 from web3.middleware import geth_poa_middleware
 
@@ -45,14 +44,7 @@ class TestEthereum:
         self.web3.middleware_onion.inject(geth_poa_middleware, layer=0)
         # import all the private keys
         for key in self.private_keys:
-            payload = json.dumps(
-                {"method": "personal_importRawKey", "params": [key, self.passphrase]}
-            )
-            headers = {"content-type": "application/json", "cache-control": "no-cache"}
-            try:
-                requests.request("POST", base_url, data=payload, headers=headers)
-            except requests.exceptions.RequestException as e:
-                logging.error(f"{e}")
+            self.web3.geth.personal.import_raw_key(key, self.passphrase)
 
         self.accounts = self.web3.geth.personal.list_accounts()
         self.web3.eth.defaultAccount = self.accounts[0]

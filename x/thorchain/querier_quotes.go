@@ -3,7 +3,7 @@ package thorchain
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"strings"
 	"time"
@@ -46,7 +46,7 @@ const (
 	quoteExpiration = 15 * time.Minute
 )
 
-var nullLogger = &log.TendermintLogWrapper{Logger: zerolog.New(ioutil.Discard)}
+var nullLogger = &log.TendermintLogWrapper{Logger: zerolog.New(io.Discard)}
 
 // -------------------------------------------------------------------------------------
 // Helpers

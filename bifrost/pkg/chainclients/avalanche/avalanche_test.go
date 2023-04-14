@@ -2,7 +2,7 @@ package avalanche
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -70,7 +70,7 @@ func (s *AvalancheSuite) SetUpTest(c *C) {
 			tm, _ := codec.ToTmPubKeyInterface(priKey.PubKey())
 			pk, err := common.NewPubKeyFromCrypto(tm)
 			c.Assert(err, IsNil)
-			content, err := ioutil.ReadFile("../../../../test/fixtures/endpoints/vaults/pubKeys.json")
+			content, err := os.ReadFile("../../../../test/fixtures/endpoints/vaults/pubKeys.json")
 			c.Assert(err, IsNil)
 			var pubKeysVault types2.QueryVaultsPubKeys
 			c.Assert(json.Unmarshal(content, &pubKeysVault), IsNil)
@@ -99,7 +99,7 @@ func (s *AvalancheSuite) SetUpTest(c *C) {
 			_, err := rw.Write([]byte(`-1`))
 			c.Assert(err, IsNil)
 		default:
-			body, err := ioutil.ReadAll(req.Body)
+			body, err := io.ReadAll(req.Body)
 			c.Assert(err, IsNil)
 			type RPCRequest struct {
 				JSONRPC string          `json:"jsonrpc"`

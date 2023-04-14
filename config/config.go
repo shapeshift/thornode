@@ -6,7 +6,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -614,7 +614,7 @@ func (c BifrostTSSConfiguration) GetBootstrapPeers() ([]maddr.Multiaddr, error) 
 		}
 
 		// read the response
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to read p2p id response")
 			continue

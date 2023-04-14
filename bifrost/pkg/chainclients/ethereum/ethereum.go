@@ -15,6 +15,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	ecore "github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/txpool"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/hashicorp/go-multierror"
@@ -714,7 +715,7 @@ func (c *Client) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, 
 	}
 	ctx, cancel := c.getContext()
 	defer cancel()
-	if err := c.client.SendTransaction(ctx, tx); err != nil && err.Error() != ecore.ErrAlreadyKnown.Error() && err.Error() != ecore.ErrNonceTooLow.Error() {
+	if err := c.client.SendTransaction(ctx, tx); err != nil && err.Error() != txpool.ErrAlreadyKnown.Error() && err.Error() != ecore.ErrNonceTooLow.Error() {
 		return "", err
 	}
 	txID := tx.Hash().String()

@@ -2,7 +2,6 @@ package litecoin
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -171,7 +170,7 @@ func (s *LitecoinSuite) TearDownTest(_ *C) {
 }
 
 func httpTestHandler(c *C, rw http.ResponseWriter, fixture string) {
-	content, err := ioutil.ReadFile(fixture)
+	content, err := os.ReadFile(fixture)
 	if err != nil {
 		c.Fatal(err)
 	}
@@ -727,7 +726,7 @@ func (s *LitecoinSuite) TestOnObservedTxIn(c *C) {
 func (s *LitecoinSuite) TestProcessReOrg(c *C) {
 	// can't get previous block meta should not error
 	var result btcjson.GetBlockVerboseTxResult
-	blockContent, err := ioutil.ReadFile("../../../../test/fixtures/ltc/block.json")
+	blockContent, err := os.ReadFile("../../../../test/fixtures/ltc/block.json")
 	c.Assert(err, IsNil)
 	c.Assert(json.Unmarshal(blockContent, &result), IsNil)
 	// should not trigger re-org process

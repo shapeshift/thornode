@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -189,7 +189,7 @@ func (b *Binance) checkIsTestNet() error {
 		}
 	}()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail to read body") // nolint
 	}
@@ -473,7 +473,7 @@ func (b *Binance) GetAccountByAddress(address string, height *big.Int) (common.A
 	}
 
 	var result queryResult
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -523,7 +523,7 @@ func (b *Binance) BroadcastTx(tx stypes.TxOutItem, hexTx []byte) (string, error)
 		return "", nil
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		// the same reason mentioned above
 		b.logger.Err(err).Msg("fail to read response body")

@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -168,7 +167,7 @@ func EncryptKeyshares(path, passphrase string) ([]byte, error) {
 
 	// verify uncompressed equals raw
 	cmpDec := lzma.NewReader(bytes.NewReader(decrypted))
-	uncompressed, err := ioutil.ReadAll(cmpDec)
+	uncompressed, err := io.ReadAll(cmpDec)
 	if err != nil {
 		return nil, fmt.Errorf("failed keyshare encrypt - cannot decompress unencrypted: %w", err)
 	}
@@ -207,7 +206,7 @@ func DecryptKeyshares(encrypted []byte, passphrase string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed keyshare decrypt - cannot decrypt: %w", err)
 	}
-	return ioutil.ReadAll(dec)
+	return io.ReadAll(dec)
 }
 
 // -------------------------------------------------------------------------------------

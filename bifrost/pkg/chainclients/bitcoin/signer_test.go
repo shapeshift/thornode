@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -90,7 +90,7 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 			r := struct {
 				Method string `json:"method"`
 			}{}
-			buf, err := ioutil.ReadAll(req.Body)
+			buf, err := io.ReadAll(req.Body)
 			c.Assert(err, IsNil)
 			if len(buf) == 0 {
 				return

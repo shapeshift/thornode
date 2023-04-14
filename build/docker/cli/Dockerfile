@@ -10,7 +10,7 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # build geth since the image is alpine based
-RUN go install github.com/ethereum/go-ethereum/cmd/geth@v1.10.16
+RUN go install github.com/ethereum/go-ethereum/cmd/geth@v1.11.5
 
 # copy chain clis
 COPY --from=bitcoin /usr/local/bin/bitcoin-cli /usr/local/bin/bitcoin-cli

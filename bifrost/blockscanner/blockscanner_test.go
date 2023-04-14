@@ -1,9 +1,9 @@
 package blockscanner
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -99,7 +99,7 @@ func (s *BlockScannerTestSuite) TestBlockScanner(c *C) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint):
-			buf, err := ioutil.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
+			buf, err := os.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
 			c.Assert(err, IsNil)
 			_, err = w.Write(buf)
 			c.Assert(err, IsNil)
@@ -154,7 +154,7 @@ func (s *BlockScannerTestSuite) TestBadBlock(c *C) {
 		c.Logf("================>:%s", r.RequestURI)
 		switch {
 		case strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint):
-			buf, err := ioutil.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
+			buf, err := os.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
 			c.Assert(err, IsNil)
 			_, err = w.Write(buf)
 			c.Assert(err, IsNil)
@@ -198,7 +198,7 @@ func (s *BlockScannerTestSuite) TestBadBlock(c *C) {
 func (s *BlockScannerTestSuite) TestBadConnection(c *C) {
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.RequestURI, thorclient.MimirEndpoint) {
-			buf, err := ioutil.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
+			buf, err := os.ReadFile("../../test/fixtures/endpoints/mimir/mimir.json")
 			c.Assert(err, IsNil)
 			_, err = w.Write(buf)
 			c.Assert(err, IsNil)

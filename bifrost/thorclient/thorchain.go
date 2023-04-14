@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -163,7 +163,7 @@ func (b *ThorchainBridge) get(url string) ([]byte, int, error) {
 		}
 	}()
 
-	buf, err := ioutil.ReadAll(resp.Body)
+	buf, err := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return buf, resp.StatusCode, errors.New("Status code: " + resp.Status + " returned")
 	}

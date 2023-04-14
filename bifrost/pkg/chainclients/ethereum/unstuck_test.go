@@ -3,7 +3,7 @@ package ethereum
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -44,7 +44,7 @@ func (s *UnstuckTestSuite) SetUpTest(c *C) {
 			tm, _ := codec.ToTmPubKeyInterface(priKey.PubKey())
 			pk, err := common.NewPubKeyFromCrypto(tm)
 			c.Assert(err, IsNil)
-			content, err := ioutil.ReadFile("../../../../test/fixtures/endpoints/vaults/pubKeys.json")
+			content, err := os.ReadFile("../../../../test/fixtures/endpoints/vaults/pubKeys.json")
 			c.Assert(err, IsNil)
 			var pubKeysVault types2.QueryVaultsPubKeys
 			c.Assert(json.Unmarshal(content, &pubKeysVault), IsNil)
@@ -70,7 +70,7 @@ func (s *UnstuckTestSuite) SetUpTest(c *C) {
 		case thorclient.NodeAccountEndpoint:
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		default:
-			body, err := ioutil.ReadAll(req.Body)
+			body, err := io.ReadAll(req.Body)
 			c.Assert(err, IsNil)
 			type RPCRequest struct {
 				JSONRPC string          `json:"jsonrpc"`

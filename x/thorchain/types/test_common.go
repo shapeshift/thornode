@@ -2,8 +2,8 @@
 package types
 
 import (
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"path"
 	"runtime"
 	"strings"
@@ -255,7 +255,7 @@ func MakeTestCodec() *codec.LegacyAmino {
 func GetCurrentVersion() semver.Version {
 	_, filename, _, _ := runtime.Caller(0)
 	dir := path.Join(path.Dir(filename), "../../..")
-	dat, err := ioutil.ReadFile(path.Join(dir, "version"))
+	dat, err := os.ReadFile(path.Join(dir, "version"))
 	if err != nil {
 		panic(err)
 	}

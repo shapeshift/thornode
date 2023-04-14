@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	ecommon "github.com/ethereum/go-ethereum/common"
 	ecore "github.com/ethereum/go-ethereum/core"
+	"github.com/ethereum/go-ethereum/core/txpool"
 	etypes "github.com/ethereum/go-ethereum/core/types"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -129,7 +130,7 @@ func (c *Client) unstuckTx(vaultPubKey, hash string) error {
 	}
 	ctx, cancel = c.getContext()
 	defer cancel()
-	if err := c.client.SendTransaction(ctx, broadcastTx); err != nil && err.Error() != ecore.ErrAlreadyKnown.Error() && err.Error() != ecore.ErrNonceTooLow.Error() {
+	if err := c.client.SendTransaction(ctx, broadcastTx); err != nil && err.Error() != txpool.ErrAlreadyKnown.Error() && err.Error() != ecore.ErrNonceTooLow.Error() {
 		return fmt.Errorf("fail to broadcast the cancel transaction,hash:%s , err: %w", hash, err)
 	}
 	c.logger.Info().Msgf("broadcast cancel transaction , tx hash: %s, nonce: %d , new tx hash:%s", hash, tx.Nonce(), broadcastTx.Hash().String())

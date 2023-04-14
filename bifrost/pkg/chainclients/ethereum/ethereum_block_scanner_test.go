@@ -2,11 +2,12 @@ package ethereum
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -79,7 +80,7 @@ func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
 	storage, err := blockscanner.NewBlockScannerStorage("")
 	c.Assert(err, IsNil)
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		c.Assert(err, IsNil)
 		type RPCRequest struct {
 			JSONRPC string          `json:"jsonrpc"`
@@ -143,7 +144,7 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 		case strings.HasPrefix(req.RequestURI, thorclient.AuthAccountEndpoint):
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/auth/accounts/template.json")
 		default:
-			body, err := ioutil.ReadAll(req.Body)
+			body, err := io.ReadAll(req.Body)
 			c.Assert(err, IsNil)
 			defer func() {
 				c.Assert(req.Body.Close(), IsNil)
@@ -222,7 +223,7 @@ func httpTestHandler(c *C, rw http.ResponseWriter, fixture string) {
 	case "500":
 		rw.WriteHeader(http.StatusInternalServerError)
 	default:
-		content, err = ioutil.ReadFile(fixture)
+		content, err = os.ReadFile(fixture)
 		if err != nil {
 			c.Fatal(err)
 		}
@@ -246,7 +247,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 		case strings.HasPrefix(req.RequestURI, thorclient.NodeAccountEndpoint):
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		default:
-			body, err := ioutil.ReadAll(req.Body)
+			body, err := io.ReadAll(req.Body)
 			c.Assert(err, IsNil)
 			type RPCRequest struct {
 				JSONRPC string          `json:"jsonrpc"`
@@ -488,7 +489,7 @@ func (s *BlockScannerTestSuite) TestProcessReOrg(c *C) {
 		case strings.HasPrefix(req.RequestURI, thorclient.NodeAccountEndpoint):
 			httpTestHandler(c, rw, "../../../../test/fixtures/endpoints/nodeaccount/template.json")
 		default:
-			body, err := ioutil.ReadAll(req.Body)
+			body, err := io.ReadAll(req.Body)
 			c.Assert(err, IsNil)
 			type RPCRequest struct {
 				JSONRPC string          `json:"jsonrpc"`
@@ -613,7 +614,7 @@ func (s *BlockScannerTestSuite) TestGasPriceV2(c *C) {
 	storage, err := blockscanner.NewBlockScannerStorage("")
 	c.Assert(err, IsNil)
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		c.Assert(err, IsNil)
 		type RPCRequest struct {
 			JSONRPC string          `json:"jsonrpc"`

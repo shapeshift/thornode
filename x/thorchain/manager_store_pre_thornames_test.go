@@ -1,7 +1,7 @@
 package thorchain
 
 import (
-	"io/ioutil"
+	"os"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	. "gopkg.in/check.v1"
@@ -14,7 +14,7 @@ var _ = Suite(&PreTHORNameTestSuite{})
 func (s *PreTHORNameTestSuite) TestLoadingJson(c *C) {
 	// use the mainnet preregister thornames for test
 	var err error
-	preregisterTHORNames, err = ioutil.ReadFile("preregister_thornames.json")
+	preregisterTHORNames, err = os.ReadFile("preregister_thornames.json")
 	c.Assert(err, IsNil)
 
 	ctx, _ := setupKeeperForTest(c)

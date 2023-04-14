@@ -2,7 +2,7 @@ package gaia
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -199,7 +199,7 @@ func (s *BlockScannerTestSuite) TestProcessTxs(c *C) {
 		}
 		defer jsonFile.Close()
 
-		res, _ := ioutil.ReadAll(jsonFile)
+		res, _ := io.ReadAll(jsonFile)
 		if _, err := w.Write(res); err != nil {
 			c.Fatal("unable to write /block_result", err)
 		}

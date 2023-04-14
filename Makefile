@@ -67,7 +67,7 @@ protob:
 
 protob-docker:
 	@docker run --rm -v $(shell pwd):/app -w /app \
-		registry.gitlab.com/thorchain/thornode:builder-v3@sha256:cd8a5f569e8978e7fdedb85039ddac3cf19cb5831c4823e9635b69c2b1ff6957 \
+		registry.gitlab.com/thorchain/thornode:builder-v4@sha256:a58b06a98485bcef78d7733cc6d66e8c62a306b1ec388a032469c592c5a71841 \
 		make protob
 
 smoke-protob:
@@ -82,7 +82,7 @@ smoke-protob:
 
 smoke-protob-docker:
 	@docker run --rm -v $(shell pwd):/app -w /app \
-		registry.gitlab.com/thorchain/thornode:builder-v3@sha256:cd8a5f569e8978e7fdedb85039ddac3cf19cb5831c4823e9635b69c2b1ff6957 \
+		registry.gitlab.com/thorchain/thornode:builder-v4@sha256:a58b06a98485bcef78d7733cc6d66e8c62a306b1ec388a032469c592c5a71841 \
 		sh -c 'make smoke-protob'
 
 $(SMOKE_PROTO_DIR):

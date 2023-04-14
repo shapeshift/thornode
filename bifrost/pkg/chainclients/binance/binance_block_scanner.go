@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -113,7 +113,7 @@ func (b *BinanceBlockScanner) GetHeight() (int64, error) {
 		}
 	}()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return 0, fmt.Errorf("fail to read resp body: %w", err)
 	}
@@ -148,7 +148,7 @@ func (b *BinanceBlockScanner) updateFees(height int64) error {
 		return fmt.Errorf("failed to get current gas fees: non 200 error (%d)", resp.StatusCode)
 	}
 
-	bz, err := ioutil.ReadAll(resp.Body)
+	bz, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -267,7 +267,7 @@ func (b *BinanceBlockScanner) getFromHTTP(url string) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code:%d from %s", resp.StatusCode, url)
 	}
-	buf, err := ioutil.ReadAll(resp.Body)
+	buf, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

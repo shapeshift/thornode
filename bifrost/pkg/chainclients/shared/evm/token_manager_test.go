@@ -3,7 +3,7 @@ package evm
 import (
 	_ "embed"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -47,7 +47,7 @@ var _ = Suite(&TokenManagerTestSuite{})
 
 func getTestEthClient(c *C) (*ethclient.Client, error) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		c.Assert(err, IsNil)
 		type RPCRequest struct {
 			JSONRPC string          `json:"jsonrpc"`

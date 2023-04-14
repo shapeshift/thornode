@@ -2,9 +2,9 @@ package binance
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"time"
 
@@ -406,7 +406,7 @@ func (s *BlockScannerTestSuite) TestFromStdTx(c *C) {
 }
 
 func httpTestHandler(c *C, rw http.ResponseWriter, fixture string) {
-	content, err := ioutil.ReadFile(fixture)
+	content, err := os.ReadFile(fixture)
 	if err != nil {
 		c.Fatal(err)
 	}
