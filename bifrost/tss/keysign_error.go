@@ -20,5 +20,5 @@ func NewKeysignError(blame types.Blame) KeysignError {
 
 // Error implement error interface
 func (k KeysignError) Error() string {
-	return fmt.Sprintf("fail to complete TSS keysign,reason:%s, culprit:%+v", k.Blame.FailReason, k.Blame.BlameNodes)
+	return fmt.Sprintf("fail to complete TSS keysign, reason:%s, round:%s, culprit:%+v", k.Blame.FailReason, k.Blame.Round, k.Blame.BlameNodes)
 }

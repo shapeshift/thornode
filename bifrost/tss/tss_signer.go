@@ -371,6 +371,7 @@ func (s *KeySign) toLocalTSSSigner(poolPubKey string, tasks []*tssKeySignTask) {
 	// copy blame to our own struct
 	blame := types.Blame{
 		FailReason: keySignResp.Blame.FailReason,
+		Round:      keySignResp.Blame.Round,
 		IsUnicast:  keySignResp.Blame.IsUnicast,
 		BlameNodes: make([]types.Node, len(keySignResp.Blame.BlameNodes)),
 	}

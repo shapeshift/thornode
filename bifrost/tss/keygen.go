@@ -101,6 +101,7 @@ func (kg *KeyGen) GenerateNewKey(keygenBlockHeight int64, pKeys common.PubKeys) 
 	blame := types.Blame{
 		FailReason: resp.Blame.FailReason,
 		IsUnicast:  resp.Blame.IsUnicast,
+		Round:      resp.Blame.Round,
 		BlameNodes: make([]types.Node, len(resp.Blame.BlameNodes)),
 	}
 	for i, n := range resp.Blame.BlameNodes {

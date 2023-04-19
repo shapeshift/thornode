@@ -169,7 +169,23 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (
 		ctx.Logger().Info("not having consensus yet, return")
 		return &cosmos.Result{}, nil
 	}
-	ctx.Logger().Info("has tss keysign consensus!!")
+	violaters := make([]string, len(msg.Blame.BlameNodes))
+	for i, node := range msg.Blame.BlameNodes {
+		violaters[i] = node.Pubkey
+	}
+	ctx.Logger().Info(
+		"has tss keysign consensus!!",
+		"reason", msg.Blame.FailReason,
+		"is_unicast", msg.Blame.IsUnicast,
+		"round", msg.Blame.Round,
+		"blame", strings.Join(violaters, ", "),
+	)
+
+	telemetry.IncrCounterWithLabels(
+		[]string{"thornode", "tss", "keysign", "failure"},
+		float32(1),
+		[]metrics.Label{telemetry.NewLabel("pubkey", msg.PubKey.String()), telemetry.NewLabel("round", msg.Blame.Round)},
+	)
 
 	h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)
 	voter.Signers = nil
