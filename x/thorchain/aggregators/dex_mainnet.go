@@ -15,6 +15,8 @@ func DexAggregators(version semver.Version) []Aggregator {
 		return []Aggregator{
 			// TSAggregatorVTHOR Ethereum V2
 			{common.ETHChain, `0x0581a9aB98c467dCA614C940104E6dD102BE5C7d`},
+			// TSAggregatorPancakeSwap Ethereum V2
+			{common.ETHChain, `0x35CF22003c90126528fbe95b21bB3ADB2ca8c53D`},
 			// TSAggregatorWoofi Avalanche V2
 			{common.AVAXChain, `0x5505BE604dFA8A1ad402A71f8A357fba47F9bf5a`},
 			// TSSwapGeneric Avalanche V2
