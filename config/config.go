@@ -378,6 +378,15 @@ type Thornode struct {
 	// NodeRelayURL is the URL of the node relay service.
 	NodeRelayURL string `mapstructure:"node_relay_url"`
 
+	// LogFilter will drop logs matching the modules and messages when not in debug level.
+	LogFilter struct {
+		// Modules is a list of modules to filter.
+		Modules []string `mapstructure:"modules"`
+
+		// Messages is a list of messages to filter.
+		Messages []string `mapstructure:"messages"`
+	} `mapstructure:"log_filter"`
+
 	AutoStateSync struct {
 		Enabled bool `mapstructure:"enabled"`
 

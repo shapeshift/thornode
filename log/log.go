@@ -5,6 +5,7 @@ import (
 
 	"github.com/rs/zerolog"
 	tmlog "github.com/tendermint/tendermint/libs/log"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 var _ tmlog.Logger = (*TendermintLogWrapper)(nil)
@@ -13,13 +14,15 @@ var _ tmlog.Logger = (*TendermintLogWrapper)(nil)
 // Tendermint's Logger interface.
 type TendermintLogWrapper struct {
 	zerolog.Logger
-	ExcludeModules []string
 }
 
 // Info implements Tendermint's Logger interface and logs with level INFO. A set
 // of key/value tuples may be provided to add context to the log. The number of
 // tuples must be even and the key of the tuple must be a string.
 func (z TendermintLogWrapper) Info(msg string, keyVals ...interface{}) {
+	if z.filter(msg) {
+		return
+	}
 	z.Logger.Info().Fields(getLogFields(keyVals...)).Msg(msg)
 }
 
@@ -27,6 +30,9 @@ func (z TendermintLogWrapper) Info(msg string, keyVals ...interface{}) {
 // of key/value tuples may be provided to add context to the log. The number of
 // tuples must be even and the key of the tuple must be a string.
 func (z TendermintLogWrapper) Error(msg string, keyVals ...interface{}) {
+	if z.filter(msg) {
+		return
+	}
 	z.Logger.Error().Fields(getLogFields(keyVals...)).Msg(msg)
 }
 
@@ -34,6 +40,9 @@ func (z TendermintLogWrapper) Error(msg string, keyVals ...interface{}) {
 // of key/value tuples may be provided to add context to the log. The number of
 // tuples must be even and the key of the tuple must be a string.
 func (z TendermintLogWrapper) Debug(msg string, keyVals ...interface{}) {
+	if z.filter(msg) {
+		return
+	}
 	z.Logger.Debug().Fields(getLogFields(keyVals...)).Msg(msg)
 }
 
@@ -41,12 +50,13 @@ func (z TendermintLogWrapper) Debug(msg string, keyVals ...interface{}) {
 // of key/value tuples. The number of tuples must be even and the key of the
 // tuple must be a string.
 func (z TendermintLogWrapper) With(keyVals ...interface{}) tmlog.Logger {
-	if len(keyVals)%2 != 0 {
+	// skip filtering modules if unexpected keyVals or debug level
+	if len(keyVals)%2 != 0 || z.Logger.GetLevel() <= zerolog.DebugLevel {
 		return TendermintLogWrapper{
-			Logger:         z.Logger.With().Fields(getLogFields(keyVals...)).Logger(),
-			ExcludeModules: z.ExcludeModules,
+			Logger: z.Logger.With().Fields(getLogFields(keyVals...)).Logger(),
 		}
 	}
+
 	for i := 0; i < len(keyVals); i += 2 {
 		name, ok := keyVals[i].(string)
 		if !ok {
@@ -59,18 +69,17 @@ func (z TendermintLogWrapper) With(keyVals ...interface{}) tmlog.Logger {
 		if !ok {
 			continue
 		}
-		for _, item := range z.ExcludeModules {
+		for _, item := range config.GetThornode().LogFilter.Modules {
 			if strings.EqualFold(item, value) {
 				return TendermintLogWrapper{
-					Logger:         z.Logger.Level(zerolog.WarnLevel).With().Fields(getLogFields(keyVals...)).Logger(),
-					ExcludeModules: z.ExcludeModules,
+					Logger: z.Logger.Level(zerolog.WarnLevel).With().Fields(getLogFields(keyVals...)).Logger(),
 				}
 			}
 		}
 	}
+
 	return TendermintLogWrapper{
-		Logger:         z.Logger.With().Fields(getLogFields(keyVals...)).Logger(),
-		ExcludeModules: z.ExcludeModules,
+		Logger: z.Logger.With().Fields(getLogFields(keyVals...)).Logger(),
 	}
 }
 
@@ -88,4 +97,15 @@ func getLogFields(keyVals ...interface{}) map[string]interface{} {
 	}
 
 	return fields
+}
+
+func (z TendermintLogWrapper) filter(msg string) bool {
+	if z.Logger.GetLevel() > zerolog.DebugLevel {
+		for _, filter := range config.GetThornode().LogFilter.Messages {
+			if filter == msg {
+				return true
+			}
+		}
+	}
+	return false
 }

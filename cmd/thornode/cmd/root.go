@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
@@ -100,7 +99,6 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig params.EncodingConfig) {
 }
 
 func addModuleInitFlags(startCmd *cobra.Command) {
-	startCmd.PersistentFlags().String("filter-modules", "mempool,consensus,txindex,evidence,rpc-server,api-server,p2p,pex,rpc", "filter out all the logs produced by the modules, multiple modules separate by comma")
 	startCmd.PreRunE = func(cmd *cobra.Command, _ []string) error {
 		serverCtx := server.GetServerContextFromCmd(cmd)
 
@@ -110,11 +108,9 @@ func addModuleInitFlags(startCmd *cobra.Command) {
 			return fmt.Errorf("fail to bind flags,err: %w", err)
 		}
 
-		filterModules := serverCtx.Viper.GetString("filter-modules")
 		if zw, ok := serverCtx.Logger.(server.ZeroLogWrapper); ok {
 			serverCtx.Logger = thorlog.TendermintLogWrapper{
-				Logger:         zw.Logger.With().CallerWithSkipFrameCount(3).Logger(),
-				ExcludeModules: strings.Split(filterModules, ","),
+				Logger: zw.Logger.With().CallerWithSkipFrameCount(3).Logger(),
 			}
 			return server.SetCmdServerContext(startCmd, serverCtx)
 		}

@@ -284,7 +284,7 @@ func run(path string) error {
 
 		// restart thornode
 		log.Debug().Msg("Restarting thornode")
-		thornode = exec.Command("thornode", "start", "--filter-modules=\"\"")
+		thornode = exec.Command("thornode", "start")
 		thornode.Stdout = os.Stdout
 		thornode.Stderr = os.Stderr
 		err = thornode.Start()

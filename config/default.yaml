@@ -137,6 +137,22 @@ bifrost:
 thor:
   node_relay_url: https://node-relay-bot.herokuapp.com
 
+  log_filter:
+    modules:
+      - api-server
+      - consensus
+      - evidence
+      - mempool
+      - p2p
+      - pex
+      - rpc
+      - rpc-server
+      - txindex
+      - x/bank
+    messages:
+      - executed block
+      - commit synced
+
   auto_state_sync:
     enabled: false
     block_buffer: 150_000
