@@ -155,6 +155,7 @@ var (
 	NewQueryLiquidityProvider      = types.NewQueryLiquidityProvider
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
 	NewQueryObservedTx             = types.NewQueryObservedTx
+	NewQueryPool                   = types.NewQueryPool
 	NewQuerySaver                  = types.NewQuerySaver
 	NewQueryTxOutItem              = types.NewQueryTxOutItem
 	NewQueryTxSigners              = types.NewQueryTxSigners
@@ -272,6 +273,7 @@ type (
 	QueryVaultPubKeyContract       = types.QueryVaultPubKeyContract
 	QueryNodeAccount               = types.QueryNodeAccount
 	QueryObservedTx                = types.QueryObservedTx
+	QueryPool                      = types.QueryPool
 	QueryTxOutItem                 = types.QueryTxOutItem
 	QueryTxSigners                 = types.QueryTxSigners
 	QueryTxStages                  = types.QueryTxStages
