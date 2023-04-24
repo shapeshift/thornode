@@ -772,6 +772,7 @@ func isLPPausedV1(ctx cosmos.Context, chain common.Chain, mgr Manager) bool {
 	return false
 }
 
+// gets the amount of USD that is equal to 1 RUNE (in other words, 1 RUNE's price in USD)
 func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 	version := mgr.GetVersion()
 	switch {
@@ -782,7 +783,6 @@ func DollarInRune(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 	}
 }
 
-// gets the amount of rune that is equal to 1 USD
 func DollarInRuneV102(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 	// check for mimir override
 	dollarInRune, err := mgr.Keeper().GetMimir(ctx, "DollarInRune")

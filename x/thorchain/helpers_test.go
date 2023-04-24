@@ -398,6 +398,21 @@ func (s *HelperSuite) TestDollarInRune(c *C) {
 
 	runeUSDPrice := telem(DollarInRune(ctx, mgr).QuoUint64(constants.DollarMulti))
 	c.Assert(runeUSDPrice, Equals, float32(8.300317))
+
+	// Now try with a second pool, identical depths.
+	mgr.Keeper().SetMimir(ctx, "TorAnchor-ETH-USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48", 1) // enable USDC pool as a TOR anchor
+	usdc, err := common.NewAsset("ETH.USDC-0XA0B86991C6218B36C1D19D4A2E9EB0CE3606EB48")
+	c.Assert(err, IsNil)
+	pool = NewPool()
+	pool.Asset = usdc
+	pool.Status = PoolAvailable
+	pool.BalanceRune = cosmos.NewUint(85515078103667)
+	pool.BalanceAsset = cosmos.NewUint(709802235538353)
+	pool.Decimals = 8
+	c.Assert(k.SetPool(ctx, pool), IsNil)
+
+	runeUSDPrice = telem(DollarInRune(ctx, mgr).QuoUint64(constants.DollarMulti))
+	c.Assert(runeUSDPrice, Equals, float32(8.300317))
 }
 
 func (s *HelperSuite) TestTelem(c *C) {

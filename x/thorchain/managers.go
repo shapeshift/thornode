@@ -325,6 +325,8 @@ func GetKeeper(version semver.Version, cdc codec.BinaryCodec, coinKeeper bankkee
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAccessor := constants.GetConstantValues(version)
 	switch {
+	case version.GTE(semver.MustParse("1.109.0")):
+		return newGasMgrV109(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.108.0")):
 		return newGasMgrV108(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.102.0")):
