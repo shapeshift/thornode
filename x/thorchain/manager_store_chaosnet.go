@@ -128,3 +128,22 @@ func migrateStoreV108(ctx cosmos.Context, mgr *Mgrs) {
 
 	requeueDanglingActionsV108(ctx, mgr, danglingInboundTxIDs)
 }
+
+func migrateStoreV109(ctx cosmos.Context, mgr *Mgrs) {
+	// Requeue ETH-chain dangling actions swallowed in a chain halt.
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v109", "error", err)
+		}
+	}()
+
+	danglingInboundTxIDs := []common.TxID{
+		"91C72EFCCF18AE043D036E2A207CC03A063E60024899E050AA7070EF15956BD7",
+		"8D17D78A9E3168B88EFDBC30C5ADB3B09459C981B784D8F63C931988295DFE3B",
+		"AD88EC612C188E62352F6157B26B97D76BD981744CE4C5AAC672F6338737F011",
+		"88FD1BE075C55F18E73DD176E82A870F93B0E4692D514C36C8BF23692B139DED",
+		"037254E2534D979FA196EC7B42C62A121B7A46D6854F9EC6FBE33C24B237EF0C",
+	}
+
+	requeueDanglingActionsV108(ctx, mgr, danglingInboundTxIDs)
+}

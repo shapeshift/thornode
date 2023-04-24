@@ -78,3 +78,6 @@ func migrateStoreV108(ctx cosmos.Context, mgr *Mgrs) {
 
 	requeueDanglingActionsV108(ctx, mgr, danglingInboundTxIDs)
 }
+
+// no op
+func migrateStoreV109(ctx cosmos.Context, mgr *Mgrs) {}
