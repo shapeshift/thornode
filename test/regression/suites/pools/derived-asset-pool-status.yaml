@@ -55,13 +55,10 @@ type: check
 description: there should be one THOR.BTC Available pool event emitted
 endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
-  - .begin|length == 2
   - .|[.begin[]|select(.type == "pool")]|length == 1
-  - .begin[0].type == "pool"
-  - .begin[0].pool == "THOR.BTC"
-  - .begin[0].pool_status == "Available"
-  - .begin[1].type == "pool_balance_change"
-  - .begin[1].reason == "derived pool adjustment"
+  - .begin[]|select(.type == "pool")|.type == "pool"
+  - .begin[]|select(.type == "pool")|.pool == "THOR.BTC"
+  - .begin[]|select(.type == "pool")|.pool_status == "Available"
 ---
 type: create-blocks
 count: 1
@@ -80,8 +77,7 @@ type: check
 description: there should be no pool event emitted
 endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
-  - .begin|length == 1
-  - .begin[0].type == "pool_balance_change"
+  - .|[.begin[]|select(.type == "pool")]|length == 0
 ---
 ########################################################################################
 # no longer allow THOR.BTC derived asset pool
@@ -108,8 +104,7 @@ type: check
 description: there should be no pool event emitted
 endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
-  - .begin|length == 1
-  - .begin[0].type == "pool_balance_change"
+  - .|[.begin[]|select(.type == "pool")]|length == 0
 ---
 ########################################################################################
 # expect the THOR.BTC pool to be suspended and emit only one Suspended status event
@@ -206,12 +201,10 @@ type: check
 description: there should be one THOR.BTC Available pool event emitted
 endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
-  - .begin|length == 2
   - .|[.begin[]|select(.type == "pool")]|length == 1
-  - .begin[0].type == "pool"
-  - .begin[0].pool == "THOR.BTC"
-  - .begin[0].pool_status == "Available"
-  - .begin[1].type == "pool_balance_change"
+  - .begin[]|select(.type == "pool")|.type == "pool"
+  - .begin[]|select(.type == "pool")|.pool == "THOR.BTC"
+  - .begin[]|select(.type == "pool")|.pool_status == "Available"
 ---
 type: create-blocks
 count: 1
@@ -230,5 +223,4 @@ type: check
 description: there should be no pool event emitted
 endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
-  - .begin|length == 1
-  - .begin[0].type == "pool_balance_change"
+  - .|[.begin[]|select(.type == "pool")]|length == 0
