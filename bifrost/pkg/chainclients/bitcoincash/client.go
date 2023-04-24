@@ -778,7 +778,7 @@ func (c *Client) isRBFEnabled(tx *btcjson.TxRawResult) bool {
 }
 
 func (c *Client) getTxIn(tx *btcjson.TxRawResult, height int64, isMemPool bool) (types.TxInItem, error) {
-	if c.ignoreTx(tx) {
+	if c.ignoreTx(tx, height) {
 		c.logger.Debug().Int64("height", height).Str("tx", tx.Hash).Msg("ignore tx not matching format")
 		return types.TxInItem{}, nil
 	}
@@ -902,14 +902,16 @@ func (c *Client) extractTxs(block *btcjson.GetBlockVerboseTxResult) (types.TxIn,
 // Rules to ignore a tx are:
 // - count vouts > 4
 // - count vouts with coins (value) > 2
-func (c *Client) ignoreTx(tx *btcjson.TxRawResult) bool {
+func (c *Client) ignoreTx(tx *btcjson.TxRawResult, height int64) bool {
 	if len(tx.Vin) == 0 || len(tx.Vout) == 0 || len(tx.Vout) > 4 {
 		return true
 	}
 	if tx.Vin[0].Txid == "" {
 		return true
 	}
-	if tx.LockTime > 0 {
+	// LockTime <= current height doesn't affect spendability,
+	// and most wallets for users doing Memoless Savers deposits automatically set LockTime to the current height.
+	if tx.LockTime > uint32(height) {
 		return true
 	}
 	countWithOutput := 0

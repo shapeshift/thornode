@@ -192,14 +192,14 @@ func (s *LitecoinSuite) TestFetchTxs(c *C) {
 	txs, err := s.client.FetchTxs(0, 0)
 	c.Assert(err, IsNil)
 	c.Assert(txs.Chain, Equals, common.LTCChain)
-	c.Assert(txs.Count, Equals, "13")
+	c.Assert(txs.Count, Equals, "102")
 	c.Assert(txs.TxArray[0].BlockHeight, Equals, int64(1696761))
 	c.Assert(txs.TxArray[0].Tx, Equals, "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2")
 	c.Assert(txs.TxArray[0].Sender, Equals, "tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm")
 	c.Assert(txs.TxArray[0].To, Equals, "mv4rnyY3Su5gjcDNzbMLKBQkBicCtHUtFB")
 	c.Assert(txs.TxArray[0].Coins.EqualsEx(common.Coins{common.NewCoin(common.LTCAsset, cosmos.NewUint(10000000))}), Equals, true)
 	c.Assert(txs.TxArray[0].Gas.Equals(common.Gas{common.NewCoin(common.LTCAsset, cosmos.NewUint(22705334))}), Equals, true)
-	c.Assert(len(txs.TxArray), Equals, 13)
+	c.Assert(len(txs.TxArray), Equals, 102)
 }
 
 func (s *LitecoinSuite) TestGetSender(c *C) {
@@ -270,6 +270,8 @@ func (s *LitecoinSuite) TestGetMemo(c *C) {
 }
 
 func (s *LitecoinSuite) TestIgnoreTx(c *C) {
+	var currentHeight int64 = 100
+
 	// valid tx that will NOT be ignored
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -294,7 +296,63 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored := s.client.ignoreTx(&tx)
+	ignored := s.client.ignoreTx(&tx, currentHeight)
+	c.Assert(ignored, Equals, false)
+
+	// tx with LockTime later than current height, so should be ignored
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Vout: 0,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				Value: 0.12345678,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
+				},
+			},
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
+					Type:      "nulldata",
+				},
+			},
+		},
+		LockTime: uint32(currentHeight) + 1,
+	}
+	ignored = s.client.ignoreTx(&tx, currentHeight)
+	c.Assert(ignored, Equals, true)
+
+	// tx with LockTime equal to current height, so should not be ignored
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Vout: 0,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				Value: 0.12345678,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
+				},
+			},
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Addresses: []string{"tltc1qjw8h4l3dtz5xxc7uyh5ys70qkezspgfus9tapm"},
+					Type:      "nulldata",
+				},
+			},
+		},
+		LockTime: uint32(currentHeight),
+	}
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, false)
 
 	// invalid tx missing Vout
@@ -307,7 +365,7 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 		},
 		Vout: []btcjson.Vout{},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx missing vout[0].Value == no coins
@@ -333,7 +391,7 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx missing vin[0].Txid means coinbase
@@ -359,7 +417,7 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx missing vin
@@ -380,7 +438,7 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx multiple vout[0].Addresses
@@ -409,7 +467,7 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx > 2 vout with coins we only expect 2 max
@@ -453,7 +511,7 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// valid tx == 2 vout with coins, 1 to vault, 1 with change back to user
@@ -489,7 +547,7 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, false)
 	// memo at first output should not ignore
 	tx = btcjson.TxRawResult{
@@ -524,7 +582,7 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, false)
 
 	// memo in the middle , should not ignore
@@ -560,7 +618,7 @@ func (s *LitecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, false)
 }
 

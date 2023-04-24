@@ -275,6 +275,8 @@ func (s *DogecoinSuite) TestGetMemo(c *C) {
 }
 
 func (s *DogecoinSuite) TestIgnoreTx(c *C) {
+	var currentHeight int64 = 100
+
 	// valid tx that will NOT be ignored
 	tx := btcjson.TxRawResult{
 		Vin: []btcjson.Vin{
@@ -299,7 +301,63 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored := s.client.ignoreTx(&tx)
+	ignored := s.client.ignoreTx(&tx, currentHeight)
+	c.Assert(ignored, Equals, false)
+
+	// tx with LockTime later than current height, so should be ignored
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Vout: 0,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				Value: 0.12345678,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+				},
+			},
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Type:      "nulldata",
+				},
+			},
+		},
+		LockTime: uint32(currentHeight) + 1,
+	}
+	ignored = s.client.ignoreTx(&tx, currentHeight)
+	c.Assert(ignored, Equals, true)
+
+	// tx with LockTime equal to current height, so should not be ignored
+	tx = btcjson.TxRawResult{
+		Vin: []btcjson.Vin{
+			{
+				Txid: "24ed2d26fd5d4e0e8fa86633e40faf1bdfc8d1903b1cd02855286312d48818a2",
+				Vout: 0,
+			},
+		},
+		Vout: []btcjson.Vout{
+			{
+				Value: 0.12345678,
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+				},
+			},
+			{
+				ScriptPubKey: btcjson.ScriptPubKeyResult{
+					Asm:       "OP_RETURN 74686f72636861696e3a636f6e736f6c6964617465",
+					Addresses: []string{"tb1qkq7weysjn6ljc2ywmjmwp8ttcckg8yyxjdz5k6"},
+					Type:      "nulldata",
+				},
+			},
+		},
+		LockTime: uint32(currentHeight),
+	}
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, false)
 
 	// invalid tx missing Vout
@@ -312,7 +370,7 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 		},
 		Vout: []btcjson.Vout{},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx missing vout[0].Value == no coins
@@ -338,7 +396,7 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx missing vin[0].Txid means coinbase
@@ -364,7 +422,7 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx missing vin
@@ -385,7 +443,7 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx multiple vout[0].Addresses
@@ -414,7 +472,7 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// invalid tx > 2 vout with coins we only expect 2 max
@@ -458,7 +516,7 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, true)
 
 	// valid tx == 2 vout with coins, 1 to vault, 1 with change back to user
@@ -494,7 +552,7 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, false)
 	// memo at first output should not ignore
 	tx = btcjson.TxRawResult{
@@ -529,7 +587,7 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, false)
 
 	// memo in the middle , should not ignore
@@ -565,7 +623,7 @@ func (s *DogecoinSuite) TestIgnoreTx(c *C) {
 			},
 		},
 	}
-	ignored = s.client.ignoreTx(&tx)
+	ignored = s.client.ignoreTx(&tx, currentHeight)
 	c.Assert(ignored, Equals, false)
 }
 
