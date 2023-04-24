@@ -215,11 +215,10 @@ func getHandlerTestWrapper(c *C, height int64, withActiveNode, withActieBNBPool 
 		p.LPUnits = cosmos.NewUint(100 * common.One)
 		c.Assert(mgr.Keeper().SetPool(ctx, p), IsNil)
 	}
-	constAccessor := mgr.GetConstants()
 
 	FundModule(c, ctx, mgr.Keeper(), AsgardName, 100000000)
 
-	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, constAccessor, nil), IsNil)
+	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, mgr, nil), IsNil)
 
 	return handlerTestWrapper{
 		ctx:                  ctx,

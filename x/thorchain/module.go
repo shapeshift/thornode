@@ -207,7 +207,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 		ctx.Logger().Error("fail to begin network manager", "error", err)
 	}
 	am.mgr.Slasher().BeginBlock(ctx, req, am.mgr.GetConstants())
-	if err := am.mgr.ValidatorMgr().BeginBlock(ctx, am.mgr.GetConstants(), existingValidators); err != nil {
+	if err := am.mgr.ValidatorMgr().BeginBlock(ctx, am.mgr, existingValidators); err != nil {
 		ctx.Logger().Error("Fail to begin block on validator", "error", err)
 	}
 }

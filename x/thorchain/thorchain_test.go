@@ -151,7 +151,7 @@ func (s *ThorchainSuite) TestChurn(c *C) {
 	rotateHeight := consts.GetInt64Value(constants.ChurnInterval) + vault.BlockHeight
 	ctx = ctx.WithBlockHeight(rotateHeight)
 	valMgr := newValidatorMgrV80(mgr.Keeper(), mgr.NetworkMgr(), mgr.TxOutStore(), mgr.EventMgr())
-	c.Assert(valMgr.BeginBlock(ctx, consts, existingValidators), IsNil)
+	c.Assert(valMgr.BeginBlock(ctx, mgr, existingValidators), IsNil)
 
 	// check we've created a keygen, with the correct members
 	keygenBlock, err := mgr.Keeper().GetKeygenBlock(ctx, ctx.BlockHeight())
@@ -527,7 +527,7 @@ func (s *ThorchainSuite) TestRagnarokNoOneLeave(c *C) {
 	currentHeight := ctx.BlockHeight()
 	migrateInterval := consts.GetInt64Value(constants.FundMigrationInterval)
 	ctx = ctx.WithBlockHeight(currentHeight + migrateInterval)
-	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, consts, nil), IsNil)
+	c.Assert(mgr.ValidatorMgr().BeginBlock(ctx, mgr, nil), IsNil)
 	mgr.TxOutStore().ClearOutboundItems(ctx)
 	c.Assert(mgr.ValidatorMgr().EndBlock(ctx, mgr), IsNil)
 }

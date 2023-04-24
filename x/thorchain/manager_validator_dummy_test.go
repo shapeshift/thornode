@@ -14,7 +14,7 @@ func NewValidatorDummyMgr() *ValidatorDummyMgr {
 	return &ValidatorDummyMgr{}
 }
 
-func (vm *ValidatorDummyMgr) BeginBlock(_ cosmos.Context, _ constants.ConstantValues, _ []string) error {
+func (vm *ValidatorDummyMgr) BeginBlock(_ cosmos.Context, _ Manager, _ []string) error {
 	return errKaboom
 }
 

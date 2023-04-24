@@ -35,7 +35,9 @@ func newValidatorMgrV92(k keeper.Keeper, networkMgr NetworkManager, txOutStore T
 }
 
 // BeginBlock when block begin
-func (vm *validatorMgrV92) BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues, existingValidators []string) error {
+func (vm *validatorMgrV92) BeginBlock(ctx cosmos.Context, mgr Manager, existingValidators []string) error {
+	constAccessor := mgr.GetConstants()
+
 	vm.existingValidators = existingValidators
 	height := ctx.BlockHeight()
 	if height == genesisBlockHeight {

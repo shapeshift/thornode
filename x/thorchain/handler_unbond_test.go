@@ -22,7 +22,7 @@ type BlankValidatorManager struct {
 	ValidatorDummyMgr
 }
 
-func (vm BlankValidatorManager) BeginBlock(_ cosmos.Context, _ constants.ConstantValues, _ []string) error {
+func (vm BlankValidatorManager) BeginBlock(_ cosmos.Context, _ Manager, _ []string) error {
 	return nil
 }
 

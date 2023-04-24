@@ -89,7 +89,7 @@ type ObserverManager interface {
 
 // ValidatorManager define the method to manage validators
 type ValidatorManager interface {
-	BeginBlock(ctx cosmos.Context, constAccessor constants.ConstantValues, existingValidators []string) error
+	BeginBlock(ctx cosmos.Context, mgr Manager, existingValidators []string) error
 	EndBlock(ctx cosmos.Context, mgr Manager) []abci.ValidatorUpdate
 	RequestYggReturn(ctx cosmos.Context, node NodeAccount, mgr Manager) error
 	processRagnarok(ctx cosmos.Context, mgr Manager) error
@@ -424,6 +424,8 @@ func GetNetworkManager(version semver.Version, keeper keeper.Keeper, txOutStore 
 // GetValidatorManager create a new instance of Validator Manager
 func GetValidatorManager(version semver.Version, keeper keeper.Keeper, networkMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.109.0")):
+		return newValidatorMgrV109(keeper, networkMgr, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.106.0")):
 		return newValidatorMgrV106(keeper, networkMgr, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.103.0")):
