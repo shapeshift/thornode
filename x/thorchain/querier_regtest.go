@@ -7,10 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	q "gitlab.com/thorchain/thornode/x/thorchain/query"
 )
 
@@ -38,8 +40,12 @@ func queryExport(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *
 }
 
 func queryBlockEvents(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	// get tendermint port from config
+	portSplit := strings.Split(config.GetThornode().Tendermint.RPC.ListenAddress, ":")
+	port := portSplit[len(portSplit)-1]
+
 	// get block results
-	res, err := http.Get(fmt.Sprintf("http://localhost:%d/block_results?height=%d", 26657, ctx.BlockHeight()))
+	res, err := http.Get(fmt.Sprintf("http://localhost:%s/block_results?height=%d", port, ctx.BlockHeight()))
 	if err != nil {
 		return nil, err
 	}

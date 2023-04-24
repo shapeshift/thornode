@@ -11,8 +11,8 @@ import (
 // Templates
 ////////////////////////////////////////////////////////////////////////////////////////
 
-// nativeTxIDs will be reset on each run and contains the native txids for all sent txs
-var nativeTxIDs = []string{}
+// nativeTxIDs are scoped to the routine and contain the native txids for all sent txs
+var nativeTxIDs = map[int][]string{}
 
 // templates contain all base templates referenced in tests
 var templates *template.Template
@@ -24,14 +24,7 @@ var funcMap = template.FuncMap{
 	},
 	"native_txid": func(i int) string {
 		// this will get double-rendered
-		if len(nativeTxIDs) == 0 {
-			return fmt.Sprintf("{{ native_txid %d }}", i)
-		}
-		// allow reverse indexing
-		if i < 0 {
-			i += len(nativeTxIDs) + 1
-		}
-		return nativeTxIDs[i-1]
+		return fmt.Sprintf("{{ native_txid %d }}", i)
 	},
 	"version": func() string {
 		return constants.Version

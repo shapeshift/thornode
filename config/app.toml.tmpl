@@ -111,7 +111,7 @@ enable = {{ .API.Enable }}
 swagger = false
 
 # Address defines the API server to listen on.
-address = "tcp://0.0.0.0:1317"
+address = "{{ .API.Address }}"
 
 # MaxOpenConnections defines the number of maximum open connections.
 max-open-connections = 1000
@@ -159,7 +159,7 @@ offline = false
 [grpc]
 
 # Enable defines if the gRPC server should be enabled.
-enable = true
+enable = false
 
 # Address defines the gRPC server address to bind to.
 address = "0.0.0.0:9090"
@@ -172,7 +172,7 @@ address = "0.0.0.0:9090"
 
 # GRPCWebEnable defines if the gRPC-web should be enabled.
 # NOTE: gRPC must also be enabled, otherwise, this configuration is a no-op.
-enable = true
+enable = false
 
 # Address defines the gRPC-web server address to bind to.
 address = "0.0.0.0:9091"

@@ -30,11 +30,7 @@ import (
 // Cosmos
 ////////////////////////////////////////////////////////////////////////////////////////
 
-var (
-	encodingConfig params.EncodingConfig
-	clientCtx      client.Context
-	txFactory      tx.Factory
-)
+var encodingConfig params.EncodingConfig
 
 func init() {
 	// initialize the bech32 prefix for testnet/mocknet
@@ -46,15 +42,18 @@ func init() {
 
 	// initialize the codec
 	encodingConfig = app.MakeEncodingConfig()
+}
 
+func clientContextAndFactory(routine int) (client.Context, tx.Factory) {
 	// create new rpc client
-	rpcClient, err := tmhttp.New("http://localhost:26657", "/websocket")
+	node := fmt.Sprintf("http://localhost:%d", 26657+routine)
+	rpcClient, err := tmhttp.New(node, "/websocket")
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create tendermint client")
 	}
 
 	// create cosmos-sdk client context
-	clientCtx = client.Context{
+	clientCtx := client.Context{
 		Client:            rpcClient,
 		ChainID:           "thorchain",
 		JSONCodec:         encodingConfig.Marshaler,
@@ -65,17 +64,20 @@ func init() {
 		SkipConfirm:       true,
 		TxConfig:          encodingConfig.TxConfig,
 		AccountRetriever:  authtypes.AccountRetriever{},
-		NodeURI:           "http://localhost:26657",
+		NodeURI:           node,
 		LegacyAmino:       encodingConfig.Amino,
 	}
 
 	// create tx factory
+	txFactory := tx.Factory{}
 	txFactory = txFactory.WithKeybase(clientCtx.Keyring)
 	txFactory = txFactory.WithTxConfig(clientCtx.TxConfig)
 	txFactory = txFactory.WithAccountRetriever(clientCtx.AccountRetriever)
 	txFactory = txFactory.WithChainID(clientCtx.ChainID)
 	txFactory = txFactory.WithGas(1e8)
 	txFactory = txFactory.WithSignMode(signing.SignMode_SIGN_MODE_DIRECT)
+
+	return clientCtx, txFactory
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

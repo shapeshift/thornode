@@ -121,7 +121,7 @@ lint:
 lint-ci:
 	@./scripts/lint.sh
 	@go run tools/analyze/main.go ./common/... ./constants/... ./x/...
-	@./scripts/trunk check --all --no-progress --monitor=false
+	@./scripts/trunk check --all --ci -j8
 	@./scripts/lint-versions.bash
 
 # ------------------------------ Testing ------------------------------
@@ -155,8 +155,8 @@ test-race:
 test-regression:
 	@DOCKER_BUILDKIT=1 docker build -t thornode-regtest -f ci/Dockerfile.regtest .
 	@docker run --rm ${DOCKER_TTY_ARGS} \
-		-e DEBUG -e RUN -e EXPORT -e TIME_FACTOR \
-		-e HOME=/regtest -e UID=$(shell id -u) -e GID=$(shell id -g) \
+		-e DEBUG -e RUN -e EXPORT -e TIME_FACTOR -e PARALLELISM \
+		-e UID=$(shell id -u) -e GID=$(shell id -g) \
 		-p 1317:1317 -p 26657:26657 \
 		-v $(shell pwd)/test/regression/mnt:/mnt \
 		-v $(shell pwd)/test/regression/suites:/app/test/regression/suites \

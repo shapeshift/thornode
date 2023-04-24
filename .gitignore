@@ -17,6 +17,8 @@ openapi/gen/
 test/smoke/thornode_proto
 test/regression/mnt/coverage
 __pycache__
+/.go
+/.cache
 
 # IDE
 .idea/

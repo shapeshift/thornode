@@ -328,8 +328,12 @@ func InitThornode(ctx context.Context) {
 	config.Thornode.Tendermint.P2P.Seeds = strings.Join(tmSeeds, ",")
 
 	// dynamically set rpc listen address
-	config.Thornode.Tendermint.RPC.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", rpcPort)
-	config.Thornode.Tendermint.P2P.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", p2pPort)
+	if config.Thornode.Tendermint.RPC.ListenAddress == "" {
+		config.Thornode.Tendermint.RPC.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", rpcPort)
+	}
+	if config.Thornode.Tendermint.P2P.ListenAddress == "" {
+		config.Thornode.Tendermint.P2P.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", p2pPort)
+	}
 
 	// set the Tendermint external address
 	if os.Getenv("EXTERNAL_IP") != "" {
@@ -421,8 +425,9 @@ type Thornode struct {
 		} `mapstructure:"telemetry"`
 
 		API struct {
-			Enable            bool `mapstructure:"enable"`
-			EnabledUnsafeCORS bool `mapstructure:"enabled_unsafe_cors"`
+			Enable            bool   `mapstructure:"enable"`
+			EnabledUnsafeCORS bool   `mapstructure:"enabled_unsafe_cors"`
+			Address           string `mapstructure:"address"`
 		} `mapstructure:"api"`
 
 		StateSync struct {

@@ -1,11 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 )
@@ -48,30 +52,86 @@ func main() {
 	// sort the files
 	sort.Strings(files)
 
+	// keep track of the results
+	mu := sync.Mutex{}
 	succeeded := []string{}
 	failed := []string{}
 
-	// run tests
-	for _, file := range files {
-		fmt.Println()
-
-		// run test
-		err := run(file)
+	// get parallelism from environment variable if DEBUG is not set
+	parallelism := 1
+	sem := make(chan struct{}, 1)
+	wg := sync.WaitGroup{}
+	if len(os.Getenv("PARALLELISM")) > 0 && len(os.Getenv("DEBUG")) == 0 {
+		parallelism, err = strconv.Atoi(os.Getenv("PARALLELISM"))
 		if err != nil {
-			failed = append(failed, file)
-			continue
+			log.Fatal().Err(err).Msg("failed to parse PARALLELISM")
 		}
-
-		// check export state
-		err = export(file)
-		if err != nil {
-			failed = append(failed, file)
-			continue
-		}
-
-		// success
-		succeeded = append(succeeded, file)
+		sem = make(chan struct{}, parallelism)
 	}
+	if parallelism > 1 {
+		log.Info().Int("parallelism", parallelism).Msg("running tests in parallel")
+	}
+
+	// run tests
+	for i, file := range files {
+		sem <- struct{}{}
+		wg.Add(1)
+
+		go func(routine int, file string) {
+			// create home directory
+			home := "/" + strconv.Itoa(routine)
+			_ = os.MkdirAll(home, 0o755)
+
+			// create a buffer to capture the logs
+			var out io.Writer = os.Stderr
+			buf := new(bytes.Buffer)
+			if parallelism > 1 {
+				out = buf
+			}
+
+			// release semaphore and wait group
+			defer func() {
+				<-sem
+				wg.Done()
+
+				// write buffer to outputs
+				mu.Lock()
+				if parallelism > 1 {
+					fmt.Println(buf.String())
+				}
+				mu.Unlock()
+			}()
+
+			// run test
+			if parallelism == 1 {
+				fmt.Println()
+			}
+			err = run(out, file, routine)
+			if err != nil {
+				mu.Lock()
+				failed = append(failed, file)
+				mu.Unlock()
+				return
+			}
+
+			// check export state
+			err = export(out, file, routine)
+			if err != nil {
+				mu.Lock()
+				failed = append(failed, file)
+				mu.Unlock()
+				return
+			}
+
+			// success
+			mu.Lock()
+			succeeded = append(succeeded, file)
+			mu.Unlock()
+		}(i, file)
+	}
+
+	// wait for all tests to finish
+	wg.Wait()
 
 	// print the results
 	fmt.Println()

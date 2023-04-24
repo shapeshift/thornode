@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 func deepMerge(a, b map[string]any) map[string]any {
@@ -34,11 +36,11 @@ func deepMerge(a, b map[string]any) map[string]any {
 	return result
 }
 
-func dumpLogs(logs chan string) {
+func dumpLogs(out io.Writer, logs chan string) {
 	for {
 		select {
 		case line := <-logs:
-			fmt.Println(ColorPurple + ">>> " + ColorReset + line)
+			_, _ = out.Write([]byte(line + "\n"))
 			continue
 		default:
 		}
@@ -77,4 +79,8 @@ func getTimeFactor() time.Duration {
 		return time.Duration(1)
 	}
 	return time.Duration(tf)
+}
+
+func consoleLogger(w io.Writer) zerolog.Logger {
+	return zerolog.New(zerolog.ConsoleWriter{Out: w}).With().Timestamp().Caller().Logger()
 }

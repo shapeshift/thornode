@@ -199,6 +199,12 @@ Setting `EXPORT=1` will force overwrite the exported genesis after the test:
 EXPORT=1 make test-regression
 ```
 
+Setting `PARALLELISM=<parallelism>` will run tests with the provided parallelism.
+
+```bash
+PARALLELISM=4 make test-regression
+```
+
 ### Conventions
 
 We attempt to seed pools based on the following value ratios to keep reasoning simpler:

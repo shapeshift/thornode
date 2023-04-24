@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
@@ -20,20 +22,24 @@ import (
 // Export
 ////////////////////////////////////////////////////////////////////////////////////////
 
-func export(path string) error {
+func export(out io.Writer, path string, routine int) error {
+	localLog := consoleLogger(out)
+	home := "/" + strconv.Itoa(routine)
+
 	// export state
-	log.Debug().Msg("Exporting state")
+	localLog.Debug().Msg("Exporting state")
 	cmd := exec.Command("thornode", "export")
-	out, err := cmd.CombinedOutput()
+	cmd.Env = append(os.Environ(), "HOME="+home)
+	exportOut, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to export state")
 	}
 
 	// decode export
 	var export map[string]any
-	err = json.Unmarshal(out, &export)
+	err = json.Unmarshal(exportOut, &export)
 	if err != nil {
-		fmt.Println(string(out))
+		fmt.Println(string(exportOut))
 		log.Fatal().Err(err).Msg("failed to decode export")
 	}
 
@@ -52,7 +58,7 @@ func export(path string) error {
 	}
 
 	// encode export
-	out, err = json.MarshalIndent(export, "", "  ")
+	exportOut, err = json.MarshalIndent(export, "", "  ")
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to encode export")
 	}
@@ -67,11 +73,11 @@ func export(path string) error {
 	exportExists := err == nil
 
 	// check export invariants
-	err = checkExportInvariants(export)
+	err = checkExportInvariants(out, export)
 	if err != nil {
 		// also log export changes for easier debugging
 		if exportExists {
-			_ = checkExportChanges(export, exportPath)
+			_ = checkExportChanges(out, export, exportPath)
 		}
 
 		return err
@@ -79,24 +85,26 @@ func export(path string) error {
 
 	// export if it none exists or EXPORT is set
 	if !exportExists || os.Getenv("EXPORT") != "" {
-		log.Debug().Msg("Writing export")
-		err = os.WriteFile(exportPath, out, 0o600)
+		localLog.Debug().Msg("Writing export")
+		err = os.WriteFile(exportPath, exportOut, 0o600)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to write export")
 		}
 		return nil
 	}
 
-	return checkExportChanges(export, exportPath)
+	return checkExportChanges(out, export, exportPath)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Checks
 ////////////////////////////////////////////////////////////////////////////////////////
 
-func checkExportInvariants(genesis map[string]any) error {
+func checkExportInvariants(out io.Writer, genesis map[string]any) error {
+	localLog := consoleLogger(out)
+
 	// check export invariants
-	log.Debug().Msg("Checking export invariants")
+	localLog.Debug().Msg("Checking export invariants")
 	appState, _ := genesis["app_state"].(map[string]any)
 
 	// encode thorchain state to json for custom unmarshal
@@ -163,9 +171,11 @@ func checkExportInvariants(genesis map[string]any) error {
 	return err
 }
 
-func checkExportChanges(newExport map[string]any, path string) error {
+func checkExportChanges(out io.Writer, newExport map[string]any, path string) error {
+	localLog := consoleLogger(out)
+
 	// compare existing export
-	log.Debug().Msg("Reading existing export")
+	localLog.Debug().Msg("Reading existing export")
 
 	// open existing export
 	f, err := os.Open(path)
@@ -178,17 +188,17 @@ func checkExportChanges(newExport map[string]any, path string) error {
 	oldExport := map[string]any{}
 	err = json.NewDecoder(f).Decode(&oldExport)
 	if err != nil {
-		log.Err(err).Msg("failed to decode existing export")
+		localLog.Err(err).Msg("failed to decode existing export")
 	}
 
 	// compare exports
 	log.Debug().Msg("Comparing exports")
 	diff := cmp.Diff(oldExport, newExport)
 	if diff != "" {
-		log.Error().Msgf("exports differ: %s", diff)
+		localLog.Error().Msgf("exports differ: %s", diff)
 		return errors.New("exports differ")
 	}
 
-	log.Info().Msg("State export matches expected")
+	localLog.Info().Msg("State export matches expected")
 	return nil
 }

@@ -49,7 +49,7 @@ bifrost:
   tss:
     rendezvous: asgard
     p2p_port: 5040
-    info_address: ":6040"
+    info_address: :6040
     bootstrap_peers: ""
     external_ip: ""
     max_keyshare_recover_scan_blocks: 100
@@ -158,8 +158,8 @@ thor:
     block_buffer: 150_000
     peers:
       # NOTE: These are peers for auto state sync on mainnet only.
-      - "c3613862c2608b3e861406ad02146f41cf5124e6@statesync-seed.ninerealms.com:27146"
-      - "dbd1730bff1e8a21aad93bc6083209904d483185@statesync-seed-2.ninerealms.com:27146"
+      - c3613862c2608b3e861406ad02146f41cf5124e6@statesync-seed.ninerealms.com:27146
+      - dbd1730bff1e8a21aad93bc6083209904d483185@statesync-seed-2.ninerealms.com:27146
   api:
     limit_count: 60
     limit_duration: 1m
@@ -173,6 +173,7 @@ thor:
     api:
       enable: true
       enabled_unsafe_cors: true
+      address: tcp://0.0.0.0:1317
     state_sync:
       snapshot_interval: 0
       snapshot_keep_recent: 2
@@ -181,11 +182,11 @@ thor:
       level: info
       format: plain
     rpc:
-      listen_address: "<set-dynamically>"
+      listen_address: "" # set dynamically
       cors_allowed_origin: "*"
     p2p:
-      listen_address: "<set-dynamically>"
-      seeds: "<set-dynamically>"
+      listen_address: "" # set dynamically
+      seeds: "" # set dynamically
       external_address: ""
       persistent_peers: ""
       addr_book_strict: false
@@ -203,9 +204,9 @@ thor:
       # The thorchain.info RPC is unreliable, so Nine Realms will be the trusted source
       # until someone from the community hosts another. This must be an archive node for
       # historical height verification.
-      rpc_servers: "https://rpc-v1.ninerealms.com:443,https://rpc-v1.ninerealms.com:443"
+      rpc_servers: https://rpc-v1.ninerealms.com:443,https://rpc-v1.ninerealms.com:443
       trust_height: 0
       trust_hash: ""
-      trust_period: "360h0m0s"
+      trust_period: 360h0m0s
     instrumentation:
       prometheus: true

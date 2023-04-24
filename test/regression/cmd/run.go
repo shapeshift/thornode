@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"text/template"
 	"time"
@@ -22,40 +23,63 @@ import (
 // Run
 ////////////////////////////////////////////////////////////////////////////////////////
 
-func run(path string) error {
-	log.Info().Msgf("Running regression test: %s", path)
+func run(out io.Writer, path string, routine int) error {
+	localLog := consoleLogger(out)
 
-	// reset native txids
-	nativeTxIDs = nativeTxIDs[:0]
+	home := "/" + strconv.Itoa(routine)
+	localLog.Info().Msgf("Running regression test: %s", path)
 
 	// clear data directory
-	log.Debug().Msg("Clearing data directory")
-	out, err := exec.Command("rm", "-rf", "/regtest/.thornode").CombinedOutput()
+	localLog.Debug().Msg("Clearing data directory")
+	thornodePath := filepath.Join(home, ".thornode")
+	cmdOut, err := exec.Command("rm", "-rf", thornodePath).CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
+		fmt.Println(string(cmdOut))
 		log.Fatal().Err(err).Msg("failed to clear data directory")
 	}
 
+	// use same environment for all commands
+	env := []string{
+		"HOME=" + home,
+		"THOR_TENDERMINT_INSTRUMENTATION_PROMETHEUS=false",
+		// block time should be short, but all consecutive checks must complete within timeout
+		fmt.Sprintf("THOR_TENDERMINT_CONSENSUS_TIMEOUT_COMMIT=%s", time.Second*getTimeFactor()),
+		// all ports will be offset by the routine number
+		fmt.Sprintf("THOR_COSMOS_API_ADDRESS=tcp://0.0.0.0:%d", 1317+routine),
+		fmt.Sprintf("THOR_TENDERMINT_RPC_LISTEN_ADDRESS=tcp://0.0.0.0:%d", 26657+routine),
+		fmt.Sprintf("THOR_TENDERMINT_P2P_LISTEN_ADDRESS=tcp://0.0.0.0:%d", 27000+routine),
+		"CREATE_BLOCK_PORT=" + strconv.Itoa(8080+routine),
+		"GOCOVERDIR=/mnt/coverage",
+	}
+
+	// if DEBUG is set also output thornode debug logs
+	if os.Getenv("DEBUG") != "" {
+		env = append(env, "THOR_TENDERMINT_LOG_LEVEL=debug")
+	}
+
 	// init chain with dog mnemonic
-	log.Debug().Msg("Initializing chain")
+	localLog.Debug().Msg("Initializing chain")
 	cmd := exec.Command("thornode", "init", "local", "--chain-id", "thorchain", "--recover")
 	cmd.Stdin = bytes.NewBufferString(dogMnemonic + "\n")
-	out, err = cmd.CombinedOutput()
+	cmd.Env = env
+	cmdOut, err = cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
+		fmt.Println(string(cmdOut))
 		log.Fatal().Err(err).Msg("failed to initialize chain")
 	}
 
 	// init chain
-	log.Debug().Msg("Initializing chain")
+	localLog.Debug().Msg("Initializing chain")
 	cmd = exec.Command("thornode", "init", "local", "--chain-id", "thorchain", "-o")
-	out, err = cmd.CombinedOutput()
+	cmd.Env = env
+	cmdOut, err = cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
+		fmt.Println(string(cmdOut))
 		log.Fatal().Err(err).Msg("failed to initialize chain")
 	}
 
-	// clone common templates
+	// create routine local state (used later by custom template functions in operations)
+	nativeTxIDs[routine] = []string{}
 	tmpls := template.Must(templates.Clone())
 
 	// ensure no naming collisions
@@ -117,7 +141,7 @@ func run(path string) error {
 
 		// warn empty operations
 		if len(op) == 0 {
-			log.Warn().Msg("empty operation, line numbers may be wrong")
+			localLog.Warn().Msg("empty operation, line numbers may be wrong")
 			continue
 		}
 
@@ -135,7 +159,7 @@ func run(path string) error {
 	// warn if no operations found
 	if len(ops) == 0 {
 		err = errors.New("no operations found")
-		log.Err(err).Msg("")
+		localLog.Err(err).Msg("")
 		return err
 	}
 
@@ -143,8 +167,8 @@ func run(path string) error {
 	stateOpCount := 0
 	for i, op := range ops {
 		if _, ok := op.(*OpState); ok {
-			log.Info().Int("line", opLines[i]).Msgf(">>> [%d] %s", i+1, op.OpType())
-			err = op.Execute(nil, nil)
+			localLog.Info().Int("line", opLines[i]).Msgf(">>> [%d] %s", i+1, op.OpType())
+			err = op.Execute(out, routine, cmd.Process, nil)
 			if err != nil {
 				log.Fatal().Err(err).Msg("failed to execute state operation")
 			}
@@ -155,13 +179,14 @@ func run(path string) error {
 	opLines = opLines[stateOpCount:]
 
 	// validate genesis
-	log.Debug().Msg("Validating genesis")
+	localLog.Debug().Msg("Validating genesis")
 	cmd = exec.Command("thornode", "validate-genesis")
-	out, err = cmd.CombinedOutput()
+	cmd.Env = env
+	cmdOut, err = cmd.CombinedOutput()
 	if err != nil {
 		// dump the genesis
 		fmt.Println(ColorPurple + "Genesis:" + ColorReset)
-		f, err := os.OpenFile("/regtest/.thornode/config/genesis.json", os.O_RDWR, 0o644)
+		f, err := os.OpenFile(filepath.Join(home, ".thornode/config/genesis.json"), os.O_RDWR, 0o644)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to open genesis file")
 		}
@@ -172,23 +197,23 @@ func run(path string) error {
 		f.Close()
 
 		// dump error and exit
-		fmt.Println(string(out))
+		fmt.Println(string(cmdOut))
 		log.Fatal().Err(err).Msg("genesis validation failed")
 	}
 
 	// render config
-	log.Debug().Msg("Rendering config")
+	localLog.Debug().Msg("Rendering config")
 	cmd = exec.Command("thornode", "render-config")
-	// block time should be short, but all consecutive checks must complete within timeout
-	cmd.Env = append(os.Environ(), fmt.Sprintf("THOR_TENDERMINT_CONSENSUS_TIMEOUT_COMMIT=%s", time.Second*getTimeFactor()))
+	cmd.Env = env
 	err = cmd.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to render config")
 	}
 
 	// overwrite private validator key
-	log.Debug().Msg("Overwriting private validator key")
-	cmd = exec.Command("cp", "/mnt/priv_validator_key.json", "/regtest/.thornode/config/priv_validator_key.json")
+	localLog.Debug().Msg("Overwriting private validator key")
+	keyPath := filepath.Join(home, ".thornode/config/priv_validator_key.json")
+	cmd = exec.Command("cp", "/mnt/priv_validator_key.json", keyPath)
 	err = cmd.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to overwrite private validator key")
@@ -196,7 +221,8 @@ func run(path string) error {
 
 	// setup process io
 	thornode := exec.Command("/regtest/cover-thornode", "start")
-	thornode.Env = append(os.Environ(), "GOCOVERDIR=/mnt/coverage")
+	thornode.Env = env
+
 	stderr, err := thornode.StderrPipe()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to setup thornode stderr")
@@ -214,51 +240,51 @@ func run(path string) error {
 	}
 
 	// start thornode process
-	log.Debug().Msg("Starting thornode")
+	localLog.Debug().Msg("Starting thornode")
 	err = thornode.Start()
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to start thornode")
 	}
 
 	// wait for thornode to listen on block creation port
+	time.Sleep(time.Second)
 	for i := 0; ; i++ {
+		if i%100 == 0 {
+			localLog.Debug().Msg("Waiting for thornode to listen")
+		}
 		time.Sleep(100 * time.Millisecond)
-		conn, err := net.Dial("tcp", "localhost:8080")
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", 8080+routine))
 		if err == nil {
 			conn.Close()
 			break
-		}
-		if i%100 == 0 {
-			log.Debug().Msg("Waiting for thornode to listen")
 		}
 	}
 
 	// run the operations
 	var returnErr error
-	log.Info().Msgf("Executing %d operations", len(ops))
+	localLog.Info().Msgf("Executing %d operations", len(ops))
 	for i, op := range ops {
-		log.Info().Int("line", opLines[i]).Msgf(">>> [%d] %s", stateOpCount+i+1, op.OpType())
-		returnErr = op.Execute(thornode.Process, stderrLines)
+		localLog.Info().Int("line", opLines[i]).Msgf(">>> [%d] %s", stateOpCount+i+1, op.OpType())
+		returnErr = op.Execute(out, routine, thornode.Process, stderrLines)
 		if returnErr != nil {
-			log.Error().Err(returnErr).
+			localLog.Error().Err(returnErr).
 				Int("line", opLines[i]).
 				Int("op", stateOpCount+i+1).
 				Str("type", op.OpType()).
 				Str("path", path).
 				Msg("operation failed")
-			fmt.Println()
-			dumpLogs(stderrLines)
+			dumpLogs(out, stderrLines)
 			break
 		}
 	}
 
 	// log success
 	if returnErr == nil {
-		log.Info().Msg("All operations succeeded")
+		localLog.Info().Msg("All operations succeeded")
 	}
 
 	// stop thornode process
-	log.Debug().Msg("Stopping thornode")
+	localLog.Debug().Msg("Stopping thornode")
 	err = thornode.Process.Signal(syscall.SIGUSR1)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to stop thornode")
@@ -274,17 +300,18 @@ func run(path string) error {
 	if returnErr != nil && os.Getenv("DEBUG") != "" {
 
 		// remove validator key (otherwise thornode will hang in begin block)
-		log.Debug().Msg("Removing validator key")
-		cmd = exec.Command("rm", "/regtest/.thornode/config/priv_validator_key.json")
-		out, err = cmd.CombinedOutput()
+		localLog.Debug().Msg("Removing validator key")
+		cmd = exec.Command("rm", keyPath)
+		cmdOut, err = cmd.CombinedOutput()
 		if err != nil {
-			fmt.Println(string(out))
+			fmt.Println(string(cmdOut))
 			log.Fatal().Err(err).Msg("failed to remove validator key")
 		}
 
 		// restart thornode
-		log.Debug().Msg("Restarting thornode")
+		localLog.Debug().Msg("Restarting thornode")
 		thornode = exec.Command("thornode", "start")
+		thornode.Env = env
 		thornode.Stdout = os.Stdout
 		thornode.Stderr = os.Stderr
 		err = thornode.Start()
@@ -293,7 +320,7 @@ func run(path string) error {
 		}
 
 		// wait for thornode
-		log.Debug().Msg("Waiting for thornode")
+		localLog.Debug().Msg("Waiting for thornode")
 		_, err = thornode.Process.Wait()
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to wait for thornode")

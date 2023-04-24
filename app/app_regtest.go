@@ -5,6 +5,9 @@ package app
 
 import (
 	"net/http"
+	"os"
+
+	"github.com/rs/zerolog/log"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -22,7 +25,13 @@ func init() {
 		<-end
 	}
 	http.HandleFunc("/newBlock", newBlock)
-	go http.ListenAndServe(":8080", nil)
+	portString := os.Getenv("CREATE_BLOCK_PORT")
+	go func() {
+		err := http.ListenAndServe(":"+portString, nil)
+		if err != nil {
+			log.Fatal().Err(err).Msg("fail to start http server")
+		}
+	}()
 }
 
 func (app *THORChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
