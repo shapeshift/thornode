@@ -85,6 +85,7 @@ lint:
     - chaosnet-multichain
   before_script:
     - rm -rf ~/.cache
+    - mkdir -p .cache
     - mv .cache ~/.cache
     - git fetch origin develop
   script:
