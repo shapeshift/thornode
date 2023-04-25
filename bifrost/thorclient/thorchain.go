@@ -213,6 +213,11 @@ func (b *ThorchainBridge) PostKeysignFailure(blame stypes.Blame, height int64, m
 	defer func() {
 		b.m.GetHistograms(metrics.SignToThorchainDuration).Observe(time.Since(start).Seconds())
 	}()
+
+	if blame.IsEmpty() {
+		// MsgTssKeysignFail will fail validation if having no FailReason.
+		blame.FailReason = "no fail reason available"
+	}
 	msg, err := stypes.NewMsgTssKeysignFail(height, blame, memo, coins, b.keys.GetSignerInfo().GetAddress(), pubkey)
 	if err != nil {
 		return common.BlankTxID, fmt.Errorf("fail to create keysign fail message: %w", err)
