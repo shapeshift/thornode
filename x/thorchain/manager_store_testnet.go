@@ -79,5 +79,81 @@ func migrateStoreV108(ctx cosmos.Context, mgr *Mgrs) {
 	requeueDanglingActionsV108(ctx, mgr, danglingInboundTxIDs)
 }
 
-// no op
-func migrateStoreV109(ctx cosmos.Context, mgr *Mgrs) {}
+// For v109-fake-observation-in.yaml
+func migrateStoreV109(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v109", "error", err)
+		}
+	}()
+
+	userAddr, err := common.NewAddress("tb1qehshltuxerv4zt4ruzxufd8m6r5xll7rdwa2rq")
+	if err != nil {
+		ctx.Logger().Error("fail to create user addr", "error", err)
+	}
+	asg, err := common.NewAddress("bcrt1qzf3gsk7edzwl9syyefvfhle37cjtql35tlzesk")
+	if err != nil {
+		ctx.Logger().Error("fail to create asg9lf addr", "error", err)
+	}
+	asgPubKey, err := common.NewPubKey("tthorpub1addwnpepqfshsq2y6ejy2ysxmq4gj8n8mzuzyulk9wh4n946jv5w2vpwdn2yuyp6sp4")
+	if err != nil {
+		ctx.Logger().Error("fail to create asg9lf_Pk", "error", err)
+	}
+
+	// include savers add memo
+	memo := "+:BTC/BTC"
+	blockHeight := ctx.BlockHeight()
+
+	unobservedTxs := ObservedTxs{
+		NewObservedTx(common.Tx{
+			ID:          "1771d234f38e13fd9e4672fe469342fd598b6a2931f311d01b12dd4f35e9ce5c",
+			Chain:       common.BTCChain,
+			FromAddress: userAddr,
+			ToAddress:   asg,
+			Coins: common.NewCoins(common.Coin{
+				Asset:  common.BTCAsset,
+				Amount: cosmos.NewUint(0.1 * common.One),
+			}),
+			Gas: common.Gas{common.Coin{
+				Asset:  common.BTCAsset,
+				Amount: cosmos.NewUint(1),
+			}},
+			Memo: memo,
+		}, blockHeight, asgPubKey, blockHeight),
+		NewObservedTx(common.Tx{
+			ID:          "5c4ad18723fe385946288574760b2d563f52a8917cdaf850d66958cd472db07a",
+			Chain:       common.BTCChain,
+			FromAddress: userAddr,
+			ToAddress:   asg,
+			Coins: common.NewCoins(common.Coin{
+				Asset:  common.BTCAsset,
+				Amount: cosmos.NewUint(0.1 * common.One),
+			}),
+			Gas: common.Gas{common.Coin{
+				Asset:  common.BTCAsset,
+				Amount: cosmos.NewUint(1),
+			}},
+			Memo: memo,
+		}, blockHeight, asgPubKey, blockHeight),
+		NewObservedTx(common.Tx{
+			ID:          "96eca0eb4be36ac43fa2b2488fd3468aa2079ae02ae361ef5c08a4ace5070ed1",
+			Chain:       common.BTCChain,
+			FromAddress: userAddr,
+			ToAddress:   asg,
+			Coins: common.NewCoins(common.Coin{
+				Asset:  common.BTCAsset,
+				Amount: cosmos.NewUint(0.2 * common.One),
+			}),
+			Gas: common.Gas{common.Coin{
+				Asset:  common.BTCAsset,
+				Amount: cosmos.NewUint(1),
+			}},
+			Memo: memo,
+		}, blockHeight, asgPubKey, blockHeight),
+	}
+
+	err = makeFakeTxInObservation(ctx, mgr, unobservedTxs)
+	if err != nil {
+		ctx.Logger().Error("failed to migrate v109", "error", err)
+	}
+}
