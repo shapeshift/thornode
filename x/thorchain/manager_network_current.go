@@ -747,11 +747,13 @@ func (vm *NetworkMgrV109) addPOLLiquidity(
 ) error {
 	handler := NewInternalHandler(mgr)
 
-	move := synthPerPoolDepth.Sub(targetSynthPerPoolDepth)
+	// NOTE: move is in hundredths of a basis point
+	move := synthPerPoolDepth.Sub(targetSynthPerPoolDepth).MulUint64(100)
 	if move.GT(maxMovement) {
 		move = maxMovement
 	}
-	runeAmt := common.GetSafeShare(move, cosmos.NewUint(10_000), pool.BalanceRune)
+
+	runeAmt := common.GetSafeShare(move, cosmos.NewUint(1000_000), pool.BalanceRune)
 	if runeAmt.IsZero() {
 		return nil
 	}
@@ -797,11 +799,13 @@ func (vm *NetworkMgrV109) removePOLLiquidity(
 		return nil
 	}
 
-	move := targetSynthPerPoolDepth.Sub(synthPerPoolDepth)
+	// NOTE: move is in hundredths of a basis point
+	move := targetSynthPerPoolDepth.Sub(synthPerPoolDepth).MulUint64(100)
 	if move.GT(maxMovement) {
 		move = maxMovement
 	}
-	runeAmt := common.GetSafeShare(move, cosmos.NewUint(10_000), pool.BalanceRune)
+
+	runeAmt := common.GetSafeShare(move, cosmos.NewUint(1000_000), pool.BalanceRune)
 	if runeAmt.IsZero() {
 		return nil
 	}

@@ -76,7 +76,7 @@ func NewConstantValue() *ConstantVals {
 			PoolDepthForYggFundingMin:           500_000_00000000,   // the minimum pool depth in RUNE required for ygg funding
 			MaxNodeToChurnOutForLowVersion:      1,                  // the maximum number of nodes to churn out for low version per churn
 			POLMaxNetworkDeposit:                0,                  // Maximum amount of rune deposited into the pools
-			POLMaxPoolMovement:                  100,                // Maximum amount of rune to enter/exit a pool per iteration. This is in basis points of the pool rune depth
+			POLMaxPoolMovement:                  100,                // Maximum amount of rune to enter/exit a pool per iteration - 1 equals one hundredth of a basis point of pool rune depth
 			POLSynthUtilization:                 0,                  // TODO: remove me on hard fork
 			POLTargetSynthPerPoolDepth:          0,                  // target synth per pool depth for POL (basis points)
 			POLBuffer:                           0,                  // buffer around the POL synth utilization (basis points added to/subtracted from POLTargetSynthPerPoolDepth basis points)
