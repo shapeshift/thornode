@@ -60,7 +60,7 @@ func NewSigner(cfg config.BifrostSignerConfiguration,
 	m *metrics.Metrics,
 	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr,
 ) (*Signer, error) {
-	storage, err := NewSignerStore(cfg.SignerDbPath, thorchainBridge.GetConfig().SignerPasswd)
+	storage, err := NewSignerStore(cfg.SignerDbPath, cfg.LevelDB, thorchainBridge.GetConfig().SignerPasswd)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create thorchain scan storage: %w", err)
 	}

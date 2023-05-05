@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 )
 
@@ -19,7 +20,7 @@ func (s *StorageSuite) SetUpSuite(c *C) {
 }
 
 func (s *StorageSuite) TestStorage(c *C) {
-	store, err := NewSignerStore("", "my secret passphrase")
+	store, err := NewSignerStore("", config.LevelDBOptions{}, "my secret passphrase")
 	c.Assert(err, IsNil)
 
 	item := NewTxOutStoreItem(12, types.TxOutItem{Memo: "foo"}, 1)

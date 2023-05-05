@@ -150,7 +150,7 @@ func NewCosmosClient(
 	if len(c.cfg.BlockScanner.DBPath) > 0 {
 		path = fmt.Sprintf("%s/%s", c.cfg.BlockScanner.DBPath, c.cfg.BlockScanner.ChainID)
 	}
-	c.storage, err = blockscanner.NewBlockScannerStorage(path)
+	c.storage, err = blockscanner.NewBlockScannerStorage(path, c.cfg.ScannerLevelDB)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create scan storage: %w", err)
 	}

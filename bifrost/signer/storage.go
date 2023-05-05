@@ -4,19 +4,19 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/storage"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
+	"gitlab.com/thorchain/thornode/bifrost/db"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 const (
@@ -86,31 +86,20 @@ type SignerStore struct {
 
 // NewSignerStore create a new instance of SignerStore. If no folder is given,
 // an in memory implementation is used.
-func NewSignerStore(levelDbFolder, passphrase string) (*SignerStore, error) {
-	var db *leveldb.DB
-	var err error
-	if len(levelDbFolder) == 0 {
-		log.Warn().Msg("level db folder is empty, create in memory storage")
-		// no directory given, use in memory store
-		storage := storage.NewMemStorage()
-		db, err = leveldb.Open(storage, nil)
-		if err != nil {
-			return nil, fmt.Errorf("fail to in memory open level db: %w", err)
-		}
-	} else {
-		db, err = leveldb.OpenFile(levelDbFolder, nil)
-		if err != nil {
-			return nil, fmt.Errorf("fail to open level db %s: %w", levelDbFolder, err)
-		}
-	}
-	levelDbStorage, err := blockscanner.NewLevelDBScannerStorage(db)
+func NewSignerStore(levelDbFolder string, opts config.LevelDBOptions, passphrase string) (*SignerStore, error) {
+	ldb, err := db.NewLevelDB(levelDbFolder, opts)
 	if err != nil {
-		return nil, errors.New("fail to create level db")
+		return nil, fmt.Errorf("failed to create level db: %w", err)
+	}
+
+	levelDbStorage, err := blockscanner.NewLevelDBScannerStorage(ldb)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create scanner storage: %w", err)
 	}
 	return &SignerStore{
 		LevelDBScannerStorage: levelDbStorage,
 		logger:                log.With().Str("module", "signer-storage").Logger(),
-		db:                    db,
+		db:                    ldb,
 		passphrase:            passphrase,
 	}, nil
 }

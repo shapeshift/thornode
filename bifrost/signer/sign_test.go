@@ -380,7 +380,7 @@ func (s *SignSuite) SetUpSuite(c *C) {
 	c.Assert(err, IsNil)
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
-	s.storage, err = NewSignerStore("", "")
+	s.storage, err = NewSignerStore("", config.LevelDBOptions{}, "")
 	c.Assert(err, IsNil)
 }
 
@@ -556,7 +556,7 @@ func (s *SignSuite) TestBroadcastRetry(c *C) {
 	}
 
 	// create a signer store with fake txouts
-	sign.storage, err = NewSignerStore("", "")
+	sign.storage, err = NewSignerStore("", config.LevelDBOptions{}, "")
 	c.Assert(err, IsNil)
 	err = sign.storage.Set(TxOutStoreItem{
 		TxOutItem: stypes.TxOutItem{
@@ -636,7 +636,7 @@ func (s *SignSuite) TestRound7Retry(c *C) {
 	}
 
 	// create a signer store with fake txouts
-	sign.storage, err = NewSignerStore("", "")
+	sign.storage, err = NewSignerStore("", config.LevelDBOptions{}, "")
 	c.Assert(err, IsNil)
 	err = sign.storage.Set(TxOutStoreItem{
 		TxOutItem: stypes.TxOutItem{

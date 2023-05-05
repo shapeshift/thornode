@@ -146,7 +146,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.BifrostChainConfiguration, 
 	if len(c.cfg.BlockScanner.DBPath) > 0 {
 		path = fmt.Sprintf("%s/%s", c.cfg.BlockScanner.DBPath, c.cfg.BlockScanner.ChainID)
 	}
-	storage, err := blockscanner.NewBlockScannerStorage(path)
+	storage, err := blockscanner.NewBlockScannerStorage(path, c.cfg.ScannerLevelDB)
 	if err != nil {
 		return c, fmt.Errorf("fail to create blockscanner storage: %w", err)
 	}
@@ -156,7 +156,7 @@ func NewClient(thorKeys *thorclient.Keys, cfg config.BifrostChainConfiguration, 
 		return c, fmt.Errorf("fail to create block scanner: %w", err)
 	}
 
-	c.temporalStorage, err = utxo.NewTemporalStorage(storage.GetInternalDb())
+	c.temporalStorage, err = utxo.NewTemporalStorage(storage.GetInternalDb(), c.cfg.MempoolTxIDCacheSize)
 	if err != nil {
 		return c, fmt.Errorf("fail to create utxo accessor: %w", err)
 	}

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	lru "github.com/hashicorp/golang-lru"
+	"github.com/rs/zerolog/log"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -58,11 +60,22 @@ type TransactionFee struct {
 // processing, and to ensure duplicate observations are not posted to Thorchain
 // which could result in bond slash.
 type TemporalStorage struct {
-	db *leveldb.DB
+	db               *leveldb.DB
+	mempoolTxIDCache *lru.Cache
 }
 
-func NewTemporalStorage(db *leveldb.DB) (*TemporalStorage, error) {
-	return &TemporalStorage{db: db}, nil
+func NewTemporalStorage(db *leveldb.DB, txidCacheSize int) (*TemporalStorage, error) {
+	t := &TemporalStorage{db: db}
+
+	if txidCacheSize > 0 {
+		var err error
+		t.mempoolTxIDCache, err = lru.New(txidCacheSize)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to create mempool txid cache")
+		}
+	}
+
+	return t, nil
 }
 
 // GetBlockMeta returns the BlockMeta at the provided height. Note that if the BlockMeta
@@ -180,21 +193,45 @@ func (t *TemporalStorage) GetTransactionFee() (float64, int32, error) {
 // occurred during write.
 func (t *TemporalStorage) TrackMempoolTx(txid string) (bool, error) {
 	key := t.getMemPoolKey(txid)
+
+	// first check the in memory id cache
+	if t.mempoolTxIDCache != nil && t.mempoolTxIDCache.Contains(key) {
+		return false, nil
+	}
+
 	exist, err := t.db.Has([]byte(key), nil)
 	if err != nil {
 		return exist, err
 	}
 	if exist {
+		// update cache with existence
+		if t.mempoolTxIDCache != nil {
+			t.mempoolTxIDCache.Add(key, nil)
+		}
+
 		return false, nil
 	}
 	err = t.db.Put([]byte(key), []byte(txid), nil)
+
+	// if successful, add to cache
+	if err == nil && t.mempoolTxIDCache != nil {
+		t.mempoolTxIDCache.Add(key, nil)
+	}
+
 	return true, err
 }
 
 // UntrackMempoolTx untracks the provided mempool txid.
 func (t *TemporalStorage) UntrackMempoolTx(txid string) error {
 	key := t.getMemPoolKey(txid)
-	return t.db.Delete([]byte(key), nil)
+	err := t.db.Delete([]byte(key), nil)
+
+	// if successful, remove from cache
+	if err == nil && t.mempoolTxIDCache != nil {
+		t.mempoolTxIDCache.Remove(key)
+	}
+
+	return err
 }
 
 // TrackObservedTx attempts to track the provided observed txid. Returns

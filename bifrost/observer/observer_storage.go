@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path/filepath"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/storage"
 
+	"gitlab.com/thorchain/thornode/bifrost/db"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 // ObserverStorage save the ondeck tx in item to key value store , in case bifrost restart
@@ -22,22 +22,13 @@ const (
 )
 
 // NewObserverStorage create a new instance of LevelDBScannerStorage
-func NewObserverStorage(path string) (*ObserverStorage, error) {
-	// no directory given, use in memory store
-	if path == "" {
-		storage := storage.NewMemStorage()
-		db, err := leveldb.Open(storage, nil)
-		if err != nil {
-			return nil, fmt.Errorf("fail to in memory open level db: %w", err)
-		}
-		return &ObserverStorage{db: db}, nil
-	}
-	levelDbFolder := filepath.Join(path, "observer")
-	db, err := leveldb.OpenFile(levelDbFolder, nil)
+func NewObserverStorage(path string, opts config.LevelDBOptions) (*ObserverStorage, error) {
+	ldb, err := db.NewLevelDB(path, opts)
 	if err != nil {
-		return nil, fmt.Errorf("fail to open level db %s: %w", levelDbFolder, err)
+		return nil, fmt.Errorf("failed to create observer storage: %w", err)
 	}
-	return &ObserverStorage{db: db}, nil
+
+	return &ObserverStorage{db: ldb}, nil
 }
 
 // GetOnDeckTxs retrieve the ondeck tx from key value store

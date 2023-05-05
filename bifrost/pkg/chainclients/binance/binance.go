@@ -115,7 +115,7 @@ func NewBinance(thorKeys *thorclient.Keys, cfg config.BifrostChainConfiguration,
 	if len(b.cfg.BlockScanner.DBPath) > 0 {
 		path = fmt.Sprintf("%s/%s", b.cfg.BlockScanner.DBPath, b.cfg.BlockScanner.ChainID)
 	}
-	b.storage, err = blockscanner.NewBlockScannerStorage(path)
+	b.storage, err = blockscanner.NewBlockScannerStorage(path, b.cfg.ScannerLevelDB)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create scan storage: %w", err)
 	}

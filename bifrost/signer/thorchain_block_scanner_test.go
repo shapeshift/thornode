@@ -131,7 +131,7 @@ func (s *ThorchainBlockScanSuite) SetUpSuite(c *C) {
 	c.Assert(err, IsNil)
 	s.bridge, err = thorclient.NewThorchainBridge(cfg, s.m, s.thorKeys)
 	c.Assert(err, IsNil)
-	s.storage, err = NewSignerStore("signer_data", "")
+	s.storage, err = NewSignerStore("signer_data", config.LevelDBOptions{}, "")
 	c.Assert(err, IsNil)
 }
 

@@ -19,6 +19,8 @@ import (
 	maddr "github.com/multiformats/go-multiaddr"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+	"github.com/syndtr/goleveldb/leveldb/filter"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 	tmhttp "github.com/tendermint/tendermint/rpc/client/http"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -491,6 +493,47 @@ type Bifrost struct {
 	Chains    map[common.Chain]BifrostChainConfiguration `mapstructure:"chains"`
 	TSS       BifrostTSSConfiguration                    `mapstructure:"tss"`
 	BackOff   BifrostBackOff                             `mapstructure:"back_off"`
+
+	ObserverLevelDB LevelDBOptions `mapstructure:"observer_leveldb"`
+}
+
+// LevelDBOptions are a superset of the options passed to the LevelDB constructor.
+type LevelDBOptions struct {
+	// FilterBitsPerKey is the number of bits per key for the bloom filter.
+	FilterBitsPerKey int `mapstructure:"filter_bits_per_key"`
+
+	// CompactionTableSizeMultiplier is the multiplier for compaction (table size is 2Mb).
+	CompactionTableSizeMultiplier float64 `mapstructure:"compaction_table_size_multiplier"`
+
+	// WriteBuffer is the size of the write buffer in bytes. LevelDB default is 4Mb.
+	WriteBuffer int `mapstructure:"write_buffer"`
+
+	// BlockCacheCapacity is the size of the block cache in bytes. LevelDB default is 8Mb.
+	BlockCacheCapacity int `mapstructure:"block_cache_capacity"`
+
+	// CompactOnInit will trigger a full compaction at init.
+	CompactOnInit bool `mapstructure:"compact_on_init"`
+}
+
+// Options returns the corresponding LevelDB options for the constructor.
+func (b LevelDBOptions) Options() *opt.Options {
+	o := &opt.Options{}
+
+	// only override zero values if set
+	if b.CompactionTableSizeMultiplier > 0 {
+		o.CompactionTableSizeMultiplier = b.CompactionTableSizeMultiplier
+	}
+	if b.WriteBuffer > 0 {
+		o.WriteBuffer = b.WriteBuffer
+	}
+	if b.BlockCacheCapacity > 0 {
+		o.BlockCacheCapacity = b.BlockCacheCapacity
+	}
+	if b.FilterBitsPerKey > 0 {
+		o.Filter = filter.NewBloomFilter(b.FilterBitsPerKey)
+	}
+
+	return o
 }
 
 type BifrostSignerConfiguration struct {
@@ -498,6 +541,7 @@ type BifrostSignerConfiguration struct {
 	SignerDbPath    string                           `mapstructure:"signer_db_path"`
 	BlockScanner    BifrostBlockScannerConfiguration `mapstructure:"block_scanner"`
 	RetryInterval   time.Duration                    `mapstructure:"retry_interval"`
+	LevelDB         LevelDBOptions                   `mapstructure:"leveldb"`
 }
 
 type BifrostBackOff struct {
@@ -524,6 +568,14 @@ type BifrostChainConfiguration struct {
 	OptToRetire         bool                             `mapstructure:"opt_to_retire"` // don't emit support for this chain during keygen process
 	ParallelMempoolScan int                              `mapstructure:"parallel_mempool_scan"`
 	Disabled            bool                             `mapstructure:"disabled"`
+
+	// MemPoolTxIDCacheSize is the number of transaction ids to cache in memory. This
+	// prevents read on LevelDB which may hit disk for every transaction in the mempool in
+	// a loop - which causes concern in recent times with growing Bitcoin mempool.
+	MempoolTxIDCacheSize int `mapstructure:"mempool_tx_id_cache_size"`
+
+	// ScannerLevelDB is the LevelDB configuration for the block scanner.
+	ScannerLevelDB LevelDBOptions `mapstructure:"scanner_leveldb"`
 }
 
 func (b *BifrostChainConfiguration) Validate() {

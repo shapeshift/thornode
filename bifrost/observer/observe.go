@@ -21,6 +21,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 	stypes "gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -54,9 +55,12 @@ func NewObserver(pubkeyMgr *pubkeymanager.PubKeyManager,
 	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr,
 ) (*Observer, error) {
 	logger := log.Logger.With().Str("module", "observer").Logger()
-	storage, err := NewObserverStorage(dataPath)
+
+	cfg := config.GetBifrost()
+
+	storage, err := NewObserverStorage(dataPath, cfg.ObserverLevelDB)
 	if err != nil {
-		return nil, fmt.Errorf("fail to create observer storage: %w", err)
+		return nil, fmt.Errorf("failed to create observer storage: %w", err)
 	}
 	if tssKeysignMetricMgr == nil {
 		return nil, fmt.Errorf("tss keysign manager is nil")

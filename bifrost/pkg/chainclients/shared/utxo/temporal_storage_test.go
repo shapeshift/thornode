@@ -20,7 +20,7 @@ func (s *BitcoinTemporalStorageTestSuite) TestNewTemporalStorage(c *C) {
 	memStorage := storage.NewMemStorage()
 	db, err := leveldb.Open(memStorage, nil)
 	c.Assert(err, IsNil)
-	dbTemporalStorage, err := NewTemporalStorage(db)
+	dbTemporalStorage, err := NewTemporalStorage(db, 0)
 	c.Assert(err, IsNil)
 	c.Assert(dbTemporalStorage, NotNil)
 	c.Assert(db.Close(), IsNil)
@@ -30,7 +30,7 @@ func (s *BitcoinTemporalStorageTestSuite) TestTemporalStorage(c *C) {
 	memStorage := storage.NewMemStorage()
 	db, err := leveldb.Open(memStorage, nil)
 	c.Assert(err, IsNil)
-	store, err := NewTemporalStorage(db)
+	store, err := NewTemporalStorage(db, 0)
 	c.Assert(err, IsNil)
 	c.Assert(store, NotNil)
 

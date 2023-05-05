@@ -1,12 +1,13 @@
 package blockscanner
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/storage"
+
+	"gitlab.com/thorchain/thornode/bifrost/db"
+	"gitlab.com/thorchain/thornode/config"
 )
 
 // ScannerStorage define the method need to be used by scanner
@@ -26,29 +27,19 @@ type BlockScannerStorage struct {
 	db *leveldb.DB
 }
 
-func NewBlockScannerStorage(levelDbFolder string) (*BlockScannerStorage, error) {
-	var err error
-	var db *leveldb.DB
-	if len(levelDbFolder) == 0 {
-		// no directory given, use in memory store
-		storage := storage.NewMemStorage()
-		db, err = leveldb.Open(storage, nil)
-		if err != nil {
-			return nil, fmt.Errorf("fail to in memory open level db: %w", err)
-		}
-	} else {
-		db, err = leveldb.OpenFile(levelDbFolder, nil)
-		if err != nil {
-			return nil, fmt.Errorf("fail to open level db %s: %w", levelDbFolder, err)
-		}
-	}
-	levelDbStorage, err := NewLevelDBScannerStorage(db)
+func NewBlockScannerStorage(levelDbFolder string, opts config.LevelDBOptions) (*BlockScannerStorage, error) {
+	ldb, err := db.NewLevelDB(levelDbFolder, opts)
 	if err != nil {
-		return nil, errors.New("fail to create level db")
+		return nil, fmt.Errorf("failed to create level db: %w", err)
+	}
+
+	levelDbStorage, err := NewLevelDBScannerStorage(ldb)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage: %w", err)
 	}
 	return &BlockScannerStorage{
 		LevelDBScannerStorage: levelDbStorage,
-		db:                    db,
+		db:                    ldb,
 	}, nil
 }
 

@@ -77,7 +77,7 @@ func getConfigForTest(rpcHost string) config.BifrostBlockScannerConfiguration {
 }
 
 func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
-	storage, err := blockscanner.NewBlockScannerStorage("")
+	storage, err := blockscanner.NewBlockScannerStorage("", config.LevelDBOptions{})
 	c.Assert(err, IsNil)
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		body, err := io.ReadAll(req.Body)
@@ -185,7 +185,7 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 	ethClient, err := ethclient.Dial(server.URL)
 	c.Assert(err, IsNil)
 	c.Assert(ethClient, NotNil)
-	storage, err := blockscanner.NewBlockScannerStorage("")
+	storage, err := blockscanner.NewBlockScannerStorage("", config.LevelDBOptions{})
 	c.Assert(err, IsNil)
 	u, err := url.Parse(server.URL)
 	c.Assert(err, IsNil)
@@ -323,7 +323,7 @@ func (s *BlockScannerTestSuite) TestFromTxToTxIn(c *C) {
 	ethClient, err := ethclient.Dial(server.URL)
 	c.Assert(err, IsNil)
 	c.Assert(ethClient, NotNil)
-	storage, err := blockscanner.NewBlockScannerStorage("")
+	storage, err := blockscanner.NewBlockScannerStorage("", config.LevelDBOptions{})
 	c.Assert(err, IsNil)
 	c.Assert(storage, NotNil)
 	u, err := url.Parse(server.URL)
@@ -560,7 +560,7 @@ func (s *BlockScannerTestSuite) TestProcessReOrg(c *C) {
 	ethClient, err := ethclient.Dial(server.URL)
 	c.Assert(err, IsNil)
 	c.Assert(ethClient, NotNil)
-	storage, err := blockscanner.NewBlockScannerStorage("")
+	storage, err := blockscanner.NewBlockScannerStorage("", config.LevelDBOptions{})
 	c.Assert(err, IsNil)
 	bridge, err := thorclient.NewThorchainBridge(config.BifrostClientConfiguration{
 		ChainID:         "thorchain",
@@ -611,7 +611,7 @@ func (s *BlockScannerTestSuite) TestProcessReOrg(c *C) {
 // -------------------------------------------------------------------------------------
 
 func (s *BlockScannerTestSuite) TestGasPriceV2(c *C) {
-	storage, err := blockscanner.NewBlockScannerStorage("")
+	storage, err := blockscanner.NewBlockScannerStorage("", config.LevelDBOptions{})
 	c.Assert(err, IsNil)
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		body, err := io.ReadAll(req.Body)

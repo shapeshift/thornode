@@ -155,7 +155,7 @@ func NewAvalancheClient(thorKeys *thorclient.Keys,
 	if len(c.cfg.BlockScanner.DBPath) > 0 {
 		path = fmt.Sprintf("%s/%s", c.cfg.BlockScanner.DBPath, c.cfg.BlockScanner.ChainID)
 	}
-	storage, err := blockscanner.NewBlockScannerStorage(path)
+	storage, err := blockscanner.NewBlockScannerStorage(path, c.cfg.ScannerLevelDB)
 	if err != nil {
 		return c, fmt.Errorf("fail to create blockscanner storage: %w", err)
 	}

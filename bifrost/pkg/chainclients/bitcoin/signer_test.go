@@ -138,7 +138,7 @@ func (s *BitcoinSignerSuite) SetUpTest(c *C) {
 	db, err := leveldb.Open(storage, nil)
 	c.Assert(err, IsNil)
 	s.db = db
-	s.client.temporalStorage, err = utxo.NewTemporalStorage(db)
+	s.client.temporalStorage, err = utxo.NewTemporalStorage(db, 0)
 	c.Assert(err, IsNil)
 	c.Assert(s.client, NotNil)
 }

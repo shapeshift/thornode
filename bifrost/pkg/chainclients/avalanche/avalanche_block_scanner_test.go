@@ -126,7 +126,7 @@ func getConfigForTest(rpcHost string) config.BifrostBlockScannerConfiguration {
 }
 
 func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
-	storage, err := blockscanner.NewBlockScannerStorage("")
+	storage, err := blockscanner.NewBlockScannerStorage("", config.LevelDBOptions{})
 	c.Assert(err, IsNil)
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		body, err := io.ReadAll(req.Body)
@@ -238,7 +238,7 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 	c.Assert(ethClient, NotNil)
 	rpcClient, err := evm.NewEthRPC(server.URL, time.Second, "AVAX")
 	c.Assert(err, IsNil)
-	storage, err := blockscanner.NewBlockScannerStorage("")
+	storage, err := blockscanner.NewBlockScannerStorage("", config.LevelDBOptions{})
 	c.Assert(err, IsNil)
 	u, err := url.Parse(server.URL)
 	c.Assert(err, IsNil)
@@ -371,7 +371,7 @@ func (s *BlockScannerTestSuite) TestGetTxInItem(c *C) {
 	c.Assert(ethClient, NotNil)
 	rpcClient, err := evm.NewEthRPC(server.URL, time.Second, "AVAX")
 	c.Assert(err, IsNil)
-	storage, err := blockscanner.NewBlockScannerStorage("")
+	storage, err := blockscanner.NewBlockScannerStorage("", config.LevelDBOptions{})
 	c.Assert(err, IsNil)
 	c.Assert(storage, NotNil)
 	u, err := url.Parse(server.URL)
@@ -497,7 +497,7 @@ func (s *BlockScannerTestSuite) TestGetTxInItem(c *C) {
 // -------------------------------------------------------------------------------------
 
 func (s *BlockScannerTestSuite) TestUpdateGasPrice(c *C) {
-	storage, err := blockscanner.NewBlockScannerStorage("")
+	storage, err := blockscanner.NewBlockScannerStorage("", config.LevelDBOptions{})
 	c.Assert(err, IsNil)
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		body, err := io.ReadAll(req.Body)
