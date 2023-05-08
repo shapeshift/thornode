@@ -73,7 +73,7 @@ type CosmosBlockScanner struct {
 	txService        *rpcclient.HTTP
 	tmService        tmservice.ServiceClient
 	grpc             *grpc.ClientConn
-	bridge           *thorclient.ThorchainBridge
+	bridge           thorclient.ThorchainBridge
 	solvencyReporter SolvencyReporter
 
 	// feeCache contains a rolling window of suggested gas fees which are computed as the
@@ -87,7 +87,7 @@ type CosmosBlockScanner struct {
 // NewCosmosBlockScanner create a new instance of BlockScan
 func NewCosmosBlockScanner(cfg config.BifrostBlockScannerConfiguration,
 	scanStorage blockscanner.ScannerStorage,
-	bridge *thorclient.ThorchainBridge,
+	bridge thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	solvencyReporter SolvencyReporter,
 ) (*CosmosBlockScanner, error) {

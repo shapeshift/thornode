@@ -27,13 +27,13 @@ type ThorchainBlockScan struct {
 	keygenChan     chan ttypes.KeygenBlock
 	cfg            config.BifrostBlockScannerConfiguration
 	scannerStorage blockscanner.ScannerStorage
-	thorchain      *thorclient.ThorchainBridge
+	thorchain      thorclient.ThorchainBridge
 	errCounter     *prometheus.CounterVec
 	pubkeyMgr      pubkeymanager.PubKeyValidator
 }
 
 // NewThorchainBlockScan create a new instance of thorchain block scanner
-func NewThorchainBlockScan(cfg config.BifrostBlockScannerConfiguration, scanStorage blockscanner.ScannerStorage, thorchain *thorclient.ThorchainBridge, m *metrics.Metrics, pubkeyMgr pubkeymanager.PubKeyValidator) (*ThorchainBlockScan, error) {
+func NewThorchainBlockScan(cfg config.BifrostBlockScannerConfiguration, scanStorage blockscanner.ScannerStorage, thorchain thorclient.ThorchainBridge, m *metrics.Metrics, pubkeyMgr pubkeymanager.PubKeyValidator) (*ThorchainBlockScan, error) {
 	if scanStorage == nil {
 		return nil, errors.New("scanStorage is nil")
 	}

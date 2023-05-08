@@ -18,7 +18,7 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-func RecoverKeyShares(conf config.Bifrost, thorchain *thorclient.ThorchainBridge) error {
+func RecoverKeyShares(conf config.Bifrost, thorchain thorclient.ThorchainBridge) error {
 	tctx := thorchain.GetContext()
 
 	// fetch the node account

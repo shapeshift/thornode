@@ -46,7 +46,7 @@ type BinanceBlockScanner struct {
 	http                  *http.Client
 	singleFee             uint64
 	multiFee              uint64
-	bridge                *thorclient.ThorchainBridge
+	bridge                thorclient.ThorchainBridge
 	solvencyReporter      SolvencyReporter
 	currentScanningHeight int64
 }
@@ -55,7 +55,7 @@ type BinanceBlockScanner struct {
 func NewBinanceBlockScanner(cfg config.BifrostBlockScannerConfiguration,
 	scanStorage blockscanner.ScannerStorage,
 	isTestNet bool,
-	bridge *thorclient.ThorchainBridge,
+	bridge thorclient.ThorchainBridge,
 	m *metrics.Metrics, solvencyReporter SolvencyReporter,
 ) (*BinanceBlockScanner, error) {
 	if scanStorage == nil {

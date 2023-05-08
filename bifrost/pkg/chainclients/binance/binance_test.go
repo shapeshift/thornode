@@ -34,7 +34,7 @@ func TestPackage(t *testing.T) { TestingT(t) }
 type BinancechainSuite struct {
 	thordir  string
 	thorKeys *thorclient.Keys
-	bridge   *thorclient.ThorchainBridge
+	bridge   thorclient.ThorchainBridge
 	m        *metrics.Metrics
 }
 
@@ -282,7 +282,7 @@ func (s *BinancechainSuite) TestSignTx(c *C) {
 	txOut := getTxOutFromJsonInput(`{ "height": 1718, "hash": "", "tx_array": [ { "vault_pub_key":"tthorpub1addwnpepq2jgpsw2lalzuk7sgtmyakj7l6890f5cfpwjyfp8k4y4t7cw2vk8v2ch5uz","to_address": "tbnb1hzwfk6t3sqjfuzlr0ur9lj920gs37gg92gtay9", "coin":  { "asset": "BNB", "amount": "194765912" }  } ]}`, c)
 	txOut.TxArray[0].VaultPubKey = pk
 	out := txOut.TxArray[0].TxOutItem()
-	r, err := b2.SignTx(out, 1440)
+	r, _, err := b2.SignTx(out, 1440)
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
 

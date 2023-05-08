@@ -67,6 +67,8 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.109.0")):
+		return h.handleV109(ctx, msg)
 	case version.GTE(semver.MustParse("1.96.0")):
 		return h.handleV96(ctx, msg)
 	case version.GTE(semver.MustParse("1.89.0")):
@@ -132,7 +134,7 @@ func (h ObservedTxOutHandler) preflightV89(ctx cosmos.Context, voter ObservedTxV
 }
 
 // Handle a message to observe outbound tx
-func (h ObservedTxOutHandler) handleV96(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
+func (h ObservedTxOutHandler) handleV109(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -259,6 +261,16 @@ func (h ObservedTxOutHandler) handleV96(ctx cosmos.Context, msg MsgObservedTxOut
 			// we have successfully removed all funds from a retiring vault,
 			// mark it as inactive
 			vault.Status = InactiveVault
+		}
+		// if the vault is frozen, then unfreeze it. Since we saw that a
+		// transaction was signed
+		for _, coin := range tx.Tx.Coins {
+			for i := range vault.Frozen {
+				if strings.EqualFold(coin.Asset.GetChain().String(), vault.Frozen[i]) {
+					vault.Frozen = append(vault.Frozen[:i], vault.Frozen[i+1:]...)
+					break
+				}
+			}
 		}
 		if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
 			ctx.Logger().Error("fail to save vault", "error", err)

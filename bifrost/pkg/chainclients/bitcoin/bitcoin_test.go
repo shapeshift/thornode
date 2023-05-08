@@ -38,7 +38,7 @@ func TestPackage(t *testing.T) { TestingT(t) }
 type BitcoinSuite struct {
 	client *Client
 	server *httptest.Server
-	bridge *thorclient.ThorchainBridge
+	bridge thorclient.ThorchainBridge
 	cfg    config.BifrostChainConfiguration
 	m      *metrics.Metrics
 	keys   *thorclient.Keys

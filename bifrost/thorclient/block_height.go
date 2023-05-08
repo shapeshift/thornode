@@ -11,7 +11,7 @@ import (
 )
 
 // GetLastObservedInHeight returns the lastobservedin value for the chain past in
-func (b *ThorchainBridge) GetLastObservedInHeight(chain common.Chain) (int64, error) {
+func (b *thorchainBridge) GetLastObservedInHeight(chain common.Chain) (int64, error) {
 	lastblock, err := b.getLastBlock(chain)
 	if err != nil {
 		return 0, fmt.Errorf("failed to GetLastObservedInHeight: %w", err)
@@ -25,7 +25,7 @@ func (b *ThorchainBridge) GetLastObservedInHeight(chain common.Chain) (int64, er
 }
 
 // GetLastSignedOutHeight returns the lastsignedout value for thorchain
-func (b *ThorchainBridge) GetLastSignedOutHeight(chain common.Chain) (int64, error) {
+func (b *thorchainBridge) GetLastSignedOutHeight(chain common.Chain) (int64, error) {
 	lastblock, err := b.getLastBlock(chain)
 	if err != nil {
 		return 0, fmt.Errorf("failed to GetLastSignedOutHeight: %w", err)
@@ -39,7 +39,7 @@ func (b *ThorchainBridge) GetLastSignedOutHeight(chain common.Chain) (int64, err
 }
 
 // GetBlockHeight returns the current height for thorchain blocks
-func (b *ThorchainBridge) GetBlockHeight() (int64, error) {
+func (b *thorchainBridge) GetBlockHeight() (int64, error) {
 	if time.Since(b.lastBlockHeightCheck) < constants.ThorchainBlockTime && b.lastThorchainBlockHeight > 0 {
 		return b.lastThorchainBlockHeight, nil
 	}
@@ -56,7 +56,7 @@ func (b *ThorchainBridge) GetBlockHeight() (int64, error) {
 }
 
 // getLastBlock calls the /lastblock/{chain} endpoint and Unmarshal's into the QueryResLastBlockHeights type
-func (b *ThorchainBridge) getLastBlock(chain common.Chain) ([]types.QueryResLastBlockHeights, error) {
+func (b *thorchainBridge) getLastBlock(chain common.Chain) ([]types.QueryResLastBlockHeights, error) {
 	path := LastBlockEndpoint
 	if !chain.IsEmpty() {
 		path = fmt.Sprintf("%s/%s", path, chain.String())

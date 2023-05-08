@@ -25,7 +25,7 @@ func TestPackage(t *testing.T) { TestingT(t) }
 type ThorchainSuite struct {
 	server             *httptest.Server
 	cfg                config.BifrostClientConfiguration
-	bridge             *ThorchainBridge
+	bridge             *thorchainBridge
 	authAccountFixture string
 	nodeAccountFixture string
 }
@@ -75,7 +75,10 @@ func (s *ThorchainSuite) SetUpTest(c *C) {
 	s.cfg.ChainRPC = s.server.Listener.Addr().String()
 
 	var err error
-	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd))
+	bridge, err := NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd))
+	var ok bool
+	s.bridge, ok = bridge.(*thorchainBridge)
+	c.Assert(ok, Equals, true)
 	s.bridge.httpClient.RetryMax = 1 // fail fast
 	c.Assert(err, IsNil)
 	c.Assert(s.bridge, NotNil)

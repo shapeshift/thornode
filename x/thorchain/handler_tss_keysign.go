@@ -8,6 +8,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/telemetry"
+	tssMessages "gitlab.com/thorchain/tss/go-tss/messages"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -48,13 +49,16 @@ func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result
 
 func (h TssKeysignHandler) validate(ctx cosmos.Context, msg MsgTssKeysignFail) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.70.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.109.0")):
+		return h.validateV109(ctx, msg)
+	case version.GTE(semver.MustParse("0.70.0")):
 		return h.validateV70(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h TssKeysignHandler) validateV70(ctx cosmos.Context, msg MsgTssKeysignFail) error {
+func (h TssKeysignHandler) validateV109(ctx cosmos.Context, msg MsgTssKeysignFail) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -101,7 +105,8 @@ func (h TssKeysignHandler) validateV70(ctx cosmos.Context, msg MsgTssKeysignFail
 		return wrapError(ctx, err, "fail to get list of active node accounts")
 	}
 
-	if !HasSimpleMajority(len(active)-len(msg.Blame.BlameNodes), len(active)) {
+	allowWideBlame := fetchConfigInt64(ctx, h.mgr, constants.AllowWideBlame)
+	if allowWideBlame == 0 && !HasSimpleMajority(len(active)-len(msg.Blame.BlameNodes), len(active)) {
 		ctx.Logger().Error("blame cast too wide", "blame", len(msg.Blame.BlameNodes))
 		return fmt.Errorf("blame cast too wide: %d/%d", len(msg.Blame.BlameNodes), len(active))
 	}
@@ -112,13 +117,16 @@ func (h TssKeysignHandler) validateV70(ctx cosmos.Context, msg MsgTssKeysignFail
 func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
 	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID", msg.ID, "signer", msg.Signer, "pubkey", msg.PubKey, "blame", msg.Blame.String())
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.109.0")):
+		return h.handleV109(ctx, msg)
+	case version.GTE(semver.MustParse("0.1.0")):
 		return h.handleV1(ctx, msg)
 	}
 	return nil, errBadVersion
 }
 
-func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
+func (h TssKeysignHandler) handleV109(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
 	voter, err := h.mgr.Keeper().GetTssKeysignFailVoter(ctx, msg.ID)
 	if err != nil {
 		return nil, err
@@ -217,6 +225,23 @@ func (h TssKeysignHandler) handleV1(ctx cosmos.Context, msg MsgTssKeysignFail) (
 		reason := "failed to perform keysign"
 		if err := h.mgr.Keeper().SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
 			ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
+		}
+	}
+
+	if msg.Blame.Round == tssMessages.KEYSIGN7 {
+		// handle round7 failure, assume attack
+		vault, err := h.mgr.Keeper().GetVault(ctx, msg.PubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to fetch vault", "pubkey", msg.PubKey, "error", err)
+		}
+		// this will cause the vault to be "frozen" which causes the
+		// rescheduler to NOT reschedule any outbound txns AND cause the tx out
+		// manager to not assign new txns to this vault
+		for _, coin := range msg.Coins {
+			vault.Frozen = append(vault.Frozen, coin.Asset.GetChain().String())
+		}
+		if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
+			ctx.Logger().Error("fail to save vault", "pubkey", msg.PubKey, "error", err)
 		}
 	}
 

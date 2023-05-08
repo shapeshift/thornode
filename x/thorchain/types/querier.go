@@ -105,6 +105,7 @@ type QueryVaultResp struct {
 	PendingTxBlockHeights []int64                                     `json:"pending_tx_block_heights,omitempty"`
 	Routers               []ChainContract                             `json:"routers"`
 	Addresses             []QueryChainAddress                         `json:"addresses"`
+	Frozen                []string                                    `json:"frozen,omitempty"`
 }
 
 type QueryVersion struct {

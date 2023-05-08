@@ -34,10 +34,12 @@ const (
 )
 
 type TxOutStoreItem struct {
-	TxOutItem types.TxOutItem
-	Status    TxStatus
-	Height    int64
-	Index     int64
+	TxOutItem   types.TxOutItem
+	Status      TxStatus
+	Height      int64
+	Index       int64
+	Round7Retry bool
+	Checkpoint  []byte
 }
 
 func NewTxOutStoreItem(height int64, item types.TxOutItem, idx int64) TxOutStoreItem {

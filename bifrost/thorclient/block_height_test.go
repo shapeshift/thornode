@@ -13,7 +13,7 @@ import (
 
 type BlockHeightSuite struct {
 	server  *httptest.Server
-	bridge  *ThorchainBridge
+	bridge  *thorchainBridge
 	cfg     config.BifrostClientConfiguration
 	fixture string
 }
@@ -31,7 +31,10 @@ func (s *BlockHeightSuite) SetUpSuite(c *C) {
 	s.cfg = cfg
 	s.cfg.ChainHost = s.server.Listener.Addr().String()
 	var err error
-	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd))
+	bridge, err := NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd))
+	var ok bool
+	s.bridge, ok = bridge.(*thorchainBridge)
+	c.Assert(ok, Equals, true)
 	s.bridge.httpClient.RetryMax = 1
 	c.Assert(err, IsNil)
 	c.Assert(s.bridge, NotNil)

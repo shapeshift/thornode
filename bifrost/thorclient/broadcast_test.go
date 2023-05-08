@@ -14,7 +14,7 @@ import (
 
 type BroadcastSuite struct {
 	server  *httptest.Server
-	bridge  *ThorchainBridge
+	bridge  *thorchainBridge
 	cfg     config.BifrostClientConfiguration
 	fixture string
 }
@@ -38,7 +38,11 @@ func (s *BroadcastSuite) SetUpSuite(c *C) {
 	s.cfg.ChainHost = s.server.Listener.Addr().String()
 	s.cfg.ChainRPC = s.server.Listener.Addr().String()
 	var err error
-	s.bridge, err = NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd))
+	bridge, err := NewThorchainBridge(s.cfg, GetMetricForTest(c), NewKeysWithKeybase(kb, cfg.SignerName, cfg.SignerPasswd))
+	c.Assert(err, IsNil)
+	var ok bool
+	s.bridge, ok = bridge.(*thorchainBridge)
+	c.Assert(ok, Equals, true)
 	s.bridge.httpClient.RetryMax = 1
 	c.Assert(err, IsNil)
 	c.Assert(s.bridge, NotNil)

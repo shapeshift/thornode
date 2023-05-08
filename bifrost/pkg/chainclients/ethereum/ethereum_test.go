@@ -32,7 +32,7 @@ func TestETHPackage(t *testing.T) { TestingT(t) }
 type EthereumSuite struct {
 	thordir  string
 	thorKeys *thorclient.Keys
-	bridge   *thorclient.ThorchainBridge
+	bridge   thorclient.ThorchainBridge
 	m        *metrics.Metrics
 	server   *httptest.Server
 }
@@ -349,7 +349,7 @@ func (s *EthereumSuite) TestClient(c *C) {
 	out := txOut.TxArray[0].TxOutItem()
 	out.Chain = common.ETHChain
 	out.Memo = "OUT:B6BD1A69831B9CCC0A1E9939E9AFBFCA144C427B3F61E176EBDCB14E57981C1B"
-	r, err := e2.SignTx(out, 1)
+	r, _, err := e2.SignTx(out, 1)
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
 
@@ -399,7 +399,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	addr, err := pubkeys[len(pubkeys)-1].GetAddress(common.ETHChain)
 	c.Assert(err, IsNil)
 	// Not ETH chain
-	result, err := e.SignTx(stypes.TxOutItem{
+	result, _, err := e.SignTx(stypes.TxOutItem{
 		Chain:       common.BTCChain,
 		ToAddress:   addr,
 		VaultPubKey: "",
@@ -408,7 +408,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// to address is empty
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		VaultPubKey: "",
 	}, 1)
@@ -416,7 +416,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// vault pub key is empty
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: "",
@@ -425,7 +425,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// memo is empty
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -434,7 +434,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// memo can't be parsed
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -444,7 +444,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 	// memo is inbound
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -454,7 +454,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// Outbound
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -473,7 +473,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	asset, err := common.NewAsset("ETH.TKN-0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483")
 	c.Assert(err, IsNil)
 	// Outbound
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -490,7 +490,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(result, NotNil)
 
 	// refund
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -506,7 +506,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	// refund
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -523,7 +523,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(result, NotNil)
 
 	// migrate
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -539,7 +539,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	// migrate
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -556,7 +556,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(result, NotNil)
 	// yggdrasil +
 
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -572,7 +572,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	// yggdrasil +
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -588,7 +588,7 @@ func (s *EthereumSuite) TestSignETHTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	// yggdrasil -
-	result, err = e.SignTx(stypes.TxOutItem{
+	result, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.ETHChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,

@@ -72,7 +72,7 @@ type ETHScanner struct {
 	vaultABI             *abi.ABI
 	erc20ABI             *abi.ABI
 	tokens               *LevelDBTokenMeta
-	bridge               *thorclient.ThorchainBridge
+	bridge               thorclient.ThorchainBridge
 	pubkeyMgr            pubkeymanager.PubKeyValidator
 	eipSigner            etypes.Signer
 	currentBlockHeight   int64
@@ -87,7 +87,7 @@ func NewETHScanner(cfg config.BifrostBlockScannerConfiguration,
 	storage blockscanner.ScannerStorage,
 	chainID *big.Int,
 	client *ethclient.Client,
-	bridge *thorclient.ThorchainBridge,
+	bridge thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
 	solvencyReporter SolvencyReporter,

@@ -7,6 +7,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/cosmos/cosmos-sdk/types"
 	dogchaincfg "github.com/eager7/dogd/chaincfg"
+	"github.com/hashicorp/go-multierror"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	btypes "gitlab.com/thorchain/binance-sdk/common/types"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -44,7 +45,6 @@ var AllChains = [...]Chain{
 
 type SigningAlgo string
 
-// Chain is an alias of string , represent a block chain
 type Chain string
 
 // Chains represent a slice of Chain
@@ -345,6 +345,20 @@ func (c Chain) InboundNotes() string {
 	default:
 		return ""
 	}
+}
+
+func NewChains(raw []string) (Chains, error) {
+	var returnErr error
+	var chains Chains
+	for _, c := range raw {
+		chain, err := NewChain(c)
+		if err == nil {
+			chains = append(chains, chain)
+		} else {
+			returnErr = multierror.Append(returnErr, err)
+		}
+	}
+	return chains, returnErr
 }
 
 // Has check whether chain c is in the list

@@ -60,6 +60,8 @@ func NewOperation(opMap map[string]any) Operation {
 		op = &OpTxObservedIn{}
 	case "tx-observed-out":
 		op = &OpTxObservedOut{}
+	case "tx-tss-keysign":
+		op = &OpTxTssKeysign{}
 	case "tx-deposit":
 		op = &OpTxDeposit{}
 	case "tx-mimir":
@@ -85,7 +87,7 @@ func NewOperation(opMap map[string]any) Operation {
 
 	switch op.(type) {
 	// internal types have MarshalJSON methods necessary to decode
-	case *OpTxObservedIn, *OpTxObservedOut, *OpTxDeposit, *OpTxMimir, *OpTxSend, *OpTxVersion:
+	case *OpTxObservedIn, *OpTxObservedOut, *OpTxDeposit, *OpTxMimir, *OpTxSend, *OpTxVersion, *OpTxTssKeysign:
 		// encode as json
 		buf := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(buf)
@@ -410,6 +412,19 @@ func (op *OpTxObservedOut) Execute(out io.Writer, routine int, _ *os.Process, lo
 
 	msg := types.NewMsgObservedTxOut(op.Txs, op.Signer)
 	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+}
+
+// ------------------------------ OpTxTssKeysign ------------------------------
+
+type OpTxTssKeysign struct {
+	OpBase                  `yaml:",inline"`
+	types.MsgTssKeysignFail `yaml:",inline"`
+	// Signer                  sdk.AccAddress `json:"signer"`
+	Sequence *int64 `json:"sequence"`
+}
+
+func (op *OpTxTssKeysign) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
+	return sendMsg(out, routine, &op.MsgTssKeysignFail, op.MsgTssKeysignFail.Signer, op.Sequence, op, logs)
 }
 
 // ------------------------------ OpTxDeposit ------------------------------

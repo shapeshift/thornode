@@ -21,7 +21,7 @@ type PoolManager interface {
 
 // PoolMgr implement PoolManager interface
 type PoolMgr struct {
-	bridge    *ThorchainBridge
+	bridge    ThorchainBridge
 	logger    zerolog.Logger
 	lastCheck time.Time
 	lock      *sync.Mutex
@@ -29,7 +29,7 @@ type PoolMgr struct {
 }
 
 // NewPoolMgr create a new instance of PoolMgr
-func NewPoolMgr(bridge *ThorchainBridge) *PoolMgr {
+func NewPoolMgr(bridge ThorchainBridge) *PoolMgr {
 	return &PoolMgr{
 		bridge: bridge,
 		logger: log.With().Str("module", "pool_mgr").Logger(),

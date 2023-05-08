@@ -47,13 +47,13 @@ type BlockScanner struct {
 	previousBlock   int64
 	globalTxsQueue  chan types.TxIn
 	errorCounter    *prometheus.CounterVec
-	thorchainBridge *thorclient.ThorchainBridge
+	thorchainBridge thorclient.ThorchainBridge
 	chainScanner    BlockScannerFetcher
 	healthy         bool // status of scanner, if last attempt to scan a block was successful or not
 }
 
 // NewBlockScanner create a new instance of BlockScanner
-func NewBlockScanner(cfg config.BifrostBlockScannerConfiguration, scannerStorage ScannerStorage, m *metrics.Metrics, thorchainBridge *thorclient.ThorchainBridge, chainScanner BlockScannerFetcher) (*BlockScanner, error) {
+func NewBlockScanner(cfg config.BifrostBlockScannerConfiguration, scannerStorage ScannerStorage, m *metrics.Metrics, thorchainBridge thorclient.ThorchainBridge, chainScanner BlockScannerFetcher) (*BlockScanner, error) {
 	var err error
 	if scannerStorage == nil {
 		return nil, errors.New("scannerStorage is nil")

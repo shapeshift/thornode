@@ -41,7 +41,7 @@ type Observer struct {
 	globalSolvencyQueue chan types.Solvency
 	m                   *metrics.Metrics
 	errCounter          *prometheus.CounterVec
-	thorchainBridge     *thorclient.ThorchainBridge
+	thorchainBridge     thorclient.ThorchainBridge
 	storage             *ObserverStorage
 	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr
 }
@@ -49,7 +49,7 @@ type Observer struct {
 // NewObserver create a new instance of Observer for chain
 func NewObserver(pubkeyMgr *pubkeymanager.PubKeyManager,
 	chains map[common.Chain]chainclients.ChainClient,
-	thorchainBridge *thorclient.ThorchainBridge,
+	thorchainBridge thorclient.ThorchainBridge,
 	m *metrics.Metrics, dataPath string,
 	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr,
 ) (*Observer, error) {
@@ -306,7 +306,7 @@ func (o *Observer) filterObservations(chain common.Chain, items []types.TxInItem
 // the logic has to be here as THORChain is chain agnostic , customer can swap from BTC/ETH to BNB
 func (o *Observer) filterBinanceMemoFlag(chain common.Chain, items []types.TxInItem) (txs []types.TxInItem) {
 	// finds the destination address, and supports THORNames
-	fetchAddr := func(memo string, bridge *thorclient.ThorchainBridge) common.Address {
+	fetchAddr := func(memo string, bridge thorclient.ThorchainBridge) common.Address {
 		m, err := mem.ParseMemo(common.LatestVersion, memo)
 		if err != nil {
 			o.logger.Debug().Err(err).Msgf("fail to parse memo: %s", memo)

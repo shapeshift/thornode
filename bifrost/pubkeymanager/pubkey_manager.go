@@ -46,7 +46,7 @@ type pubKeyInfo struct {
 // PubKeyManager manager an always up to date pubkeys , which implement PubKeyValidator interface
 type PubKeyManager struct {
 	cdc        *codec.LegacyAmino
-	bridge     *thorclient.ThorchainBridge
+	bridge     thorclient.ThorchainBridge
 	pubkeys    []pubKeyInfo
 	rwMutex    *sync.RWMutex
 	logger     zerolog.Logger
@@ -57,7 +57,7 @@ type PubKeyManager struct {
 }
 
 // NewPubKeyManager create a new instance of PubKeyManager
-func NewPubKeyManager(bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*PubKeyManager, error) {
+func NewPubKeyManager(bridge thorclient.ThorchainBridge, m *metrics.Metrics) (*PubKeyManager, error) {
 	return &PubKeyManager{
 		cdc:        thorclient.MakeLegacyCodec(),
 		logger:     log.With().Str("module", "public_key_mgr").Logger(),

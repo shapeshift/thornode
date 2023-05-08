@@ -30,7 +30,7 @@ func Test(t *testing.T) { TestingT(t) }
 type ThorchainBlockScanSuite struct {
 	thordir  string
 	thorKeys *thorclient.Keys
-	bridge   *thorclient.ThorchainBridge
+	bridge   thorclient.ThorchainBridge
 	m        *metrics.Metrics
 	storage  *SignerStore
 	rpcHost  string

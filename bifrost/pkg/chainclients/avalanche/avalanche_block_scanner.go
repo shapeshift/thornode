@@ -74,7 +74,7 @@ type AvalancheScanner struct {
 	ethClient            *ethclient.Client
 	ethRpc               *evm.EthRPC
 	blockMetaAccessor    evm.BlockMetaAccessor
-	bridge               *thorclient.ThorchainBridge
+	bridge               thorclient.ThorchainBridge
 	pubkeyMgr            pubkeymanager.PubKeyValidator
 	eipSigner            etypes.Signer
 	currentBlockHeight   int64
@@ -94,7 +94,7 @@ func NewAVAXScanner(cfg config.BifrostBlockScannerConfiguration,
 	chainID *big.Int,
 	ethClient *ethclient.Client,
 	ethRpc *evm.EthRPC,
-	bridge *thorclient.ThorchainBridge,
+	bridge thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
 	solvencyReporter SolvencyReporter,

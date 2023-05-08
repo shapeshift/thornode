@@ -232,41 +232,18 @@ func (c *Client) estimateTxSize(memo string, txes []btcjson.ListUnspentResult) i
 	return int64(10 + 148*len(txes) + 34 + 9 + len([]byte(memo)))
 }
 
-// SignTx is going to generate the outbound transaction, and also sign it
-func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, error) {
-	if !tx.Chain.Equals(common.DOGEChain) {
-		return nil, errors.New("not DOGE chain")
-	}
-	// when there is no coin , skip it
-	if tx.Coins.IsEmpty() {
-		return nil, nil
-	}
-	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
-		c.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
-		return nil, nil
-	}
-	vaultSignerLock := c.getVaultSignerLock(tx.VaultPubKey.String())
-	if vaultSignerLock == nil {
-		c.logger.Error().Msgf("fail to get signer lock for vault pub key: %s", tx.VaultPubKey.String())
-		return nil, fmt.Errorf("fail to get signer lock")
-	}
-	vaultSignerLock.Lock()
-	defer vaultSignerLock.Unlock()
-	sourceScript, err := c.getSourceScript(tx)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get source pay to address script: %w", err)
-	}
+func (c *Client) buildTx(tx stypes.TxOutItem, sourceScript []byte) (*wire.MsgTx, map[string]int64, error) {
 	txes, err := c.getUtxoToSpend(tx.VaultPubKey, c.getDOGEPaymentAmount(tx))
 	if err != nil {
-		return nil, fmt.Errorf("fail to get unspent UTXO")
+		return nil, nil, fmt.Errorf("fail to get unspent UTXO")
 	}
 	redeemTx := wire.NewMsgTx(wire.TxVersion)
 	totalAmt := float64(0)
-	individualAmounts := make(map[string]dogutil.Amount, len(txes))
+	individualAmounts := make(map[string]int64, len(txes))
 	for _, item := range txes {
 		txID, err := chainhash.NewHashFromStr(item.TxID)
 		if err != nil {
-			return nil, fmt.Errorf("fail to parse txID(%s): %w", item.TxID, err)
+			return nil, nil, fmt.Errorf("fail to parse txID(%s): %w", item.TxID, err)
 		}
 		// double check that the utxo is still valid
 		outputPoint := wire.NewOutPoint(txID, item.Vout)
@@ -275,34 +252,23 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 		totalAmt += item.Amount
 		amt, err := dogutil.NewAmount(item.Amount)
 		if err != nil {
-			return nil, fmt.Errorf("fail to parse amount(%f): %w", item.Amount, err)
+			return nil, nil, fmt.Errorf("fail to parse amount(%f): %w", item.Amount, err)
 		}
-		individualAmounts[fmt.Sprintf("%s-%d", txID, item.Vout)] = amt
+		individualAmounts[fmt.Sprintf("%s-%d", txID, item.Vout)] = int64(amt)
 	}
 
 	outputAddr, err := dogutil.DecodeAddress(tx.ToAddress.String(), c.getChainCfg())
 	if err != nil {
-		return nil, fmt.Errorf("fail to decode next address: %w", err)
+		return nil, nil, fmt.Errorf("fail to decode next address: %w", err)
 	}
-	if outputAddr.String() != tx.ToAddress.String() {
-		c.logger.Info().Msgf("output address: %s, to address: %s can't roundtrip", outputAddr.String(), tx.ToAddress.String())
-		return nil, nil
-	}
-	switch outputAddr.(type) {
-	case *dogutil.AddressPubKey:
-		c.logger.Info().Msgf("address: %s is address pubkey type, should not be used", outputAddr)
-		return nil, nil
-	default: // keep lint happy
-	}
-
 	buf, err := txscript.PayToAddrScript(outputAddr)
 	if err != nil {
-		return nil, fmt.Errorf("fail to get pay to address script: %w", err)
+		return nil, nil, fmt.Errorf("fail to get pay to address script: %w", err)
 	}
 
 	total, err := dogutil.NewAmount(totalAmt)
 	if err != nil {
-		return nil, fmt.Errorf("fail to parse total amount(%f),err: %w", totalAmt, err)
+		return nil, nil, fmt.Errorf("fail to parse total amount(%f),err: %w", totalAmt, err)
 	}
 	coinToCustomer := tx.Coins.GetCoin(common.DOGEAsset)
 	totalSize := c.estimateTxSize(tx.Memo, txes)
@@ -343,7 +309,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	} else {
 		memo, err := mem.ParseMemo(common.LatestVersion, tx.Memo)
 		if err != nil {
-			return nil, fmt.Errorf("fail to parse memo: %w", err)
+			return nil, nil, fmt.Errorf("fail to parse memo: %w", err)
 		}
 		if memo.GetType() == mem.TxYggdrasilReturn || memo.GetType() == mem.TxConsolidate {
 			gap := gasAmtSats
@@ -365,7 +331,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	balance := int64(total) - redeemTxOut.Value - int64(gasAmt)
 	c.logger.Info().Msgf("total: %d, to customer: %d, gas: %d", int64(total), redeemTxOut.Value, int64(gasAmt))
 	if balance < 0 {
-		return nil, fmt.Errorf("not enough balance to pay customer: %d", balance)
+		return nil, nil, fmt.Errorf("not enough balance to pay customer: %d", balance)
 	}
 	if balance > 0 {
 		c.logger.Info().Msgf("send %d back to self", balance)
@@ -376,17 +342,98 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	if len(tx.Memo) != 0 {
 		nullDataScript, err := txscript.NullDataScript([]byte(tx.Memo))
 		if err != nil {
-			return nil, fmt.Errorf("fail to generate null data script: %w", err)
+			return nil, nil, fmt.Errorf("fail to generate null data script: %w", err)
 		}
 		redeemTx.AddTxOut(wire.NewTxOut(0, nullDataScript))
 	}
+
+	return redeemTx, individualAmounts, nil
+}
+
+// SignTx builds and signs the outbound transaction. Returns the signed transaction, a
+// serialized checkpoint on error, and an error.
+func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []byte, error) {
+	if !tx.Chain.Equals(common.DOGEChain) {
+		return nil, nil, errors.New("not DOGE chain")
+	}
+
+	// skip outbounds without coins
+	if tx.Coins.IsEmpty() {
+		return nil, nil, nil
+	}
+
+	// skip outbounds that have been signed
+	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
+		c.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
+		return nil, nil, nil
+	}
+
+	// only one keysign per chain at a time
+	vaultSignerLock := c.getVaultSignerLock(tx.VaultPubKey.String())
+	if vaultSignerLock == nil {
+		c.logger.Error().Msgf("fail to get signer lock for vault pub key: %s", tx.VaultPubKey.String())
+		return nil, nil, fmt.Errorf("fail to get signer lock")
+	}
+	vaultSignerLock.Lock()
+	defer vaultSignerLock.Unlock()
+
+	sourceScript, err := c.getSourceScript(tx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail to get source pay to address script: %w", err)
+	}
+
+	// verify output address
+	outputAddr, err := dogutil.DecodeAddress(tx.ToAddress.String(), c.getChainCfg())
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail to decode next address: %w", err)
+	}
+	if outputAddr.String() != tx.ToAddress.String() {
+		c.logger.Info().Msgf("output address: %s, to address: %s can't roundtrip", outputAddr.String(), tx.ToAddress.String())
+		return nil, nil, nil
+	}
+	switch outputAddr.(type) {
+	case *dogutil.AddressPubKey:
+		c.logger.Info().Msgf("address: %s is address pubkey type, should not be used", outputAddr)
+		return nil, nil, nil
+	default: // keep lint happy
+	}
+
+	// load from checkpoint if it exists
+	checkpoint := utxo.SignCheckpoint{}
+	redeemTx := &wire.MsgTx{}
+	if tx.Checkpoint != nil {
+		if err := json.Unmarshal(tx.Checkpoint, &checkpoint); err != nil {
+			return nil, nil, fmt.Errorf("fail to unmarshal checkpoint: %w", err)
+		}
+		if err := redeemTx.Deserialize(bytes.NewReader(checkpoint.UnsignedTx)); err != nil {
+			return nil, nil, fmt.Errorf("fail to deserialize tx: %w", err)
+		}
+	} else {
+		redeemTx, checkpoint.IndividualAmounts, err = c.buildTx(tx, sourceScript)
+		if err != nil {
+			return nil, nil, err
+		}
+		buf := bytes.NewBuffer([]byte{})
+		err = redeemTx.Serialize(buf)
+		if err != nil {
+			return nil, nil, fmt.Errorf("fail to serialize tx: %w", err)
+		}
+		checkpoint.UnsignedTx = buf.Bytes()
+	}
+
+	// serialize the checkpoint for later
+	checkpointBytes, err := json.Marshal(checkpoint)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail to marshal checkpoint: %w", err)
+	}
+
 	wg := &sync.WaitGroup{}
 	var utxoErr error
 	c.logger.Info().Msgf("UTXOs to sign: %d", len(redeemTx.TxIn))
 
 	for idx, txIn := range redeemTx.TxIn {
 		key := fmt.Sprintf("%s-%d", txIn.PreviousOutPoint.Hash, txIn.PreviousOutPoint.Index)
-		outputAmount := int64(individualAmounts[key])
+		outputAmount := checkpoint.IndividualAmounts[key]
 		wg.Add(1)
 		go func(i int, amount int64) {
 			defer wg.Done()
@@ -402,17 +449,17 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, err
 	wg.Wait()
 	if utxoErr != nil {
 		err = utxo.PostKeysignFailure(c.bridge, tx, c.logger, thorchainHeight, utxoErr)
-		return nil, fmt.Errorf("fail to sign the message: %w", err)
+		return nil, checkpointBytes, fmt.Errorf("fail to sign the message: %w", err)
 	}
 	finalSize := redeemTx.SerializeSize()
 	finalVBytes := mempool.GetTxVirtualSize(dogutil.NewTx(redeemTx))
-	c.logger.Info().Msgf("estimate:%d, final size: %d, final vbyte: %d", totalSize, finalSize, finalVBytes)
+	c.logger.Info().Msgf("final size: %d, final vbyte: %d", finalSize, finalVBytes)
 	var signedTx bytes.Buffer
 	if err := redeemTx.Serialize(&signedTx); err != nil {
-		return nil, fmt.Errorf("fail to serialize tx to bytes: %w", err)
+		return nil, nil, fmt.Errorf("fail to serialize tx to bytes: %w", err)
 	}
 
-	return signedTx.Bytes(), nil
+	return signedTx.Bytes(), nil, nil
 }
 
 func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int64, sourceScript []byte, idx int, thorchainHeight int64) error {
@@ -559,7 +606,7 @@ func (c *Client) consolidateUTXOs() {
 			c.logger.Err(err).Msg("fail to get THORChain block height")
 			continue
 		}
-		rawTx, err := c.SignTx(txOutItem, height)
+		rawTx, _, err := c.SignTx(txOutItem, height)
 		if err != nil {
 			c.logger.Err(err).Msg("fail to sign consolidate txout item")
 			continue

@@ -16,7 +16,7 @@ import (
 )
 
 // Broadcast Broadcasts tx to thorchain
-func (b *ThorchainBridge) Broadcast(msgs ...stypes.Msg) (common.TxID, error) {
+func (b *thorchainBridge) Broadcast(msgs ...stypes.Msg) (common.TxID, error) {
 	b.broadcastLock.Lock()
 	defer b.broadcastLock.Unlock()
 

@@ -2,6 +2,7 @@ package gaia
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -61,7 +62,7 @@ type CosmosClient struct {
 	accts               *CosmosMetaDataStore
 	tssKeyManager       *tss.KeySign
 	localKeyManager     *keyManager
-	thorchainBridge     *thorclient.ThorchainBridge
+	thorchainBridge     thorclient.ThorchainBridge
 	storage             *blockscanner.BlockScannerStorage
 	blockScanner        *blockscanner.BlockScanner
 	signerCacheManager  *signercache.CacheManager
@@ -76,7 +77,7 @@ func NewCosmosClient(
 	thorKeys *thorclient.Keys,
 	cfg config.BifrostChainConfiguration,
 	server *tssp.TssServer,
-	thorchainBridge *thorclient.ThorchainBridge,
+	thorchainBridge thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 ) (*CosmosClient, error) {
 	logger := log.With().Str("module", cfg.ChainID.String()).Logger()
@@ -316,7 +317,7 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight in
 }
 
 // SignTx sign the the given TxArrayItem
-func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, err error) {
+func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, checkpoint []byte, err error) {
 	defer func() {
 		if err != nil {
 			var keysignError tss.KeysignError
@@ -341,39 +342,55 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 
 	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
 		c.logger.Info().Interface("tx", tx).Msg("transaction already signed, ignoring...")
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	msg, err := c.processOutboundTx(tx, thorchainHeight)
 	if err != nil {
 		c.logger.Err(err).Msg("failed to process outbound tx")
-		return nil, err
+		return nil, nil, err
 	}
 
 	currentHeight, err := c.cosmosScanner.GetHeight()
 	if err != nil {
 		c.logger.Err(err).Msg("fail to get current block height")
-		return nil, err
+		return nil, nil, err
 	}
 
-	// Check if we have CosmosMetadata for the current block height
-	// before fetching it from the GRPC server
-	meta := c.accts.Get(tx.VaultPubKey)
-	if currentHeight > meta.BlockHeight {
-		acc, err := c.GetAccount(tx.VaultPubKey, big.NewInt(0))
-		if err != nil {
-			return nil, fmt.Errorf("fail to get account info: %w", err)
+	// the metadata is stored as the transaction checkpoint, if it is set deserialize it
+	// so we only retry with the same account number and sequence to avoid double spend
+	meta := CosmosMetadata{}
+	if tx.Checkpoint != nil {
+		if err := json.Unmarshal(tx.Checkpoint, &meta); err != nil {
+			c.logger.Err(err).Msg("fail to unmarshal checkpoint")
+			return nil, nil, err
 		}
-		// Only update local sequence # if it is less than what is on chain
-		// When local sequence # is larger than on chain , that could be there are transactions in mempool not commit yet
-		if meta.SeqNumber <= acc.Sequence {
-			meta = CosmosMetadata{
-				AccountNumber: acc.AccountNumber,
-				SeqNumber:     acc.Sequence,
-				BlockHeight:   currentHeight,
+	} else {
+		// Check if we have CosmosMetadata for the current block height before
+		// fetching it from the GRPC server
+		meta = c.accts.Get(tx.VaultPubKey)
+		if currentHeight > meta.BlockHeight {
+			acc, err := c.GetAccount(tx.VaultPubKey, big.NewInt(0))
+			if err != nil {
+				return nil, nil, fmt.Errorf("fail to get account info: %w", err)
 			}
-			c.accts.Set(tx.VaultPubKey, meta)
+			// Only update local sequence # if it is less than what is on chain
+			// When local sequence # is larger than on chain , that could be there are transactions in mempool not commit yet
+			if meta.SeqNumber <= acc.Sequence {
+				meta = CosmosMetadata{
+					AccountNumber: acc.AccountNumber,
+					SeqNumber:     acc.Sequence,
+					BlockHeight:   currentHeight,
+				}
+				c.accts.Set(tx.VaultPubKey, meta)
+			}
 		}
+	}
+
+	// serialize the checkpoint for later
+	checkpointBytes, err := json.Marshal(meta)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail to marshal checkpoint: %w", err)
 	}
 
 	gasCoins := tx.MaxGas.ToCoins()
@@ -387,20 +404,20 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		} else {
 			err = errors.New("exactly one gas coin must be provided")
 			c.logger.Err(err).Interface("fee", gasCoins).Msg(err.Error())
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	if !gasCoins[0].Asset.Equals(c.GetChain().GetGasAsset()) {
 		err = errors.New("gas coin asset must match chain gas asset")
 		c.logger.Err(err).Interface("coin", gasCoins[0]).Msg(err.Error())
-		return nil, err
+		return nil, nil, err
 	}
 	cCoin, err := fromThorchainToCosmos(gasCoins[0])
 	if err != nil {
 		err = errors.New("gas coin is not defined in cosmos_assets.go, unable to pay fee")
 		c.logger.Err(err).Msg(err.Error())
-		return nil, err
+		return nil, nil, err
 	}
 	fee := ctypes.Coins{cCoin}
 
@@ -414,7 +431,7 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		uint64(meta.SeqNumber),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("unable to build unsigned tx: %w", err)
+		return nil, nil, fmt.Errorf("unable to build unsigned tx: %w", err)
 	}
 
 	txBytes, err := c.signMsg(
@@ -424,10 +441,10 @@ func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signe
 		uint64(meta.SeqNumber),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to sign message: %w", err)
+		return nil, checkpointBytes, fmt.Errorf("failed to sign message: %w", err)
 	}
 
-	return txBytes, nil
+	return txBytes, nil, nil
 }
 
 // signMsg takes an unsigned msg in a txBuilder and signs it using either private key or TSS.

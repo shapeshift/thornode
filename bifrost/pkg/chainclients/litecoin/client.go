@@ -70,7 +70,7 @@ type Client struct {
 	blockScanner            *blockscanner.BlockScanner
 	temporalStorage         *utxo.TemporalStorage
 	ksWrapper               *KeySignWrapper
-	bridge                  *thorclient.ThorchainBridge
+	bridge                  thorclient.ThorchainBridge
 	globalErrataQueue       chan<- types.ErrataBlock
 	globalSolvencyQueue     chan<- types.Solvency
 	nodePubKey              common.PubKey
@@ -93,7 +93,7 @@ type Client struct {
 }
 
 // NewClient generates a new Client
-func NewClient(thorKeys *thorclient.Keys, cfg config.BifrostChainConfiguration, server *tssp.TssServer, bridge *thorclient.ThorchainBridge, m *metrics.Metrics) (*Client, error) {
+func NewClient(thorKeys *thorclient.Keys, cfg config.BifrostChainConfiguration, server *tssp.TssServer, bridge thorclient.ThorchainBridge, m *metrics.Metrics) (*Client, error) {
 	client, err := rpcclient.New(&rpcclient.ConnConfig{
 		Host:         cfg.RPCHost,
 		User:         cfg.UserName,

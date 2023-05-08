@@ -22,7 +22,7 @@ import (
 // Start
 // Stop
 type ChainClient interface {
-	SignTx(tx stypes.TxOutItem, height int64) ([]byte, error)
+	SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, error)
 	BroadcastTx(_ stypes.TxOutItem, _ []byte) (string, error)
 	GetHeight() (int64, error)
 	GetAddress(poolPubKey common.PubKey) string

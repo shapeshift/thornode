@@ -273,6 +273,7 @@ func queryVault(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, error) {
 		OutboundTxCount:       v.OutboundTxCount,
 		PendingTxBlockHeights: v.PendingTxBlockHeights,
 		Routers:               v.Routers,
+		Frozen:                v.Frozen,
 		Addresses:             getVaultChainAddress(ctx, v),
 	}
 	return jsonify(ctx, resp)
@@ -307,6 +308,7 @@ func queryAsgardVaults(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 				OutboundTxCount:       vault.OutboundTxCount,
 				PendingTxBlockHeights: vault.PendingTxBlockHeights,
 				Routers:               vault.Routers,
+				Frozen:                vault.Frozen,
 				Addresses:             getVaultChainAddress(ctx, vault),
 			})
 		}

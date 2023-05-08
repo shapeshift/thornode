@@ -19,7 +19,6 @@ import (
 	"gitlab.com/thorchain/binance-sdk/keys"
 	"gitlab.com/thorchain/binance-sdk/types/tx"
 	"gitlab.com/thorchain/tss/go-tss/keysign"
-	"gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
@@ -33,11 +32,15 @@ const (
 	tssKeysignTimeout    = 5  // in minutes, the maximum time bifrost is going to wait before the tss result come back
 )
 
+type tssServer interface {
+	KeySign(req keysign.Request) (keysign.Response, error)
+}
+
 // KeySign is a proxy between signer and TSS
 type KeySign struct {
 	logger         zerolog.Logger
-	server         *tss.TssServer
-	bridge         *thorclient.ThorchainBridge
+	server         tssServer
+	bridge         thorclient.ThorchainBridge
 	currentVersion semver.Version
 	lastCheck      time.Time
 	wg             *sync.WaitGroup
@@ -46,7 +49,7 @@ type KeySign struct {
 }
 
 // NewKeySign create a new instance of KeySign
-func NewKeySign(server *tss.TssServer, bridge *thorclient.ThorchainBridge) (*KeySign, error) {
+func NewKeySign(server tssServer, bridge thorclient.ThorchainBridge) (*KeySign, error) {
 	return &KeySign{
 		server:    server,
 		bridge:    bridge,

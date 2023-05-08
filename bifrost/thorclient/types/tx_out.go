@@ -23,6 +23,7 @@ type TxOutItem struct {
 	Aggregator            string         `json:"aggregator"`
 	AggregatorTargetAsset string         `json:"aggregator_target_asset,omitempty"`
 	AggregatorTargetLimit *cosmos.Uint   `json:"aggregator_target_limit,omitempty"`
+	Checkpoint            []byte         `json:"-"`
 }
 
 // Hash return a sha256 hash that can uniquely represent the TxOutItem

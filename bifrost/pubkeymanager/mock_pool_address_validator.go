@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	previous = "tbnb1hzwfk6t3sqjfuzlr0ur9lj920gs37gg92gtay9"
-	current  = "tbnb1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfj"
-	next     = "tbnb1hzwfk6t3sqjfuzlr0ur9lj920gs37gg92gtay9"
-	top      = "tbnb186nvjtqk4kkea3f8a30xh4vqtkrlu2rm9xgly3"
-	validpb  = "thorpub1addwnpepqfgfxharps79pqv8fv9ndqh90smw8c3slrtrssn58ryc5g3p9sx856x07yn"
+	previous   = "tbnb1hzwfk6t3sqjfuzlr0ur9lj920gs37gg92gtay9"
+	current    = "tbnb1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfj"
+	next       = "tbnb1hzwfk6t3sqjfuzlr0ur9lj920gs37gg92gtay9"
+	top        = "tbnb186nvjtqk4kkea3f8a30xh4vqtkrlu2rm9xgly3"
+	MockPubkey = "tthorpub1addwnpepqt8tnluxnk3y5quyq952klgqnlmz2vmaynm40fp592s0um7ucvjh5lc2l2z"
 )
 
 type MockPoolAddressValidator struct{}
@@ -24,7 +24,7 @@ func NewMockPoolAddressValidator() *MockPoolAddressValidator {
 
 func matchTestAddress(addr, testAddr string, chain common.Chain) (bool, common.ChainPoolInfo) {
 	if strings.EqualFold(testAddr, addr) {
-		pubKey, _ := common.NewPubKey(validpb)
+		pubKey, _ := common.NewPubKey(MockPubkey)
 		cpi, err := common.NewChainPoolInfo(chain, pubKey)
 		if err != nil {
 			fmt.Println(err)
@@ -37,11 +37,13 @@ func matchTestAddress(addr, testAddr string, chain common.Chain) (bool, common.C
 
 func (mpa *MockPoolAddressValidator) GetPubKeys() common.PubKeys { return nil }
 func (mpa *MockPoolAddressValidator) GetSignPubKeys() common.PubKeys {
-	pubKey, _ := common.NewPubKey(validpb)
+	pubKey, _ := common.NewPubKey(MockPubkey)
 	return common.PubKeys{pubKey}
 }
-func (mpa *MockPoolAddressValidator) GetNodePubKey() common.PubKey       { return common.EmptyPubKey }
-func (mpa *MockPoolAddressValidator) HasPubKey(pk common.PubKey) bool    { return false }
+func (mpa *MockPoolAddressValidator) GetNodePubKey() common.PubKey { return common.EmptyPubKey }
+func (mpa *MockPoolAddressValidator) HasPubKey(pk common.PubKey) bool {
+	return pk.String() == MockPubkey
+}
 func (mpa *MockPoolAddressValidator) AddPubKey(pk common.PubKey, _ bool) {}
 func (mpa *MockPoolAddressValidator) AddNodePubKey(pk common.PubKey)     {}
 func (mpa *MockPoolAddressValidator) RemovePubKey(pk common.PubKey)      {}

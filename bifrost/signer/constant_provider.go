@@ -12,13 +12,13 @@ import (
 // it will also cache the constant values internally
 type ConstantsProvider struct {
 	requestHeight int64 // the block height last request to thorchain to retrieve constant values
-	bridge        *thorclient.ThorchainBridge
+	bridge        thorclient.ThorchainBridge
 	constantsLock *sync.Mutex
 	constants     map[string]int64 // the constant values get from thorchain and cached in memory
 }
 
 // NewConstantsProvider create a new instance of ConstantsProvider
-func NewConstantsProvider(bridge *thorclient.ThorchainBridge) *ConstantsProvider {
+func NewConstantsProvider(bridge thorclient.ThorchainBridge) *ConstantsProvider {
 	return &ConstantsProvider{
 		constants:     make(map[string]int64),
 		requestHeight: 0,

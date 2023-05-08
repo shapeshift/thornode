@@ -64,7 +64,7 @@ func (m *MockFeeTx) FeeGranter() ctypes.AccAddress {
 
 type BlockScannerTestSuite struct {
 	m      *metrics.Metrics
-	bridge *thorclient.ThorchainBridge
+	bridge thorclient.ThorchainBridge
 	keys   *thorclient.Keys
 }
 

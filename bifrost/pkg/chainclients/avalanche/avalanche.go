@@ -3,6 +3,7 @@ package avalanche
 import (
 	"context"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -48,7 +49,7 @@ type AvalancheClient struct {
 	kw                      *evm.KeySignWrapper
 	ethClient               *ethclient.Client
 	avaxScanner             *AvalancheScanner
-	bridge                  *thorclient.ThorchainBridge
+	bridge                  thorclient.ThorchainBridge
 	blockScanner            *blockscanner.BlockScanner
 	vaultABI                *abi.ABI
 	pubkeyMgr               pubkeymanager.PubKeyValidator
@@ -66,7 +67,7 @@ type AvalancheClient struct {
 func NewAvalancheClient(thorKeys *thorclient.Keys,
 	cfg config.BifrostChainConfiguration,
 	server *tssp.TssServer,
-	bridge *thorclient.ThorchainBridge,
+	bridge thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
 	poolMgr thorclient.PoolManager,
@@ -469,7 +470,7 @@ func (c *AvalancheClient) getOutboundTxData(txOutItem stypes.TxOutItem, memo mem
 	return data, hasRouterUpdated, avaxValue, nil
 }
 
-func (c *AvalancheClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.Memo) (*etypes.Transaction, error) {
+func (c *AvalancheClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.Memo, nonce uint64) (*etypes.Transaction, error) {
 	contractAddr := c.getSmartContractAddr(txOutItem.VaultPubKey)
 	if contractAddr.IsEmpty() {
 		// we may be churning from a vault that does not have a contract
@@ -497,11 +498,6 @@ func (c *AvalancheClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.M
 	}
 	if avaxValue == nil {
 		avaxValue = cosmos.ZeroUint().BigInt()
-	}
-
-	nonce, err := c.avaxScanner.GetNonce(fromAddr.String())
-	if err != nil {
-		return nil, fmt.Errorf("fail to fetch account(%s) nonce : %w", fromAddr, err)
 	}
 
 	// compare the gas rate prescribed by THORChain against the price it can get from the chain
@@ -589,48 +585,72 @@ func (c *AvalancheClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.M
 /* Sign and Broadcast */
 
 // SignTx signs the the given TxArrayItem
-func (c *AvalancheClient) SignTx(tx stypes.TxOutItem, height int64) ([]byte, error) {
+func (c *AvalancheClient) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, error) {
 	if !tx.Chain.Equals(common.AVAXChain) {
-		return nil, fmt.Errorf("chain %s is not support by AVAX chain client", tx.Chain)
+		return nil, nil, fmt.Errorf("chain %s is not support by AVAX chain client", tx.Chain)
 	}
 
 	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
 		c.logger.Info().Interface("tx", tx).Msg("transaction signed before, ignore")
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if tx.ToAddress.IsEmpty() {
-		return nil, fmt.Errorf("to address is empty")
+		return nil, nil, fmt.Errorf("to address is empty")
 	}
 	if tx.VaultPubKey.IsEmpty() {
-		return nil, fmt.Errorf("vault public key is empty")
+		return nil, nil, fmt.Errorf("vault public key is empty")
 	}
 
 	memo, err := mem.ParseMemo(common.LatestVersion, tx.Memo)
 	if err != nil {
-		return nil, fmt.Errorf("fail to parse memo(%s):%w", tx.Memo, err)
+		return nil, nil, fmt.Errorf("fail to parse memo(%s):%w", tx.Memo, err)
 	}
 
 	if memo.IsInbound() {
-		return nil, fmt.Errorf("inbound memo should not be used for outbound tx")
+		return nil, nil, fmt.Errorf("inbound memo should not be used for outbound tx")
 	}
 
 	if len(tx.Memo) == 0 {
-		return nil, fmt.Errorf("can't sign tx when it doesn't have memo")
+		return nil, nil, fmt.Errorf("can't sign tx when it doesn't have memo")
 	}
 
-	outboundTx, err := c.buildOutboundTx(tx, memo)
+	// the nonce is stored as the transaction checkpoint, if it is set deserialize it
+	// so we only retry with the same nonce to avoid double spend
+	var nonce uint64
+	if tx.Checkpoint != nil {
+		if err := json.Unmarshal(tx.Checkpoint, &nonce); err != nil {
+			return nil, nil, fmt.Errorf("fail to unmarshal checkpoint: %w", err)
+		}
+	} else {
+		fromAddr, err := tx.VaultPubKey.GetAddress(common.AVAXChain)
+		if err != nil {
+			return nil, nil, fmt.Errorf("fail to get AVAX address for pub key(%s): %w", tx.VaultPubKey, err)
+		}
+		nonce, err = c.avaxScanner.GetNonce(fromAddr.String())
+		if err != nil {
+			return nil, nil, fmt.Errorf("fail to fetch account(%s) nonce : %w", fromAddr, err)
+		}
+	}
+
+	// serialize nonce for later
+	nonceBytes, err := json.Marshal(nonce)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fail to marshal nonce: %w", err)
+	}
+
+	outboundTx, err := c.buildOutboundTx(tx, memo, nonce)
 	if err != nil {
 		c.logger.Err(err).Msg("Failed to build outbound tx")
-		return nil, err
+		return nil, nil, err
 	}
 
 	rawTx, err := c.sign(outboundTx, tx.VaultPubKey, height, tx)
 	if err != nil || len(rawTx) == 0 {
-		return nil, fmt.Errorf("fail to sign message: %w", err)
+		return nil, nonceBytes, fmt.Errorf("fail to sign message: %w", err)
 	}
 
-	return rawTx, nil
+	return rawTx, nil, nil
 }
 
 // sign is design to sign a given message with keysign party and keysign wrapper

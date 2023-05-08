@@ -26,7 +26,7 @@ import (
 func LoadChains(thorKeys *thorclient.Keys,
 	cfg map[common.Chain]config.BifrostChainConfiguration,
 	server *tss.TssServer,
-	thorchainBridge *thorclient.ThorchainBridge,
+	thorchainBridge thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubKeyValidator pubkeymanager.PubKeyValidator,
 	poolMgr thorclient.PoolManager,

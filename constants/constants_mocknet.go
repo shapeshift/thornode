@@ -30,6 +30,7 @@ func init() {
 		PoolDepthForYggFundingMin:           500_000_00000000,
 		MaxSynthPerPoolDepth:                3_500,
 		PauseLoans:                          0,
+		AllowWideBlame:                      1,
 		TargetOutboundFeeSurplusRune:        10_000_00000000,
 		MaxOutboundFeeMultiplierBasisPoints: 20_000,
 		MinOutboundFeeMultiplierBasisPoints: 15_000,

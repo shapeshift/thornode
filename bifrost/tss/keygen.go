@@ -23,13 +23,13 @@ type KeyGen struct {
 	logger         zerolog.Logger
 	client         *http.Client
 	server         *tss.TssServer
-	bridge         *thorclient.ThorchainBridge
+	bridge         thorclient.ThorchainBridge
 	currentVersion semver.Version
 	lastCheck      time.Time
 }
 
 // NewTssKeyGen create a new instance of TssKeyGen which will look after TSS key stuff
-func NewTssKeyGen(keys *thorclient.Keys, server *tss.TssServer, bridge *thorclient.ThorchainBridge) (*KeyGen, error) {
+func NewTssKeyGen(keys *thorclient.Keys, server *tss.TssServer, bridge thorclient.ThorchainBridge) (*KeyGen, error) {
 	if keys == nil {
 		return nil, fmt.Errorf("keys is nil")
 	}

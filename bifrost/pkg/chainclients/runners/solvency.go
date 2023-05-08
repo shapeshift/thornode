@@ -25,7 +25,7 @@ type SolvencyCheckProvider interface {
 // not report current solvency status to THORNode anymore, this method is to ensure that the chain client will continue to do solvency check even when the chain has been halted
 func SolvencyCheckRunner(chain common.Chain,
 	provider SolvencyCheckProvider,
-	bridge *thorclient.ThorchainBridge,
+	bridge thorclient.ThorchainBridge,
 	stopper <-chan struct{},
 	wg *sync.WaitGroup,
 	backOffDuration time.Duration,

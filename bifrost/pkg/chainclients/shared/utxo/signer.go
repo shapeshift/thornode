@@ -11,8 +11,15 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/tss"
 )
 
+// SignCheckpoint is used to checkpoint the built transaction before signing, for use in
+// round 7 signing errors which must reuse the same inputs.
+type SignCheckpoint struct {
+	UnsignedTx        []byte           `json:"unsigned_tx"`
+	IndividualAmounts map[string]int64 `json:"individual_amounts"`
+}
+
 func PostKeysignFailure(
-	thorchainBridge *thorclient.ThorchainBridge,
+	thorchainBridge thorclient.ThorchainBridge,
 	tx stypes.TxOutItem,
 	logger zerolog.Logger,
 	thorchainHeight int64,

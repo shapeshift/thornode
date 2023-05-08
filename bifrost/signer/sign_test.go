@@ -1,7 +1,10 @@
 package signer
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -13,11 +16,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
 	"github.com/rs/zerolog/log"
 	"github.com/tendermint/tendermint/crypto"
 	ctypes "gitlab.com/thorchain/binance-sdk/common/types"
+	"gitlab.com/thorchain/tss/go-tss/blame"
+	"gitlab.com/thorchain/tss/go-tss/keysign"
+	tssMessages "gitlab.com/thorchain/tss/go-tss/messages"
 
 	. "gopkg.in/check.v1"
 
@@ -28,13 +35,235 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
+	"gitlab.com/thorchain/thornode/bifrost/tss"
 	"gitlab.com/thorchain/thornode/cmd"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/config"
+	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain"
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Mocks
+////////////////////////////////////////////////////////////////////////////////////////
+
+// -------------------------------- bridge ---------------------------------
+
+type fakeBridge struct {
+	thorclient.ThorchainBridge
+}
+
+func (b fakeBridge) GetBlockHeight() (int64, error) {
+	return 100, nil
+}
+
+func (b fakeBridge) GetThorchainVersion() (semver.Version, error) {
+	return semver.MustParse("1.0.0"), nil
+}
+
+func (b fakeBridge) GetConstants() (map[string]int64, error) {
+	return map[string]int64{
+		constants.SigningTransactionPeriod.String(): 300,
+	}, nil
+}
+
+func (b fakeBridge) GetMimir(key string) (int64, error) {
+	if strings.HasPrefix(key, "HALT") {
+		return 0, nil
+	}
+	panic("not implemented")
+}
+
+// -------------------------------- tss ---------------------------------
+
+type fakeTssServer struct {
+	counter int
+	results map[int]keysign.Response
+	fixed   *keysign.Response
+}
+
+func (tss *fakeTssServer) KeySign(req keysign.Request) (keysign.Response, error) {
+	tss.counter += 1
+
+	if tss.fixed != nil {
+		return *tss.fixed, nil
+	}
+
+	result, ok := tss.results[tss.counter]
+	if ok {
+		return result, nil
+	}
+
+	return keysign.Response{}, fmt.Errorf("unhandled counter")
+}
+
+func newFakeTss(msg string, succeedOnly bool) *fakeTssServer {
+	success := keysign.Response{
+		Status: 1, // 1 is success
+		Signatures: []keysign.Signature{
+			{
+				R:   base64.StdEncoding.EncodeToString([]byte("R")),
+				S:   base64.StdEncoding.EncodeToString([]byte("S")),
+				Msg: base64.StdEncoding.EncodeToString([]byte(msg)),
+			},
+		},
+	}
+
+	if succeedOnly {
+		return &fakeTssServer{
+			fixed: &success,
+		}
+	}
+
+	results := make(map[int]keysign.Response)
+	results[1] = keysign.Response{
+		Status: 2, // 2 is fail
+		Blame: blame.Blame{
+			Round: tssMessages.KEYSIGN7,
+			BlameNodes: []blame.Node{
+				{Pubkey: "node1"},
+			},
+		},
+	}
+	results[2] = keysign.Response{
+		Status: 2, // 2 is fail
+		Blame: blame.Blame{
+			Round: tssMessages.KEYSIGN7,
+			BlameNodes: []blame.Node{
+				{Pubkey: "node2"},
+			},
+		},
+	}
+	results[3] = keysign.Response{
+		Status: 2, // 2 is fail, as non-round7
+		Blame: blame.Blame{
+			Round: tssMessages.KEYSIGN3,
+			BlameNodes: []blame.Node{
+				{Pubkey: "node2"},
+			},
+		},
+	}
+	results[4] = keysign.Response{
+		Status: 2, // 2 is fail
+		Blame: blame.Blame{
+			Round: tssMessages.KEYSIGN7,
+			BlameNodes: []blame.Node{
+				{Pubkey: "node3"},
+			},
+		},
+	}
+	results[5] = success
+	results[6] = success
+	results[7] = success
+
+	return &fakeTssServer{
+		counter: 0,
+		results: results,
+	}
+}
+
+// --------------------------------- chain client ---------------------------------
+
+type MockChainClient struct {
+	account          common.Account
+	signCount        int
+	broadcastCount   int
+	ks               *tss.KeySign
+	assertCheckpoint bool
+}
+
+func (b *MockChainClient) IsBlockScannerHealthy() bool {
+	return true
+}
+
+func (b *MockChainClient) SignTx(tai stypes.TxOutItem, height int64) ([]byte, []byte, error) {
+	if b.ks == nil {
+		return nil, nil, nil
+	}
+
+	// assert that this signing should have the checkpoint set
+	if b.assertCheckpoint {
+		if !bytes.Equal(tai.Checkpoint, []byte(tai.Memo)) {
+			panic("checkpoint should be set")
+		}
+	} else {
+		if bytes.Equal(tai.Checkpoint, []byte(tai.Memo)) {
+			panic("checkpoint should not be set")
+		}
+	}
+
+	b.signCount += 1
+	sig, _, err := b.ks.RemoteSign([]byte(tai.Memo), tai.VaultPubKey.String())
+
+	return sig, []byte(tai.Memo), err
+}
+
+func (b *MockChainClient) GetConfig() config.BifrostChainConfiguration {
+	return config.BifrostChainConfiguration{}
+}
+
+func (b *MockChainClient) GetHeight() (int64, error) {
+	return 0, nil
+}
+
+func (b *MockChainClient) GetGasFee(count uint64) common.Gas {
+	coins := make(common.Coins, count)
+	return common.CalcBinanceGasPrice(common.Tx{Coins: coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)})
+}
+
+func (b *MockChainClient) CheckIsTestNet() (string, bool) {
+	return "", true
+}
+
+func (b *MockChainClient) GetChain() common.Chain {
+	return common.BNBChain
+}
+
+func (b *MockChainClient) Churn(pubKey common.PubKey, height int64) error {
+	return nil
+}
+
+func (b *MockChainClient) BroadcastTx(_ stypes.TxOutItem, tx []byte) (string, error) {
+	b.broadcastCount += 1
+	return "", nil
+}
+
+func (b *MockChainClient) GetAddress(poolPubKey common.PubKey) string {
+	return "0dd3d0a4a6eacc98cc4894791702e46c270bde76"
+}
+
+func (b *MockChainClient) GetAccount(poolPubKey common.PubKey, _ *big.Int) (common.Account, error) {
+	return b.account, nil
+}
+
+func (b *MockChainClient) GetAccountByAddress(address string, _ *big.Int) (common.Account, error) {
+	return b.account, nil
+}
+
+func (b *MockChainClient) GetPubKey() crypto.PubKey {
+	return nil
+}
+
+func (b *MockChainClient) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
+}
+
+func (b *MockChainClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
+}
+
+func (b *MockChainClient) Stop() {}
+func (b *MockChainClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
+	return true
+}
+
+func (b *MockChainClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
+	return 0
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Tests
+////////////////////////////////////////////////////////////////////////////////////////
 
 func TestPackage(t *testing.T) { TestingT(t) }
 
@@ -59,7 +288,7 @@ func GetMetricForTest(c *C) *metrics.Metrics {
 type SignSuite struct {
 	thordir  string
 	thorKeys *thorclient.Keys
-	bridge   *thorclient.ThorchainBridge
+	bridge   thorclient.ThorchainBridge
 	m        *metrics.Metrics
 	rpcHost  string
 	storage  *SignerStore
@@ -169,78 +398,6 @@ func (s *SignSuite) TearDownSuite(c *C) {
 	if err := os.RemoveAll("signer/var"); err != nil {
 		c.Error(err)
 	}
-}
-
-type MockChainClient struct {
-	account common.Account
-}
-
-func (b *MockChainClient) IsBlockScannerHealthy() bool {
-	return true
-}
-
-func (b *MockChainClient) SignTx(tai stypes.TxOutItem, height int64) ([]byte, error) {
-	return nil, nil
-}
-
-func (b *MockChainClient) GetConfig() config.BifrostChainConfiguration {
-	return config.BifrostChainConfiguration{}
-}
-
-func (b *MockChainClient) GetHeight() (int64, error) {
-	return 0, nil
-}
-
-func (b *MockChainClient) GetGasFee(count uint64) common.Gas {
-	coins := make(common.Coins, count)
-	return common.CalcBinanceGasPrice(common.Tx{Coins: coins}, common.BNBAsset, []cosmos.Uint{cosmos.NewUint(37500), cosmos.NewUint(30000)})
-}
-
-func (b *MockChainClient) CheckIsTestNet() (string, bool) {
-	return "", true
-}
-
-func (b *MockChainClient) GetChain() common.Chain {
-	return common.BNBChain
-}
-
-func (b *MockChainClient) Churn(pubKey common.PubKey, height int64) error {
-	return nil
-}
-
-func (b *MockChainClient) BroadcastTx(_ stypes.TxOutItem, tx []byte) (string, error) {
-	return "", nil
-}
-
-func (b *MockChainClient) GetAddress(poolPubKey common.PubKey) string {
-	return "0dd3d0a4a6eacc98cc4894791702e46c270bde76"
-}
-
-func (b *MockChainClient) GetAccount(poolPubKey common.PubKey, _ *big.Int) (common.Account, error) {
-	return b.account, nil
-}
-
-func (b *MockChainClient) GetAccountByAddress(address string, _ *big.Int) (common.Account, error) {
-	return b.account, nil
-}
-
-func (b *MockChainClient) GetPubKey() crypto.PubKey {
-	return nil
-}
-
-func (b *MockChainClient) OnObservedTxIn(txIn types.TxInItem, blockHeight int64) {
-}
-
-func (b *MockChainClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
-}
-
-func (b *MockChainClient) Stop() {}
-func (b *MockChainClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
-	return true
-}
-
-func (b *MockChainClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
-	return 0
 }
 
 func (s *SignSuite) TestHandleYggReturn_Success_FeeSingleton(c *C) {
@@ -365,4 +522,173 @@ func (s *SignSuite) TestProcess(c *C) {
 	time.Sleep(time.Second * 2)
 	// nolint
 	go sign.Stop()
+}
+
+func (s *SignSuite) TestRound7Retry(c *C) {
+	vaultPubkey, err := common.NewPubKey(pubkeymanager.MockPubkey)
+	c.Assert(err, IsNil)
+
+	// start a mock keysign, succeeds on 5th try
+	msg := "foobar"
+	tssServer := newFakeTss(msg, false)
+	bridge := fakeBridge{s.bridge}
+	ks, err := tss.NewKeySign(tssServer, bridge)
+	c.Assert(err, IsNil)
+	ks.Start()
+
+	// creat mock chain client and signer
+	cc := &MockChainClient{ks: ks}
+	sign := &Signer{
+		chains: map[common.Chain]chainclients.ChainClient{
+			common.BNBChain: cc,
+		},
+		pubkeyMgr:           pubkeymanager.NewMockPoolAddressValidator(),
+		stopChan:            make(chan struct{}),
+		wg:                  &sync.WaitGroup{},
+		thorchainBridge:     bridge,
+		constantsProvider:   NewConstantsProvider(bridge),
+		tssKeysignMetricMgr: metrics.NewTssKeysignMetricMgr(),
+		logger:              log.With().Str("module", "signer").Logger(),
+	}
+
+	// create a signer store with fake txouts
+	sign.storage, err = NewSignerStore("", "")
+	c.Assert(err, IsNil)
+	err = sign.storage.Set(TxOutStoreItem{
+		TxOutItem: stypes.TxOutItem{
+			Chain:       common.BNBChain,
+			ToAddress:   "tbnb1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfj",
+			Memo:        msg,
+			VaultPubKey: vaultPubkey,
+			Coins: common.Coins{ // must be set or signer overrides memo
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1000000)),
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	err = sign.storage.Set(TxOutStoreItem{
+		TxOutItem: stypes.TxOutItem{
+			Chain:       common.BNBChain,
+			ToAddress:   "tbnb145wcuncewfkuc4v6an0r9laswejygcul43c3wu",
+			Memo:        msg,
+			VaultPubKey: vaultPubkey,
+			Coins: common.Coins{ // must be set or signer overrides memo
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1000000)),
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+	err = sign.storage.Set(TxOutStoreItem{
+		TxOutItem: stypes.TxOutItem{
+			Chain:       common.BNBChain,
+			ToAddress:   "tbnb1yxfyeda8pnlxlmx0z3cwx74w9xevspwdpzdxpj",
+			Memo:        msg,
+			VaultPubKey: vaultPubkey,
+			Coins: common.Coins{ // must be set or signer overrides memo
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1000000)),
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// this will be ignored entirely since the vault pubkey is different
+	err = sign.storage.Set(TxOutStoreItem{
+		TxOutItem: stypes.TxOutItem{
+			Chain:       common.BNBChain,
+			ToAddress:   "tbnb145wcuncewfkuc4v6an0r9laswejygcul43c3wu",
+			Memo:        msg,
+			VaultPubKey: "tthorpub1addwnpepqfup3y8p0egd7ml7vrnlxgl3wvnp89mpn0tjpj0p2nm2gh0n9hlrvrtylay",
+			Coins: common.Coins{ // must be set or signer overrides memo
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1000000)),
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// create the same on different chain, should move independently
+	msg2 := "foobar2"
+	tssServer2 := newFakeTss(msg2, true) // this one succeeds on first try
+	bridge2 := fakeBridge{s.bridge}
+	ks2, err := tss.NewKeySign(tssServer2, bridge2)
+	c.Assert(err, IsNil)
+	ks2.Start()
+	cc2 := &MockChainClient{ks: ks2}
+	sign.chains[common.BTCChain] = cc2
+	tois2 := TxOutStoreItem{
+		TxOutItem: stypes.TxOutItem{
+			Chain:       common.BTCChain,
+			ToAddress:   "tbtc1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfj",
+			VaultPubKey: vaultPubkey,
+			Memo:        msg2,
+			Coins: common.Coins{
+				common.NewCoin(common.BTCAsset, cosmos.NewUint(1000000)),
+			},
+		},
+	}
+	err = sign.storage.Set(tois2)
+	c.Assert(err, IsNil)
+
+	// first round only btc tx should go through
+	sign.processTransactions()
+	c.Assert(cc.signCount, Equals, 1)
+	c.Assert(cc.broadcastCount, Equals, 0)
+	c.Assert(tssServer.counter, Equals, 1)
+	c.Assert(cc2.signCount, Equals, 1)
+	c.Assert(cc2.broadcastCount, Equals, 1)
+	c.Assert(tssServer2.counter, Equals, 1)
+
+	// all bnb txs should be remaining, first marked round 7
+	tois := sign.storage.List()
+	c.Assert(len(tois), Equals, 3)
+	c.Assert(tois[0].Round7Retry, Equals, true)
+	c.Assert(bytes.Equal(tois[0].Checkpoint, []byte(msg)), Equals, true)
+	c.Assert(tois[1].Round7Retry, Equals, false)
+	c.Assert(tois[2].Round7Retry, Equals, false)
+
+	// process transactions 3 more times
+	cc.assertCheckpoint = true // the following signs should pass checkpoint
+	for i := 0; i < 3; i++ {
+		sign.processTransactions()
+	}
+
+	// first bnb tx should have been retried 3 times, no broadcast yet
+	c.Assert(cc.signCount, Equals, 4)
+	c.Assert(cc.broadcastCount, Equals, 0)
+	c.Assert(tssServer.counter, Equals, 4)
+
+	// this round should sign and broadcast the round 7 retry
+	sign.processTransactions()
+	c.Assert(cc.signCount, Equals, 5)
+	c.Assert(cc.broadcastCount, Equals, 1)
+	c.Assert(tssServer.counter, Equals, 5)
+	tois = sign.storage.List()
+	c.Assert(len(tois), Equals, 2)
+	c.Assert(tois[0].Round7Retry, Equals, false)
+	c.Assert(tois[1].Round7Retry, Equals, false)
+
+	// this round should sign and broadcast the remaining
+	cc.assertCheckpoint = false // the following signs should not pass checkpoint
+	sign.processTransactions()
+	c.Assert(cc.signCount, Equals, 7)
+	c.Assert(cc.broadcastCount, Equals, 3)
+	c.Assert(tssServer.counter, Equals, 7)
+	c.Assert(len(sign.storage.List()), Equals, 0)
+
+	// nothing more should have happened on btc
+	for i := 0; i < 3; i++ {
+		sign.processTransactions()
+	}
+	c.Assert(cc.signCount, Equals, 7)
+	c.Assert(cc.broadcastCount, Equals, 3)
+	c.Assert(tssServer.counter, Equals, 7)
+	c.Assert(cc2.signCount, Equals, 1)
+	c.Assert(cc2.broadcastCount, Equals, 1)
+	c.Assert(tssServer2.counter, Equals, 1)
+	c.Assert(len(sign.storage.List()), Equals, 0)
+
+	// stop signer
+	close(sign.stopChan)
+	sign.wg.Wait()
+	ks.Stop()
+	ks2.Stop()
 }

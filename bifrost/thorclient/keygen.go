@@ -12,7 +12,7 @@ import (
 )
 
 // GetKeygenBlock retrieves keygen request for the given block height from thorchain
-func (b *ThorchainBridge) GetKeygenBlock(blockHeight int64, pk string) (types.KeygenBlock, error) {
+func (b *thorchainBridge) GetKeygenBlock(blockHeight int64, pk string) (types.KeygenBlock, error) {
 	path := fmt.Sprintf("%s/%d/%s", KeygenEndpoint, blockHeight, pk)
 	body, status, err := b.getWithPath(path)
 	if err != nil {

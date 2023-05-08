@@ -102,6 +102,7 @@ const (
 	MinimumPoolLiquidityFee
 	ILPCutoff
 	ChurnMigrateRounds
+	AllowWideBlame
 	MaxAffiliateFeeBasisPoints
 	TargetOutboundFeeSurplusRune
 	MaxOutboundFeeMultiplierBasisPoints
@@ -202,6 +203,7 @@ var nameToString = map[ConstantName]string{
 	PauseLoans:                          "PauseLoans",
 	LoanRepaymentMaturity:               "LoanRepaymentMaturity",
 	LendingLever:                        "LendingLever",
+	AllowWideBlame:                      "AllowWideBlame",
 	TargetOutboundFeeSurplusRune:        "TargetOutboundFeeSurplusRune",
 	MaxOutboundFeeMultiplierBasisPoints: "MaxOutboundFeeMultiplierBasisPoints",
 	MinOutboundFeeMultiplierBasisPoints: "MinOutboundFeeMultiplierBasisPoints",

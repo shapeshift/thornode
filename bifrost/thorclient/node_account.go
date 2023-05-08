@@ -8,7 +8,7 @@ import (
 )
 
 // GetNodeAccount retrieves node account for this address from thorchain
-func (b *ThorchainBridge) GetNodeAccount(thorAddr string) (*types.NodeAccount, error) {
+func (b *thorchainBridge) GetNodeAccount(thorAddr string) (*types.NodeAccount, error) {
 	path := fmt.Sprintf("%s/%s", NodeAccountEndpoint, thorAddr)
 	body, _, err := b.getWithPath(path)
 	if err != nil {

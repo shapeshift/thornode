@@ -24,7 +24,7 @@ import (
 
 type UnstuckTestSuite struct {
 	thorKeys *thorclient.Keys
-	bridge   *thorclient.ThorchainBridge
+	bridge   thorclient.ThorchainBridge
 	m        *metrics.Metrics
 	server   *httptest.Server
 }

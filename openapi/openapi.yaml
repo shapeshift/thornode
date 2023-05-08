@@ -1454,6 +1454,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/VaultAddress"
+        frozen:
+          type: array
+          items:
+            type: string
 
     VaultRouter:
       type: object
