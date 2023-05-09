@@ -626,7 +626,9 @@ func queryQuoteSaverDeposit(ctx cosmos.Context, path []string, req abci.RequestQ
 
 	// use the swap result info to generate the deposit quote
 	res := &openapi.QuoteSaverDepositResponse{
-		ExpectedAmountOut:          swapRes.ExpectedAmountOut,
+		// TODO: deprecate ExpectedAmountOut in future version
+		ExpectedAmountOut:          wrapString(swapRes.ExpectedAmountOut),
+		ExpectedAmountDeposit:      swapRes.ExpectedAmountOut,
 		Fees:                       swapRes.Fees,
 		SlippageBps:                swapRes.SlippageBps,
 		InboundConfirmationBlocks:  swapRes.InboundConfirmationBlocks,

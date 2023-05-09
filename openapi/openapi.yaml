@@ -2648,7 +2648,7 @@ components:
       required:
         - memo
         - inbound_address
-        - expected_amount_out
+        - expected_amount_deposit
         - fees
         - slippage_bps
         - warning
@@ -2662,7 +2662,7 @@ components:
           example: "+:ETH/ETH::thor17gw75axcnr8747pkanye45pnrwk7p9c3cqncsv:100"
         expected_amount_out:
           type: string
-          description: migrate to expected_amount_deposit (will be deprecated in v1.104)
+          description: same as expected_amount_deposit, to be deprecated in favour of expected_amount_deposit
           example: "10000"
         expected_amount_deposit:
           type: string
