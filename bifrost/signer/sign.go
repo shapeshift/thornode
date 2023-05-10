@@ -205,18 +205,19 @@ func (s *Signer) processTransactions() {
 		go func(items []TxOutStoreItem) {
 			defer wg.Done()
 
-			// if any tx out items are in round 7 failure retry, only proceed with those
-			round7RetryItems := []TxOutStoreItem{}
+			// if any tx out items are in broadcast or round 7 failure retry, only proceed with those
+			retryItems := []TxOutStoreItem{}
 			for _, item := range items {
-				if item.Round7Retry {
-					round7RetryItems = append(round7RetryItems, item)
+				if item.Round7Retry || len(item.SignedTx) > 0 {
+					retryItems = append(retryItems, item)
 				}
 			}
-			if len(round7RetryItems) > 0 {
-				items = round7RetryItems
+			if len(retryItems) > 0 {
+				s.logger.Info().Msgf("found %d retry items", len(retryItems))
+				items = retryItems
 			}
-			if len(round7RetryItems) > 1 {
-				s.logger.Error().Msgf("found %d tx out items in round 7 retry, there should only be one", len(round7RetryItems))
+			if len(retryItems) > 1 {
+				s.logger.Error().Msgf("found %d retry items, there should only be one", len(retryItems))
 			}
 
 			for i, item := range items {
@@ -496,13 +497,22 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
 			return nil, nil
 		}
 	}
-	startKeySign := time.Now()
-	signedTx, checkpoint, err := chain.SignTx(tx, height)
-	if err != nil {
-		s.logger.Error().Err(err).Msg("fail to sign tx")
-		return checkpoint, err
+
+	// If SignedTx is set, we already signed and should only retry broadcast.
+	var signedTx, checkpoint []byte
+	var elapse time.Duration
+	if len(item.SignedTx) > 0 {
+		s.logger.Info().Str("memo", tx.Memo).Msg("retrying broadcast of already signed tx")
+		signedTx = item.SignedTx
+	} else {
+		startKeySign := time.Now()
+		signedTx, checkpoint, err = chain.SignTx(tx, height)
+		if err != nil {
+			s.logger.Error().Err(err).Msg("fail to sign tx")
+			return checkpoint, err
+		}
+		elapse = time.Since(startKeySign)
 	}
-	elapse := time.Since(startKeySign)
 
 	// looks like the transaction is already signed
 	if len(signedTx) == 0 {
@@ -511,9 +521,17 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
 	}
 	hash, err := chain.BroadcastTx(tx, signedTx)
 	if err != nil {
-		s.logger.Error().Err(err).Msg("fail to broadcast tx to chain")
+		s.logger.Error().Err(err).Str("memo", tx.Memo).Msg("fail to broadcast tx to chain")
+
+		// store the signed tx for the next retry
+		item.SignedTx = signedTx
+		if err := s.storage.Set(item); err != nil {
+			s.logger.Error().Err(err).Msg("fail to update tx out store item with signed tx")
+		}
+
 		return nil, err
 	}
+
 	if s.isTssKeysign(tx.VaultPubKey) {
 		s.tssKeysignMetricMgr.SetTssKeysignMetric(hash, elapse.Milliseconds())
 	}

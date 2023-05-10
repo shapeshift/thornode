@@ -40,6 +40,7 @@ type TxOutStoreItem struct {
 	Index       int64
 	Round7Retry bool
 	Checkpoint  []byte
+	SignedTx    []byte
 }
 
 func NewTxOutStoreItem(height int64, item types.TxOutItem, idx int64) TxOutStoreItem {

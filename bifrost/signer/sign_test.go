@@ -167,11 +167,12 @@ func newFakeTss(msg string, succeedOnly bool) *fakeTssServer {
 // --------------------------------- chain client ---------------------------------
 
 type MockChainClient struct {
-	account          common.Account
-	signCount        int
-	broadcastCount   int
-	ks               *tss.KeySign
-	assertCheckpoint bool
+	account            common.Account
+	signCount          int
+	broadcastCount     int
+	ks                 *tss.KeySign
+	assertCheckpoint   bool
+	broadcastFailCount int
 }
 
 func (b *MockChainClient) IsBlockScannerHealthy() bool {
@@ -227,7 +228,10 @@ func (b *MockChainClient) Churn(pubKey common.PubKey, height int64) error {
 
 func (b *MockChainClient) BroadcastTx(_ stypes.TxOutItem, tx []byte) (string, error) {
 	b.broadcastCount += 1
-	return "", nil
+	if b.broadcastCount > b.broadcastFailCount {
+		return "", nil
+	}
+	return "", fmt.Errorf("broadcast failed")
 }
 
 func (b *MockChainClient) GetAddress(poolPubKey common.PubKey) string {
@@ -522,6 +526,86 @@ func (s *SignSuite) TestProcess(c *C) {
 	time.Sleep(time.Second * 2)
 	// nolint
 	go sign.Stop()
+}
+
+func (s *SignSuite) TestBroadcastRetry(c *C) {
+	vaultPubkey, err := common.NewPubKey(pubkeymanager.MockPubkey)
+	c.Assert(err, IsNil)
+
+	// start a mock keysign
+	msg := "foobar"
+	tssServer := newFakeTss(msg, true)
+	bridge := fakeBridge{s.bridge}
+	ks, err := tss.NewKeySign(tssServer, bridge)
+	c.Assert(err, IsNil)
+	ks.Start()
+
+	// creat mock chain client and signer
+	cc := &MockChainClient{ks: ks, broadcastFailCount: 2}
+	sign := &Signer{
+		chains: map[common.Chain]chainclients.ChainClient{
+			common.BNBChain: cc,
+		},
+		pubkeyMgr:           pubkeymanager.NewMockPoolAddressValidator(),
+		stopChan:            make(chan struct{}),
+		wg:                  &sync.WaitGroup{},
+		thorchainBridge:     bridge,
+		constantsProvider:   NewConstantsProvider(bridge),
+		tssKeysignMetricMgr: metrics.NewTssKeysignMetricMgr(),
+		logger:              log.With().Str("module", "signer").Logger(),
+	}
+
+	// create a signer store with fake txouts
+	sign.storage, err = NewSignerStore("", "")
+	c.Assert(err, IsNil)
+	err = sign.storage.Set(TxOutStoreItem{
+		TxOutItem: stypes.TxOutItem{
+			Chain:       common.BNBChain,
+			ToAddress:   "tbnb1yycn4mh6ffwpjf584t8lpp7c27ghu03gpvqkfj",
+			Memo:        msg,
+			VaultPubKey: vaultPubkey,
+			Coins: common.Coins{ // must be set or signer overrides memo
+				common.NewCoin(common.BNBAsset, cosmos.NewUint(1000000)),
+			},
+		},
+	})
+	c.Assert(err, IsNil)
+
+	// first attempt should fail broadcast and set signed tx
+	sign.processTransactions()
+	c.Assert(cc.signCount, Equals, 1)
+	c.Assert(tssServer.counter, Equals, 1)
+	c.Assert(cc.broadcastCount, Equals, 1)
+	tois := sign.storage.List()
+	c.Assert(err, IsNil)
+	c.Assert(tois, HasLen, 1)
+	c.Assert(tois[0].Checkpoint, IsNil)
+	c.Assert(len(tois[0].SignedTx), Equals, 64)
+
+	// second attempt should not sign and still fail broadcast
+	sign.processTransactions()
+	c.Assert(cc.signCount, Equals, 1)
+	c.Assert(tssServer.counter, Equals, 1)
+	c.Assert(cc.broadcastCount, Equals, 2)
+	tois = sign.storage.List()
+	c.Assert(err, IsNil)
+	c.Assert(tois, HasLen, 1)
+	c.Assert(tois[0].Checkpoint, IsNil)
+	c.Assert(len(tois[0].SignedTx), Equals, 64)
+
+	// third attempt should not sign and succeed broadcast
+	sign.processTransactions()
+	c.Assert(cc.signCount, Equals, 1)
+	c.Assert(tssServer.counter, Equals, 1)
+	c.Assert(cc.broadcastCount, Equals, 3)
+	tois = sign.storage.List()
+	c.Assert(err, IsNil)
+	c.Assert(tois, HasLen, 0)
+
+	// stop signer
+	close(sign.stopChan)
+	sign.wg.Wait()
+	ks.Stop()
 }
 
 func (s *SignSuite) TestRound7Retry(c *C) {
