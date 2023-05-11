@@ -274,7 +274,7 @@ func (b *BlockScanner) FetchLastHeight() (int64, error) {
 	currentPos, _ := b.scannerStorage.GetScanPos() // ignore error
 
 	// 1. if we've configured a starting height, use that
-	if b.cfg.StartBlockHeight > 0 && b.cfg.StartBlockHeight > currentPos {
+	if b.cfg.StartBlockHeight > 0 {
 		return b.cfg.StartBlockHeight, nil
 	}
 	// 2. attempt to find the height from thorchain
