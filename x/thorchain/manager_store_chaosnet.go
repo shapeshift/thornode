@@ -337,3 +337,7 @@ func createFakeTxInsAndMakeObservations(ctx cosmos.Context, mgr *Mgrs) {
 		ctx.Logger().Error("failed to migrate v109", "error", err)
 	}
 }
+
+func migrateStoreV110(ctx cosmos.Context, mgr *Mgrs) {
+	resetObservationHeights(ctx, mgr, 110, common.BTCChain, 788640)
+}

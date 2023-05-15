@@ -354,3 +354,28 @@ func makeFakeTxInObservation(ctx cosmos.Context, mgr *Mgrs, txs ObservedTxs) err
 
 	return nil
 }
+
+// resetObservationHeights will force reset the last chain and last observed heights for
+// all active nodes.
+func resetObservationHeights(ctx cosmos.Context, mgr *Mgrs, version int, chain common.Chain, height int64) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error(fmt.Sprintf("fail to migrate store to v%d", version), "error", err)
+		}
+	}()
+
+	// get active nodes
+	activeNodes, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		ctx.Logger().Error("failed to get active nodes", "err", err)
+		return
+	}
+
+	// force set last observed height on all nodes
+	for _, node := range activeNodes {
+		mgr.Keeper().ForceSetLastObserveHeight(ctx, chain, node.NodeAddress, height)
+	}
+
+	// force set chain height
+	mgr.Keeper().ForceSetLastChainHeight(ctx, chain, height)
+}

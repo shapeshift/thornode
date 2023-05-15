@@ -97,9 +97,11 @@ type KeeperLastHeight interface {
 	SetLastSignedHeight(ctx cosmos.Context, height int64) error
 	GetLastSignedHeight(ctx cosmos.Context) (int64, error)
 	SetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) error
+	ForceSetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64)
 	GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error)
 	GetLastChainHeights(ctx cosmos.Context) (map[common.Chain]int64, error)
 	SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) error
+	ForceSetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64)
 	GetLastObserveHeight(ctx cosmos.Context, address cosmos.AccAddress) (map[common.Chain]int64, error)
 }
 

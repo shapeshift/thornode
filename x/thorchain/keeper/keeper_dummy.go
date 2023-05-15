@@ -112,6 +112,8 @@ func (k KVStoreDummy) SetLastChainHeight(_ cosmos.Context, _ common.Chain, _ int
 	return kaboom
 }
 
+func (k KVStoreDummy) ForceSetLastChainHeight(_ cosmos.Context, _ common.Chain, _ int64) {}
+
 func (k KVStoreDummy) GetLastChainHeight(_ cosmos.Context, _ common.Chain) (int64, error) {
 	return 0, kaboom
 }
@@ -502,6 +504,9 @@ func (k KVStoreDummy) GetObservedNetworkFeeVoter(ctx cosmos.Context, height int6
 
 func (k KVStoreDummy) SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) error {
 	return kaboom
+}
+
+func (k KVStoreDummy) ForceSetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) {
 }
 
 func (k KVStoreDummy) GetLastObserveHeight(ctx cosmos.Context, address cosmos.AccAddress) (map[common.Chain]int64, error) {

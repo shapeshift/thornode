@@ -40,6 +40,11 @@ func (k KVStore) SetLastChainHeight(ctx cosmos.Context, chain common.Chain, heig
 	return nil
 }
 
+// ForceSetLastChainHeight force sets the last chain height.
+func (k KVStore) ForceSetLastChainHeight(ctx cosmos.Context, chain common.Chain, height int64) {
+	k.setInt64(ctx, k.GetKey(ctx, prefixLastChainHeight, chain.String()), height)
+}
+
 // GetLastChainHeight get last chain height
 func (k KVStore) GetLastChainHeight(ctx cosmos.Context, chain common.Chain) (int64, error) {
 	var record int64
@@ -81,6 +86,12 @@ func (k KVStore) SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, ad
 
 	k.setInt64(ctx, key, height)
 	return nil
+}
+
+// ForceSetLastObserveHeight force sets the observe height.
+func (k KVStore) ForceSetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) {
+	key := k.GetKey(ctx, prefixLastObserveHeight, address.String()) + "/" + chain.String()
+	k.setInt64(ctx, key, height)
 }
 
 // GetLastObserveHeight retrieve last observe height of a given node account from key value store
