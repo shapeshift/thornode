@@ -19,6 +19,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 	"gopkg.in/yaml.v3"
 )
@@ -56,18 +57,34 @@ func NewOperation(opMap map[string]any) Operation {
 		op = &OpCheck{}
 	case "create-blocks":
 		op = &OpCreateBlocks{}
+	case "tx-ban":
+		op = &OpTxBan{}
+	case "tx-deposit":
+		op = &OpTxDeposit{}
+	case "tx-errata-tx":
+		op = &OpTxErrataTx{}
+	case "tx-mimir":
+		op = &OpTxMimir{}
 	case "tx-observed-in":
 		op = &OpTxObservedIn{}
 	case "tx-observed-out":
 		op = &OpTxObservedOut{}
-	case "tx-tss-keysign":
-		op = &OpTxTssKeysign{}
-	case "tx-deposit":
-		op = &OpTxDeposit{}
-	case "tx-mimir":
-		op = &OpTxMimir{}
+	case "tx-network-fee":
+		op = &OpTxNetworkFee{}
+	case "tx-node-pause-chain":
+		op = &OpTxNodePauseChain{}
 	case "tx-send":
 		op = &OpTxSend{}
+	case "tx-set-ip-address":
+		op = &OpTxSetIPAddress{}
+	case "tx-set-node-keys":
+		op = &OpTxSetNodeKeys{}
+	case "tx-solvency":
+		op = &OpTxSolvency{}
+	case "tx-tss-keysign":
+		op = &OpTxTssKeysign{}
+	case "tx-tss-pool":
+		op = &OpTxTssPool{}
 	case "tx-version":
 		op = &OpTxVersion{}
 	default:
@@ -87,7 +104,21 @@ func NewOperation(opMap map[string]any) Operation {
 
 	switch op.(type) {
 	// internal types have MarshalJSON methods necessary to decode
-	case *OpTxObservedIn, *OpTxObservedOut, *OpTxDeposit, *OpTxMimir, *OpTxSend, *OpTxVersion, *OpTxTssKeysign:
+	case *OpTxBan,
+		*OpTxErrataTx,
+		*OpTxObservedIn,
+		*OpTxObservedOut,
+		*OpTxDeposit,
+		*OpTxMimir,
+		*OpTxNetworkFee,
+		*OpTxNodePauseChain,
+		*OpTxSolvency,
+		*OpTxSend,
+		*OpTxSetIPAddress,
+		*OpTxSetNodeKeys,
+		*OpTxVersion,
+		*OpTxTssKeysign,
+		*OpTxTssPool:
 		// encode as json
 		buf := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(buf)
@@ -365,6 +396,66 @@ func (op *OpCreateBlocks) Execute(out io.Writer, routine int, p *os.Process, log
 // Transaction Operations
 ////////////////////////////////////////////////////////////////////////////////////////
 
+// ------------------------------ OpTxBan ------------------------------
+
+type OpTxBan struct {
+	OpBase      `yaml:",inline"`
+	NodeAddress sdk.AccAddress `json:"node_address"`
+	Signer      sdk.AccAddress `json:"signer"`
+	Sequence    *int64         `json:"sequence"`
+}
+
+func (op *OpTxBan) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
+	msg := types.NewMsgBan(op.NodeAddress, op.Signer)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+}
+
+// ------------------------------ OpTxErrataTx ------------------------------
+
+type OpTxErrataTx struct {
+	OpBase   `yaml:",inline"`
+	TxID     common.TxID    `json:"tx_id"`
+	Chain    common.Chain   `json:"chain"`
+	Signer   sdk.AccAddress `json:"signer"`
+	Sequence *int64         `json:"sequence"`
+}
+
+func (op *OpTxErrataTx) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
+	msg := types.NewMsgErrataTx(op.TxID, op.Chain, op.Signer)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+}
+
+// ------------------------------ OpTxNetworkFee ------------------------------
+
+type OpTxNetworkFee struct {
+	OpBase          `yaml:",inline"`
+	BlockHeight     int64          `json:"block_height"`
+	Chain           common.Chain   `json:"chain"`
+	TransactionSize uint64         `json:"transaction_size"`
+	TransactionRate uint64         `json:"transaction_rate"`
+	Signer          sdk.AccAddress `json:"signer"`
+	Sequence        *int64         `json:"sequence"`
+}
+
+func (op *OpTxNetworkFee) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
+	msg := types.NewMsgNetworkFee(op.BlockHeight, op.Chain, op.TransactionSize, op.TransactionRate, op.Signer)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+}
+
+// ------------------------------ OpTxNodePauseChain ------------------------------
+
+type OpTxNodePauseChain struct {
+	OpBase   `yaml:",inline"`
+	Value    int64          `json:"value"`
+	Signer   sdk.AccAddress `json:"signer"`
+	Sequence *int64         `json:"sequence"`
+}
+
+func (op *OpTxNodePauseChain) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
+	msg := types.NewMsgNodePauseChain(op.Value, op.Signer)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+}
+
 // ------------------------------ OpTxObservedIn ------------------------------
 
 type OpTxObservedIn struct {
@@ -414,6 +505,55 @@ func (op *OpTxObservedOut) Execute(out io.Writer, routine int, _ *os.Process, lo
 	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
 }
 
+// ------------------------------ OpTxSetIPAddress ------------------------------
+
+type OpTxSetIPAddress struct {
+	OpBase    `yaml:",inline"`
+	IPAddress string         `json:"ip_address"`
+	Signer    sdk.AccAddress `json:"signer"`
+	Sequence  *int64         `json:"sequence"`
+}
+
+func (op *OpTxSetIPAddress) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
+	msg := types.NewMsgSetIPAddress(op.IPAddress, op.Signer)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+}
+
+// ------------------------------ OpTxSolvency ------------------------------
+
+type OpTxSolvency struct {
+	OpBase   `yaml:",inline"`
+	Chain    common.Chain   `json:"chain"`
+	PubKey   common.PubKey  `json:"pub_key"`
+	Coins    common.Coins   `json:"coins"`
+	Height   int64          `json:"height"`
+	Signer   sdk.AccAddress `json:"signer"`
+	Sequence *int64         `json:"sequence"`
+}
+
+func (op *OpTxSolvency) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
+	msg, err := types.NewMsgSolvency(op.Chain, op.PubKey, op.Coins, op.Height, op.Signer)
+	if err != nil {
+		return err
+	}
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+}
+
+// ------------------------------ OpTxSetNodeKeys ------------------------------
+
+type OpTxSetNodeKeys struct {
+	OpBase              `yaml:",inline"`
+	PubKeySet           common.PubKeySet `json:"pub_key_set"`
+	ValidatorConsPubKey string           `json:"validator_cons_pub_key"`
+	Signer              sdk.AccAddress   `json:"signer"`
+	Sequence            *int64           `json:"sequence"`
+}
+
+func (op *OpTxSetNodeKeys) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
+	msg := types.NewMsgSetNodeKeys(op.PubKeySet, op.ValidatorConsPubKey, op.Signer)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+}
+
 // ------------------------------ OpTxTssKeysign ------------------------------
 
 type OpTxTssKeysign struct {
@@ -425,6 +565,30 @@ type OpTxTssKeysign struct {
 
 func (op *OpTxTssKeysign) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
 	return sendMsg(out, routine, &op.MsgTssKeysignFail, op.MsgTssKeysignFail.Signer, op.Sequence, op, logs)
+}
+
+// ------------------------------ OpTxTssPool ------------------------------
+
+type OpTxTssPool struct {
+	OpBase          `yaml:",inline"`
+	PubKeys         []string         `json:"pub_keys"`
+	PoolPubKey      common.PubKey    `json:"pool_pub_key"`
+	KeysharesBackup []byte           `json:"keyshares_backup"`
+	KeygenType      types.KeygenType `json:"keygen_type"`
+	Height          int64            `json:"height"`
+	Blame           types.Blame      `json:"blame"`
+	Chains          []string         `json:"chains"`
+	Signer          sdk.AccAddress   `json:"signer"`
+	KeygenTime      int64            `json:"keygen_time"`
+	Sequence        *int64           `json:"sequence"`
+}
+
+func (op *OpTxTssPool) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
+	msg, err := types.NewMsgTssPool(op.PubKeys, op.PoolPubKey, op.KeysharesBackup, op.KeygenType, op.Height, op.Blame, op.Chains, op.Signer, op.KeygenTime)
+	if err != nil {
+		return err
+	}
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
 }
 
 // ------------------------------ OpTxDeposit ------------------------------
