@@ -57,3 +57,9 @@ message BondProviders {
   string node_operator_fee = 2 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   repeated BondProvider providers = 3 [(gogoproto.nullable) = false];
 }
+
+message MinJoinLast {
+  option (gogoproto.stringer) = true;
+  int64 last_changed_height = 1;
+  string version = 2;
+}

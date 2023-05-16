@@ -75,6 +75,7 @@ func NewConstantValue() *ConstantVals {
 			ValidatorMaxRewardRatio:             1,                  // the ratio to MinimumBondInRune at which validators stop receiving rewards proportional to their bond
 			PoolDepthForYggFundingMin:           500_000_00000000,   // the minimum pool depth in RUNE required for ygg funding
 			MaxNodeToChurnOutForLowVersion:      1,                  // the maximum number of nodes to churn out for low version per churn
+			ChurnOutForLowVersionBlocks:         21600,              // the blocks after the MinJoinVersion changes before nodes can be churned out for low version
 			POLMaxNetworkDeposit:                0,                  // Maximum amount of rune deposited into the pools
 			POLMaxPoolMovement:                  100,                // Maximum amount of rune to enter/exit a pool per iteration - 1 equals one hundredth of a basis point of pool rune depth
 			POLSynthUtilization:                 0,                  // TODO: remove me on hard fork

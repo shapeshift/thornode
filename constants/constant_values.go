@@ -89,6 +89,7 @@ const (
 	ValidatorMaxRewardRatio
 	PoolDepthForYggFundingMin
 	MaxNodeToChurnOutForLowVersion
+	ChurnOutForLowVersionBlocks
 	POLMaxNetworkDeposit
 	POLMaxPoolMovement
 	POLSynthUtilization // TODO: remove me on hard fork
@@ -184,6 +185,7 @@ var nameToString = map[ConstantName]string{
 	NodeOperatorFee:                     "NodeOperatorFee",
 	PoolDepthForYggFundingMin:           "PoolDepthForYggFundingMin",
 	MaxNodeToChurnOutForLowVersion:      "MaxNodeToChurnOutForLowVersion",
+	ChurnOutForLowVersionBlocks:         "ChurnOutForLowVersionBlocks",
 	SwapOutDexAggregationDisabled:       "SwapOutDexAggregationDisabled",
 	POLMaxNetworkDeposit:                "POLMaxNetworkDeposit",
 	POLMaxPoolMovement:                  "POLMaxPoolMovement",

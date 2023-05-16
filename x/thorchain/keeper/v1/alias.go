@@ -112,6 +112,7 @@ type (
 	THORName                 = types.THORName
 	THORNameAlias            = types.THORNameAlias
 	SolvencyVoter            = types.SolvencyVoter
+	MinJoinLast              = types.MinJoinLast
 	NodeMimir                = types.NodeMimir
 	NodeMimirs               = types.NodeMimirs
 	ProtocolOwnedLiquidity   = types.ProtocolOwnedLiquidity

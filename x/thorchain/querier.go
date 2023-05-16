@@ -1478,10 +1478,14 @@ func queryVersion(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr 
 		// re-compute version if not stored
 		v = mgr.Keeper().GetLowestActiveVersion(ctx)
 	}
+
+	minJoinLast, minJoinLastChangedHeight := mgr.Keeper().GetMinJoinLast(ctx)
+
 	ver := QueryVersion{
-		Current: v,
-		Next:    mgr.Keeper().GetMinJoinVersion(ctx),
-		Querier: constants.SWVersion,
+		Current:         v,
+		Next:            minJoinLast,
+		NextSinceHeight: minJoinLastChangedHeight, // omitted if 0
+		Querier:         constants.SWVersion,
 	}
 	return jsonify(ctx, ver)
 }

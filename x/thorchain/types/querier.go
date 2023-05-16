@@ -109,9 +109,10 @@ type QueryVaultResp struct {
 }
 
 type QueryVersion struct {
-	Current semver.Version `json:"current"`
-	Next    semver.Version `json:"next"`
-	Querier semver.Version `json:"querier"`
+	Current         semver.Version `json:"current"`
+	Next            semver.Version `json:"next"`
+	NextSinceHeight int64          `json:"next_since_height,omitempty"` // Don't display this for heights when not yet stored (0).
+	Querier         semver.Version `json:"querier"`
 }
 
 type QueryChainAddress struct {

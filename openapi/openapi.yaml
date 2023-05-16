@@ -2389,7 +2389,12 @@ components:
         next:
           type: string
           example: "0.18.0"
-          description: next version
+          description: next version (minimum version for a node to become Active)
+        next_since_height:
+          type: integer
+          format: int64
+          example: 2000000
+          description: height at which the minimum joining version last changed
         querier:
           type: string
           example: "0.16.0"

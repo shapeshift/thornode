@@ -20,6 +20,8 @@ type Keeper interface {
 	GetVersion() semver.Version
 	GetVersionWithCtx(ctx cosmos.Context) (semver.Version, bool)
 	SetVersionWithCtx(ctx cosmos.Context, v semver.Version)
+	GetMinJoinLast(ctx cosmos.Context) (semver.Version, int64)
+	SetMinJoinLast(ctx cosmos.Context)
 	GetKey(ctx cosmos.Context, prefix kvTypes.DbPrefix, key string) string
 	GetStoreVersion(ctx cosmos.Context) int64
 	SetStoreVersion(ctx cosmos.Context, ver int64)
