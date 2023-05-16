@@ -503,7 +503,7 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		return quoteErrorResponse(err)
 	}
 	res.OutboundDelayBlocks = outboundDelay
-	res.OutboundDelaySeconds = outboundDelay * toAsset.Chain.ApproximateBlockMilliseconds() / 1000
+	res.OutboundDelaySeconds = outboundDelay * common.THORChain.ApproximateBlockMilliseconds() / 1000
 
 	// send memo if the destination was provided
 	if sendMemo {
@@ -788,7 +788,7 @@ func queryQuoteSaverWithdraw(ctx cosmos.Context, path []string, req abci.Request
 		return quoteErrorResponse(err)
 	}
 	res.OutboundDelayBlocks = outboundDelay
-	res.OutboundDelaySeconds = outboundDelay * asset.GetLayer1Asset().Chain.ApproximateBlockMilliseconds() / 1000
+	res.OutboundDelaySeconds = outboundDelay * common.THORChain.ApproximateBlockMilliseconds() / 1000
 
 	// set info fields
 	chain := asset.GetLayer1Asset().Chain
@@ -987,7 +987,7 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 					return quoteErrorResponse(err)
 				}
 				res.OutboundDelayBlocks = outboundDelay
-				res.OutboundDelaySeconds = outboundDelay * targetAsset.Chain.ApproximateBlockMilliseconds() / 1000
+				res.OutboundDelaySeconds = outboundDelay * common.THORChain.ApproximateBlockMilliseconds() / 1000
 			}
 		case "outbound":
 			// track coin and to address
@@ -1253,7 +1253,7 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 					return quoteErrorResponse(err)
 				}
 				res.OutboundDelayBlocks = outboundDelay
-				res.OutboundDelaySeconds = outboundDelay * loanAsset.Chain.ApproximateBlockMilliseconds() / 1000
+				res.OutboundDelaySeconds = outboundDelay * common.THORChain.ApproximateBlockMilliseconds() / 1000
 			}
 		case "outbound":
 			// track coin and to address
