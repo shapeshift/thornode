@@ -162,6 +162,8 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.110.0")):
+		return h.handleV110(ctx, msg)
 	case version.GTE(semver.MustParse("1.108.0")):
 		return h.handleV108(ctx, msg)
 	case version.GTE(semver.MustParse("1.107.0")):
@@ -183,7 +185,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	}
 }
 
-func (h SwapHandler) handleV108(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+func (h SwapHandler) handleV110(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	// Don't change msg.Destination here; this line was introduced to avoid people from swapping mainnet asset,
 	// but using testnet address.
@@ -297,7 +299,7 @@ func (h SwapHandler) handleV108(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 
 		ctx = ctx.WithValue(constants.CtxLoanTxID, msg.Tx.ID)
 
-		msg, err := getMsgLoanRepaymentFromMemo(m, common.NewCoin(common.TOR, emit), msg.Signer)
+		msg, err := getMsgLoanRepaymentFromMemo(m, msg.Tx.FromAddress, common.NewCoin(common.TOR, emit), msg.Signer)
 		if err != nil {
 			return nil, err
 		}

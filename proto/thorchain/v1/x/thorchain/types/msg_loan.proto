@@ -27,4 +27,5 @@ message MsgLoanRepayment {
   common.Coin coin = 3 [(gogoproto.nullable) = false];
   string min_out = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   bytes signer = 5  [(gogoproto.casttype) = "github.com/cosmos/cosmos-sdk/types.AccAddress"];
+  string from = 6 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
 }

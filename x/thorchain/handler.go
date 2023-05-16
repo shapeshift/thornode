@@ -223,8 +223,8 @@ func getMsgLoanOpenFromMemo(memo LoanOpenMemo, tx ObservedTx, signer cosmos.AccA
 	return NewMsgLoanOpen(tx.Tx.FromAddress, tx.Tx.Coins[0].Asset, tx.Tx.Coins[0].Amount, memo.TargetAddress, memo.TargetAsset, memo.GetMinOut(), memo.GetAffiliateAddress(), memo.GetAffiliateBasisPoints(), memo.GetDexAggregator(), memo.GetDexTargetAddress(), memo.DexTargetLimit, signer), nil
 }
 
-func getMsgLoanRepaymentFromMemo(memo LoanRepaymentMemo, coin common.Coin, signer cosmos.AccAddress) (cosmos.Msg, error) {
-	return NewMsgLoanRepayment(memo.Owner, memo.Asset, coin, signer), nil
+func getMsgLoanRepaymentFromMemo(memo LoanRepaymentMemo, from common.Address, coin common.Coin, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	return NewMsgLoanRepayment(memo.Owner, memo.Asset, memo.MinOut, from, coin, signer), nil
 }
 
 func getMsgBondFromMemo(memo BondMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
@@ -310,7 +310,11 @@ func processOneTxInV107(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx,
 		newMsg, err = getMsgLoanOpenFromMemo(m, tx, signer)
 	case LoanRepaymentMemo:
 		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgLoanRepaymentFromMemo(m, tx.Tx.Coins[0], signer)
+		from := common.NoAddress
+		if keeper.GetVersion().GTE(semver.MustParse("1.110.0")) {
+			from = tx.Tx.FromAddress
+		}
+		newMsg, err = getMsgLoanRepaymentFromMemo(m, from, tx.Tx.Coins[0], signer)
 	default:
 		return nil, errInvalidMemo
 	}

@@ -973,6 +973,12 @@ paths:
           type: integer
           format: int64
           example: 1000000
+      - name: from_address
+        in: query
+        description: the address that is paying off the loan
+        schema:
+          type: string
+          example: "btc1xxxxxxxxxxxxx"
       - name: loan_asset
         in: query
         description: the collateral asset of the loan

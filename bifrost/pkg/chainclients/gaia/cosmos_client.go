@@ -317,7 +317,7 @@ func (c *CosmosClient) processOutboundTx(tx stypes.TxOutItem, thorchainHeight in
 }
 
 // SignTx sign the the given TxArrayItem
-func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx []byte, checkpoint []byte, err error) {
+func (c *CosmosClient) SignTx(tx stypes.TxOutItem, thorchainHeight int64) (signedTx, checkpoint []byte, err error) {
 	defer func() {
 		if err != nil {
 			var keysignError tss.KeysignError

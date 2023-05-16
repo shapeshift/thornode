@@ -32,6 +32,7 @@ func (h LoanRepaymentHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Res
 		"owner", msg.Owner,
 		"asset", msg.CollateralAsset,
 		"coin", msg.Coin.String(),
+		"from", msg.From.String(),
 		"min_out", msg.MinOut.String(),
 	)
 
@@ -51,15 +52,26 @@ func (h LoanRepaymentHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Res
 
 func (h LoanRepaymentHandler) validate(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("1.107.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.110.0")):
+		return h.validateV110(ctx, msg)
+	case version.GTE(semver.MustParse("1.107.0")):
 		return h.validateV107(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h LoanRepaymentHandler) validateV107(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) validateV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
+	}
+
+	// if a swap is required (ie the coin is NOT TOR), then ensure that the
+	// from address passed in the msg matches the chain of the coin.Asset. This
+	// is a sanity check that msg.From is not a btc address, while coin.Asset
+	// is ETH.ETH
+	if !msg.Coin.Asset.Equals(common.TOR) && !msg.From.IsChain(msg.Coin.Asset.GetChain()) {
+		return fmt.Errorf("address %s does not match input coin %s", msg.From.String(), msg.Coin.String())
 	}
 
 	pauseLoans := fetchConfigInt64(ctx, h.mgr, constants.PauseLoans)
@@ -93,6 +105,8 @@ func (h LoanRepaymentHandler) validateV107(ctx cosmos.Context, msg MsgLoanRepaym
 func (h LoanRepaymentHandler) handle(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.110.0")):
+		return h.handleV110(ctx, msg)
 	case version.GTE(semver.MustParse("1.108.0")):
 		return h.handleV108(ctx, msg)
 	case version.GTE(semver.MustParse("1.107.0")):
@@ -102,7 +116,7 @@ func (h LoanRepaymentHandler) handle(ctx cosmos.Context, msg MsgLoanRepayment) e
 	}
 }
 
-func (h LoanRepaymentHandler) handleV108(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) handleV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	// inject txid into the context if unset
 	var err error
 	ctx, err = storeContextTxID(ctx, constants.CtxLoanTxID)
@@ -113,13 +127,13 @@ func (h LoanRepaymentHandler) handleV108(ctx cosmos.Context, msg MsgLoanRepaymen
 	// if the inbound asset is TOR, then lets repay the loan. If not, lets
 	// swap first and try again later
 	if msg.Coin.Asset.Equals(common.TOR) {
-		return h.repayV108(ctx, msg)
+		return h.repayV110(ctx, msg)
 	} else {
-		return h.swapV108(ctx, msg)
+		return h.swapV110(ctx, msg)
 	}
 }
 
-func (h LoanRepaymentHandler) repayV108(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) repayV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	// collect data
 	lendAddr, err := h.mgr.Keeper().GetModuleAddress(LendingName)
 	if err != nil {
@@ -174,7 +188,7 @@ func (h LoanRepaymentHandler) repayV108(ctx cosmos.Context, msg MsgLoanRepayment
 
 	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
 	tx := common.NewTx(txID, lendAddr, lendAddr, coins, common.Gas{fakeGas}, "noop")
-	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
+	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, msg.MinOut, common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
 	handler := NewSwapHandler(h.mgr)
 	if _, err := handler.Run(ctx, swapMsg); err != nil {
 		ctx.Logger().Error("fail to make second swap when closing a loan", "error", err)
@@ -194,7 +208,7 @@ func (h LoanRepaymentHandler) repayV108(ctx cosmos.Context, msg MsgLoanRepayment
 	return nil
 }
 
-func (h LoanRepaymentHandler) swapV108(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) swapV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	lendAddr, err := h.mgr.Keeper().GetModuleAddress(LendingName)
 	if err != nil {
 		ctx.Logger().Error("fail to get lending address", "error", err)
@@ -206,9 +220,9 @@ func (h LoanRepaymentHandler) swapV108(ctx cosmos.Context, msg MsgLoanRepayment)
 		return fmt.Errorf("fail to get txid")
 	}
 
-	memo := fmt.Sprintf("loan-:%s:%s", msg.CollateralAsset, msg.Owner)
+	memo := fmt.Sprintf("loan-:%s:%s:%s", msg.CollateralAsset, msg.Owner, msg.MinOut)
 	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
-	tx := common.NewTx(txID, lendAddr, lendAddr, common.NewCoins(msg.Coin), common.Gas{fakeGas}, memo)
+	tx := common.NewTx(txID, msg.From, lendAddr, common.NewCoins(msg.Coin), common.Gas{fakeGas}, memo)
 	swapMsg := NewMsgSwap(tx, common.TOR, lendAddr, cosmos.ZeroUint(), lendAddr, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
 	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
 		ctx.Logger().Error("fail to add swap to queue", "error", err)

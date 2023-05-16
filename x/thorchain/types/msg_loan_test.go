@@ -50,7 +50,7 @@ func (MsgLoanSuite) TestMsgLoanRepaySuite(c *C) {
 	owner := GetRandomBNBAddress()
 	colA := common.BTCAsset
 	coin := common.NewCoin(common.BNBAsset, cosmos.NewUint(90*common.One))
-	msg := NewMsgLoanRepayment(owner, colA, coin, acc)
+	msg := NewMsgLoanRepayment(owner, colA, cosmos.OneUint(), owner, coin, acc)
 	c.Assert(msg.Route(), Equals, RouterKey)
 	c.Assert(msg.Type(), Equals, "loan_repayment")
 	c.Assert(msg.ValidateBasic(), IsNil)
@@ -58,12 +58,12 @@ func (MsgLoanSuite) TestMsgLoanRepaySuite(c *C) {
 	c.Assert(msg.GetSigners(), NotNil)
 	c.Assert(msg.GetSigners()[0].String(), Equals, acc.String())
 
-	msg = NewMsgLoanRepayment(common.NoAddress, colA, coin, acc)
+	msg = NewMsgLoanRepayment(common.NoAddress, colA, cosmos.OneUint(), owner, coin, acc)
 	c.Assert(msg.ValidateBasic(), NotNil)
-	msg = NewMsgLoanRepayment(owner, common.EmptyAsset, coin, acc)
+	msg = NewMsgLoanRepayment(owner, common.EmptyAsset, cosmos.OneUint(), owner, coin, acc)
 	c.Assert(msg.ValidateBasic(), NotNil)
-	msg = NewMsgLoanRepayment(owner, colA, common.Coin{}, acc)
+	msg = NewMsgLoanRepayment(owner, colA, cosmos.OneUint(), owner, common.Coin{}, acc)
 	c.Assert(msg.ValidateBasic(), NotNil)
-	msg = NewMsgLoanRepayment(owner, colA, coin, cosmos.AccAddress{})
+	msg = NewMsgLoanRepayment(owner, colA, cosmos.OneUint(), owner, coin, cosmos.AccAddress{})
 	c.Assert(msg.ValidateBasic(), NotNil)
 }

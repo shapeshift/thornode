@@ -346,17 +346,17 @@ signer: {{ addr_thor_dog }}
 txs:
   - tx:
       id: "{{ observe_txid 5 }}"
-      chain: BTC
-      from_address: {{ addr_btc_fox }}
-      to_address: {{ addr_btc_dog }}
+      chain: ETH
+      from_address: {{ addr_eth_fox }}
+      to_address: {{ addr_eth_dog }}
       coins:
-        - amount: "500000" # 0.5% of pool
-          asset: "BTC.BTC"
+        - amount: "50000000" # 0.5% of pool
+          asset: "ETH.ETH"
           decimals: 8
       gas:
-        - amount: "10000"
-          asset: "BTC.BTC"
-      memo: "LOAN-:BTC.BTC:{{ addr_btc_fox }}:100000000000000000000000"
+        - amount: "960000"
+          asset: "ETH.ETH"
+      memo: "LOAN-:BTC.BTC:{{ addr_btc_fox }}:18446744073709551615"
     block_height: 2
     finalise_height: 2
     observed_pub_key: {{ pubkey_dog }}
@@ -377,7 +377,7 @@ asserts:
   - .[0]|.debt_down == "0"
 ---
 type: check
-description: btc outbound should be scheduled
+description: eth outbound should be scheduled
 endpoint: http://localhost:1317/thorchain/queue/outbound
 asserts:
   - .|length == 1
@@ -388,17 +388,17 @@ signer: {{ addr_thor_dog }}
 txs:
   - tx:
       id: "{{ observe_txid 6 }}"
-      chain: BTC
-      from_address: {{ addr_btc_dog }}
-      to_address: {{ addr_btc_fox }}
+      chain: ETH
+      from_address: {{ addr_eth_dog }}
+      to_address: {{ addr_eth_fox }}
       coins:
-        - amount: "486000"
-          asset: "BTC.BTC"
+        - amount: "48720000"
+          asset: "ETH.ETH"
           decimals: 8
       gas:
-        - amount: "10500"
-          asset: "BTC.BTC"
-      memo: "OUT:{{ observe_txid 5 }}"
+        - amount: "960000"
+          asset: "ETH.ETH"
+      memo: "REFUND:{{ observe_txid 5 }}"
     block_height: 4
     finalise_height: 4
     observed_pub_key: {{ pubkey_dog }}
@@ -407,7 +407,7 @@ type: create-blocks
 count: 1
 ---
 type: check
-description: btc outbound should be observed
+description: eth outbound should be observed
 endpoint: http://localhost:1317/thorchain/queue/outbound
 asserts:
   - .|length == 0
@@ -423,12 +423,13 @@ params:
   amount: 500000000
   loan_asset: BTC.BTC
   loan_owner: {{ addr_btc_fox }}
+  from_address: {{ addr_thor_fox }}
 asserts:
   - .memo == "$-:BTC.BTC:{{ addr_btc_fox }}"
   - .inbound_address == "{{ addr_thor_dog }}"
-  - .expected_amount_out|tonumber == 478118
+  - .expected_amount_out|tonumber == 478117
   - .expected_collateral_down|tonumber == 502482
-  - .expected_debt_down|tonumber == 495021902
+  - .expected_debt_down|tonumber == 495021900
   - .fees.total_bps|tonumber == 453
   - .fees.outbound|tonumber == 14000
   - .fees.liquidity|tonumber == 7693
@@ -453,7 +454,7 @@ asserts:
   - .[0]|.owner == "{{ addr_btc_fox }}"
   # everything above is the same, but now collateral and debt down should exist
   - .[0]|.collateral_down == "502482"
-  - .[0]|.debt_down == "495021902"
+  - .[0]|.debt_down == "495021900"
 ---
 type: check
 description: btc outbound should be scheduled
@@ -471,7 +472,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_fox }}
       coins:
-        - amount: "478118"
+        - amount: "478117"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -502,15 +503,16 @@ params:
   amount: 50000000
   loan_asset: BTC.BTC
   loan_owner: {{ addr_btc_fox }}
+  from_address: {{ addr_eth_fox }}
 asserts:
   - .memo == "$-:BTC.BTC:{{ addr_btc_fox }}"
   - .inbound_address == "{{ addr_eth_dog }}"
-  - .expected_amount_out|tonumber == 463097
+  - .expected_amount_out|tonumber == 463096
   - .expected_collateral_down|tonumber == 487292
-  - .expected_debt_down|tonumber == 4182488982
-  - .fees.total_bps|tonumber == 9596
+  - .expected_debt_down|tonumber == 4180150193
+  - .fees.total_bps|tonumber == 9586
   - .fees.outbound|tonumber == 14000
-  - .fees.liquidity|tonumber == 430431
+  - .fees.liquidity|tonumber == 429958
 ---
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
@@ -544,7 +546,7 @@ asserts:
   - .[0]|.debt_up == "975080000"
   - .[0]|.owner == "{{ addr_btc_fox }}"
   - .[0]|.collateral_down == "989774" # should now be fully repaid
-  - .[0]|.debt_down == "4677510884" # over repaid
+  - .[0]|.debt_down == "4675172093" # over repaid
 ---
 type: check
 description: btc outbound should be scheduled
@@ -620,17 +622,17 @@ endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
   - .[0]|.collateral_up == "1483861"
-  - .[0]|.debt_up == "5166320884"
+  - .[0]|.debt_up == "5164022093"
   - .[0]|.owner == "{{ addr_btc_fox }}"
   - .[0]|.collateral_down == "989774"
-  - .[0]|.debt_down == "4677510884"
+  - .[0]|.debt_down == "4675172093"
 ---
 type: check
 description: fox account balance should be unchanged
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503840324784
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503838377434
 ---
 type: create-blocks
 count: 1
@@ -642,7 +644,7 @@ asserts:
   - .balances|length == 1
   # should receieve significantly more than the first open for the same amount since the
   # excess debt down will be credited on the subsequent open
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503840324784
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503838377434
 ---
 ########################################################################################
 # open loan btc -> rune again should not get extra credit on subsequent open
@@ -676,17 +678,17 @@ endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
   - .[0]|.collateral_up == "1977735"
-  - .[0]|.debt_up == "5650120884"
+  - .[0]|.debt_up == "5647852093"
   - .[0]|.owner == "{{ addr_btc_fox }}"
   - .[0]|.collateral_down == "989774"
-  - .[0]|.debt_down == "4677510884"
+  - .[0]|.debt_down == "4675172093"
 ---
 type: check
 description: fox account balance should be unchanged
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504317497348
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504315579427
 ---
 type: create-blocks
 count: 1
@@ -698,4 +700,4 @@ asserts:
   - .balances|length == 1
     # this time they should receieve a normal amount relative to the deposit since the
     # excess debt down was credited on the previous open
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504317497348
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504315579427

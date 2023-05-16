@@ -219,8 +219,14 @@ func run(out io.Writer, path string, routine int) error {
 		log.Fatal().Err(err).Msg("failed to overwrite private validator key")
 	}
 
+	logLevel := "info"
+	switch os.Getenv("DEBUG") {
+	case "trace", "debug", "info", "warn", "error", "fatal", "panic":
+		logLevel = os.Getenv("DEBUG")
+	}
+
 	// setup process io
-	thornode := exec.Command("/regtest/cover-thornode", "start")
+	thornode := exec.Command("/regtest/cover-thornode", "--log_level", logLevel, "start")
 	thornode.Env = env
 
 	stderr, err := thornode.StderrPipe()

@@ -31,7 +31,7 @@ func (s *HandlerLoanRepaymentSuite) TestLoanValidate(c *C) {
 	handler := NewLoanRepaymentHandler(mgr)
 
 	// happy path
-	msg := NewMsgLoanRepayment(owner, common.BNBAsset, common.NewCoin(common.TOR, cosmos.NewUint(10*common.One)), signer)
+	msg := NewMsgLoanRepayment(owner, common.BNBAsset, cosmos.OneUint(), owner, common.NewCoin(common.TOR, cosmos.NewUint(10*common.One)), signer)
 	c.Check(handler.validate(ctx.WithBlockHeight(14400000), *msg), IsNil)
 
 	// unhappy path: loan hasn't matured
@@ -95,7 +95,7 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithTOR(c *C) {
 	handler := NewLoanRepaymentHandler(mgr)
 
 	// happy path
-	msg := NewMsgLoanRepayment(owner, common.BTCAsset, common.NewCoin(common.TOR, cosmos.NewUint(5*common.One)), signer)
+	msg := NewMsgLoanRepayment(owner, common.BTCAsset, cosmos.OneUint(), owner, common.NewCoin(common.TOR, cosmos.NewUint(5*common.One)), signer)
 	c.Check(handler.handle(ctx, *msg), IsNil)
 
 	loan, err = mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
@@ -152,7 +152,7 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithSwap(c *C) {
 	handler := NewLoanRepaymentHandler(mgr)
 
 	// happy path
-	msg := NewMsgLoanRepayment(owner, common.BTCAsset, common.NewCoin(common.BTCAsset, cosmos.NewUint(1e8/2)), signer)
+	msg := NewMsgLoanRepayment(owner, common.BTCAsset, cosmos.OneUint(), owner, common.NewCoin(common.BTCAsset, cosmos.NewUint(1e8/2)), signer)
 	ctx = ctx.WithBlockHeight(2 * 1440000)
 	c.Check(handler.handle(ctx, *msg), IsNil)
 	c.Assert(mgr.SwapQ().EndBlock(ctx, mgr), IsNil) // swap into TOR

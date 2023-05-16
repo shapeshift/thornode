@@ -77,10 +77,12 @@ func (m *MsgLoanOpen) GetSigners() []cosmos.AccAddress {
 }
 
 // NewMsgLoanRepayment create new MsgLoan message
-func NewMsgLoanRepayment(owner common.Address, asset common.Asset, coin common.Coin, signer cosmos.AccAddress) *MsgLoanRepayment {
+func NewMsgLoanRepayment(owner common.Address, asset common.Asset, minOut cosmos.Uint, from common.Address, coin common.Coin, signer cosmos.AccAddress) *MsgLoanRepayment {
 	return &MsgLoanRepayment{
 		Owner:           owner,
 		CollateralAsset: asset,
+		MinOut:          minOut,
+		From:            from,
 		Coin:            coin,
 		Signer:          signer,
 	}
