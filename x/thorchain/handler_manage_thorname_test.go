@@ -35,6 +35,20 @@ func (s *HandlerManageTHORNameSuite) TestValidator(c *C) {
 	msg := NewMsgManageTHORName("I-am_the_99th_walrus+", common.THORChain, addr, coin, 0, common.BNBAsset, acc, acc)
 	c.Assert(handler.validate(ctx, *msg), IsNil)
 
+	// fail: address is wrong chain
+	msg.Chain = common.BNBChain
+	c.Assert(handler.validate(ctx, *msg), NotNil)
+
+	// fail: address is wrong network
+	mainnetBNBAddr, err := common.NewAddress("bnb1j08ys4ct2hzzc2hcz6h2hgrvlmsjynawtf2n0y")
+	c.Assert(err, IsNil)
+	msg.Address = mainnetBNBAddr
+	c.Assert(handler.validate(ctx, *msg), NotNil)
+
+	// restore to happy path
+	msg.Chain = common.THORChain
+	msg.Address = addr
+
 	// fail: name is too long
 	msg.Name = "this_name_is_way_too_long_to_be_a_valid_name"
 	c.Assert(handler.validate(ctx, *msg), NotNil)

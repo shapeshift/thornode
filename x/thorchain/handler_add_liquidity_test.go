@@ -227,6 +227,8 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 	runeAddr := GetRandomRUNEAddress()
 	bnbAddr := GetRandomBNBAddress()
 	bnbSynthAsset, _ := common.NewAsset("BNB/BNB")
+	mainnetBNBAddr, err := common.NewAddress("bnb1j08ys4ct2hzzc2hcz6h2hgrvlmsjynawtf2n0y")
+	c.Assert(err, IsNil)
 	tx := common.NewTx(
 		GetRandomTxHash(),
 		GetRandomRUNEAddress(),
@@ -293,6 +295,11 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomBNBAddress(), GetRandomRUNEAddress(), common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
 			expectedResult: errAddLiquidityFailValidation,
 		},
+		{
+			name:           "asset address with wrong network should fail",
+			msg:            NewMsgAddLiquidity(GetRandomTx(), common.BNBAsset, cosmos.NewUint(common.One*5), cosmos.NewUint(common.One*5), GetRandomRUNEAddress(), mainnetBNBAddr, common.NoAddress, cosmos.ZeroUint(), GetRandomValidatorNode(NodeActive).NodeAddress),
+			expectedResult: fmt.Errorf("address(%s) is not same network", mainnetBNBAddr),
+		},
 	}
 	constAccessor := constants.NewDummyConstants(map[constants.ConstantName]int64{
 		constants.MaximumLiquidityRune: 600_000_00000000,
@@ -305,7 +312,7 @@ func (s *HandlerAddLiquiditySuite) TestAddLiquidityHandlerValidation(c *C) {
 		mgr.constAccessor = constAccessor
 		addHandler := NewAddLiquidityHandler(mgr)
 		_, err := addHandler.Run(ctx, item.msg)
-		c.Assert(errors.Is(err, item.expectedResult), Equals, true, Commentf("name:%s, %w", item.name, err))
+		c.Assert(err.Error(), Equals, item.expectedResult.Error(), Commentf("name:%s, actual: %w, expected: %w", item.name, err, item.expectedResult))
 	}
 }
 

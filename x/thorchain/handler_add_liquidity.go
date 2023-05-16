@@ -52,6 +52,8 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.110.0")):
+		return h.validateV110(ctx, msg)
 	case version.GTE(semver.MustParse("1.99.0")):
 		return h.validateV99(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
@@ -69,10 +71,17 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	}
 }
 
-func (h AddLiquidityHandler) validateV99(ctx cosmos.Context, msg MsgAddLiquidity) error {
+func (h AddLiquidityHandler) validateV110(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if err := msg.ValidateBasicV98(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
+	}
+
+	// TODO on hard fork move network check to ValidateBasic
+	if !msg.AssetAddress.IsEmpty() {
+		if !common.CurrentChainNetwork.SoftEquals(msg.AssetAddress.GetNetwork(h.mgr.GetVersion(), msg.AssetAddress.GetChain())) {
+			return fmt.Errorf("address(%s) is not same network", msg.AssetAddress)
+		}
 	}
 
 	// The Ragnarok key for the TERRA.LUNA pool would be RAGNAROK-TERRA-LUNA .

@@ -43,10 +43,14 @@ func (h ManageTHORNameHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Re
 
 func (h ManageTHORNameHandler) validate(ctx cosmos.Context, msg MsgManageTHORName) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.110.0")):
+		return h.validateV110(ctx, msg)
+	case version.GTE(semver.MustParse("0.1.0")):
 		return h.validateV1(ctx, msg)
+	default:
+		return errBadVersion
 	}
-	return errBadVersion
 }
 
 func (h ManageTHORNameHandler) validateNameV1(n string) error {
@@ -60,9 +64,14 @@ func (h ManageTHORNameHandler) validateNameV1(n string) error {
 	return nil
 }
 
-func (h ManageTHORNameHandler) validateV1(ctx cosmos.Context, msg MsgManageTHORName) error {
+func (h ManageTHORNameHandler) validateV110(ctx cosmos.Context, msg MsgManageTHORName) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
+	}
+
+	// TODO on hard fork move network check to ValidateBasic
+	if !common.CurrentChainNetwork.SoftEquals(msg.Address.GetNetwork(h.mgr.GetVersion(), msg.Address.GetChain())) {
+		return fmt.Errorf("address(%s) is not same network", msg.Address)
 	}
 
 	exists := h.mgr.Keeper().THORNameExists(ctx, msg.Name)
