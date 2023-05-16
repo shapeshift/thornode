@@ -158,6 +158,104 @@ func subsidizePoolWithSlashBondV88(ctx cosmos.Context, ygg Vault, yggTotalStolen
 	return nil
 }
 
+func refundTxV108(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uint32, refundReason, sourceModuleName string) error {
+	// If THORNode recognize one of the coins, and therefore able to refund
+	// withholding fees, refund all coins.
+
+	refundCoins := make(common.Coins, 0)
+	for _, coin := range tx.Tx.Coins {
+		if coin.Asset.IsRune() && coin.Asset.GetChain().Equals(common.ETHChain) {
+			continue
+		}
+		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
+		if err != nil {
+			return fmt.Errorf("fail to get pool: %w", err)
+		}
+
+		if coin.Asset.IsRune() || !pool.BalanceRune.IsZero() {
+			toi := TxOutItem{
+				Chain:       coin.Asset.GetChain(),
+				InHash:      tx.Tx.ID,
+				ToAddress:   tx.Tx.FromAddress,
+				VaultPubKey: tx.ObservedPubKey,
+				Coin:        coin,
+				Memo:        NewRefundMemo(tx.Tx.ID).String(),
+				ModuleName:  sourceModuleName,
+			}
+
+			success, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi, cosmos.ZeroUint())
+			if err != nil {
+				ctx.Logger().Error("fail to prepare outbound tx", "error", err)
+				// concatenate the refund failure to refundReason
+				refundReason = fmt.Sprintf("%s; fail to refund (%s): %s", refundReason, toi.Coin.String(), err)
+
+				// sourceModuleName is frequently "", assumed to be AsgardName by default.
+				if sourceModuleName == "" {
+					sourceModuleName = AsgardName
+				}
+
+				// If unable to refund synths, burn them.
+				if coin.Asset.IsSyntheticAsset() {
+					// For code clarity, set the error to nil at the start and check it at every step.
+					var err error
+					err = nil
+
+					if sourceModuleName != ModuleName {
+						err = mgr.Keeper().SendFromModuleToModule(ctx, sourceModuleName, ModuleName, common.NewCoins(coin))
+						if err != nil {
+							ctx.Logger().Error("fail to move coin during failed refund burn", "error", err)
+						}
+					}
+
+					if err == nil {
+						err = mgr.Keeper().BurnFromModule(ctx, ModuleName, coin)
+						if err != nil {
+							ctx.Logger().Error("fail to burn coin during failed refund burn", "error", err)
+						}
+					}
+
+					if err == nil {
+						burnEvt := NewEventMintBurn(BurnSupplyType, coin.Asset.Native(), coin.Amount, "failed_refund")
+						if err := mgr.EventMgr().EmitEvent(ctx, burnEvt); err != nil {
+							ctx.Logger().Error("fail to emit burn event", "error", err)
+						}
+					}
+				}
+
+				// If unable to refund THOR.RUNE, send it to the Reserve.
+				if coin.Asset.IsNativeRune() && sourceModuleName != ReserveName {
+					err := mgr.Keeper().SendFromModuleToModule(ctx, sourceModuleName, ReserveName, common.NewCoins(coin))
+					if err != nil {
+						ctx.Logger().Error("fail to send RUNE to Reserve after failed refund", "error", err)
+					}
+				}
+			}
+			if success {
+				refundCoins = append(refundCoins, toi.Coin)
+			}
+		}
+		// Zombie coins are just dropped.
+	}
+
+	// For refund events, emit the event after the txout attempt in order to include the 'fail to refund' reason if unsuccessful.
+	eventRefund := NewEventRefund(refundCode, refundReason, tx.Tx, common.NewFee(common.Coins{}, cosmos.ZeroUint()))
+	if len(refundCoins) > 0 {
+		// create a new TX based on the coins thorchain refund , some of the coins thorchain doesn't refund
+		// coin thorchain doesn't have pool with , likely airdrop
+		newTx := common.NewTx(tx.Tx.ID, tx.Tx.FromAddress, tx.Tx.ToAddress, tx.Tx.Coins, tx.Tx.Gas, tx.Tx.Memo)
+
+		// all the coins in tx.Tx should belongs to the same chain
+		transactionFee := mgr.GasMgr().GetFee(ctx, tx.Tx.Chain, common.RuneAsset())
+		fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
+		eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
+	}
+	if err := mgr.EventMgr().EmitEvent(ctx, eventRefund); err != nil {
+		return fmt.Errorf("fail to emit refund event: %w", err)
+	}
+
+	return nil
+}
+
 func refundTxV47(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uint32, refundReason, nativeRuneModuleName string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
