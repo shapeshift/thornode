@@ -12,4 +12,5 @@ message TssKeysignFailVoter {
   string id = 1 [(gogoproto.customname) = "ID"];
   int64 height = 4;
   repeated string signers = 6;
+  int64 round7_count = 7;
 }

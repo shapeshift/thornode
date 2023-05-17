@@ -541,7 +541,10 @@ type BifrostSignerConfiguration struct {
 	SignerDbPath    string                           `mapstructure:"signer_db_path"`
 	BlockScanner    BifrostBlockScannerConfiguration `mapstructure:"block_scanner"`
 	RetryInterval   time.Duration                    `mapstructure:"retry_interval"`
-	LevelDB         LevelDBOptions                   `mapstructure:"leveldb"`
+	// RescheduleBufferBlocks is the number of blocks before reschedule we will stop
+	// attempting to sign and broadcast (for outbounds not in round 7 retry).
+	RescheduleBufferBlocks int64          `mapstructure:"reschedule_buffer_blocks"`
+	LevelDB                LevelDBOptions `mapstructure:"leveldb"`
 }
 
 type BifrostBackOff struct {

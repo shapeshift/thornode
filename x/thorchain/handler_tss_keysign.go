@@ -118,6 +118,8 @@ func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail) (*c
 	ctx.Logger().Info("handle MsgTssKeysignFail request", "ID", msg.ID, "signer", msg.Signer, "pubkey", msg.PubKey, "blame", msg.Blame.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.110.0")):
+		return h.handleV110(ctx, msg)
 	case version.GTE(semver.MustParse("1.109.0")):
 		return h.handleV109(ctx, msg)
 	case version.GTE(semver.MustParse("0.1.0")):
@@ -126,7 +128,7 @@ func (h TssKeysignHandler) handle(ctx cosmos.Context, msg MsgTssKeysignFail) (*c
 	return nil, errBadVersion
 }
 
-func (h TssKeysignHandler) handleV109(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
+func (h TssKeysignHandler) handleV110(ctx cosmos.Context, msg MsgTssKeysignFail) (*cosmos.Result, error) {
 	voter, err := h.mgr.Keeper().GetTssKeysignFailVoter(ctx, msg.ID)
 	if err != nil {
 		return nil, err
@@ -151,6 +153,12 @@ func (h TssKeysignHandler) handleV109(ctx cosmos.Context, msg MsgTssKeysignFail)
 		ctx.Logger().Info("signer already signed MsgTssKeysignFail", "signer", msg.Signer.String(), "txid", msg.ID)
 		return &cosmos.Result{}, nil
 	}
+
+	// track the count of round 7 failures
+	if msg.Blame.Round == tssMessages.KEYSIGN7 {
+		voter.Round7Count++
+	}
+
 	h.mgr.Keeper().SetTssKeysignFailVoter(ctx, voter)
 	vault, err := h.mgr.Keeper().GetVault(ctx, msg.PubKey)
 	if err != nil {
@@ -195,8 +203,38 @@ func (h TssKeysignHandler) handleV109(ctx cosmos.Context, msg MsgTssKeysignFail)
 		[]metrics.Label{telemetry.NewLabel("pubkey", msg.PubKey.String()), telemetry.NewLabel("round", msg.Blame.Round)},
 	)
 
+	// If at least 2 nodes in the simple majority report round 7 failure freeze the vault.
+	// There is a tradeoff here between the number of nodes required to maliciously freeze
+	// the vault and the number of nodes required to maliciously prevent freeze - we err
+	// on the side of over-freezing.
+	if voter.Round7Count > 1 || (voter.Round7Count > 0 && len(voter.Signers) <= 2) {
+		vault, err := h.mgr.Keeper().GetVault(ctx, msg.PubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to fetch vault", "pubkey", msg.PubKey, "error", err)
+		}
+		// this will cause the vault to be "frozen" which causes the
+		// rescheduler to NOT reschedule any outbound txns AND cause the tx out
+		// manager to not assign new txns to this vault
+		for _, coin := range msg.Coins {
+			found := false
+			for _, chain := range vault.Frozen {
+				if chain == coin.Asset.GetChain().String() {
+					found = true
+					break
+				}
+			}
+			if !found {
+				vault.Frozen = append(vault.Frozen, coin.Asset.GetChain().String())
+			}
+		}
+		if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
+			ctx.Logger().Error("fail to save vault", "pubkey", msg.PubKey, "error", err)
+		}
+	}
+
 	h.mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)
 	voter.Signers = nil
+	voter.Round7Count = 0
 	h.mgr.Keeper().SetTssKeysignFailVoter(ctx, voter)
 
 	slashPoints := h.mgr.GetConstants().GetInt64Value(constants.FailKeysignSlashPoints)
@@ -225,23 +263,6 @@ func (h TssKeysignHandler) handleV109(ctx cosmos.Context, msg MsgTssKeysignFail)
 		reason := "failed to perform keysign"
 		if err := h.mgr.Keeper().SetNodeAccountJail(ctx, na.NodeAddress, releaseHeight, reason); err != nil {
 			ctx.Logger().Error("fail to set node account jail", "node address", na.NodeAddress, "reason", reason, "error", err)
-		}
-	}
-
-	if msg.Blame.Round == tssMessages.KEYSIGN7 {
-		// handle round7 failure, assume attack
-		vault, err := h.mgr.Keeper().GetVault(ctx, msg.PubKey)
-		if err != nil {
-			ctx.Logger().Error("fail to fetch vault", "pubkey", msg.PubKey, "error", err)
-		}
-		// this will cause the vault to be "frozen" which causes the
-		// rescheduler to NOT reschedule any outbound txns AND cause the tx out
-		// manager to not assign new txns to this vault
-		for _, coin := range msg.Coins {
-			vault.Frozen = append(vault.Frozen, coin.Asset.GetChain().String())
-		}
-		if err := h.mgr.Keeper().SetVault(ctx, vault); err != nil {
-			ctx.Logger().Error("fail to save vault", "pubkey", msg.PubKey, "error", err)
 		}
 	}
 
