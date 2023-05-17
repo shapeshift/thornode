@@ -150,10 +150,15 @@ var (
 	templateAddress = map[string]string{} // addr_thor_dog->thor..., addr_eth_dog->0x...
 	templatePubKey  = map[string]string{} // pubkey_dog->thorpub...
 
-	dogMnemonic = strings.Repeat("dog ", 23) + "fossil"
-	catMnemonic = strings.Repeat("cat ", 23) + "crawl"
-	foxMnemonic = strings.Repeat("fox ", 23) + "filter"
-	pigMnemonic = strings.Repeat("pig ", 23) + "quick"
+	dogMnemonic    = strings.Repeat("dog ", 23) + "fossil"
+	catMnemonic    = strings.Repeat("cat ", 23) + "crawl"
+	foxMnemonic    = strings.Repeat("fox ", 23) + "filter"
+	pigMnemonic    = strings.Repeat("pig ", 23) + "quick"
+	fishMnemonic   = strings.Repeat("fish ", 23) + "fade"
+	wolfMnemonic   = strings.Repeat("wolf ", 23) + "victory"
+	mouseMnemonic  = strings.Repeat("mouse ", 23) + "option"
+	hawkMnemonic   = strings.Repeat("hawk ", 23) + "juice"
+	rabbitMnemonic = strings.Repeat("rabbit ", 23) + "rent"
 
 	// mnemonics contains the set of all mnemonics for accounts used in tests
 	mnemonics = [...]string{
@@ -161,6 +166,11 @@ var (
 		catMnemonic,
 		foxMnemonic,
 		pigMnemonic,
+		fishMnemonic,
+		wolfMnemonic,
+		mouseMnemonic,
+		hawkMnemonic,
+		rabbitMnemonic,
 	}
 )
 

@@ -73,6 +73,8 @@ func (h SolvencyHandler) handle(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Re
 	ctx.Logger().Debug("handle Solvency request", "id", msg.Id.String(), "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.110.0")):
+		return h.handleV110(ctx, msg)
 	case version.GTE(semver.MustParse("1.87.0")):
 		return h.handleV87(ctx, msg)
 	case version.GTE(semver.MustParse("0.79.0")):
@@ -88,7 +90,7 @@ func (h SolvencyHandler) handle(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Re
 //     if wallet has less fund than asgard vault , and the gap is more than 1% , then the chain
 //     that is insolvent will be halt
 //  3. When chain is halt , bifrost will not observe inbound , and will not sign outbound txs until the issue has been investigated , and enabled it again using mimir
-func (h SolvencyHandler) handleV87(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
+func (h SolvencyHandler) handleV110(ctx cosmos.Context, msg MsgSolvency) (*cosmos.Result, error) {
 	voter, err := h.mgr.Keeper().GetSolvencyVoter(ctx, msg.Id, msg.Chain)
 	if err != nil {
 		return &cosmos.Result{}, fmt.Errorf("fail to get solvency voter, err: %w", err)
@@ -158,13 +160,31 @@ func (h SolvencyHandler) handleV87(ctx cosmos.Context, msg MsgSolvency) (*cosmos
 		ctx.Logger().Error("fail to get mimir", "error", err)
 	}
 
-	if !h.insolvencyCheckV79(ctx, vault, voter.Coins, voter.Chain) {
-		// here doesn't override HaltChain when the vault is solvent
-		// in some case even the vault is solvent , the network might need to halt by admin mimir
-		// admin mimir halt chain usually set the value to 1
-		if haltChain <= 1 {
-			return &cosmos.Result{}, nil
+	// If the chain was halted this block, leave it halted without overriding.
+	// (For instance if halted because of a different vault which is insolvent.)
+	// Also don't unhalt if the chain was manually halted for a future height
+	// or indefinitely ('1').
+	if haltChain >= ctx.BlockHeight() || haltChain == 1 {
+		return &cosmos.Result{}, nil
+	}
+
+	isInsolvent := h.insolvencyCheckV79(ctx, vault, voter.Coins, voter.Chain)
+
+	// If insolvent and already halted, leave the Mimir key unchanged as a record of since when it's been insolvent.
+	// If insolvent and unhalted, halt the chain.
+	if isInsolvent && haltChain <= 0 {
+		h.mgr.Keeper().SetMimir(ctx, haltChainKey, ctx.BlockHeight())
+		mimirEvent := NewEventSetMimir(strings.ToUpper(haltChainKey), strconv.FormatInt(ctx.BlockHeight(), 10))
+		if err := h.mgr.EventMgr().EmitEvent(ctx, mimirEvent); err != nil {
+			ctx.Logger().Error("fail to emit set_mimir event", "error", err)
 		}
+		ctx.Logger().Info("chain is insolvent, halt until it is resolved", "chain", voter.Chain)
+	}
+
+	// If not insolvent and the chain is halted from an earlier block height, unhalt the chain.
+	// Even if a different vault is still insolvent, it can re-halt the chain in this or a later block.
+	// (An alternative approach would be for if an insolvent vault always updated a lower-height Mimir key to the current height.)
+	if !isInsolvent && haltChain > 1 {
 		// if the chain was halted by previous solvency checker, auto unhalt it
 		ctx.Logger().Info("auto un-halt", "chain", voter.Chain, "previous halt height", haltChain, "current block height", ctx.BlockHeight())
 		h.mgr.Keeper().SetMimir(ctx, haltChainKey, 0)
@@ -174,16 +194,6 @@ func (h SolvencyHandler) handleV87(ctx cosmos.Context, msg MsgSolvency) (*cosmos
 		}
 	}
 
-	if haltChain > 0 && haltChain < ctx.BlockHeight() {
-		// Trading already halt
-		return &cosmos.Result{}, nil
-	}
-	h.mgr.Keeper().SetMimir(ctx, haltChainKey, ctx.BlockHeight())
-	mimirEvent := NewEventSetMimir(strings.ToUpper(haltChainKey), strconv.FormatInt(ctx.BlockHeight(), 10))
-	if err := h.mgr.EventMgr().EmitEvent(ctx, mimirEvent); err != nil {
-		ctx.Logger().Error("fail to emit set_mimir event", "error", err)
-	}
-	ctx.Logger().Info("chain is insolvent, halt until it is resolved", "chain", voter.Chain)
 	return &cosmos.Result{}, nil
 }
 
