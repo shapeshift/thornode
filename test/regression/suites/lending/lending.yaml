@@ -193,6 +193,12 @@ asserts:
   - .fees.outbound|tonumber == 2000000
   - .fees.liquidity|tonumber == 7291237
 ---
+type: check
+description: no derived btc should exist
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
+asserts:
+   - .supply[]|select(.denom == "rune")|.amount|tonumber == 50300000000000
+---
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
 txs:
@@ -240,11 +246,23 @@ asserts:
   - .balances[]|select(.denom == "thor.btc")|.amount|tonumber == 495049
 ---
 type: check
+description: check rune supply decreases
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
+asserts:
+   - .supply[]|select(.denom == "rune")|.amount|tonumber == 50299990337963
+---
+type: check
 description: fox account should not receive rune until next block
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500483351059
+---
+type: check
+description: should emit 4 mint_burn events
+endpoint: http://localhost:1317/thorchain/blockevents
+asserts:
+  - .|[.end[]|select(.type == "mint_burn")]|length == 4
 ---
 ########################################################################################
 # open loan btc -> eth
@@ -328,6 +346,12 @@ txs:
     block_height: 3
     finalise_height: 3
     observed_pub_key: {{ pubkey_dog }}
+---
+type: check
+description: should emit 4 mint_burn events
+endpoint: http://localhost:1317/thorchain/blockevents
+asserts:
+  - .|[.end[]|select(.type == "mint_burn")]|length == 4
 ---
 type: create-blocks
 count: 1
@@ -483,6 +507,12 @@ txs:
     finalise_height: 4
     observed_pub_key: {{ pubkey_dog }}
 ---
+type: check
+description: should emit 4 mint_burn events
+endpoint: http://localhost:1317/thorchain/blockevents
+asserts:
+  - .|[.end[]|select(.type == "mint_burn")]|length == 4
+---
 type: create-blocks
 count: 1
 ---
@@ -574,6 +604,12 @@ txs:
     block_height: 6
     finalise_height: 6
     observed_pub_key: {{ pubkey_dog }}
+---
+type: check
+description: should emit 4 mint_burn events
+endpoint: http://localhost:1317/thorchain/blockevents
+asserts:
+  - .|[.end[]|select(.type == "mint_burn")]|length == 4
 ---
 type: create-blocks
 count: 1
