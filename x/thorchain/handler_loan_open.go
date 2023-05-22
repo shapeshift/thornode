@@ -52,6 +52,8 @@ func (h LoanOpenHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, 
 func (h LoanOpenHandler) validate(ctx cosmos.Context, msg MsgLoanOpen) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.111.0")):
+		return h.validateV111(ctx, msg)
 	case version.GTE(semver.MustParse("1.108.0")):
 		return h.validateV108(ctx, msg)
 	case version.GTE(semver.MustParse("1.107.0")):
@@ -61,7 +63,7 @@ func (h LoanOpenHandler) validate(ctx cosmos.Context, msg MsgLoanOpen) error {
 	}
 }
 
-func (h LoanOpenHandler) validateV108(ctx cosmos.Context, msg MsgLoanOpen) error {
+func (h LoanOpenHandler) validateV111(ctx cosmos.Context, msg MsgLoanOpen) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -74,7 +76,10 @@ func (h LoanOpenHandler) validateV108(ctx cosmos.Context, msg MsgLoanOpen) error
 	// Circuit Breaker: check if we're hit the max supply
 	supply := h.mgr.Keeper().GetTotalSupply(ctx, common.RuneAsset())
 	maxAmt := fetchConfigInt64(ctx, h.mgr, constants.MaxRuneSupply)
-	if maxAmt > 0 && supply.GTE(cosmos.NewUint(uint64(maxAmt))) {
+	if maxAmt <= 0 {
+		return fmt.Errorf("no max supply set")
+	}
+	if supply.GTE(cosmos.NewUint(uint64(maxAmt))) {
 		return fmt.Errorf("loans are currently paused, due to rune supply cap (%d/%d)", supply.Uint64(), maxAmt)
 	}
 

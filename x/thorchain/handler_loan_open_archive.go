@@ -8,6 +8,78 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
+func (h LoanOpenHandler) validateV108(ctx cosmos.Context, msg MsgLoanOpen) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+
+	pauseLoans := fetchConfigInt64(ctx, h.mgr, constants.PauseLoans)
+	if pauseLoans > 0 {
+		return fmt.Errorf("loans are currently paused")
+	}
+
+	// Circuit Breaker: check if we're hit the max supply
+	supply := h.mgr.Keeper().GetTotalSupply(ctx, common.RuneAsset())
+	maxAmt := fetchConfigInt64(ctx, h.mgr, constants.MaxRuneSupply)
+	if maxAmt > 0 && supply.GTE(cosmos.NewUint(uint64(maxAmt))) {
+		return fmt.Errorf("loans are currently paused, due to rune supply cap (%d/%d)", supply.Uint64(), maxAmt)
+	}
+
+	// ensure collateral pool exists
+	if !h.mgr.Keeper().PoolExist(ctx, msg.CollateralAsset) {
+		return fmt.Errorf("collateral asset does not have a pool")
+	}
+
+	// The lending key for the ETH.ETH pool would be LENDING-THOR-ETH .
+	key := "LENDING-" + msg.CollateralAsset.GetDerivedAsset().MimirString()
+	val, err := h.mgr.Keeper().GetMimir(ctx, key)
+	if err != nil {
+		ctx.Logger().Error("fail to fetch LENDING key", "pool", msg.CollateralAsset.GetDerivedAsset().String(), "error", err)
+		return err
+	}
+	if val <= 0 {
+		return fmt.Errorf("Lending is not available for this collateral asset")
+	}
+
+	// convert collateral asset back to layer1 asset
+	// NOTE: if the symbol of a derived asset isn't the chain, this won't work
+	// (ie TERRA.LUNA)
+	msg.CollateralAsset.Chain, err = common.NewChain(msg.CollateralAsset.Symbol.String())
+	if err != nil {
+		return err
+	}
+
+	totalCollateral, err := h.mgr.Keeper().GetTotalCollateral(ctx, msg.CollateralAsset)
+	if err != nil {
+		return err
+	}
+	totalRune, err := h.getTotalLiquidityRUNELoanPools(ctx)
+	if err != nil {
+		return err
+	}
+	if totalRune.IsZero() {
+		return fmt.Errorf("no liquidity, lending unavailable")
+	}
+	lever := fetchConfigInt64(ctx, h.mgr, constants.LendingLever)
+	runeBurnt := common.SafeSub(cosmos.NewUint(uint64(maxAmt)), supply)
+	totalAvailableRuneForProtocol := common.GetUncappedShare(cosmos.NewUint(uint64(lever)), cosmos.NewUint(10_000), runeBurnt) // calculate how much of that rune is available for loans
+	if totalAvailableRuneForProtocol.IsZero() {
+		return fmt.Errorf("no availability (0), lending unavailable")
+	}
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.CollateralAsset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool", "error", err)
+		return err
+	}
+	totalAvailableRuneForPool := common.GetSafeShare(pool.BalanceRune, totalRune, totalAvailableRuneForProtocol)
+	totalAvailableAssetForPool := pool.RuneValueInAsset(totalAvailableRuneForPool)
+	if totalCollateral.Add(msg.CollateralAmount).GT(totalAvailableAssetForPool) {
+		return fmt.Errorf("no availability (%d/%d), lending unavailable", totalCollateral.Add(msg.CollateralAmount).Uint64(), totalAvailableAssetForPool.Uint64())
+	}
+
+	return nil
+}
+
 func (h LoanOpenHandler) validateV107(ctx cosmos.Context, msg MsgLoanOpen) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
