@@ -7,8 +7,11 @@
           "@type": "/cosmos.auth.v1beta1.BaseAccount",
           "account_number": "6",
           "address": "tthor1zf3gsk7edzwl9syyefvfhle37cjtql35h6k85m",
-          "pub_key": null,
-          "sequence": "0"
+          "pub_key": {
+            "@type": "/cosmos.crypto.secp256k1.PubKey",
+            "key": "AmF4AUTWZEUSBtgqiR5n2Lgic/Yrr1mWupMo5TAubNRO"
+          },
+          "sequence": "2"
         },
         {
           "@type": "/cosmos.auth.v1beta1.ModuleAccount",
@@ -153,10 +156,19 @@
           ]
         },
         {
+          "address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2",
+          "coins": [
+            {
+              "amount": "100002175292",
+              "denom": "rune"
+            }
+          ]
+        },
+        {
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "35000000000000",
+              "amount": "34999997780314",
               "denom": "rune"
             }
           ]
@@ -183,7 +195,7 @@
           "address": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
           "coins": [
             {
-              "amount": "5000000000000",
+              "amount": "5000000044394",
               "denom": "rune"
             }
           ]
@@ -196,7 +208,7 @@
       },
       "supply": [
         {
-          "amount": "50000000000000",
+          "amount": "50100000000000",
           "denom": "rune"
         },
         {
@@ -277,17 +289,42 @@
       ],
       "chain_contracts": [],
       "last_chain_heights": [],
-      "liquidity_providers": null,
+      "liquidity_providers": [
+        {
+          "asset": "BTC.BTC",
+          "asset_address": "bcrt1quuds8pd92qnnq0udw0rpg0szpgcslc9pm6tzal",
+          "asset_deposit_value": "100000000",
+          "last_add_height": "1",
+          "pending_asset": "0",
+          "pending_rune": "0",
+          "rune_address": "tthor1uuds8pd92qnnq0udw0rpg0szpgcslc9p8lluej",
+          "rune_deposit_value": "100000000000",
+          "units": "100000000000"
+        }
+      ],
       "loans": [],
-      "mimirs": [],
+      "mimirs": [
+        {
+          "key": "SOLVENCYHALTBTCCHAIN",
+          "value": "2"
+        }
+      ],
       "msg_swaps": [],
       "network": {
-        "bond_reward_rune": "0",
+        "LPIncomeSplit": "9800",
+        "NodeIncomeSplit": "200",
+        "bond_reward_rune": "44394",
         "burned_bep2_rune": "0",
         "burned_erc20_rune": "0",
-        "total_bond_units": "0"
+        "total_bond_units": "2"
       },
-      "network_fees": [],
+      "network_fees": [
+        {
+          "chain": "BTC",
+          "transaction_fee_rate": "7",
+          "transaction_size": "1000"
+        }
+      ],
       "node_accounts": [
         {
           "active_block_height": "1",
@@ -305,7 +342,19 @@
       ],
       "observed_tx_in_voters": null,
       "observed_tx_out_voters": null,
-      "pools": null,
+      "pools": [
+        {
+          "LP_units": "100000000000",
+          "asset": "BTC.BTC",
+          "balance_asset": "100000000",
+          "balance_rune": "100002175292",
+          "decimals": "8",
+          "pending_inbound_asset": "0",
+          "pending_inbound_rune": "0",
+          "status": "Available",
+          "synth_units": "0"
+        }
+      ],
       "reserve_contributors": null,
       "tx_outs": null,
       "vaults": [
@@ -323,11 +372,48 @@
             "AVAX",
             "GAIA"
           ],
-          "coins": null,
+          "coins": [
+            {
+              "amount": "70000000",
+              "asset": "BTC.BTC",
+              "decimals": "8"
+            }
+          ],
+          "inbound_tx_count": "1",
           "membership": [
             "tthorpub1addwnpepqfshsq2y6ejy2ysxmq4gj8n8mzuzyulk9wh4n946jv5w2vpwdn2yuyp6sp4"
           ],
           "pub_key": "tthorpub1addwnpepqfshsq2y6ejy2ysxmq4gj8n8mzuzyulk9wh4n946jv5w2vpwdn2yuyp6sp4",
+          "routers": null,
+          "status": "ActiveVault",
+          "type": "AsgardVault"
+        },
+        {
+          "block_height": "2",
+          "chains": [
+            "THOR",
+            "BTC",
+            "LTC",
+            "BCH",
+            "BNB",
+            "ETH",
+            "DOGE",
+            "TERRA",
+            "AVAX",
+            "GAIA"
+          ],
+          "coins": [
+            {
+              "amount": "30000000",
+              "asset": "BTC.BTC",
+              "decimals": "8"
+            }
+          ],
+          "inbound_tx_count": "1",
+          "membership": [
+            "tthorpub1addwnpepqfshsq2y6ejy2ysxmq4gj8n8mzuzyulk9wh4n946jv5w2vpwdn2yuyp6sp4"
+          ],
+          "pub_key": "tthorpub1addwnpepqv8lvvqmczr893yf7zyf7xtffccf032aprl8z09y3e3nfruedew85n306k5",
           "routers": null,
           "status": "ActiveVault",
           "type": "AsgardVault"

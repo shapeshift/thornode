@@ -64,8 +64,8 @@ func export(out io.Writer, path string, routine int) error {
 	}
 
 	// base path without extension and replace path separators with underscores
+	path = strings.TrimPrefix(path, "suites/")
 	exportName := strings.TrimSuffix(path, filepath.Ext(path))
-	exportName = strings.ReplaceAll(exportName, string(os.PathSeparator), "_")
 	exportPath := fmt.Sprintf("/mnt/exports/%s.json", exportName)
 
 	// check whether existing export exists
@@ -86,6 +86,14 @@ func export(out io.Writer, path string, routine int) error {
 	// export if it none exists or EXPORT is set
 	if !exportExists || os.Getenv("EXPORT") != "" {
 		localLog.Debug().Msg("Writing export")
+
+		// create the parent directory
+		err = os.MkdirAll(filepath.Dir(exportPath), 0o700)
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to create export directory")
+		}
+
+		// write the export file
 		err = os.WriteFile(exportPath, exportOut, 0o600)
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to write export")
