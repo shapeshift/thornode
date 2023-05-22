@@ -57,3 +57,6 @@ func migrateStoreV109(ctx cosmos.Context, mgr *Mgrs) {}
 
 // no op
 func migrateStoreV110(ctx cosmos.Context, mgr *Mgrs) {}
+
+// no op
+func migrateStoreV111(ctx cosmos.Context, mgr *Mgrs) {}

@@ -4,6 +4,7 @@
 package thorchain
 
 import (
+	ctypes "github.com/cosmos/cosmos-sdk/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
@@ -340,4 +341,36 @@ func createFakeTxInsAndMakeObservations(ctx cosmos.Context, mgr *Mgrs) {
 
 func migrateStoreV110(ctx cosmos.Context, mgr *Mgrs) {
 	resetObservationHeights(ctx, mgr, 110, common.BTCChain, 788640)
+}
+
+func migrateStoreV111(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v111", "error", err)
+		}
+	}()
+
+	// these were the node addresses missed in the last migration
+	bech32Addrs := []string{
+		"thor10rgvc7c44mq5vpcq07dx5fg942eykagm9p6gxh",
+		"thor12espg8k5fxqmclx9vyte7cducmmvrtxll40q7z",
+		"thor169fahg7x70vkv909h06c2mspphrzqgy7g6prr4",
+		"thor1gukvqaag4vk2l3uq3kjme5x9xy8556pgv5rw4k",
+		"thor1h6h54d7jutljwt46qzt2w7nnyuswwv045kmshl",
+		"thor1raylctzthcvjc0a5pv5ckzjr3rgxk5qcwu7af2",
+		"thor1s76zxv0kpr78za293kvj0eep4tfqljacknsjzc",
+		"thor1w8mntay3xuk3c77j8fgvyyt0nfvl2sk398a3ww",
+	}
+
+	for _, addr := range bech32Addrs {
+		// convert to cosmos address
+		na, err := ctypes.AccAddressFromBech32(addr)
+		if err != nil {
+			ctx.Logger().Error("failed to convert bech32 address", "address", addr, "error", err)
+			continue
+		}
+
+		// set observation height back
+		mgr.Keeper().ForceSetLastObserveHeight(ctx, common.BTCChain, na, 788640)
+	}
 }

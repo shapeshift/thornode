@@ -140,3 +140,5 @@ func migrateStoreV109(ctx cosmos.Context, mgr *Mgrs) {
 func migrateStoreV110(ctx cosmos.Context, mgr *Mgrs) {
 	resetObservationHeights(ctx, mgr, 110, common.BTCChain, 788640)
 }
+
+func migrateStoreV111(ctx cosmos.Context, mgr *Mgrs) {}
