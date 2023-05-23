@@ -26,4 +26,5 @@ var adminMimirDenyList = []*re.Regexp{
 	re.MustCompile("(?i)MaxTxOutOffset"),
 	re.MustCompile("(?i)TxOutDelayRate"),
 	re.MustCompile("(?i)TxOutDelayMax"),
+	re.MustCompile("(?i)MaxRuneSupply"),
 }
