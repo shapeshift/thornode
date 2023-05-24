@@ -1,4 +1,4 @@
-package avalanche
+package evm
 
 import (
 	_ "embed"
@@ -25,6 +25,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/cmd"
+	thorcommon "gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/x/thorchain"
@@ -34,10 +35,10 @@ import (
 const TestGasPriceResolution = 50_000_000_000
 
 var (
-	//go:embed test/deposit_avax_transaction.json
-	depositAVAXTx []byte
-	//go:embed test/deposit_avax_receipt.json
-	depositAVAXReceipt []byte
+	//go:embed test/deposit_evm_transaction.json
+	depositEVMTx []byte
+	//go:embed test/deposit_evm_receipt.json
+	depositEVMReceipt []byte
 	//go:embed test/transfer_out_transaction.json
 	transferOutTx []byte
 	//go:embed test/transfer_out_receipt.json
@@ -110,6 +111,7 @@ func (s *BlockScannerTestSuite) SetUpSuite(c *C) {
 
 func getConfigForTest(rpcHost string) config.BifrostBlockScannerConfiguration {
 	return config.BifrostBlockScannerConfiguration{
+		ChainID:                    thorcommon.AVAXChain,
 		RPCHost:                    rpcHost,
 		StartBlockHeight:           1, // avoids querying thorchain for block height
 		BlockScanProcessors:        1,
@@ -158,23 +160,23 @@ func (s *BlockScannerTestSuite) TestNewBlockScanner(c *C) {
 	solvencyReporter := func(height int64) error {
 		return nil
 	}
-	bs, err := NewAVAXScanner(getConfigForTest(""), nil, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
+	bs, err := NewEVMScanner(getConfigForTest(""), nil, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewAVAXScanner(getConfigForTest("http://"+server.Listener.Addr().String()), storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, nil, pubKeyManager, solvencyReporter, nil)
+	bs, err = NewEVMScanner(getConfigForTest("http://"+server.Listener.Addr().String()), storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, nil, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewAVAXScanner(getConfigForTest("http://"+server.Listener.Addr().String()), storage, big.NewInt(int64(types.Mainnet)), nil, rpcClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
+	bs, err = NewEVMScanner(getConfigForTest("http://"+server.Listener.Addr().String()), storage, big.NewInt(int64(types.Mainnet)), nil, rpcClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewAVAXScanner(getConfigForTest("http://"+server.Listener.Addr().String()), storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, nil, solvencyReporter, nil)
+	bs, err = NewEVMScanner(getConfigForTest("http://"+server.Listener.Addr().String()), storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, nil, solvencyReporter, nil)
 	c.Assert(err, NotNil)
 	c.Assert(bs, IsNil)
 
-	bs, err = NewAVAXScanner(getConfigForTest("http://"+server.Listener.Addr().String()), storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
+	bs, err = NewEVMScanner(getConfigForTest("http://"+server.Listener.Addr().String()), storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 }
@@ -220,7 +222,7 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 				c.Assert(err, IsNil)
 			}
 			if rpcRequest.Method == "eth_getTransactionReceipt" {
-				_, err := rw.Write(depositAVAXReceipt)
+				_, err := rw.Write(depositEVMReceipt)
 				c.Assert(err, IsNil)
 			}
 			if rpcRequest.Method == "eth_call" {
@@ -258,12 +260,12 @@ func (s *BlockScannerTestSuite) TestProcessBlock(c *C) {
 	}()
 
 	config := getConfigForTest(server.URL)
-	bs, err := NewAVAXScanner(config, storage, big.NewInt(43112), ethClient, rpcClient, bridge, s.m, pubKeyMgr, func(height int64) error {
+	bs, err := NewEVMScanner(config, storage, big.NewInt(43112), ethClient, rpcClient, bridge, s.m, pubKeyMgr, func(height int64) error {
 		return nil
 	}, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
-	whitelistSmartContractAddress = append(whitelistSmartContractAddress, "0x40bcd4dB8889a8Bf0b1391d0c819dcd9627f9d0a")
+	bs.whitelistContracts = append(bs.whitelistContracts, "0x40bcd4dB8889a8Bf0b1391d0c819dcd9627f9d0a")
 	txIn, err := bs.FetchTxs(int64(1), int64(1))
 	c.Assert(err, IsNil)
 	c.Check(len(txIn.TxArray), Equals, 1)
@@ -339,7 +341,7 @@ func (s *BlockScannerTestSuite) TestGetTxInItem(c *C) {
 			if rpcRequest.Method == "eth_getTransactionReceipt" {
 				switch string(rpcRequest.Params) {
 				case `["0xc5df10917683a31c361218577d5e13ee9d7e29f8b92415f337a318942bd2c875"]`:
-					_, err := rw.Write(depositAVAXReceipt)
+					_, err := rw.Write(depositEVMReceipt)
 					c.Assert(err, IsNil)
 					return
 				case `["0x08053d250f3897e1e27b29dc97bb71a7f99809a5dfd052117ea335c2ee0f55e5"]`:
@@ -394,7 +396,7 @@ func (s *BlockScannerTestSuite) TestGetTxInItem(c *C) {
 	}()
 	c.Assert(err, IsNil)
 	config := getConfigForTest(server.URL)
-	bs, err := NewAVAXScanner(config, storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
+	bs, err := NewEVMScanner(config, storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
 		return nil
 	}, nil)
 	c.Assert(err, IsNil)
@@ -417,7 +419,7 @@ func (s *BlockScannerTestSuite) TestGetTxInItem(c *C) {
 		"r":"0x1b5e176d927f8e9ab405058b2d2457392da3e20f328b16ddabcebc33eaac5fea",
 		"s":"0x4ba69724e8f69de52f0125ad8b3c5c2cef33019bac3249e2c0a2192766d1721c"
 	}`
-	tx := etypes.NewTransaction(0, common.HexToAddress(avaxToken), nil, 0, nil, nil)
+	tx := etypes.NewTransaction(0, common.HexToAddress(evm.NativeTokenAddr), nil, 0, nil, nil)
 	err = tx.UnmarshalJSON([]byte(encodedTx))
 	c.Assert(err, IsNil)
 
@@ -440,13 +442,13 @@ func (s *BlockScannerTestSuite) TestGetTxInItem(c *C) {
 		true,
 	)
 
-	bs, err = NewAVAXScanner(config, storage, big.NewInt(43112), ethClient, rpcClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
+	bs, err = NewEVMScanner(config, storage, big.NewInt(43112), ethClient, rpcClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
 		return nil
 	}, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
-	tx = etypes.NewTransaction(0, common.HexToAddress(avaxToken), nil, 0, nil, nil)
-	c.Assert(tx.UnmarshalJSON(depositAVAXTx), IsNil)
+	tx = etypes.NewTransaction(0, common.HexToAddress(evm.NativeTokenAddr), nil, 0, nil, nil)
+	c.Assert(tx.UnmarshalJSON(depositEVMTx), IsNil)
 	txInItem, err = bs.getTxInItem(tx)
 	c.Assert(err, IsNil)
 	c.Assert(txInItem, NotNil)
@@ -457,11 +459,13 @@ func (s *BlockScannerTestSuite) TestGetTxInItem(c *C) {
 	c.Assert(txInItem.Coins[0].Asset.String(), Equals, "AVAX.AVAX")
 	c.Assert(txInItem.Coins[0].Amount.Uint64(), Equals, cosmos.NewUint(200000000).Uint64())
 
-	bs, err = NewAVAXScanner(config, storage, big.NewInt(43112), ethClient, rpcClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
+	config.WhitelistTokens = append(config.WhitelistTokens, "0x333c3310824b7c685133F2BeDb2CA4b8b4DF633d")
+
+	bs, err = NewEVMScanner(config, storage, big.NewInt(43112), ethClient, rpcClient, s.bridge, s.m, pkeyMgr, func(height int64) error {
 		return nil
 	}, nil)
 	// whitelist the address for test
-	whitelistSmartContractAddress = append(whitelistSmartContractAddress, "0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25")
+	bs.whitelistContracts = append(bs.whitelistContracts, "0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25")
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 
@@ -530,7 +534,7 @@ func (s *BlockScannerTestSuite) TestUpdateGasPrice(c *C) {
 		return nil
 	}
 	conf := getConfigForTest("http://" + server.Listener.Addr().String())
-	bs, err := NewAVAXScanner(conf, storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
+	bs, err := NewEVMScanner(conf, storage, big.NewInt(int64(types.Mainnet)), ethClient, rpcClient, s.bridge, s.m, pubKeyManager, solvencyReporter, nil)
 	c.Assert(err, IsNil)
 	c.Assert(bs, NotNil)
 

@@ -71,7 +71,7 @@
     },
     {
       "chainId": 4,
-      "address": "0x40bcd4dB8889a8Bf0b1391d0c819dcd9627f9d0a",
+      "address": "0x52C84043CD9c865236f11d9Fc9F56aa003c1f922",
       "symbol": "TKN",
       "name": "Test token",
       "decimals": 18,
@@ -108,6 +108,14 @@
       "name": "WETH token for test",
       "decimals": 18,
       "tags": []
+    },
+    {
+      "name": "",
+      "symbol": "USDC",
+      "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+      "chainId": 56,
+      "decimals": 18,
+      "logoURI": ""
     }
   ],
   "version": {

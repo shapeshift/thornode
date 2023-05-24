@@ -28,6 +28,7 @@ func (Test) TestAllDefaultDefined(c *C) {
 }
 
 func check(c *C, path []string, cm map[interface{}]interface{}, t reflect.Type) {
+	// ensure all config fields are defined
 	for i := 0; i < t.NumField(); i++ {
 		tag := t.Field(i).Tag.Get("mapstructure")
 		tagPath := strings.Join(append(path, tag), ".")
@@ -43,18 +44,35 @@ func check(c *C, path []string, cm map[interface{}]interface{}, t reflect.Type) 
 			continue
 		}
 
-		// recurse if this is a nested struct
-		if t.Field(i).Type.Kind() == reflect.Struct {
-			if _, ok := cm[tag]; !ok {
-				c.Fatalf("missing default for %s %s", tagPath, t.Field(i).Type)
-			}
-			// trunk-ignore(golangci-lint/forcetypeassert)
-			check(c, append(path, tag), cm[tag].(map[interface{}]interface{}), t.Field(i).Type)
+		// assert the field is defined in config
+		if _, ok := cm[tag]; !ok {
+			c.Fatalf("missing default for %s %s", tagPath, t.Field(i).Type)
 		}
 
-		// assert the field is defined in config
-		comment := Commentf("missing default for %s -%s-", tagPath, t.Field(i).Name)
-		_, exists := cm[tag]
-		c.Assert(exists, Equals, true, comment)
+		// trunk-ignore-all(golangci-lint/forcetypeassert)
+		switch t.Field(i).Type.Kind() {
+
+		case reflect.Struct: // recurse if this is a nested struct
+			check(c, append(path, tag), cm[tag].(map[interface{}]interface{}), t.Field(i).Type)
+
+		case reflect.Map: // recurse on each value if this is a map
+			for k, v := range cm[tag].(map[interface{}]interface{}) {
+				check(c, append(path, tag, k.(string)), v.(map[interface{}]interface{}), t.Field(i).Type.Elem())
+			}
+		}
+	}
+
+	// ensure all defaults are defined in config
+	for k := range cm {
+		found := false
+		for i := 0; i < t.NumField(); i++ {
+			if t.Field(i).Tag.Get("mapstructure") == k {
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.Fatalf("unknown mapping: %s", strings.Join(append(path, k.(string)), "."))
+		}
 	}
 }

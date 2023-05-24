@@ -50,7 +50,7 @@ if [ "$SEED" = "$(hostname)" ]; then
     if [ "$NET" = "mocknet" ]; then
       echo "Setting up accounts"
 
-      # heimdall accounts
+      # smoke test accounts
       add_account tthor1z63f3mzwv3g75az80xwmhrawdqcjpaekk0kd54 rune 5000000000000
       add_account tthor1wz78qmrkplrdhy37tw0tnvn0tkm5pqd6zdp257 rune 25000000000100
       add_account tthor18f55frcvknxvcpx2vvpfedvw4l8eutuhku0uj6 rune 25000000000100
@@ -64,21 +64,15 @@ if [ "$SEED" = "$(hostname)" ]; then
 
       reserve 22000000000000000
 
-      # deploy eth contract
-      deploy_eth_contract "$ETH_HOST"
+      # deploy evm contracts
+      deploy_evm_contracts
 
-      # deploy avax contract
-      deploy_avax_contract "$AVAX_HOST"
-
-      # sets hardcoded contract address for Local EVM fork testing
-      # set_manual_avax_contract
-
-      # override block time for faster smoke tests
-      block_time "$THOR_BLOCK_TIME"
     else
       echo "ETH Contract Address: $CONTRACT"
       set_eth_contract "$CONTRACT"
+
     fi
+
     if [ "$NET" = "testnet" ]; then
       # mint 1m RUNE to reserve for testnet
       reserve 100000000000000

@@ -30,8 +30,8 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/signercache"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
 	"gitlab.com/thorchain/thornode/bifrost/tss"

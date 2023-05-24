@@ -1,4 +1,4 @@
-package avalanche
+package evm
 
 import (
 	"encoding/json"
@@ -13,10 +13,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	cKeys "github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/magiconair/properties/assert"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/evm"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -27,9 +27,9 @@ import (
 	types2 "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
-func TestAVAXPackage(t *testing.T) { TestingT(t) }
+func TestEVMPackage(t *testing.T) { TestingT(t) }
 
-type AvalancheSuite struct {
+type EVMSuite struct {
 	thordir  string
 	thorKeys *thorclient.Keys
 	bridge   thorclient.ThorchainBridge
@@ -37,7 +37,7 @@ type AvalancheSuite struct {
 	server   *httptest.Server
 }
 
-var _ = Suite(&AvalancheSuite{})
+var _ = Suite(&EVMSuite{})
 
 var m *metrics.Metrics
 
@@ -57,7 +57,7 @@ func GetMetricForTest(c *C) *metrics.Metrics {
 	return m
 }
 
-func (s *AvalancheSuite) SetUpTest(c *C) {
+func (s *EVMSuite) SetUpTest(c *C) {
 	s.m = GetMetricForTest(c)
 	c.Assert(s.m, NotNil)
 	types2.SetupConfigForTest()
@@ -208,7 +208,7 @@ func (s *AvalancheSuite) SetUpTest(c *C) {
 	c.Assert(err, IsNil)
 }
 
-func (s *AvalancheSuite) TearDownTest(c *C) {
+func (s *EVMSuite) TearDownTest(c *C) {
 	c.Assert(os.Unsetenv("NET"), IsNil)
 
 	if err := os.RemoveAll(s.thordir); err != nil {
@@ -216,37 +216,37 @@ func (s *AvalancheSuite) TearDownTest(c *C) {
 	}
 }
 
-func (s *AvalancheSuite) TestNewClient(c *C) {
+func (s *EVMSuite) TestNewClient(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
 	poolMgr := thorclient.NewPoolMgr(s.bridge)
 
 	// bridge is nil
-	e, err := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{}, nil, nil, s.m, pubkeyMgr, poolMgr)
+	e, err := NewEVMClient(s.thorKeys, config.BifrostChainConfiguration{}, nil, nil, s.m, pubkeyMgr, poolMgr)
 	c.Assert(e, IsNil)
 	c.Assert(err, NotNil)
 
 	// pubkey manager is nil
-	e, err = NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{}, nil, s.bridge, s.m, nil, poolMgr)
+	e, err = NewEVMClient(s.thorKeys, config.BifrostChainConfiguration{}, nil, s.bridge, s.m, nil, poolMgr)
 	c.Assert(e, IsNil)
 	c.Assert(err, NotNil)
 
 	// pubkey manager is nil
-	e, err = NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{}, nil, s.bridge, s.m, pubkeyMgr, nil)
+	e, err = NewEVMClient(s.thorKeys, config.BifrostChainConfiguration{}, nil, s.bridge, s.m, pubkeyMgr, nil)
 	c.Assert(e, IsNil)
 	c.Assert(err, NotNil)
 
 	// pubkey manager is nil
-	e, err = NewAvalancheClient(nil, config.BifrostChainConfiguration{}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
+	e, err = NewEVMClient(nil, config.BifrostChainConfiguration{}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(e, IsNil)
 	c.Assert(err, NotNil)
 }
 
-func (s *AvalancheSuite) TestConvertSigningAmount(c *C) {
+func (s *EVMSuite) TestConvertSigningAmount(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
 	poolMgr := thorclient.NewPoolMgr(s.bridge)
-	a, err := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{
+	a, err := NewEVMClient(s.thorKeys, config.BifrostChainConfiguration{
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			RPCHost:            "http://" + s.server.Listener.Addr().String(),
@@ -256,31 +256,46 @@ func (s *AvalancheSuite) TestConvertSigningAmount(c *C) {
 	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(err, IsNil)
 	c.Assert(a, NotNil)
-	c.Assert(a.avaxScanner.tokenManager.SaveTokenMeta("TKN", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483", 18), IsNil)
-	c.Assert(a.avaxScanner.tokenManager.SaveTokenMeta("TKX", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482", 8), IsNil)
-	result := a.convertSigningAmount(big.NewInt(100), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483")
+	c.Assert(a.evmScanner.tokenManager.SaveTokenMeta("TKN", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483", 18), IsNil)
+	c.Assert(a.evmScanner.tokenManager.SaveTokenMeta("TKX", "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482", 8), IsNil)
+	result := a.evmScanner.tokenManager.ConvertSigningAmount(big.NewInt(100), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF483")
 	c.Assert(result.Uint64(), Equals, uint64(100*common.One*100))
-	result = a.convertSigningAmount(big.NewInt(100000000), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482")
+	result = a.evmScanner.tokenManager.ConvertSigningAmount(big.NewInt(100000000), "0x3b7FA4dd21c6f9BA3ca375217EAD7CAb9D6bF482")
 	c.Assert(result.Uint64(), Equals, uint64(100000000))
 }
 
-func TestGetTokenAddressFromAsset(t *testing.T) {
-	token := getTokenAddressFromAsset(common.AVAXAsset)
-	assert.Equal(t, token, avaxToken)
-	a, err := common.NewAsset("AVAX.TKN-0X333C3310824B7C685133F2BEDB2CA4B8B4DF633D")
-	assert.Equal(t, err, nil)
-	token = getTokenAddressFromAsset(a)
-	assert.Equal(t, token, "0X333C3310824B7C685133F2BEDB2CA4B8B4DF633D")
-}
-
-func (s *AvalancheSuite) TestClient(c *C) {
+func (s *EVMSuite) TestGetTokenAddressFromAsset(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
 	poolMgr := thorclient.NewPoolMgr(s.bridge)
-	a, err := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
+	a, err := NewEVMClient(s.thorKeys, config.BifrostChainConfiguration{
+		ChainID: common.AVAXChain,
+		RPCHost: "http://" + s.server.Listener.Addr().String(),
+		BlockScanner: config.BifrostBlockScannerConfiguration{
+			RPCHost:            "http://" + s.server.Listener.Addr().String(),
+			StartBlockHeight:   1, // avoids querying thorchain for block height
+			HTTPRequestTimeout: time.Second,
+		},
+	}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
+	c.Assert(err, IsNil)
+
+	token := a.getTokenAddressFromAsset(common.AVAXAsset)
+	c.Assert(token, Equals, evm.NativeTokenAddr)
+	asset, err := common.NewAsset("AVAX.TKN-0X333C3310824B7C685133F2BEDB2CA4B8B4DF633D")
+	c.Assert(err, IsNil)
+	token = a.getTokenAddressFromAsset(asset)
+	c.Assert(token, Equals, "0X333C3310824B7C685133F2BEDB2CA4B8B4DF633D")
+}
+
+func (s *EVMSuite) TestClient(c *C) {
+	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
+	c.Assert(err, IsNil)
+	poolMgr := thorclient.NewPoolMgr(s.bridge)
+	a, err := NewEVMClient(s.thorKeys, config.BifrostChainConfiguration{}, nil, s.bridge, s.m, pubkeyMgr, poolMgr)
 	c.Assert(a, IsNil)
 	c.Assert(err, NotNil)
-	a2, err2 := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{
+	a2, err2 := NewEVMClient(s.thorKeys, config.BifrostChainConfiguration{
+		ChainID: common.AVAXChain,
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			RPCHost:            "http://" + s.server.Listener.Addr().String(),
@@ -359,11 +374,12 @@ func (s *AvalancheSuite) TestClient(c *C) {
 	c.Assert(err, IsNil)
 }
 
-func (s *AvalancheSuite) TestGetAccount(c *C) {
+func (s *EVMSuite) TestGetAccount(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
 	poolMgr := thorclient.NewPoolMgr(s.bridge)
-	e, err := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{
+	e, err := NewEVMClient(s.thorKeys, config.BifrostChainConfiguration{
+		ChainID: common.AVAXChain,
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			RPCHost:            "http://" + s.server.Listener.Addr().String(),
@@ -383,11 +399,12 @@ func (s *AvalancheSuite) TestGetAccount(c *C) {
 	c.Assert(b, NotNil)
 }
 
-func (s *AvalancheSuite) TestSignAVAXTx(c *C) {
+func (s *EVMSuite) TestSignEVMTx(c *C) {
 	pubkeyMgr, err := pubkeymanager.NewPubKeyManager(s.bridge, s.m)
 	c.Assert(err, IsNil)
 	poolMgr := thorclient.NewPoolMgr(s.bridge)
-	e, err := NewAvalancheClient(s.thorKeys, config.BifrostChainConfiguration{
+	e, err := NewEVMClient(s.thorKeys, config.BifrostChainConfiguration{
+		ChainID: common.AVAXChain,
 		RPCHost: "http://" + s.server.Listener.Addr().String(),
 		BlockScanner: config.BifrostBlockScannerConfiguration{
 			RPCHost:            "http://" + s.server.Listener.Addr().String(),

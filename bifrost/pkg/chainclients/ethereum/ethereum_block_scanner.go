@@ -26,7 +26,7 @@ import (
 	btypes "gitlab.com/thorchain/thornode/bifrost/blockscanner/types"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum/types"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/signercache"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -666,6 +666,7 @@ func (e *ETHScanner) getTokenMeta(token string) (types.TokenMeta, error) {
 				break
 			}
 		}
+
 		if !isWhiteListToken {
 			return types.TokenMeta{}, fmt.Errorf("token: %s is not whitelisted", token)
 		}
@@ -793,7 +794,7 @@ func (e *ETHScanner) getTxInFromSmartContract(tx *etypes.Transaction, receipt *e
 	if txGasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
 		txGasPrice = big.NewInt(tenGwei)
 	}
-	txInItem.Gas = common.MakeETHGas(txGasPrice, receipt.GasUsed)
+	txInItem.Gas = common.MakeEVMGas(common.ETHChain, txGasPrice, receipt.GasUsed)
 	if txInItem.Coins.IsEmpty() {
 		e.logger.Debug().Msgf("there is no coin in this tx, ignore, %+v", txInItem)
 		return nil, nil
@@ -829,7 +830,7 @@ func (e *ETHScanner) getTxInFromTransaction(tx *etypes.Transaction) (*stypes.TxI
 	if txGasPrice.Cmp(big.NewInt(tenGwei)) < 0 {
 		txGasPrice = big.NewInt(tenGwei)
 	}
-	txInItem.Gas = common.MakeETHGas(txGasPrice, tx.Gas())
+	txInItem.Gas = common.MakeEVMGas(common.ETHChain, txGasPrice, tx.Gas())
 	if txInItem.Coins.IsEmpty() {
 		e.logger.Debug().Msgf("there is no coin in this tx, ignore, %+v", txInItem)
 		return nil, nil
@@ -894,6 +895,6 @@ func (e *ETHScanner) getTxInFromFailedTransaction(tx *etypes.Transaction, receip
 		Sender: strings.ToLower(fromAddr.String()),
 		To:     strings.ToLower(tx.To().String()),
 		Coins:  common.NewCoins(common.NewCoin(common.ETHAsset, cosmos.NewUint(1))),
-		Gas:    common.MakeETHGas(txGasPrice, tx.Gas()),
+		Gas:    common.MakeEVMGas(common.ETHChain, txGasPrice, tx.Gas()),
 	}
 }

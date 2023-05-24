@@ -275,6 +275,11 @@ logs-mocknet:
 
 reset-mocknet: stop-mocknet run-mocknet
 
+# ------------------------------ Mocknet EVM Fork ------------------------------
+
+reset-mocknet-fork-%: stop-mocknet
+	@./tools/evm/run-mocknet-fork.sh $*
+
 # ------------------------------ Multi Node Mocknet ------------------------------
 
 run-mocknet-cluster:

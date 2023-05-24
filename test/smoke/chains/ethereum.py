@@ -23,16 +23,16 @@ class MockEthereum:
 
     default_gas = 80000
     gas_price = 2
-    passphrase = "the-passphrase"
+    passphrase = ""
     seed = "SEED"
     stake = "ADD"
     tokens = dict()
     zero_address = "0x0000000000000000000000000000000000000000"
-    vault_contract_addr = "0xE65e9d372F8cAcc7b6dfcd4af6507851Ed31bb44"
-    token_contract_addr = "0x40bcd4dB8889a8Bf0b1391d0c819dcd9627f9d0a"
+    vault_contract_addr = "0x17aB05351fC94a1a67Bf3f56DdbB941aE6c63E25"
+    token_contract_addr = "0x52C84043CD9c865236f11d9Fc9F56aa003c1f922"
 
     private_keys = [
-        "ef235aacf90d9f4aadd8c92e4b2562e1d9eb97f0df9ba3b508258739cb013db2",
+        "56289e99c94b6912bfc12adc093c9b51124f0dc54ac7a766b2bc5ccf558d8027",
         "289c2857d4598e37fb9647507e47a309d6133539bf21a8b9cb6df88fd5232032",
         "e810f1d7d6691b4a7a73476f3543bd87d601f9a53e7faf670eac2c5b517d83bf",
         "a96e62ed3955e65be32703f12d87b6b5cf26039ecfa948dc5107a495418e5330",
@@ -43,15 +43,8 @@ class MockEthereum:
         self.url = base_url
         self.web3 = Web3(HTTPProvider(base_url))
         self.web3.middleware_onion.inject(geth_poa_middleware, layer=0)
-        for key in self.private_keys:
-            payload = json.dumps(
-                {"method": "personal_importRawKey", "params": [key, self.passphrase]}
-            )
-            headers = {"content-type": "application/json", "cache-control": "no-cache"}
-            try:
-                requests.request("POST", base_url, data=payload, headers=headers)
-            except requests.exceptions.RequestException as e:
-                logging.error(f"{e}")
+        for key in self.private_keys[1:]:
+            self.web3.geth.personal.import_raw_key(key, self.passphrase)
         self.accounts = self.web3.geth.personal.list_accounts()
         self.web3.eth.defaultAccount = self.accounts[1]
         self.web3.geth.personal.unlock_account(
@@ -269,15 +262,15 @@ class Ethereum(GenericChain):
         elif txn.memo.startswith("SWAP:ETH.ETH:"):
             gas = 39836
         elif txn.memo.startswith(
-            "SWAP:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+            "SWAP:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
         ):
             gas = 53212
         elif (
             txn.memo
-            == "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A:1000"
+            == "WITHDRAW:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922:1000"
         ):
             gas = 53224
-        elif txn.memo == "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A":
+        elif txn.memo == "WITHDRAW:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922":
             gas = 44820
         elif txn.memo == "WITHDRAW:ETH.ETH":
             gas = 39848

@@ -26,6 +26,7 @@ bifrost:
       - ETH
       - GAIA
       - LTC
+      - BSC
   thorchain:
     chain_id: thorchain
     chain_host: localhost:1317
@@ -64,20 +65,6 @@ bifrost:
     external_ip: ""
     max_keyshare_recover_scan_blocks: 100
   chains:
-    bnb:
-      chain_id: BNB
-      block_scanner: &default-block-scanner
-        chain_id: BNB
-        enforce_block_height: false
-        block_scan_processors: 1
-        block_height_discover_back_off: 0.3s
-        block_retry_interval: 10s
-        http_request_timeout: 30s
-        http_request_read_timeout: 30s
-        http_request_write_timeout: 30s
-        max_http_request_retry: 10
-        db_path: /var/data/bifrost/observer
-        observation_flexibility_blocks: 2
     btc: &default-chain
       disabled: false
       chain_id: BTC
@@ -86,13 +73,56 @@ bifrost:
       http_post_mode: 1
       disable_tls: 1
       parallel_mempool_scan: 5
-      block_scanner:
-        <<: *default-block-scanner
-        chain_id: BTC
-        block_height_discover_back_off: 5s
-        observation_flexibility_blocks: 3
       mempool_tx_id_cache_size: 0
       scanner_leveldb: *default-leveldb
+
+      # the following defaults must be defined to override with environment
+      chain_host: ""
+      chain_network: ""
+      rpc_host: ""
+      cosmos_grpc_host: ""
+      cosmos_grpc_tls: ""
+      opt_to_retire: false
+      solvency_blocks: 0
+      back_off:
+        initial_interval: 0
+        randomization_factor: 0
+        multiplier: 0
+        max_interval: 0
+        max_elapsed_time: 0
+
+      block_scanner: &default-block-scanner
+        chain_id: BTC
+        enforce_block_height: false
+        block_scan_processors: 1
+        block_height_discover_back_off: 5s
+        observation_flexibility_blocks: 3
+        block_retry_interval: 10s
+        http_request_timeout: 30s
+        http_request_read_timeout: 30s
+        http_request_write_timeout: 30s
+        max_http_request_retry: 10
+        db_path: /var/data/bifrost/observer
+
+        # the following defaults must be defined to override with environment
+        rpc_host: ""
+        start_block_height: 0
+        cosmos_grpc_host: ""
+        cosmos_grpc_tls: false
+        gas_cache_blocks: 0
+        whitelist_tokens: []
+        concurrency: 0
+        max_gas_fee: 0
+        gas_price_resolution: 0
+        max_contract_gas: 0
+    bnb:
+      <<: *default-chain
+      chain_id: BNB
+      block_scanner:
+        <<: *default-block-scanner
+        chain_id: BNB
+        block_height_discover_back_off: 0.3s
+        observation_flexibility_blocks: 2
     eth:
       <<: *default-chain
       chain_id: ETH
@@ -105,6 +135,7 @@ bifrost:
     avax:
       <<: *default-chain
       chain_id: AVAX
+      solvency_blocks: 100
       block_scanner:
         <<: *default-block-scanner
         concurrency: 1
@@ -112,6 +143,31 @@ bifrost:
         gas_cache_blocks: 40
         gas_price_resolution: 50_000_000_000 # 50 navax
         observation_flexibility_blocks: 80
+        max_gas_fee: 400000
+        max_contract_gas: 80000
+        whitelist_tokens: # stable coins only
+          - 0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7 # USDT
+          - 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E # USDC
+    bsc:
+      disabled: true
+      <<: *default-chain
+      chain_id: BSC
+      solvency_blocks: 100
+      block_scanner:
+        <<: *default-block-scanner
+        concurrency: 1
+        chain_id: BSC
+        gas_cache_blocks: 40
+        gas_price_resolution: 50_000_000_000 # 50 gwei
+        observation_flexibility_blocks: 80
+        max_gas_fee: 400000
+        max_contract_gas: 80000
+        whitelist_tokens: # stable coins only
+          - 0x55d398326f99059fF775485246999027B3197955 # Binance Pegged USDT
+          - 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d # Binance Pegged USDC
+          - 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56 # Binance Pegged BUSD
+          - 0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3 # Binance Pegged DAI
+          - 0x14016E85a25aeb13065688cAFB43044C2ef86784 # True USD
     doge:
       <<: *default-chain
       chain_id: DOGE

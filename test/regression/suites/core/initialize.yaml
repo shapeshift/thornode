@@ -19,7 +19,7 @@ type: check
 description: inbound addresses should exist for all chains
 endpoint: http://localhost:1317/thorchain/inbound_addresses
 asserts:
-  - .|length == 9
+  - .|length == 10
   # all addresses should be for the dog mnemonic
   - .[]|select(.chain == "AVAX")|.address == "{{ addr_avax_dog }}"
   - .[]|select(.chain == "BCH")|.address == "{{ addr_bch_dog }}"
@@ -30,5 +30,6 @@ asserts:
   - .[]|select(.chain == "GAIA")|.address == "{{ addr_gaia_dog }}"
   - .[]|select(.chain == "LTC")|.address == "{{ addr_ltc_dog }}"
   - .[]|select(.chain == "TERRA")|.address == "{{ addr_terra_dog }}"
+  - .[]|select(.chain == "BSC")|.address == "{{ addr_bsc_dog }}"
   # the pubkey on all inbound addresses should be the dog public key
-  - '[.[]|select(.pub_key == "{{ pubkey_dog }}")]|length == 9'
+  - '[.[]|select(.pub_key == "{{ pubkey_dog }}")]|length == 10'

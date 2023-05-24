@@ -5,14 +5,21 @@
 The default image will start a fullnode:
 
 ```bash
-docker run -e CHAIN_ID=thorchain-mainnet-v1 -e NET=mainnet registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+docker run \
+  -e CHAIN_ID=thorchain-mainnet-v1 \
+  -e NET=mainnet \
+  registry.gitlab.com/thorchain/thornode:chaosnet-multichain
 ```
 
 The above command will result in syncing chain state to ephemeral storage within the container, in order to persist data across restarts simply mount a local volume:
 
 ```bash
 mkdir thornode-data
-docker run -v $(pwd)/thornode-data:/root/.thornode -e CHAIN_ID=thorchain-mainnet-v1 -e NET=mainnet registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+docker run \
+  -v $(pwd)/thornode-data:/root/.thornode \
+  -e CHAIN_ID=thorchain-mainnet-v1 \
+  -e NET=mainnet \
+  registry.gitlab.com/thorchain/thornode:chaosnet-multichain
 ```
 
 Nine Realms provides snapshots taken from a statesync recovery which can be rsync'd without need for a high memory (80G at time of writing) machine to recover the statesync snapshot. Ensure `gsutil` is installed, and pull the latest statesync snapshot via:
@@ -24,7 +31,11 @@ HEIGHT=$(
   jq -r '.prefixes | map(match("thornode/pruned/([0-9]+)/").captures[0].string) | map(tonumber) | sort | reverse[0]'
 )
 gsutil -m rsync -r -d "gs://public-snapshots-ninerealms/thornode/pruned/$HEIGHT/" thornode-data/data
-docker run -v $(pwd)/thornode-data:/root/.thornode -e CHAIN_ID=thorchain-mainnet-v1 -e NET=mainnet registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+docker run \
+  -v $(pwd)/thornode-data:/root/.thornode \
+  -e CHAIN_ID=thorchain-mainnet-v1 \
+  -e NET=mainnet \
+  registry.gitlab.com/thorchain/thornode:chaosnet-multichain
 ```
 
 Since this image tag contains the latest version of THORNode, the node can auto update by simply placing this in a loop to re-pull the image on exit:
@@ -32,7 +43,10 @@ Since this image tag contains the latest version of THORNode, the node can auto 
 ```bash
 while true; do
   docker pull registry.gitlab.com/thorchain/thornode:chaosnet-multichain
-  docker run -v $(pwd)/thornode-data:/root/.thornode -e NET=mainnet registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+  docker run \
+    -v $(pwd)/thornode-data:/root/.thornode \
+    -e NET=mainnet \
+    registry.gitlab.com/thorchain/thornode:chaosnet-multichain
 do
 ```
 
@@ -136,27 +150,29 @@ thornode tx thorchain mimir CHURNINTERVAL 1000 --from dog $TX_FLAGS
 thornode tx thorchain mimir NUMBEROFNEWNODESPERCHURN 1 --from dog $TX_FLAGS
 ```
 
+## EVM Tool
+
+The `evm-tool.py` script is leveraged during mocknet init in the `thornode` container to create the router contract and test token, but may also be run directly for additional convenience targets.
+
+### Create Gas and Token Pools
+
+Note that the token address used in this command is the same as the address output in the logs during `thornode` init (created by `evm-tool.py --action deploy`). Run the following within the `docker compose exec thornode sh` shell to create the asset side of the pools:
+
+```bash
+python3 /scripts/evm/evm-tool.py --chain ETH --action deposit
+python3 /scripts/evm/evm-tool.py --chain ETH --token-address 0x52C84043CD9c865236f11d9Fc9F56aa003c1f922 --action deposit-token
+```
+
+Run the following in the `docker compose run cli` shell to create the RUNE side of the pools:
+
+```bash
+thornode tx thorchain deposit 10000000000 rune ADD:ETH.ETH:0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc --from cat $TX_FLAGS
+thornode tx thorchain deposit 10000000000 rune ADD:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922:0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc --from cat $TX_FLAGS
+```
+
 ## Local Mainnet Fork of EVM Chain
 
-Using hardhat, you can run a mainnet fork locally of any EVM chain and use it the mocknet stack. This allows you to interact with all of the DEXes, smart contracts
-and Liquidity Pools deployed mainnet in your local mocknet environment. This simplifies testing EVM chain clients, routers, and aggregators.
-
-This guide will go over how to fork AVAX C-Chain locally, and use it in the mocknet stack.
-
-1. Spin up the local mocknet fork from your hardhat repo: (e.g. https://gitlab.com/thorchain/chains/avalanche)
-2.
-
-```bash
-npx hardhat node --fork https://api.avax.network/ext/bc/C/rpc
-```
-
-2. Deploy any Router/Aggregator Contracts to your local mocknet fork using hardhat
-3.
-4. Point Bifröst at your local EVM node, and be sure to pass in a starting block height close to the tip, otherwise Bifröst will scan every block from 0:
-
-```bash
-AVAX_HOST=http://host.docker.internal:8545/ext/bc/C/rpc AVAX_START_BLOCK_HEIGHT=16467608 make reset-mocknet
-```
+There are scripts for creation of a mocknet using forked mainnet EVM chains for testing of aggregator contracts. See `[tools/evm/README.md](../../tools/evm/README.md)` for documentation.
 
 ## Bootstrap Mocknet Data
 

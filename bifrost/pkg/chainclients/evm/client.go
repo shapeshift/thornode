@@ -1,4 +1,4 @@
-package avalanche
+package evm
 
 import (
 	"context"
@@ -22,9 +22,9 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/evm"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/signercache"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	stypes "gitlab.com/thorchain/thornode/bifrost/thorclient/types"
@@ -37,18 +37,18 @@ import (
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 )
 
-const (
-	maxGasLimit = 400000
-)
+////////////////////////////////////////////////////////////////////////////////////////
+// EVMClient
+////////////////////////////////////////////////////////////////////////////////////////
 
-// AvalancheClient is a structure to sign and broadcast tx to the Avalanche C-Chain
-type AvalancheClient struct {
+// EVMClient is a generic client for interacting with EVM chains.
+type EVMClient struct {
 	logger                  zerolog.Logger
 	cfg                     config.BifrostChainConfiguration
 	localPubKey             common.PubKey
 	kw                      *evm.KeySignWrapper
 	ethClient               *ethclient.Client
-	avaxScanner             *AvalancheScanner
+	evmScanner              *EVMScanner
 	bridge                  thorclient.ThorchainBridge
 	blockScanner            *blockscanner.BlockScanner
 	vaultABI                *abi.ABI
@@ -60,42 +60,24 @@ type AvalancheClient struct {
 	globalSolvencyQueue     chan stypes.Solvency
 	signerCacheManager      *signercache.CacheManager
 	lastSolvencyCheckHeight int64
-	chain                   common.Chain
 }
 
-// NewAvalancheClient creates new instance of an AvalancheClient
-func NewAvalancheClient(thorKeys *thorclient.Keys,
+// NewEVMClient creates a new EVMClient.
+func NewEVMClient(
+	thorKeys *thorclient.Keys,
 	cfg config.BifrostChainConfiguration,
 	server *tssp.TssServer,
 	bridge thorclient.ThorchainBridge,
 	m *metrics.Metrics,
 	pubkeyMgr pubkeymanager.PubKeyValidator,
 	poolMgr thorclient.PoolManager,
-) (*AvalancheClient, error) {
+) (*EVMClient, error) {
+	// check required arguments
 	if thorKeys == nil {
-		return nil, fmt.Errorf("fail to create EVM client, thor keys is empty")
+		return nil, fmt.Errorf("failed to create EVM client, thor keys empty")
 	}
-	tssKm, err := tss.NewKeySign(server, bridge)
-	if err != nil {
-		return nil, fmt.Errorf("fail to create tss signer: %w", err)
-	}
-
-	priv, err := thorKeys.GetPrivateKey()
-	if err != nil {
-		return nil, fmt.Errorf("fail to get private key: %w", err)
-	}
-
-	temp, err := codec.ToTmPubKeyInterface(priv.PubKey())
-	if err != nil {
-		return nil, fmt.Errorf("fail to get tm pub key: %w", err)
-	}
-	pk, err := common.NewPubKeyFromCrypto(temp)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get pub key: %w", err)
-	}
-
 	if bridge == nil {
-		return nil, errors.New("THORChain bridge is nil")
+		return nil, errors.New("thorchain bridge is nil")
 	}
 	if pubkeyMgr == nil {
 		return nil, errors.New("pubkey manager is nil")
@@ -103,21 +85,40 @@ func NewAvalancheClient(thorKeys *thorclient.Keys,
 	if poolMgr == nil {
 		return nil, errors.New("pool manager is nil")
 	}
+
+	// create keys
+	tssKm, err := tss.NewKeySign(server, bridge)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create tss signer: %w", err)
+	}
+	priv, err := thorKeys.GetPrivateKey()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get private key: %w", err)
+	}
+	temp, err := codec.ToTmPubKeyInterface(priv.PubKey())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tm pub key: %w", err)
+	}
+	pk, err := common.NewPubKeyFromCrypto(temp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pub key: %w", err)
+	}
 	evmPrivateKey, err := evm.GetPrivateKey(priv)
 	if err != nil {
 		return nil, err
 	}
 
-	rpcClient, err := evm.NewEthRPC(cfg.RPCHost, cfg.BlockScanner.HTTPRequestTimeout, common.AVAXAsset.String())
+	// create rpc clients
+	rpcClient, err := evm.NewEthRPC(cfg.RPCHost, cfg.BlockScanner.HTTPRequestTimeout, cfg.ChainID.String())
 	if err != nil {
 		return nil, fmt.Errorf("fail to create ETH rpc host(%s): %w", cfg.RPCHost, err)
 	}
-
 	ethClient, err := ethclient.Dial(cfg.RPCHost)
 	if err != nil {
 		return nil, fmt.Errorf("fail to dial ETH rpc host(%s): %w", cfg.RPCHost, err)
 	}
 
+	// get chain id
 	chainID, err := getChainID(ethClient, cfg.BlockScanner.HTTPRequestTimeout)
 	if err != nil {
 		return nil, err
@@ -126,17 +127,23 @@ func NewAvalancheClient(thorKeys *thorclient.Keys,
 		return nil, fmt.Errorf("chain id is: %d , invalid", chainID.Uint64())
 	}
 
-	keysignWrapper, err := evm.NewKeySignWrapper(evmPrivateKey, pk, tssKm, chainID, common.AVAXChain.String())
+	// create keysign wrapper
+	keysignWrapper, err := evm.NewKeySignWrapper(evmPrivateKey, pk, tssKm, chainID, cfg.ChainID.String())
 	if err != nil {
-		return nil, fmt.Errorf("fail to create %s key sign wrapper: %w", common.AVAXChain, err)
+		return nil, fmt.Errorf("fail to create %s key sign wrapper: %w", cfg.ChainID, err)
 	}
+
+	// load vault abi
 	vaultABI, _, err := evm.GetContractABI(routerContractABI, erc20ContractABI)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get contract abi: %w", err)
 	}
+
+	// TODO: Do we need to call this?
 	pubkeyMgr.GetPubKeys()
-	c := &AvalancheClient{
-		logger:       log.With().Str("module", "avalanche").Logger(),
+
+	c := &EVMClient{
+		logger:       log.With().Str("module", "evm").Stringer("chain", cfg.ChainID).Logger(),
 		cfg:          cfg,
 		ethClient:    ethClient,
 		localPubKey:  pk,
@@ -148,9 +155,9 @@ func NewAvalancheClient(thorKeys *thorclient.Keys,
 		tssKeySigner: tssKm,
 		wg:           &sync.WaitGroup{},
 		stopchan:     make(chan struct{}),
-		chain:        common.AVAXChain,
 	}
 
+	// initialize storage
 	var path string // if not set later, will in memory storage
 	if len(c.cfg.BlockScanner.DBPath) > 0 {
 		path = fmt.Sprintf("%s/%s", c.cfg.BlockScanner.DBPath, c.cfg.BlockScanner.ChainID)
@@ -163,44 +170,48 @@ func NewAvalancheClient(thorKeys *thorclient.Keys,
 	if err != nil {
 		return nil, fmt.Errorf("fail to create signer cache manager")
 	}
-
 	c.signerCacheManager = signerCacheManager
-	c.avaxScanner, err = NewAVAXScanner(c.cfg.BlockScanner, storage, chainID, ethClient, rpcClient, c.bridge, m, pubkeyMgr, c.ReportSolvency, signerCacheManager)
+
+	// create block scanner
+	c.evmScanner, err = NewEVMScanner(
+		c.cfg.BlockScanner,
+		storage,
+		chainID,
+		ethClient,
+		rpcClient,
+		c.bridge,
+		m,
+		pubkeyMgr,
+		c.ReportSolvency,
+		signerCacheManager,
+	)
 	if err != nil {
-		return c, fmt.Errorf("fail to create avax block scanner: %w", err)
+		return c, fmt.Errorf("fail to create evm block scanner: %w", err)
 	}
 
-	c.blockScanner, err = blockscanner.NewBlockScanner(c.cfg.BlockScanner, storage, m, c.bridge, c.avaxScanner)
+	// initialize block scanner
+	c.blockScanner, err = blockscanner.NewBlockScanner(
+		c.cfg.BlockScanner, storage, m, c.bridge, c.evmScanner,
+	)
 	if err != nil {
 		return c, fmt.Errorf("fail to create block scanner: %w", err)
 	}
-	localNodeAddress, err := c.localPubKey.GetAddress(common.AVAXChain)
+
+	// TODO: Is this necessary?
+	localNodeAddress, err := c.localPubKey.GetAddress(cfg.ChainID)
 	if err != nil {
-		c.logger.Err(err).Str("chain", string(common.AVAXChain)).Msg("failed to get local node address")
+		c.logger.Err(err).Stringer("chain", cfg.ChainID).Msg("failed to get local node address")
 	}
-	c.logger.Info().Str("chain", string(common.AVAXChain)).Str("address", localNodeAddress.String()).Msg("local node address")
+	c.logger.Info().
+		Stringer("chain", cfg.ChainID).
+		Stringer("address", localNodeAddress).
+		Msg("local node address")
 
 	return c, nil
 }
 
-func (c *AvalancheClient) getContext() (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), c.cfg.BlockScanner.HTTPRequestTimeout)
-}
-
-// getChainID retrieves the chain id from the Avalanche node, and determines if we are running on test net by checking the status
-// when it fails to get chain id, it will assume LocalNet
-func getChainID(client *ethclient.Client, timeout time.Duration) (*big.Int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	chainID, err := client.ChainID(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get chain id, err: %w", err)
-	}
-	return chainID, err
-}
-
-// Start to monitor the AVAX C-Chain
-func (c *AvalancheClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
+// Start starts the chain client with the given queues.
+func (c *EVMClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQueue chan stypes.ErrataBlock, globalSolvencyQueue chan stypes.Solvency) {
 	c.globalSolvencyQueue = globalSolvencyQueue
 	c.tssKeySigner.Start()
 	c.blockScanner.Start(globalTxsQueue)
@@ -210,48 +221,43 @@ func (c *AvalancheClient) Start(globalTxsQueue chan stypes.TxIn, globalErrataQue
 	go runners.SolvencyCheckRunner(c.GetChain(), c, c.bridge, c.stopchan, c.wg, constants.ThorchainBlockTime)
 }
 
-// Stop monitoring the AVAX C-Chain
-func (c *AvalancheClient) Stop() {
+// Stop stops the chain client.
+func (c *EVMClient) Stop() {
 	c.tssKeySigner.Stop()
 	c.blockScanner.Stop()
 	close(c.stopchan)
 	c.wg.Wait()
 }
 
-// IsBlockScannerHealthy returns if the block scanner is healthy or not
-func (c *AvalancheClient) IsBlockScannerHealthy() bool {
+// IsBlockScannerHealthy returns true if the block scanner is healthy.
+func (c *EVMClient) IsBlockScannerHealthy() bool {
 	return c.blockScanner.IsHealthy()
 }
 
-// GetConfig return the configurations used by AVAX chain client
-func (c *AvalancheClient) GetConfig() config.BifrostChainConfiguration {
+// --------------------------------- config ---------------------------------
+
+// GetConfig returns the chain configuration.
+func (c *EVMClient) GetConfig() config.BifrostChainConfiguration {
 	return c.cfg
 }
 
-// GetChain gets chain
-func (c *AvalancheClient) GetChain() common.Chain {
-	return c.chain
+// GetChain returns the chain.
+func (c *EVMClient) GetChain() common.Chain {
+	return c.cfg.ChainID
 }
 
-// GetHeight gets height from avax scanner
-func (c *AvalancheClient) GetHeight() (int64, error) {
-	return c.avaxScanner.GetHeight()
+// --------------------------------- status ---------------------------------
+
+// GetHeight returns the current height of the chain.
+func (c *EVMClient) GetHeight() (int64, error) {
+	return c.evmScanner.GetHeight()
 }
 
-// GetBalance call smart contract to find out the balance of the given address and token
-func (c *AvalancheClient) GetBalance(addr, token string, height *big.Int) (*big.Int, error) {
-	contractAddresses := c.pubkeyMgr.GetContracts(common.AVAXChain)
-	c.logger.Debug().Interface("contractAddresses", contractAddresses).Msg("got contracts")
-	if len(contractAddresses) == 0 {
-		return nil, fmt.Errorf("fail to get contract address")
-	}
+// --------------------------------- addresses ---------------------------------
 
-	return c.avaxScanner.tokenManager.GetBalance(addr, token, height, contractAddresses[0].String())
-}
-
-// GetAddress returns the current signer address, it will be bech32 encoded address
-func (c *AvalancheClient) GetAddress(poolPubKey common.PubKey) string {
-	addr, err := poolPubKey.GetAddress(common.AVAXChain)
+// GetAddress returns the address for the given public key.
+func (c *EVMClient) GetAddress(poolPubKey common.PubKey) string {
+	addr, err := poolPubKey.GetAddress(c.cfg.ChainID)
 	if err != nil {
 		c.logger.Error().Err(err).Str("pool_pub_key", poolPubKey.String()).Msg("fail to get pool address")
 		return ""
@@ -259,38 +265,10 @@ func (c *AvalancheClient) GetAddress(poolPubKey common.PubKey) string {
 	return addr.String()
 }
 
-// GetBalances gets all the balances of the given address
-func (c *AvalancheClient) GetBalances(addr string, height *big.Int) (common.Coins, error) {
-	// for all the tokens the chain client has dealt with before
-	tokens, err := c.avaxScanner.GetTokens()
-	if err != nil {
-		return nil, fmt.Errorf("fail to get all the tokens: %w", err)
-	}
-	coins := common.Coins{}
-	for _, token := range tokens {
-		balance, err := c.GetBalance(addr, token.Address, height)
-		if err != nil {
-			c.logger.Err(err).Str("token", token.Address).Msg("fail to get balance for token")
-			continue
-		}
-		asset := common.AVAXAsset
-		if !IsAVAX(token.Address) {
-			asset, err = common.NewAsset(fmt.Sprintf("AVAX.%s-%s", token.Symbol, token.Address))
-			if err != nil {
-				return nil, err
-			}
-		}
-		bal := c.avaxScanner.convertAmount(token.Address, balance)
-		coins = append(coins, common.NewCoin(asset, bal))
-	}
-
-	return coins.Distinct(), nil
-}
-
-// GetAccount gets account by address in avax client
-func (c *AvalancheClient) GetAccount(pk common.PubKey, height *big.Int) (common.Account, error) {
+// GetAccount returns the account for the given public key.
+func (c *EVMClient) GetAccount(pk common.PubKey, height *big.Int) (common.Account, error) {
 	addr := c.GetAddress(pk)
-	nonce, err := c.avaxScanner.GetNonce(addr)
+	nonce, err := c.evmScanner.GetNonce(addr)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -302,9 +280,9 @@ func (c *AvalancheClient) GetAccount(pk common.PubKey, height *big.Int) (common.
 	return account, nil
 }
 
-// GetAccountByAddress return account information
-func (c *AvalancheClient) GetAccountByAddress(address string, height *big.Int) (common.Account, error) {
-	nonce, err := c.avaxScanner.GetNonce(address)
+// GetAccountByAddress returns the account for the given address.
+func (c *EVMClient) GetAccountByAddress(address string, height *big.Int) (common.Account, error) {
+	nonce, err := c.evmScanner.GetNonce(address)
 	if err != nil {
 		return common.Account{}, err
 	}
@@ -316,68 +294,103 @@ func (c *AvalancheClient) GetAccountByAddress(address string, height *big.Int) (
 	return account, nil
 }
 
-/* Gas-related methods */
-
-// GetGasFee gets gas fee
-func (c *AvalancheClient) GetGasFee(gas uint64) common.Gas {
-	return common.GetAVAXGasFee(c.GetGasPrice(), gas)
+func (c *EVMClient) getSmartContractAddr(pubkey common.PubKey) common.Address {
+	return c.pubkeyMgr.GetContract(c.cfg.ChainID, pubkey)
 }
 
-// GetGasPrice gets gas price from eth scanner
-func (c *AvalancheClient) GetGasPrice() *big.Int {
-	gasPrice := c.avaxScanner.GetGasPrice()
-	return gasPrice
-}
-
-func (c *AvalancheClient) getSmartContractAddr(pubkey common.PubKey) common.Address {
-	return c.pubkeyMgr.GetContract(common.AVAXChain, pubkey)
-}
-
-func (c *AvalancheClient) getSmartContractByAddress(addr common.Address) common.Address {
+func (c *EVMClient) getSmartContractByAddress(addr common.Address) common.Address {
 	for _, pk := range c.pubkeyMgr.GetPubKeys() {
-		avaxAddr, err := pk.GetAddress(common.AVAXChain)
+		evmAddr, err := pk.GetAddress(c.cfg.ChainID)
 		if err != nil {
 			return common.NoAddress
 		}
-		if avaxAddr.Equals(addr) {
-			return c.pubkeyMgr.GetContract(common.AVAXChain, pk)
+		if evmAddr.Equals(addr) {
+			return c.pubkeyMgr.GetContract(c.cfg.ChainID, pk)
 		}
 	}
 	return common.NoAddress
 }
 
-func getTokenAddressFromAsset(asset common.Asset) string {
-	if asset.Equals(common.AVAXAsset) {
-		return avaxToken
+func (c *EVMClient) getTokenAddressFromAsset(asset common.Asset) string {
+	if asset.Equals(c.cfg.ChainID.GetGasAsset()) {
+		return evm.NativeTokenAddr
 	}
 	allParts := strings.Split(asset.Symbol.String(), "-")
 	return allParts[len(allParts)-1]
 }
 
-func (c *AvalancheClient) convertSigningAmount(amt *big.Int, token string) *big.Int {
-	return c.avaxScanner.tokenManager.ConvertSigningAmount(amt, token)
+// --------------------------------- balances ---------------------------------
+
+// GetBalance returns the balance of the provided address.
+func (c *EVMClient) GetBalance(addr, token string, height *big.Int) (*big.Int, error) {
+	contractAddresses := c.pubkeyMgr.GetContracts(c.cfg.ChainID)
+	c.logger.Debug().Interface("contractAddresses", contractAddresses).Msg("got contracts")
+	if len(contractAddresses) == 0 {
+		return nil, fmt.Errorf("fail to get contract address")
+	}
+
+	return c.evmScanner.tokenManager.GetBalance(addr, token, height, contractAddresses[0].String())
 }
 
-func (c *AvalancheClient) convertThorchainAmountToWei(amt *big.Int) *big.Int {
-	return big.NewInt(0).Mul(amt, big.NewInt(common.One*100))
+// GetBalances returns the balances of the provided address.
+func (c *EVMClient) GetBalances(addr string, height *big.Int) (common.Coins, error) {
+	// for all the tokens the chain client has dealt with before
+	tokens, err := c.evmScanner.GetTokens()
+	if err != nil {
+		return nil, fmt.Errorf("fail to get all the tokens: %w", err)
+	}
+	coins := common.Coins{}
+	for _, token := range tokens {
+		balance, err := c.GetBalance(addr, token.Address, height)
+		if err != nil {
+			c.logger.Err(err).Str("token", token.Address).Msg("fail to get balance for token")
+			continue
+		}
+		asset := c.cfg.ChainID.GetGasAsset()
+		if !strings.EqualFold(token.Address, evm.NativeTokenAddr) {
+			asset, err = common.NewAsset(fmt.Sprintf("EVM.%s-%s", token.Symbol, token.Address))
+			if err != nil {
+				return nil, err
+			}
+		}
+		bal := c.evmScanner.tokenManager.ConvertAmount(token.Address, balance)
+		coins = append(coins, common.NewCoin(asset, bal))
+	}
+
+	return coins.Distinct(), nil
 }
+
+// --------------------------------- gas ---------------------------------
+
+// GetGasFee returns the gas fee based on the current gas price.
+func (c *EVMClient) GetGasFee(gas uint64) common.Gas {
+	return common.GetEVMGasFee(c.cfg.ChainID, c.GetGasPrice(), gas)
+}
+
+// GetGasPrice returns the current gas price.
+func (c *EVMClient) GetGasPrice() *big.Int {
+	gasPrice := c.evmScanner.GetGasPrice()
+	return gasPrice
+}
+
+// --------------------------------- build transaction ---------------------------------
 
 // getOutboundTxData generates the tx data and tx value of the outbound Router Contract call, and checks if the router contract has been updated
-func (c *AvalancheClient) getOutboundTxData(txOutItem stypes.TxOutItem, memo mem.Memo, contractAddr common.Address) ([]byte, bool, *big.Int, error) {
+func (c *EVMClient) getOutboundTxData(txOutItem stypes.TxOutItem, memo mem.Memo, contractAddr common.Address) ([]byte, bool, *big.Int, error) {
 	var data []byte
 	var err error
 	var tokenAddr string
 	value := big.NewInt(0)
-	avaxValue := big.NewInt(0)
+	evmValue := big.NewInt(0)
 	hasRouterUpdated := false
 
 	if len(txOutItem.Coins) == 1 {
 		coin := txOutItem.Coins[0]
-		tokenAddr = getTokenAddressFromAsset(coin.Asset)
+		tokenAddr = c.getTokenAddressFromAsset(coin.Asset)
 		value = value.Add(value, coin.Amount.BigInt())
-		value = c.convertSigningAmount(value, tokenAddr)
-		if IsAVAX(tokenAddr) {
-			avaxValue = value
+		value = c.evmScanner.tokenManager.ConvertSigningAmount(value, tokenAddr)
+		if strings.EqualFold(tokenAddr, evm.NativeTokenAddr) {
+			evmValue = value
 		}
 	}
 
@@ -396,8 +409,8 @@ func (c *AvalancheClient) getOutboundTxData(txOutItem stypes.TxOutItem, memo mem
 				return nil, hasRouterUpdated, nil, fmt.Errorf("%s can't use transferOutAndCall", memoType)
 			}
 			c.logger.Info().Msgf("aggregator target asset address: %s", txOutItem.AggregatorTargetAsset)
-			if avaxValue.Uint64() == 0 {
-				return nil, hasRouterUpdated, nil, fmt.Errorf("transferOutAndCall can only be used when outbound asset is AVAX")
+			if evmValue.Uint64() == 0 {
+				return nil, hasRouterUpdated, nil, fmt.Errorf("transferOutAndCall can only be used when outbound asset is native")
 			}
 			targetLimit := txOutItem.AggregatorTargetLimit
 			if targetLimit == nil {
@@ -424,7 +437,7 @@ func (c *AvalancheClient) getOutboundTxData(txOutItem stypes.TxOutItem, memo mem
 		if txOutItem.Aggregator != "" || txOutItem.AggregatorTargetAsset != "" {
 			return nil, hasRouterUpdated, nil, fmt.Errorf("migration / yggdrasil+ can't use aggregator")
 		}
-		if IsAVAX(tokenAddr) {
+		if strings.EqualFold(tokenAddr, evm.NativeTokenAddr) {
 			data, err = c.vaultABI.Pack("transferOut", toAddr, ecommon.HexToAddress(tokenAddr), value, txOutItem.Memo)
 			if err != nil {
 				return nil, hasRouterUpdated, nil, fmt.Errorf("fail to create data to call smart contract(transferOut): %w", err)
@@ -451,10 +464,10 @@ func (c *AvalancheClient) getOutboundTxData(txOutItem stypes.TxOutItem, memo mem
 
 		var coins []evm.RouterCoin
 		for _, item := range txOutItem.Coins {
-			assetAddr := getTokenAddressFromAsset(item.Asset)
-			assetAmt := c.convertSigningAmount(item.Amount.BigInt(), assetAddr)
-			if IsAVAX(assetAddr) {
-				avaxValue = assetAmt
+			assetAddr := c.getTokenAddressFromAsset(item.Asset)
+			assetAmt := c.evmScanner.tokenManager.ConvertSigningAmount(item.Amount.BigInt(), assetAddr)
+			if strings.EqualFold(assetAddr, evm.NativeTokenAddr) {
+				evmValue = assetAmt
 				continue
 			}
 			coins = append(coins, evm.RouterCoin{
@@ -467,10 +480,10 @@ func (c *AvalancheClient) getOutboundTxData(txOutItem stypes.TxOutItem, memo mem
 			return nil, hasRouterUpdated, nil, fmt.Errorf("fail to create data to call smart contract(transferVaultAssets): %w", err)
 		}
 	}
-	return data, hasRouterUpdated, avaxValue, nil
+	return data, hasRouterUpdated, evmValue, nil
 }
 
-func (c *AvalancheClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.Memo, nonce uint64) (*etypes.Transaction, error) {
+func (c *EVMClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.Memo, nonce uint64) (*etypes.Transaction, error) {
 	contractAddr := c.getSmartContractAddr(txOutItem.VaultPubKey)
 	if contractAddr.IsEmpty() {
 		// we may be churning from a vault that does not have a contract
@@ -487,38 +500,38 @@ func (c *AvalancheClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.M
 		}
 	}
 
-	fromAddr, err := txOutItem.VaultPubKey.GetAddress(common.AVAXChain)
+	fromAddr, err := txOutItem.VaultPubKey.GetAddress(c.cfg.ChainID)
 	if err != nil {
-		return nil, fmt.Errorf("fail to get AVAX address for pub key(%s): %w", txOutItem.VaultPubKey, err)
+		return nil, fmt.Errorf("fail to get EVM address for pub key(%s): %w", txOutItem.VaultPubKey, err)
 	}
 
-	txData, hasRouterUpdated, avaxValue, err := c.getOutboundTxData(txOutItem, memo, contractAddr)
+	txData, hasRouterUpdated, evmValue, err := c.getOutboundTxData(txOutItem, memo, contractAddr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get outbound tx data %w", err)
 	}
-	if avaxValue == nil {
-		avaxValue = cosmos.ZeroUint().BigInt()
+	if evmValue == nil {
+		evmValue = cosmos.ZeroUint().BigInt()
 	}
 
 	// compare the gas rate prescribed by THORChain against the price it can get from the chain
 	// ensure signer always pay enough higher gas price
 	// GasRate from thorchain is in 1e8, need to convert to Wei
-	gasRate := c.convertThorchainAmountToWei(big.NewInt(txOutItem.GasRate))
+	gasRate := convertThorchainAmountToWei(big.NewInt(txOutItem.GasRate))
 	if gasRate.Cmp(c.GetGasPrice()) < 0 {
 		gasRate = c.GetGasPrice()
 	}
 	// outbound tx always send to smart contract address
-	estimatedAVAXValue := big.NewInt(0)
-	if avaxValue.Uint64() > 0 {
-		// when the AVAX value is non-zero, here override it with a fixed value to estimate gas
-		// when AVAX value is non-zero, if we send the real value for estimate gas, sometimes it will fail, for many reasons, a few I saw during test
+	estimatedEVMValue := big.NewInt(0)
+	if evmValue.Uint64() > 0 {
+		// when the EVM value is non-zero, here override it with a fixed value to estimate gas
+		// when EVM value is non-zero, if we send the real value for estimate gas, sometimes it will fail, for many reasons, a few I saw during test
 		// 1. insufficient fund
 		// 2. gas required exceeds allowance
-		// as long as we pass in an AVAX value , which we almost guarantee it will not exceed the AVAX balance , so we can avoid the above two errors
-		estimatedAVAXValue = estimatedAVAXValue.SetInt64(21000)
+		// as long as we pass in an EVM value , which we almost guarantee it will not exceed the EVM balance , so we can avoid the above two errors
+		estimatedEVMValue = estimatedEVMValue.SetInt64(21000)
 	}
-	createdTx := etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), estimatedAVAXValue, MaxContractGas, gasRate, txData)
-	estimatedGas, err := c.avaxScanner.ethRpc.EstimateGas(fromAddr.String(), createdTx)
+	createdTx := etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), estimatedEVMValue, MaxContractGas, gasRate, txData)
+	estimatedGas, err := c.evmScanner.ethRpc.EstimateGas(fromAddr.String(), createdTx)
 	if err != nil {
 		// in an edge case that vault doesn't have enough fund to fulfill an outbound transaction , it will fail to estimate gas
 		// the returned error is `execution reverted`
@@ -530,10 +543,10 @@ func (c *AvalancheClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.M
 
 	gasOut := big.NewInt(0)
 	for _, coin := range txOutItem.MaxGas {
-		gasOut.Add(gasOut, c.convertThorchainAmountToWei(coin.Amount.BigInt()))
+		gasOut.Add(gasOut, convertThorchainAmountToWei(coin.Amount.BigInt()))
 	}
 	totalGas := big.NewInt(int64(estimatedGas) * gasRate.Int64())
-	if avaxValue.Uint64() > 0 {
+	if evmValue.Uint64() > 0 {
 		// when the estimated gas is larger than the MaxGas that is allowed to be used
 		// adjust the gas price to reflect that , so not breach the MaxGas restriction
 		// This might cause the tx to delay
@@ -548,19 +561,19 @@ func (c *AvalancheClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.M
 				// yggdrasil return fund
 				gap := totalGas.Sub(totalGas, gasOut)
 				c.logger.Info().Str("gas needed", gap.String()).Msg("yggdrasil returning funds")
-				avaxValue = avaxValue.Sub(avaxValue, gap)
+				evmValue = evmValue.Sub(evmValue, gap)
 			} else {
 				// At this point, if this is is to an aggregator (which should be white-listed), allow the maximum gas.
 				if txOutItem.Aggregator == "" {
 					gasRate = gasOut.Div(gasOut, big.NewInt(int64(estimatedGas)))
 					c.logger.Info().Msgf("based on estimated gas unit (%d) , total gas will be %s, which is more than %s, so adjust gas rate to %s", estimatedGas, totalGas.String(), gasOut.String(), gasRate.String())
 				} else {
-					if estimatedGas > maxGasLimit {
+					if estimatedGas > uint64(c.cfg.BlockScanner.MaxGasFee) {
 						// the estimated gas unit is more than the maximum , so bring down the gas rate
-						maxGasWei := big.NewInt(1).Mul(big.NewInt(maxGasLimit), gasRate)
+						maxGasWei := big.NewInt(1).Mul(big.NewInt(c.cfg.BlockScanner.MaxGasFee), gasRate)
 						gasRate = big.NewInt(1).Div(maxGasWei, big.NewInt(int64(estimatedGas)))
 					} else {
-						estimatedGas = maxGasLimit // pay the maximum
+						estimatedGas = uint64(c.cfg.BlockScanner.MaxGasFee) // pay the maximum
 					}
 				}
 			}
@@ -569,25 +582,25 @@ func (c *AvalancheClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.M
 			estimatedGas = big.NewInt(0).Div(gasOut, gasRate).Uint64()
 			c.logger.Info().Str("memo", txOutItem.Memo).Uint64("estimatedGas", estimatedGas).Int64("gasRate", gasRate.Int64()).Msg("override estimate gas with max")
 		}
-		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), avaxValue, estimatedGas, gasRate, txData)
+		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), evmValue, estimatedGas, gasRate, txData)
 	} else {
-		if estimatedGas > maxGasLimit {
+		if estimatedGas > uint64(c.cfg.BlockScanner.MaxGasFee) {
 			// the estimated gas unit is more than the maximum , so bring down the gas rate
-			maxGasWei := big.NewInt(1).Mul(big.NewInt(maxGasLimit), gasRate)
+			maxGasWei := big.NewInt(1).Mul(big.NewInt(c.cfg.BlockScanner.MaxGasFee), gasRate)
 			gasRate = big.NewInt(1).Div(maxGasWei, big.NewInt(int64(estimatedGas)))
 		}
-		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), avaxValue, estimatedGas, gasRate, txData)
+		createdTx = etypes.NewTransaction(nonce, ecommon.HexToAddress(contractAddr.String()), evmValue, estimatedGas, gasRate, txData)
 	}
 
 	return createdTx, nil
 }
 
-/* Sign and Broadcast */
+// --------------------------------- sign ---------------------------------
 
-// SignTx signs the the given TxArrayItem
-func (c *AvalancheClient) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, error) {
-	if !tx.Chain.Equals(common.AVAXChain) {
-		return nil, nil, fmt.Errorf("chain %s is not support by AVAX chain client", tx.Chain)
+// SignTx returns the signed transaction.
+func (c *EVMClient) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, error) {
+	if !tx.Chain.Equals(c.cfg.ChainID) {
+		return nil, nil, fmt.Errorf("chain %s is not support by evm chain client", tx.Chain)
 	}
 
 	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
@@ -623,11 +636,11 @@ func (c *AvalancheClient) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []b
 			return nil, nil, fmt.Errorf("fail to unmarshal checkpoint: %w", err)
 		}
 	} else {
-		fromAddr, err := tx.VaultPubKey.GetAddress(common.AVAXChain)
+		fromAddr, err := tx.VaultPubKey.GetAddress(c.cfg.ChainID)
 		if err != nil {
 			return nil, nil, fmt.Errorf("fail to get AVAX address for pub key(%s): %w", tx.VaultPubKey, err)
 		}
-		nonce, err = c.avaxScanner.GetNonce(fromAddr.String())
+		nonce, err = c.evmScanner.GetNonce(fromAddr.String())
 		if err != nil {
 			return nil, nil, fmt.Errorf("fail to fetch account(%s) nonce : %w", fromAddr, err)
 		}
@@ -654,7 +667,7 @@ func (c *AvalancheClient) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []b
 }
 
 // sign is design to sign a given message with keysign party and keysign wrapper
-func (c *AvalancheClient) sign(tx *etypes.Transaction, poolPubKey common.PubKey, height int64, txOutItem stypes.TxOutItem) ([]byte, error) {
+func (c *EVMClient) sign(tx *etypes.Transaction, poolPubKey common.PubKey, height int64, txOutItem stypes.TxOutItem) ([]byte, error) {
 	rawBytes, err := c.kw.Sign(tx, poolPubKey)
 	if err == nil && rawBytes != nil {
 		return rawBytes, nil
@@ -675,21 +688,29 @@ func (c *AvalancheClient) sign(tx *etypes.Transaction, poolPubKey common.PubKey,
 	return nil, fmt.Errorf("fail to sign tx: %w", err)
 }
 
-// BroadcastTx decodes tx using rlp and broadcasts to the AVAX C-Chain
-func (c *AvalancheClient) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, error) {
+// --------------------------------- broadcast ---------------------------------
+
+// BroadcastTx broadcasts the transaction and returns the transaction hash.
+func (c *EVMClient) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) (string, error) {
+	// decode the transaction
 	tx := &etypes.Transaction{}
 	if err := tx.UnmarshalJSON(hexTx); err != nil {
 		return "", err
 	}
-	ctx, cancel := c.getContext()
+	txID := tx.Hash().String()
+
+	// get context with default timeout
+	ctx, cancel := c.getTimeoutContext()
 	defer cancel()
+
+	// send the transaction
 	if err := c.ethClient.SendTransaction(ctx, tx); err != nil {
-		c.logger.Error().Stringer("txid", tx.Hash()).Err(err).Msg("failed to send transaction")
+		c.logger.Error().Str("txid", txID).Err(err).Msg("failed to send transaction")
 		return "", nil
 	}
-	txID := tx.Hash().String()
-	c.logger.Info().Str("memo", txOutItem.Memo).Str("hash", txID).Msg("broadcast tx to AVAX C-Chain")
+	c.logger.Info().Str("memo", txOutItem.Memo).Str("txid", txID).Msg("broadcast tx")
 
+	// update the signer cache
 	if err := c.signerCacheManager.SetSigned(txOutItem.CacheHash(), txID); err != nil {
 		c.logger.Err(err).Interface("txOutItem", txOutItem).Msg("fail to mark tx out item as signed")
 	}
@@ -706,18 +727,10 @@ func (c *AvalancheClient) BroadcastTx(txOutItem stypes.TxOutItem, hexTx []byte) 
 	return txID, nil
 }
 
-// GetConfirmationCount - AVAX C-Chain has instant finality, so return 0
-func (c *AvalancheClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
-	return 0
-}
+// --------------------------------- observe ---------------------------------
 
-// ConfirmationCountReady - AVAX C-Chain has instant finality, THORChain can accept the tx instantly
-func (c *AvalancheClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
-	return true
-}
-
-// OnObservedTxIn gets called from observer when we have a valid observation
-func (c *AvalancheClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
+// OnObservedTxIn is called when a new observed tx is received.
+func (c *EVMClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64) {
 	m, err := mem.ParseMemo(common.LatestVersion, txIn.Memo)
 	if err != nil {
 		// Debug log only as ParseMemo error is expected for THORName inbounds.
@@ -735,48 +748,88 @@ func (c *AvalancheClient) OnObservedTxIn(txIn stypes.TxInItem, blockHeight int64
 	}
 }
 
-func (c *AvalancheClient) ReportSolvency(avaxBlockHeight int64) error {
-	if !c.ShouldReportSolvency(avaxBlockHeight) {
+// GetConfirmationCount returns the confirmation count for the given tx.
+func (c *EVMClient) GetConfirmationCount(txIn stypes.TxIn) int64 {
+	switch c.cfg.ChainID {
+	case common.AVAXChain, common.BSCChain: // instant finality
+		return 0
+	default:
+		c.logger.Fatal().Msgf("unsupported chain: %s", c.cfg.ChainID)
+		return 0
+	}
+}
+
+// ConfirmationCountReady returns true if the confirmation count is ready.
+func (c *EVMClient) ConfirmationCountReady(txIn stypes.TxIn) bool {
+	switch c.cfg.ChainID {
+	case common.AVAXChain, common.BSCChain: // instant finality
+		return true
+	default:
+		c.logger.Fatal().Msgf("unsupported chain: %s", c.cfg.ChainID)
+		return false
+	}
+}
+
+// --------------------------------- solvency ---------------------------------
+
+// ReportSolvency reports solvency once per configured solvency blocks.
+func (c *EVMClient) ReportSolvency(height int64) error {
+	if !c.ShouldReportSolvency(height) {
 		return nil
 	}
-	// when block scanner is not healthy , falling behind , we don't report solvency , unless the request is coming from
-	// auto-unhalt solvency runner
-	if !c.IsBlockScannerHealthy() && avaxBlockHeight == c.avaxScanner.currentBlockHeight {
+
+	// skip reporting solvency if the block scanner is unhealthy and we are synced
+	if !c.IsBlockScannerHealthy() && height == c.evmScanner.currentBlockHeight {
 		return nil
 	}
+
 	asgardVaults, err := c.bridge.GetAsgards()
 	if err != nil {
-		return fmt.Errorf("fail to get asgards,err: %w", err)
+		return fmt.Errorf("fail to get asgards, err: %w", err)
 	}
+
+	currentGasFee := cosmos.NewUint(3 * MaxContractGas * c.evmScanner.lastReportedGasPrice)
+
 	for _, asgard := range asgardVaults {
-		acct, err := c.GetAccount(asgard.PubKey, new(big.Int).SetInt64(avaxBlockHeight))
+		acct, err := c.GetAccount(asgard.PubKey, new(big.Int).SetInt64(height))
 		if err != nil {
 			c.logger.Err(err).Msg("fail to get account balance")
 			continue
 		}
-		if runners.IsVaultSolvent(acct, asgard, cosmos.NewUint(3*MaxContractGas*c.avaxScanner.lastReportedGasPrice)) && c.IsBlockScannerHealthy() {
-			// when vault is solvent, don't need to report solvency
-			// when block scanner is not healthy , usually that means the chain is halted, in that scenario , we continue to report solvency
+
+		// skip reporting solvency if the account is solvent and block scanner is healthy
+		solvent := runners.IsVaultSolvent(acct, asgard, currentGasFee)
+		if solvent && c.IsBlockScannerHealthy() {
 			continue
 		}
-		c.logger.Info().Str("asgard pubkey", asgard.PubKey.String()).Interface("coins", acct.Coins).Msg("Reporting solvency")
+		c.logger.Info().
+			Stringer("asgard", asgard.PubKey).
+			Interface("coins", acct.Coins).
+			Bool("solvent", solvent).
+			Msg("reporting solvency")
+
 		select {
 		case c.globalSolvencyQueue <- stypes.Solvency{
-			Height: avaxBlockHeight,
-			Chain:  common.AVAXChain,
+			Height: height,
+			Chain:  c.cfg.ChainID,
 			PubKey: asgard.PubKey,
 			Coins:  acct.Coins,
 		}:
 		case <-time.After(constants.ThorchainBlockTime):
-			c.logger.Info().Msg("fail to send solvency info to THORChain, timeout")
+			c.logger.Info().Msg("fail to send solvency info to thorchain, timeout")
 		}
 	}
-	c.lastSolvencyCheckHeight = avaxBlockHeight
+	c.lastSolvencyCheckHeight = height
 	return nil
 }
 
-// ShouldReportSolvency with given block height, should chain client report Solvency to THORNode?
-// AVAX C-Chain blocktime is around 2 seconds
-func (c *AvalancheClient) ShouldReportSolvency(height int64) bool {
-	return height%100 == 0
+// ShouldReportSolvency returns true if the given height is a solvency report height.
+func (c *EVMClient) ShouldReportSolvency(height int64) bool {
+	return height%c.cfg.SolvencyBlocks == 0
+}
+
+// --------------------------------- helpers ---------------------------------
+
+func (c *EVMClient) getTimeoutContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), c.cfg.BlockScanner.HTTPRequestTimeout)
 }

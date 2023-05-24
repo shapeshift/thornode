@@ -15,7 +15,7 @@ while true; do
 done
 
 # wait a bit while mocknet starts
-sleep 50
+sleep 30
 
 # mine a new block every BLOCK_TIME
 while true; do

@@ -66,16 +66,6 @@ init_chain() {
   done
 }
 
-set_eth_contract() {
-  jq --arg CONTRACT "$1" '.app_state.thorchain.chain_contracts = [{"chain": "ETH", "router": $CONTRACT}]' ~/.thornode/config/genesis.json >/tmp/genesis.json
-  mv /tmp/genesis.json ~/.thornode/config/genesis.json
-}
-
-set_avax_contract() {
-  jq --arg AVAX_CONTRACT "$1" '.app_state.thorchain.chain_contracts += [{"chain": "AVAX", "router": $AVAX_CONTRACT}]' ~/.thornode/config/genesis.json >/tmp/genesis.json
-  mv /tmp/genesis.json ~/.thornode/config/genesis.json
-}
-
 fetch_node_id() {
   until curl -s "$1:$PORT_RPC" 1>/dev/null 2>&1; do
     sleep 3

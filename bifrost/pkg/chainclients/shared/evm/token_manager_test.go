@@ -14,6 +14,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/storage"
 	"gitlab.com/thorchain/thornode/common"
+	"gitlab.com/thorchain/thornode/common/tokenlist"
 	. "gopkg.in/check.v1"
 )
 
@@ -28,7 +29,7 @@ type TokenManagerTestSuite struct {
 	client *ethclient.Client
 }
 
-var testWhiteList = []ERC20Token{
+var testWhiteList = []tokenlist.ERC20Token{
 	{
 		Address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
 		Symbol:  "USDC",
@@ -143,7 +144,7 @@ func (s *TokenManagerTestSuite) TestGetDecimals(c *C) {
 	err = manager.SaveTokenMeta("USDC", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", 6)
 	c.Assert(err, IsNil)
 
-	decimals := manager.GetTokenDecimalsForTHORChain(nativeTokenAddr)
+	decimals := manager.GetTokenDecimalsForTHORChain(NativeTokenAddr)
 	c.Assert(decimals, Equals, int64(0))
 
 	decimals = manager.GetTokenDecimalsForTHORChain("0xB0b86991c6218b36c1d19D4a2e9Eb0cE3606eB49")

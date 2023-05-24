@@ -26,8 +26,8 @@ import (
 	btx "gitlab.com/thorchain/binance-sdk/types/tx"
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/signercache"
 	"gitlab.com/thorchain/thornode/constants"
 	memo "gitlab.com/thorchain/thornode/x/thorchain/memo"
 

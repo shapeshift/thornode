@@ -7,20 +7,24 @@ import (
 	"gitlab.com/thorchain/tss/go-tss/tss"
 
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/evm"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/gaia"
 
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/avalanche"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/bitcoincash"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/ethereum"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/litecoin"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/types"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/config"
 )
+
+// ChainClient exports the shared type.
+type ChainClient = types.ChainClient
 
 // LoadChains returns chain clients from chain configuration
 func LoadChains(thorKeys *thorclient.Keys,
@@ -43,8 +47,8 @@ func LoadChains(thorKeys *thorclient.Keys,
 			return binance.NewBinance(thorKeys, chain, server, thorchainBridge, m)
 		case common.ETHChain:
 			return ethereum.NewClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
-		case common.AVAXChain:
-			return avalanche.NewAvalancheClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
+		case common.AVAXChain, common.BSCChain:
+			return evm.NewEVMClient(thorKeys, chain, server, thorchainBridge, m, pubKeyValidator, poolMgr)
 		case common.GAIAChain:
 			return gaia.NewCosmosClient(thorKeys, chain, server, thorchainBridge, m)
 		case common.BTCChain:

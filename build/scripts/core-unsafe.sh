@@ -19,39 +19,23 @@ add_account() {
   mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }
 
-deploy_eth_contract() {
-  echo "Deploying eth contracts"
-  until curl -s "$1" 1>/dev/null 2>&1; do
-    echo "Waiting for ETH node to be available ($1)"
-    sleep 1
+deploy_evm_contracts() {
+  for CHAIN in ETH AVAX BSC; do
+    # deploy contract and get address from output
+    echo "Deploying $CHAIN contracts"
+    if ! python3 scripts/evm/evm-tool.py --chain $CHAIN --rpc "$(eval echo "\$${CHAIN}_HOST")" --action deploy >/tmp/evm-tool.log 2>&1; then
+      cat /tmp/evm-tool.log && exit 1
+    fi
+    cat /tmp/evm-tool.log
+    CONTRACT=$(grep </tmp/evm-tool.log "Router Contract Address" | awk '{print $NF}')
+
+    # add contract address to genesis
+    echo "$CHAIN Contract Address: $CONTRACT"
+    jq --arg CHAIN "$CHAIN" --arg CONTRACT "$CONTRACT" \
+      '.app_state.thorchain.chain_contracts += [{"chain": $CHAIN, "router": $CONTRACT}]' \
+      ~/.thornode/config/genesis.json >/tmp/genesis.json
+    mv /tmp/genesis.json ~/.thornode/config/genesis.json
   done
-  python3 scripts/eth/eth-tool.py --ethereum "$1" deploy --from_address 0x3fd2d4ce97b082d4bce3f9fee2a3d60668d2f473 >/tmp/contract.log 2>&1
-  cat /tmp/contract.log
-  CONTRACT=$(grep </tmp/contract.log "Vault Contract Address" | awk '{print $NF}')
-  echo "Contract Address: $CONTRACT"
-
-  set_eth_contract "$CONTRACT"
-}
-
-deploy_avax_contract() {
-  echo "Deploying AVAX contracts"
-  echo "$1/ext/bc/C/rpc"
-  until curl -s "$1/ext/bc/C/rpc" 1>/dev/null 2>&1; do
-    echo "Waiting for AVAX node to be available ($1)"
-    sleep 1
-  done
-  python3 scripts/avax/avax-tool.py --avalanche "$1" deploy >/tmp/avax_contract.log 2>&1
-  cat /tmp/avax_contract.log
-  AVAX_CONTRACT=$(grep </tmp/avax_contract.log "AVAX Router Contract Address" | awk '{print $NF}')
-  echo "AVAX Contract Address: $AVAX_CONTRACT"
-
-  set_avax_contract "$AVAX_CONTRACT"
-}
-
-# If the AVAX Contract Needs to be manually set (if using a Local EVM fork for example), use this func
-set_manual_avax_contract() {
-  jq '.app_state.thorchain.chain_contracts += [{"chain": "AVAX", "router": "0xcbEAF3BDe82155F56486Fb5a1072cb8baAf547cc"}]' ~/.thornode/config/genesis.json >/tmp/genesis.json
-  mv /tmp/genesis.json ~/.thornode/config/genesis.json
 }
 
 gen_bnb_address() {

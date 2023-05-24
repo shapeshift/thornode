@@ -23,15 +23,19 @@ type EVMTokenList struct {
 	Timestamp time.Time    `json:"timestamp"`
 }
 
-// GetEVMTokenList returns all available tokens for external asset matching for a particular EVM chain and version
-// Note: these tokens are NOT necessarily the same tokens that are whitelisted for each chain. Whitelisting
-// happens in each chain's bifrost chain client
+// GetEVMTokenList returns all available tokens for external asset matching for a
+// particular EVM chain and version.
+//
+// NOTE: These tokens are NOT necessarily the same tokens that are whitelisted for each
+// chain - whitelisting happens in each chain's bifrost chain client.
 func GetEVMTokenList(chain common.Chain, version semver.Version) EVMTokenList {
 	switch chain {
 	case common.ETHChain:
 		return GetETHTokenList(version)
 	case common.AVAXChain:
 		return GetAVAXTokenList(version)
+	case common.BSCChain:
+		return GetBSCTokenList(version)
 	default:
 		return EVMTokenList{}
 	}

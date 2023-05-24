@@ -17,7 +17,7 @@ type: check
 description: network fee for BTC should be updated
 endpoint: http://localhost:1317/thorchain/inbound_addresses
 asserts:
-- .|length == 9
-- .[0].chain == "BTC"
-- .[0].outbound_tx_size == "3"
-- .[0].outbound_fee == "42"
+  - .|length == 10
+  - .[0].chain == "BTC"
+  - .[0].outbound_tx_size == "3"
+  - .[0].outbound_fee == "42"

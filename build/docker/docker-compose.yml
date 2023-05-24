@@ -80,6 +80,8 @@ services:
     depends_on:
       - ethereum
       - avalanche
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment: &thornode-environment
       <<: *thorchain-environment
       NODES: 1
@@ -91,6 +93,9 @@ services:
       NEW_GENESIS_TIME: ${NEW_GENESIS_TIME:-}
       CHURN_MIGRATION_ROUNDS: 2
       FUND_MIGRATION_INTERVAL: 10
+      AVAX_HOST: ${AVAX_HOST:-http://avalanche:9650/ext/bc/C/rpc}
+      ETH_HOST: ${ETH_HOST:-http://ethereum:8545}
+      BSC_HOST: ${BSC_HOST:-http://binance-smart:8545}
     ports:
       - 26657:26657
       - 26656:26656
@@ -114,14 +119,13 @@ services:
       - bifrost
       - validator
     depends_on:
-      - avalanche
       - binance
       - bitcoin
       - bitcoin-cash
       - dogecoin
-      - ethereum
       - gaia
       - litecoin
+      - thornode
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment: &bifrost-environment
@@ -150,6 +154,20 @@ services:
       BIFROST_CHAINS_ETH_BLOCK_SCANNER_OBSERVATION_FLEXIBILITY_BLOCKS: "5"
       BIFROST_CHAINS_GAIA_BLOCK_SCANNER_OBSERVATION_FLEXIBILITY_BLOCKS: "5"
       BIFROST_CHAINS_LTC_BLOCK_SCANNER_OBSERVATION_FLEXIBILITY_BLOCKS: "5"
+
+      # enable bsc
+      BIFROST_CHAINS_BSC_DISABLED: "false"
+      BIFROST_CHAINS_BSC_RPC_HOST: ${BSC_HOST:-http://binance-smart:8545}
+      BIFROST_CHAINS_BSC_BLOCK_SCANNER_RPC_HOST: ${BSC_HOST:-http://binance-smart:8545}
+
+      # set gas cache blocks to 2 for EVM chains other than ETH
+      BIFROST_CHAINS_AVAX_BLOCK_SCANNER_GAS_CACHE_BLOCKS: 2
+      BIFROST_CHAINS_BSC_BLOCK_SCANNER_GAS_CACHE_BLOCKS: 2
+
+      # override bifrost whitelist tokens
+      BIFROST_CHAINS_AVAX_BLOCK_SCANNER_WHITELIST_TOKENS: "0x52C84043CD9c865236f11d9Fc9F56aa003c1f922,0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"
+      BIFROST_CHAINS_BSC_BLOCK_SCANNER_WHITELIST_TOKENS: "0x52C84043CD9c865236f11d9Fc9F56aa003c1f922,0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
+
     ports:
       - 5040:5040
       - 6040:6040
@@ -430,14 +448,30 @@ services:
     image: ethereum/client-go:v1.11.6
     restart: unless-stopped
     environment:
-      ETH_BLOCK_TIME: ${ETH_BLOCK_TIME:-5}
+      BLOCK_TIME: ${BLOCK_TIME:-5}
     ports:
       - 8545:8545
       - 30301:30301
       - 30303:30303
     volumes:
       - "../scripts:/docker/scripts"
-    entrypoint: /docker/scripts/eth/start-mock.sh
+    entrypoint: /docker/scripts/mock/start-eth.sh
+
+  # ------------------------------ binance-smart ------------------------------
+
+  binance-smart:
+    profiles:
+      - mocknet
+      - mocknet-cluster
+    image: registry.gitlab.com/thorchain/devops/node-launcher:binance-smart-daemon-1.2.3
+    restart: unless-stopped
+    environment:
+      BLOCK_TIME: ${BLOCK_TIME:-5}
+    ports:
+      - 8546:8545
+    volumes:
+      - "../scripts:/docker/scripts"
+    entrypoint: /docker/scripts/mock/start-eth.sh
 
   # ------------------------------ litecoin ------------------------------
 

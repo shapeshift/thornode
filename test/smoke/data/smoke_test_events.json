@@ -1734,7 +1734,7 @@
         "type": "pending_liquidity",
         "attributes": [
             {
-                "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "pool": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "type": "add"
@@ -1761,7 +1761,7 @@
         "type": "pool",
         "attributes": [
             {
-                "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "pool": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "pool_status": "Available"
@@ -1773,7 +1773,7 @@
         "type": "add_liquidity",
         "attributes": [
             {
-                "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "pool": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "liquidity_provider_units": "50000000000"
@@ -3417,7 +3417,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "673693 ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "coins": "673693 ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "pool_deduct": "224061172"
@@ -3429,7 +3429,7 @@
         "type": "swap",
         "attributes": [
             {
-                "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "pool": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "swap_target": "0"
@@ -3444,7 +3444,7 @@
                 "liquidity_fee_in_rune": "12500000000"
             },
             {
-                "emit_asset": "100000000 ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "emit_asset": "100000000 ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "id": "TODO"
@@ -3462,7 +3462,7 @@
                 "coin": "50000000000 THOR.RUNE"
             },
             {
-                "memo": "SWAP:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A:USER-1"
+                "memo": "SWAP:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922:USER-1"
             }
         ],
         "height": null
@@ -3561,7 +3561,7 @@
         "type": "swap",
         "attributes": [
             {
-                "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "pool": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "swap_target": "0"
@@ -3591,7 +3591,7 @@
                 "to": "VAULT"
             },
             {
-                "coin": "15000000.0 ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "coin": "15000000.0 ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "memo": "SWAP:THOR.RUNE:USER-1"
@@ -3696,7 +3696,7 @@
         "type": "withdraw",
         "attributes": [
             {
-                "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "pool": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "liquidity_provider_units": "5000000000"
@@ -3732,7 +3732,7 @@
                 "coin": "1 THOR.RUNE"
             },
             {
-                "memo": "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A:1000"
+                "memo": "WITHDRAW:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922:1000"
             }
         ],
         "height": null
@@ -3744,7 +3744,7 @@
                 "tx_id": "TODO"
             },
             {
-                "coins": "749064 ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "coins": "749064 ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "pool_deduct": "225448919"
@@ -5508,7 +5508,7 @@
         "type": "pool",
         "attributes": [
             {
-                "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "pool": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "pool_status": "Staged"
@@ -5520,7 +5520,7 @@
         "type": "withdraw",
         "attributes": [
             {
-                "pool": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "pool": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             },
             {
                 "liquidity_provider_units": "45000000000"
@@ -5556,7 +5556,7 @@
                 "coin": "1 THOR.RUNE"
             },
             {
-                "memo": "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A"
+                "memo": "WITHDRAW:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922"
             }
         ],
         "height": null

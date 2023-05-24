@@ -23,8 +23,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/signercache"
 
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
@@ -257,7 +257,7 @@ func (c *Client) GetAddress(poolPubKey common.PubKey) string {
 
 // GetGasFee gets gas fee
 func (c *Client) GetGasFee(gas uint64) common.Gas {
-	return common.GetETHGasFee(c.GetGasPrice(), gas)
+	return common.GetEVMGasFee(common.ETHChain, c.GetGasPrice(), gas)
 }
 
 // GetGasPrice gets gas price from eth scanner

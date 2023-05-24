@@ -251,6 +251,7 @@ func Init() {
 	// always override from environment
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
+	viper.AllowEmptyEnv(true)
 
 	// load defaults
 	viper.SetConfigType("yaml")
@@ -571,6 +572,7 @@ type BifrostChainConfiguration struct {
 	OptToRetire         bool                             `mapstructure:"opt_to_retire"` // don't emit support for this chain during keygen process
 	ParallelMempoolScan int                              `mapstructure:"parallel_mempool_scan"`
 	Disabled            bool                             `mapstructure:"disabled"`
+	SolvencyBlocks      int64                            `mapstructure:"solvency_blocks"`
 
 	// MemPoolTxIDCacheSize is the number of transaction ids to cache in memory. This
 	// prevents read on LevelDB which may hit disk for every transaction in the mempool in
@@ -624,6 +626,16 @@ type BifrostBlockScannerConfiguration struct {
 	// ObservationFlexibilityBlocks is the number of blocks behind the current tip we will
 	// submit network fee and solvency observations.
 	ObservationFlexibilityBlocks int64 `mapstructure:"observation_flexibility_blocks"`
+
+	// MaxGasFee is the maximum gas fee (in base asset) that will be used for a transaction.
+	MaxGasFee int64 `mapstructure:"max_gas_fee"`
+
+	// MaxContractGas is the maximum gas allowed for a contract transaction.
+	MaxContractGas int64 `mapstructure:"max_contract_gas"`
+
+	// WhitelistTokens is the set of whitelisted token addresses. Inbounds for all other
+	// tokens are ignored.
+	WhitelistTokens []string `mapstructure:"whitelist_tokens"`
 }
 
 func (b *BifrostBlockScannerConfiguration) Validate() {

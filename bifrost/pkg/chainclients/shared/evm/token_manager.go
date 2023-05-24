@@ -18,6 +18,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/evm/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/common/tokenlist"
 )
 
 const (
@@ -31,7 +32,7 @@ type TokenManager struct {
 	defaultDecimals uint64
 	nativeAsset     common.Asset
 	requestTimeout  time.Duration
-	tokenWhitelist  []ERC20Token
+	tokenWhitelist  []tokenlist.ERC20Token
 	erc20ABI        *abi.ABI
 	vaultABI        *abi.ABI
 	client          *ethclient.Client
@@ -44,7 +45,7 @@ func NewTokenManager(db *leveldb.DB,
 	nativeAsset common.Asset,
 	defaultDecimals uint64,
 	requestTimeout time.Duration,
-	tokenWhitelist []ERC20Token,
+	tokenWhitelist []tokenlist.ERC20Token,
 	ethClient *ethclient.Client,
 	routerContractABI,
 	erc20ContractABI string,
@@ -126,7 +127,7 @@ func (h *TokenManager) SaveTokenMeta(symbol, address string, decimals uint64) er
 
 // IsNative returns true if the token address equals the native token address
 func IsNative(token string) bool {
-	return strings.EqualFold(token, nativeTokenAddr)
+	return strings.EqualFold(token, NativeTokenAddr)
 }
 
 func (h *TokenManager) GetAssetFromTokenAddress(token string) (common.Asset, error) {
@@ -140,7 +141,7 @@ func (h *TokenManager) GetAssetFromTokenAddress(token string) (common.Asset, err
 	if tokenMeta.IsEmpty() {
 		return common.EmptyAsset, fmt.Errorf("token metadata is empty")
 	}
-	return common.NewAsset(fmt.Sprintf("%s.%s-%s", h.nativeAsset.Symbol, tokenMeta.Symbol, strings.ToUpper(tokenMeta.Address)))
+	return common.NewAsset(fmt.Sprintf("%s.%s-%s", h.nativeAsset.Chain, tokenMeta.Symbol, strings.ToUpper(tokenMeta.Address)))
 }
 
 // convertAmount will convert the amount to 1e8 , the decimals used by THORChain

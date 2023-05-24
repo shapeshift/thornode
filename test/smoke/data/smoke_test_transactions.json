@@ -268,7 +268,7 @@
         "memo": "SEED",
         "coins": [
             {
-                "asset": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A",
+                "asset": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922",
                 "amount": 400000000000000000000
             }
         ],
@@ -281,7 +281,7 @@
         "memo": "SEED",
         "coins": [
             {
-                "asset": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A",
+                "asset": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922",
                 "amount": 400000000000000000000
             }
         ],
@@ -629,7 +629,7 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "ADD:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A:PROVIDER-1",
+        "memo": "ADD:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922:PROVIDER-1",
         "coins": [
             {
                 "asset": "THOR.RUNE",
@@ -642,10 +642,10 @@
         "chain": "ETH",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "ADD:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A:PROVIDER-1",
+        "memo": "ADD:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922:PROVIDER-1",
         "coins": [
             {
-                "asset": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A",
+                "asset": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922",
                 "amount": 4000000000000000000
             }
         ],
@@ -967,7 +967,7 @@
         "chain": "THOR",
         "from_address": "USER-1",
         "to_address": "VAULT",
-        "memo": "SWAP:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A:USER-1",
+        "memo": "SWAP:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922:USER-1",
         "coins": [
             {
                 "asset": "THOR.RUNE",
@@ -996,7 +996,7 @@
         "memo": "SWAP:THOR.RUNE:USER-1",
         "coins": [
             {
-                "asset": "ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A",
+                "asset": "ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922",
                 "amount": 150000000000000000
             }
         ],
@@ -1019,7 +1019,7 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A:1000",
+        "memo": "WITHDRAW:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922:1000",
         "coins": [
             {
                 "asset": "THOR.RUNE",
@@ -1296,7 +1296,7 @@
         "chain": "THOR",
         "from_address": "PROVIDER-1",
         "to_address": "VAULT",
-        "memo": "WITHDRAW:ETH.TKN-0X40BCD4DB8889A8BF0B1391D0C819DCD9627F9D0A",
+        "memo": "WITHDRAW:ETH.TKN-0X52C84043CD9C865236F11D9FC9F56AA003C1F922",
         "coins": [
             {
                 "asset": "THOR.RUNE",

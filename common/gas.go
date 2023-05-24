@@ -11,12 +11,10 @@ import (
 type Gas Coins
 
 var (
-	bnbSingleTxFee  = cosmos.NewUint(37500)
-	bnbMultiTxFee   = cosmos.NewUint(30000)
-	ethTransferFee  = cosmos.NewUint(21000)
-	avaxTransferFee = cosmos.NewUint(21000)
-	ethGasPerByte   = cosmos.NewUint(68)
-	avaxGasPerByte  = cosmos.NewUint(68)
+	bnbSingleTxFee = cosmos.NewUint(37500)
+	bnbMultiTxFee  = cosmos.NewUint(30000)
+	evmTransferFee = cosmos.NewUint(21000)
+	evmGasPerByte  = cosmos.NewUint(68)
 )
 
 // BNBGasFeeSingleton fee charged by Binance for transfer with a single coin
@@ -27,11 +25,6 @@ var BNBGasFeeSingleton = Gas{
 // BNBGasFeeMulti gas fee for multi send
 var BNBGasFeeMulti = Gas{
 	{Asset: BNBAsset, Amount: bnbMultiTxFee},
-}
-
-// ETHGasFeeTransfer gas fee for ETH
-var ETHGasFeeTransfer = Gas{
-	{Asset: ETHAsset, Amount: ethTransferFee},
 }
 
 // CalcBinanceGasPrice calculate gas price for Binance chain
@@ -50,24 +43,14 @@ func CalcBinanceGasPrice(tx Tx, asset Asset, units []cosmos.Uint) Gas {
 	return nil
 }
 
-// GetETHGasFee return the gas for ETH
-func GetETHGasFee(gasPrice *big.Int, msgLen uint64) Gas {
-	gasBytes := ethGasPerByte.MulUint64(msgLen)
+func GetEVMGasFee(chain Chain, gasPrice *big.Int, msgLen uint64) Gas {
+	gasBytes := evmGasPerByte.MulUint64(msgLen)
 	return Gas{
-		{Asset: ETHAsset, Amount: ethTransferFee.Add(gasBytes).Mul(cosmos.NewUintFromBigInt(gasPrice))},
+		{Asset: chain.GetGasAsset(), Amount: evmTransferFee.Add(gasBytes).Mul(cosmos.NewUintFromBigInt(gasPrice))},
 	}
 }
 
-// GetAVAXGasFee return the gas for AVAX
-func GetAVAXGasFee(gasPrice *big.Int, msgLen uint64) Gas {
-	gasBytes := avaxGasPerByte.MulUint64(msgLen)
-	return Gas{
-		{Asset: AVAXAsset, Amount: avaxTransferFee.Add(gasBytes).Mul(cosmos.NewUintFromBigInt(gasPrice))},
-	}
-}
-
-// MakeETHGas return the gas for ETH
-func MakeETHGas(gasPrice *big.Int, gas uint64) Gas {
+func MakeEVMGas(chain Chain, gasPrice *big.Int, gas uint64) Gas {
 	unroundedGasAmt := cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice))
 	roundedGasAmt := unroundedGasAmt.QuoUint64(One * 100)
 	if unroundedGasAmt.GT(roundedGasAmt.MulUint64(One * 100)) {
@@ -75,22 +58,9 @@ func MakeETHGas(gasPrice *big.Int, gas uint64) Gas {
 		// to increase rather than decrease solvency.
 		roundedGasAmt = roundedGasAmt.Add(cosmos.NewUint(1))
 	}
-	return Gas{
-		{Asset: ETHAsset, Amount: roundedGasAmt},
-	}
-}
 
-// MakeAVAXGas return the gas for AVAX
-func MakeAVAXGas(gasPrice *big.Int, gas uint64) Gas {
-	unroundedGasAmt := cosmos.NewUint(gas).Mul(cosmos.NewUintFromBigInt(gasPrice))
-	roundedGasAmt := unroundedGasAmt.QuoUint64(One * 100)
-	if unroundedGasAmt.GT(roundedGasAmt.MulUint64(One * 100)) {
-		// Round gas amount up rather than down,
-		// to increase rather than decrease solvency.
-		roundedGasAmt = roundedGasAmt.Add(cosmos.NewUint(1))
-	}
 	return Gas{
-		{Asset: AVAXAsset, Amount: roundedGasAmt},
+		{Asset: chain.GetGasAsset(), Amount: roundedGasAmt},
 	}
 }
 

@@ -95,6 +95,8 @@ func (r *RouterUpgradeController) getChainOldAndNewRouters(chain common.Chain) (
 		return ethOldRouter, ethNewRouter, nil
 	case common.AVAXChain:
 		return avaxOldRouter, avaxNewRouter, nil
+	case common.BSCChain:
+		return bscOldRouter, bscNewRouter, nil
 	default:
 		return "", "", fmt.Errorf("Failed to get old and new routers for chain %s: invalid chain", chain)
 	}
@@ -103,6 +105,8 @@ func (r *RouterUpgradeController) getChainOldAndNewRouters(chain common.Chain) (
 // getRouterChains gets the chains that have routers for the current version
 func (r *RouterUpgradeController) getRouterChains(version semver.Version) ([]common.Chain, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.111.0")):
+		return []common.Chain{common.ETHChain, common.AVAXChain, common.BSCChain}, nil
 	case version.GTE(semver.MustParse("1.94.0")):
 		return []common.Chain{common.ETHChain, common.AVAXChain}, nil
 	case version.GTE(semver.MustParse("0.1.0")):

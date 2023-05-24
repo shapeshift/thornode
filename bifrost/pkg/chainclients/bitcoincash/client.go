@@ -26,9 +26,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/runners"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/signercache"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
-	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/signercache"
 	mem "gitlab.com/thorchain/thornode/x/thorchain/memo"
 
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"

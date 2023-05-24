@@ -12,7 +12,7 @@ type GasSuite struct{}
 var _ = Suite(&GasSuite{})
 
 func (s *GasSuite) TestETHGasFee(c *C) {
-	gas := GetETHGasFee(big.NewInt(20), 4)
+	gas := GetEVMGasFee(ETHChain, big.NewInt(20), 4)
 	amt := gas[0].Amount
 	c.Check(
 		amt.Equal(cosmos.NewUint(425440)),
@@ -20,7 +20,7 @@ func (s *GasSuite) TestETHGasFee(c *C) {
 		true,
 		Commentf("%d", amt.Uint64()),
 	)
-	gas = MakeETHGas(big.NewInt(20), 10000000000) // 10 GWEI
+	gas = MakeEVMGas(ETHChain, big.NewInt(20), 10000000000) // 10 GWEI
 	amt = gas[0].Amount
 	c.Check(
 		amt.Equal(cosmos.NewUint(20)),
@@ -29,7 +29,7 @@ func (s *GasSuite) TestETHGasFee(c *C) {
 		Commentf("%d", amt.Uint64()),
 	)
 	// ETH TxID b89d5eb71765b42117bb1fa30d3a22f6d2bfdba9214da60d26f028bd94bcdb0c example
-	gas = MakeETHGas(big.NewInt(18000803458), 63707)
+	gas = MakeEVMGas(ETHChain, big.NewInt(18000803458), 63707)
 	// 18000803458 Wei gasPrice, 63,707 gas
 	amt = gas[0].Amount
 	c.Check(
