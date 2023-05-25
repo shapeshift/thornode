@@ -17,7 +17,7 @@ require (
 	github.com/didip/tollbooth v4.0.2+incompatible
 	github.com/eager7/dogd v0.0.0-20200427085516-2caf59f59dbb
 	github.com/eager7/dogutil v0.0.0-20200427040807-200e961ba4b5
-	github.com/ethereum/go-ethereum v1.11.5
+	github.com/ethereum/go-ethereum v1.12.0
 	github.com/gcash/bchd v0.17.1
 	github.com/gcash/bchutil v0.0.0-20201025062739-fc759989ee3e
 	github.com/gogo/protobuf v1.3.3
@@ -110,7 +110,7 @@ require (
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/gogo/gateway v1.1.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/gopacket v1.1.18 // indirect
 	github.com/google/orderedcode v0.0.1 // indirect
@@ -123,10 +123,10 @@ require (
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
+	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/holiman/bloomfilter/v2 v2.0.3 // indirect
-	github.com/holiman/uint256 v1.2.0 // indirect
+	github.com/holiman/uint256 v1.2.2-0.20230321075855-87b91420868c // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/improbable-eng/grpc-web v0.14.1 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -227,7 +227,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/subosito/gotenv v1.4.0 // indirect
 	github.com/tecbot/gorocksdb v0.0.0-20191217155057-f0fad39f321c // indirect
 	github.com/tendermint/crypto v0.0.0-20191022145703-50d29ede1e15 // indirect
