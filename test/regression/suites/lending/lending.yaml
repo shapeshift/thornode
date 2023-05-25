@@ -10,6 +10,8 @@ description: eth, btc, and usdc pools should exist
 endpoint: http://localhost:1317/thorchain/pools
 asserts:
   - .|length == 3
+# /pool/THOR.ETH can't be checked for .status == null
+# because of ERR cmd/run.go:275 > operation failed error="unexpected status code: 404"
 ---
 ########################################################################################
 # enable lending
@@ -58,10 +60,22 @@ type: create-blocks
 count: 1
 ---
 type: check
-description: derived pools should be created (eth and btc only)
+description: zero-unit derived pools (eth and btc only) are not displayed by the /pools endpoint
 endpoint: http://localhost:1317/thorchain/pools
 asserts:
-  - .|length == 5
+  - .|length == 3
+---
+type: check
+description: thor.eth pool should be created
+endpoint: http://localhost:1317/thorchain/pool/THOR.ETH
+asserts:
+  - .status == "Available"
+---
+type: check
+description: thor.btc pool should be created
+endpoint: http://localhost:1317/thorchain/pool/THOR.BTC
+asserts:
+  - .status == "Available"
 ---
 ########################################################################################
 # fail open loan due to min out

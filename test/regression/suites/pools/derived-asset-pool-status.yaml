@@ -114,12 +114,9 @@ count: 1
 ---
 type: check
 description: THOR.BTC pool should exist, status Suspended
-endpoint: http://localhost:1317/thorchain/pools
+endpoint: http://localhost:1317/thorchain/pool/THOR.BTC
 asserts:
-  - .|length == 2
-  - .[0].asset == "BTC.BTC"
-  - .[1].asset == "THOR.BTC"
-  - .[1].status == "Suspended"
+  - .status == "Suspended"
 ---
 type: check
 description: The Suspended THOR.BTC pool isn't recorded in the exported Genesis state
@@ -142,12 +139,9 @@ count: 1
 ---
 type: check
 description: THOR.BTC pool should exist, status Suspended
-endpoint: http://localhost:1317/thorchain/pools
+endpoint: http://localhost:1317/thorchain/pool/THOR.BTC
 asserts:
-  - .|length == 2
-  - .[0].asset == "BTC.BTC"
-  - .[1].asset == "THOR.BTC"
-  - .[1].status == "Suspended"
+  - .status == "Suspended"
 ---
 type: check
 description: there should be no pool event emitted
@@ -168,12 +162,9 @@ count: 1
 ---
 type: check
 description: thor.btc pool should still be unchanged by the end of this block
-endpoint: http://localhost:1317/thorchain/pools
+endpoint: http://localhost:1317/thorchain/pool/THOR.BTC
 asserts:
-  - .|length == 2
-  - .[0].asset == "BTC.BTC"
-  - .[1].asset == "THOR.BTC"
-  - .[1].status == "Suspended"
+  - .status == "Suspended"
 ---
 type: check
 description: there should be no pool event emitted

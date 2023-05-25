@@ -462,11 +462,10 @@
           "synth_units": "0"
         },
         {
-          "LP_units": "100000000000",
+          "LP_units": "0",
           "asset": "THOR.BTC",
           "balance_asset": "77734271",
           "balance_rune": "76157909329",
-          "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
           "status": "Available",
@@ -474,11 +473,10 @@
           "synth_units": "0"
         },
         {
-          "LP_units": "100000000000",
+          "LP_units": "0",
           "asset": "THOR.ETH",
           "balance_asset": "679126569",
           "balance_rune": "62229730346",
-          "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
           "status": "Available",

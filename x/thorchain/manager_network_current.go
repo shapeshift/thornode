@@ -192,16 +192,16 @@ func (vm *NetworkMgrV111) spawnDerivedAssets(ctx cosmos.Context, mgr Manager) er
 
 func (vm *NetworkMgrV111) SpawnDerivedAsset(ctx cosmos.Context, asset common.Asset, mgr Manager) {
 	var err error
-	layer1 := asset
-	if layer1.IsDerivedAsset() && !asset.Equals(common.TOR) {
+	layer1Asset := asset
+	if layer1Asset.IsDerivedAsset() && !asset.Equals(common.TOR) {
 		// NOTE: if the symbol of a derived asset isn't the chain, this won't work
-		// (ie TERRA.LUNA)
-		layer1.Chain, err = common.NewChain(layer1.Symbol.String())
+		// (ie TERRA.LUNA or GAIA.ATOM)
+		layer1Asset.Chain, err = common.NewChain(layer1Asset.Symbol.String())
 		if err != nil {
 			return
 		}
 	}
-	if !asset.Equals(common.TOR) && !layer1.IsGasAsset() {
+	if !asset.Equals(common.TOR) && !layer1Asset.IsGasAsset() {
 		return
 	}
 
@@ -210,14 +210,14 @@ func (vm *NetworkMgrV111) SpawnDerivedAsset(ctx cosmos.Context, asset common.Ass
 	minDepthPts := mgr.Keeper().GetConfigInt64(ctx, constants.DerivedMinDepth)
 
 	derivedAsset := asset.GetDerivedAsset()
-	pool, err := mgr.Keeper().GetPool(ctx, layer1)
+	layer1Pool, err := mgr.Keeper().GetPool(ctx, layer1Asset)
 	if err != nil {
 		vm.suspendVirtualPool(ctx, mgr, derivedAsset, err)
 		ctx.Logger().Error("failed to fetch pool", "asset", asset, "err", err)
 		return
 	}
 	// when gas pool is not ready yet
-	if pool.IsEmpty() && !asset.Equals(common.TOR) {
+	if layer1Pool.IsEmpty() && !asset.Equals(common.TOR) {
 		return
 	}
 
@@ -226,7 +226,7 @@ func (vm *NetworkMgrV111) SpawnDerivedAsset(ctx cosmos.Context, asset common.Ass
 		return
 	}
 
-	totalRuneDepth, price, slippage := vm.calcAnchor(ctx, mgr, layer1)
+	totalRuneDepth, price, slippage := vm.calcAnchor(ctx, mgr, layer1Asset)
 	if totalRuneDepth.IsZero() {
 		vm.suspendVirtualPool(ctx, mgr, derivedAsset, fmt.Errorf("no anchor pools available"))
 		return
@@ -244,19 +244,12 @@ func (vm *NetworkMgrV111) SpawnDerivedAsset(ctx cosmos.Context, asset common.Ass
 		return
 	}
 
-	// Now inherit all properties from the reference pool except for Asset, Status, StatusSince.
-	derivedPoolStatus := derivedPool.Status
-	derivedPoolStatusSince := derivedPool.StatusSince
-	derivedPool = pool
-	derivedPool.Asset = derivedAsset
-	derivedPool.Status = derivedPoolStatus
-	derivedPool.StatusSince = derivedPoolStatusSince
-
 	// If the pool is newly created, it will start with status PoolAvailable and StatusSince 0,
-	// and still warrants a status change event and StatusSince update.
-	if derivedPool.Status != PoolAvailable || derivedPoolStatusSince == 0 {
+	// and still warrants a status change event and StatusSince update (and Asset field filling).
+	if derivedPool.Status != PoolAvailable || derivedPool.StatusSince == 0 {
 		derivedPool.Status = PoolAvailable
 		derivedPool.StatusSince = ctx.BlockHeight()
+		derivedPool.Asset = derivedAsset
 
 		poolEvt := NewEventPool(derivedPool.Asset, PoolAvailable)
 		if err := mgr.EventMgr().EmitEvent(ctx, poolEvt); err != nil {
