@@ -1350,7 +1350,9 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 	// set fee info
 	res.Fees.Liquidity = wrapString(liquidityFee.String())
 	totalFees := liquidityFee.Add(outboundFee).Add(affiliateFee)
-	res.Fees.TotalBps = wrapString(totalFees.MulUint64(10000).Quo(expectedAmountOut).String())
+	if !expectedAmountOut.IsZero() {
+		res.Fees.TotalBps = wrapString(totalFees.MulUint64(10000).Quo(expectedAmountOut).String())
+	}
 	if !affiliateFee.IsZero() {
 		res.Fees.Affiliate = wrapString(affiliateFee.String())
 	}

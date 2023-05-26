@@ -53,6 +53,8 @@ func (h LoanRepaymentHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Res
 func (h LoanRepaymentHandler) validate(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.111.0")):
+		return h.validateV111(ctx, msg)
 	case version.GTE(semver.MustParse("1.110.0")):
 		return h.validateV110(ctx, msg)
 	case version.GTE(semver.MustParse("1.107.0")):
@@ -61,7 +63,7 @@ func (h LoanRepaymentHandler) validate(ctx cosmos.Context, msg MsgLoanRepayment)
 	return errBadVersion
 }
 
-func (h LoanRepaymentHandler) validateV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) validateV111(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -90,8 +92,8 @@ func (h LoanRepaymentHandler) validateV110(ctx cosmos.Context, msg MsgLoanRepaym
 		return err
 	}
 
-	if loan.Debt().IsZero() {
-		return fmt.Errorf("loan contains no debt to pay off")
+	if loan.Collateral().IsZero() {
+		return fmt.Errorf("loan contains no collateral to redeem")
 	}
 
 	maturity := fetchConfigInt64(ctx, h.mgr, constants.LoanRepaymentMaturity)
@@ -105,6 +107,8 @@ func (h LoanRepaymentHandler) validateV110(ctx cosmos.Context, msg MsgLoanRepaym
 func (h LoanRepaymentHandler) handle(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.111.0")):
+		return h.handleV111(ctx, msg)
 	case version.GTE(semver.MustParse("1.110.0")):
 		return h.handleV110(ctx, msg)
 	case version.GTE(semver.MustParse("1.108.0")):
@@ -116,7 +120,7 @@ func (h LoanRepaymentHandler) handle(ctx cosmos.Context, msg MsgLoanRepayment) e
 	}
 }
 
-func (h LoanRepaymentHandler) handleV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) handleV111(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	// inject txid into the context if unset
 	var err error
 	ctx, err = storeContextTxID(ctx, constants.CtxLoanTxID)
@@ -127,13 +131,13 @@ func (h LoanRepaymentHandler) handleV110(ctx cosmos.Context, msg MsgLoanRepaymen
 	// if the inbound asset is TOR, then lets repay the loan. If not, lets
 	// swap first and try again later
 	if msg.Coin.Asset.Equals(common.TOR) {
-		return h.repayV110(ctx, msg)
+		return h.repayV111(ctx, msg)
 	} else {
-		return h.swapV110(ctx, msg)
+		return h.swapV111(ctx, msg)
 	}
 }
 
-func (h LoanRepaymentHandler) repayV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) repayV111(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	// collect data
 	lendAddr, err := h.mgr.Keeper().GetModuleAddress(LendingName)
 	if err != nil {
@@ -150,14 +154,8 @@ func (h LoanRepaymentHandler) repayV110(ctx cosmos.Context, msg MsgLoanRepayment
 		return err
 	}
 
-	redeem := common.GetSafeShare(msg.Coin.Amount, loan.Debt(), loan.Collateral())
-	if redeem.IsZero() {
-		return fmt.Errorf("redeem cannot be zero")
-	}
-
 	// update Loan record
 	loan.DebtDown = loan.DebtDown.Add(msg.Coin.Amount)
-	loan.CollateralDown = loan.CollateralDown.Add(redeem)
 	loan.LastRepayHeight = ctx.BlockHeight()
 
 	// burn TOR coins
@@ -170,7 +168,32 @@ func (h LoanRepaymentHandler) repayV110(ctx cosmos.Context, msg MsgLoanRepayment
 			ctx.Logger().Error("fail to burn coins during loan repayment", "error", err)
 			return err
 		}
+		burnEvt := NewEventMintBurn(BurnSupplyType, msg.Coin.Asset.Native(), msg.Coin.Amount, "loan_repayment")
+		if err := h.mgr.EventMgr().EmitEvent(ctx, burnEvt); err != nil {
+			ctx.Logger().Error("fail to emit burn event", "error", err)
+		}
 	}
+
+	// loan must be fully repaid to return collateral
+	if !loan.Debt().IsZero() {
+		h.mgr.Keeper().SetLoan(ctx, loan)
+
+		// emit events and metrics
+		evt := NewEventLoanRepayment(cosmos.ZeroUint(), msg.Coin.Amount, msg.CollateralAsset, msg.Owner)
+		if err := h.mgr.EventMgr().EmitEvent(ctx, evt); nil != err {
+			ctx.Logger().Error("fail to emit repayment open event", "error", err)
+		}
+
+		return nil
+	}
+
+	redeem := loan.Collateral()
+	// only return collateral when collateral is non-zero
+	if redeem.IsZero() {
+		return nil
+	}
+
+	loan.CollateralDown = loan.CollateralDown.Add(redeem)
 
 	txID, ok := ctx.Value(constants.CtxLoanTxID).(common.TxID)
 	if !ok {
@@ -202,13 +225,12 @@ func (h LoanRepaymentHandler) repayV110(ctx cosmos.Context, msg MsgLoanRepayment
 	// emit events and metrics
 	evt := NewEventLoanRepayment(redeem, msg.Coin.Amount, msg.CollateralAsset, msg.Owner)
 	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); nil != err {
-		ctx.Logger().Error("fail to emit loan open event", "error", err)
+		ctx.Logger().Error("fail to emit loan repayment event", "error", err)
 	}
-
 	return nil
 }
 
-func (h LoanRepaymentHandler) swapV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) swapV111(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	lendAddr, err := h.mgr.Keeper().GetModuleAddress(LendingName)
 	if err != nil {
 		ctx.Logger().Error("fail to get lending address", "error", err)

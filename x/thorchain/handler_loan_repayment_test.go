@@ -26,6 +26,7 @@ func (s *HandlerLoanRepaymentSuite) TestLoanValidate(c *C) {
 
 	loan := NewLoan(owner, common.BNBAsset, 0)
 	loan.DebtUp = cosmos.NewUint(10 * common.One)
+	loan.CollateralUp = cosmos.NewUint(10 * common.One)
 	mgr.Keeper().SetLoan(ctx, loan)
 
 	handler := NewLoanRepaymentHandler(mgr)
@@ -39,8 +40,8 @@ func (s *HandlerLoanRepaymentSuite) TestLoanValidate(c *C) {
 	mgr.Keeper().SetLoan(ctx, loan)
 	c.Check(handler.validate(ctx, *msg), NotNil)
 
-	// unhappy path: no debt
-	loan.DebtUp = cosmos.ZeroUint()
+	// unhappy path: no debt/collateral
+	loan.CollateralUp = cosmos.ZeroUint()
 	loan.LastOpenHeight = 0
 	mgr.Keeper().SetLoan(ctx, loan)
 	c.Check(handler.validate(ctx, *msg), NotNil)
@@ -95,13 +96,13 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithTOR(c *C) {
 	handler := NewLoanRepaymentHandler(mgr)
 
 	// happy path
-	msg := NewMsgLoanRepayment(owner, common.BTCAsset, cosmos.OneUint(), owner, common.NewCoin(common.TOR, cosmos.NewUint(5*common.One)), signer)
+	msg := NewMsgLoanRepayment(owner, common.BTCAsset, cosmos.OneUint(), owner, common.NewCoin(common.TOR, cosmos.NewUint(10*common.One)), signer)
 	c.Check(handler.handle(ctx, *msg), IsNil)
 
 	loan, err = mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
 	c.Assert(err, IsNil)
-	c.Check(loan.DebtDown.Uint64(), Equals, uint64(5*common.One), Commentf("%d", loan.DebtDown.Uint64()))
-	c.Check(loan.CollateralDown.Uint64(), Equals, uint64(1e8/2), Commentf("%d", loan.CollateralDown.Uint64()))
+	c.Check(loan.DebtDown.Uint64(), Equals, uint64(10*common.One), Commentf("%d", loan.DebtDown.Uint64()))
+	c.Check(loan.CollateralDown.Uint64(), Equals, uint64(1e8), Commentf("%d", loan.CollateralDown.Uint64()))
 
 	totalCollateral, err := mgr.Keeper().GetTotalCollateral(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
@@ -152,7 +153,8 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithSwap(c *C) {
 	handler := NewLoanRepaymentHandler(mgr)
 
 	// happy path
-	msg := NewMsgLoanRepayment(owner, common.BTCAsset, cosmos.OneUint(), owner, common.NewCoin(common.BTCAsset, cosmos.NewUint(1e8/2)), signer)
+	// overpay the loan to include swap fees
+	msg := NewMsgLoanRepayment(owner, common.BTCAsset, cosmos.OneUint(), owner, common.NewCoin(common.BTCAsset, cosmos.NewUint(1e8+15000000)), signer)
 	ctx = ctx.WithBlockHeight(2 * 1440000)
 	c.Check(handler.handle(ctx, *msg), IsNil)
 	c.Assert(mgr.SwapQ().EndBlock(ctx, mgr), IsNil) // swap into TOR
@@ -160,14 +162,15 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithSwap(c *C) {
 
 	loan, err = mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
 	c.Assert(err, IsNil)
-	c.Check(loan.DebtDown.Uint64(), Equals, uint64(440233604542), Commentf("%d", loan.DebtDown.Uint64()))
-	c.Check(loan.CollateralDown.Uint64(), Equals, uint64(44023360), Commentf("%d", loan.CollateralDown.Uint64()))
+	// debt down is a little high due to overpaying the loan
+	c.Check(loan.DebtDown.Uint64(), Equals, uint64(1007299944507), Commentf("%d", loan.DebtDown.Uint64()))
+	c.Check(loan.CollateralDown.Uint64(), Equals, uint64(100000000), Commentf("%d", loan.CollateralDown.Uint64()))
 
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)
 	c.Assert(items, HasLen, 1)
 	item := items[0]
 	c.Check(item.Coin.Asset.Equals(common.BTCAsset), Equals, true)
-	c.Check(item.Coin.Amount.Uint64(), Equals, uint64(43931109), Commentf("%d", item.Coin.Amount.Uint64()))
+	c.Check(item.Coin.Amount.Uint64(), Equals, uint64(99525480), Commentf("%d", item.Coin.Amount.Uint64()))
 	c.Check(item.ToAddress.String(), Equals, "bcrt1q8ln0p2d4mwng7x20nl7hku25d282sjgf2v74nt")
 }

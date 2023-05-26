@@ -278,6 +278,11 @@ func (h LoanOpenHandler) openLoanV111(ctx cosmos.Context, msg MsgLoanOpen) error
 		if err := h.mgr.Keeper().MintToModule(ctx, ModuleName, torCoin); err != nil {
 			return fmt.Errorf("fail to mint loan tor debt: %w", err)
 		}
+		mintEvt := NewEventMintBurn(MintSupplyType, torCoin.Asset.Native(), torCoin.Amount, "swap")
+		if err := h.mgr.EventMgr().EmitEvent(ctx, mintEvt); err != nil {
+			ctx.Logger().Error("fail to emit mint event", "error", err)
+		}
+
 		if err := h.mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(torCoin)); err != nil {
 			return fmt.Errorf("fail to send TOR vault funds: %w", err)
 		}
