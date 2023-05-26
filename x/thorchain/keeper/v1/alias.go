@@ -30,6 +30,10 @@ const (
 	NodeTypeValidator = types.NodeType_TypeValidator
 	NodeTypeVault     = types.NodeType_TypeVault
 
+	// Mint/Burn type
+	MintSupplyType = types.MintBurnSupplyType_mint
+	BurnSupplyType = types.MintBurnSupplyType_burn
+
 	// Bond type
 	AsgardKeygen = types.KeygenType_AsgardKeygen
 )
@@ -56,6 +60,7 @@ var (
 	NewVault                   = types.NewVault
 	NewReserveContributor      = types.NewReserveContributor
 	NewTHORName                = types.NewTHORName
+	NewEventMintBurn           = types.NewEventMintBurn
 	GetRandomTx                = types.GetRandomTx
 	GetRandomValidatorNode     = types.GetRandomValidatorNode
 	GetRandomVaultNode         = types.GetRandomVaultNode

@@ -85,7 +85,7 @@ func setupKeeperForTest(c *C) (cosmos.Context, KVStore) {
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
 		govtypes.ModuleName:            {authtypes.Burner},
 		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
-		ModuleName:                     {authtypes.Minter},
+		ModuleName:                     {authtypes.Minter, authtypes.Burner},
 		ReserveName:                    {},
 		AsgardName:                     {},
 		BondName:                       {authtypes.Staking},
@@ -136,35 +136,25 @@ func (KeeperTestSuit) TestMaxMint(c *C) {
 
 	max := int64(200000000_00000000)
 	k.SetMimir(ctx, "MaxRuneSupply", max)
+	maxCoin := common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(max)))
 
-	// check value is zero first
-	val, err := k.GetMimir(ctx, "HaltTrading")
-	c.Assert(err, IsNil)
-	c.Check(val, Equals, int64(-1))
+	// ship asgard rune to reserve
+	c.Assert(k.SendFromModuleToModule(ctx, AsgardName, ReserveName, common.NewCoins(common.NewCoin(common.RuneAsset(), cosmos.NewUint(10000000000000000)))), IsNil)
+	// mint more rune into reserve to max the supply
+	mintAmt := common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(max)-10000000000000000))
+	c.Assert(k.MintToModule(ctx, ModuleName, mintAmt), IsNil)
+	c.Assert(k.SendFromModuleToModule(ctx, ModuleName, ReserveName, common.NewCoins(mintAmt)), IsNil)
 
-	// max NOT hit
-	err = k.MintToModule(ctx, ModuleName, common.NewCoin(common.RuneAsset(), cosmos.NewUint(5_00000000)))
-	c.Assert(err, IsNil)
-	val, err = k.GetMimir(ctx, "HaltTrading")
-	c.Assert(err, IsNil)
-	c.Check(val, Equals, int64(-1))
+	// mint more rune into another module
+	moreCoin := common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(max/4)))
+	c.Assert(k.MintToModule(ctx, ModuleName, moreCoin), IsNil)
 
-	// max hit
-	err = k.MintToModule(ctx, ModuleName, common.NewCoin(common.RuneAsset(), cosmos.NewUint(uint64(max*2))))
-	c.Assert(err, IsNil)
-	val, err = k.GetMimir(ctx, "HaltTrading")
-	c.Assert(err, IsNil)
-	c.Check(val, Equals, int64(1))
+	// fetch module balances
+	reserve := k.GetRuneBalanceOfModule(ctx, ReserveName)
+	mod := k.GetRuneBalanceOfModule(ctx, ModuleName)
 
-	val, err = k.GetMimir(ctx, "HaltChainGlobal")
-	c.Assert(err, IsNil)
-	c.Check(val, Equals, int64(1))
-
-	val, err = k.GetMimir(ctx, "PauseLP")
-	c.Assert(err, IsNil)
-	c.Check(val, Equals, int64(1))
-
-	val, err = k.GetMimir(ctx, "HaltTHORChain")
-	c.Assert(err, IsNil)
-	c.Check(val, Equals, int64(1))
+	// check reserve has been reduced
+	c.Check(maxCoin.Amount.Sub(moreCoin.Amount).Uint64(), Equals, reserve.Uint64())
+	// check total is not surpassed the max supply
+	c.Check(reserve.Add(mod).Uint64(), Equals, uint64(max))
 }
