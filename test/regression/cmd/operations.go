@@ -139,9 +139,6 @@ func NewOperation(opMap map[string]any) Operation {
 
 	// require check description and default status check to 200 if endpoint is set
 	if oc, ok := op.(*OpCheck); ok && oc.Endpoint != "" {
-		if oc.Description == "" {
-			log.Fatal().Interface("op", opMap).Msg("check operation must have a description")
-		}
 		if oc.Status == 0 {
 			oc.Status = 200
 		}
@@ -177,7 +174,7 @@ func (op *OpState) Execute(_ io.Writer, routine int, _ *os.Process, _ chan strin
 	}
 
 	// merge updates into genesis
-	genesis := deepMerge(genesisMap, op.Genesis)
+	genesis := deepMerge(genesisMap, op.Genesis, "address")
 
 	// reset file
 	err = f.Truncate(0)

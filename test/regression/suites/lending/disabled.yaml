@@ -1,0 +1,419 @@
+{{ template "default-state.yaml" }}
+---
+{{ template "btc-eth-usdc-pool-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+########################################################################################
+# open loan with no derived assets or anchor pools should fail
+########################################################################################
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 1 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "500000" # 0.5% of pool
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:ETH.ETH:{{ addr_eth_fox }}"
+    block_height: 1
+    finalise_height: 1
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
+asserts:
+  - .|length == 0
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 2 }}"
+      chain: BTC
+      from_address: {{ addr_btc_dog }}
+      to_address: {{ addr_btc_fox }}
+      coins:
+        - amount: "486000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10500"
+          asset: "BTC.BTC"
+      memo: "REFUND:{{ observe_txid 1 }}"
+    block_height: 2
+    finalise_height: 2
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+########################################################################################
+# create derived asset pools and set tor anchor
+########################################################################################
+type: tx-mimir
+signer: {{ addr_thor_dog }}
+key: TorAnchor-ETH-USDC-0X9999999999999999999999999999999999999999
+value: 1
+sequence: 2
+---
+type: tx-mimir
+signer: {{ addr_thor_dog }}
+key: DerivedDepthBasisPts
+value: 10000
+sequence: 3
+---
+type: create-blocks
+count: 2
+---
+type: check
+endpoint: http://localhost:1317/thorchain/mimir
+asserts:
+  - .DERIVEDDEPTHBASISPTS == 10000
+  - ."TORANCHOR-ETH-USDC-0X9999999999999999999999999999999999999999" == 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pools
+asserts:
+  - .|length == 3
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/THOR.BTC
+asserts:
+  - .status == "Available"
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/THOR.ETH
+asserts:
+  - .status == "Available"
+---
+########################################################################################
+# open loan with no derived assets should fail
+########################################################################################
+type: tx-mimir
+signer: {{ addr_thor_dog }}
+key: DerivedDepthBasisPts
+value: -1
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/mimir
+asserts:
+  - .DERIVEDDEPTHBASISPTS == null
+---
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 3 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "500000" # 0.5% of pool
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:ETH.ETH:{{ addr_eth_fox }}"
+    block_height: 3
+    finalise_height: 3
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
+asserts:
+  - .|length == 0
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 4 }}"
+      chain: BTC
+      from_address: {{ addr_btc_dog }}
+      to_address: {{ addr_btc_fox }}
+      coins:
+        - amount: "486000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10500"
+          asset: "BTC.BTC"
+      memo: "REFUND:{{ observe_txid 3 }}"
+    block_height: 4
+    finalise_height: 4
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+########################################################################################
+# open loan with no tor anchor pools should fail
+########################################################################################
+type: tx-mimir
+signer: {{ addr_thor_dog }}
+key: TorAnchor-ETH-USDC-0X9999999999999999999999999999999999999999
+value: -1
+sequence: 7
+---
+type: tx-mimir
+signer: {{ addr_thor_dog }}
+key: DerivedDepthBasisPts
+value: 10000
+sequence: 8
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/mimir
+asserts:
+  - ."TorAnchor-ETH-USDC-0X9999999999999999999999999999999999999999" == null
+---
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 5 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "500000" # 0.5% of pool
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:ETH.ETH:{{ addr_eth_fox }}"
+    block_height: 5
+    finalise_height: 5
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
+asserts:
+  - .|length == 0
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 6 }}"
+      chain: BTC
+      from_address: {{ addr_btc_dog }}
+      to_address: {{ addr_btc_fox }}
+      coins:
+        - amount: "486000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10500"
+          asset: "BTC.BTC"
+      memo: "REFUND:{{ observe_txid 5 }}"
+    block_height: 6
+    finalise_height: 6
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+########################################################################################
+# open loan with tor as the target asset should fail
+########################################################################################
+type: tx-mimir
+signer: {{ addr_thor_dog }}
+key: TorAnchor-ETH-USDC-0X9999999999999999999999999999999999999999
+value: 1
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/mimir
+asserts:
+  - ."TORANCHOR-ETH-USDC-0X9999999999999999999999999999999999999999" == 1
+---
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 7 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "500000" # 0.5% of pool
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:THOR.TOR:{{ addr_thor_fox }}"
+    block_height: 7
+    finalise_height: 7
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
+asserts:
+  - .|length == 0
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 8 }}"
+      chain: BTC
+      from_address: {{ addr_btc_dog }}
+      to_address: {{ addr_btc_fox }}
+      coins:
+        - amount: "486000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10500"
+          asset: "BTC.BTC"
+      memo: "REFUND:{{ observe_txid 7 }}"
+    block_height: 8
+    finalise_height: 8
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+########################################################################################
+# open loan with a derived asset as the target asset should fail
+########################################################################################
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 9 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "500000" # 0.5% of pool
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:THOR.BTC:{{ addr_thor_fox }}"
+    block_height: 9
+    finalise_height: 9
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
+asserts:
+  - .|length == 0
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 10 }}"
+      chain: BTC
+      from_address: {{ addr_btc_dog }}
+      to_address: {{ addr_btc_fox }}
+      coins:
+        - amount: "486000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10500"
+          asset: "BTC.BTC"
+      memo: "REFUND:{{ observe_txid 9 }}"
+    block_height: 10
+    finalise_height: 10
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+########################################################################################
+# open loan with disabled pool should fail
+########################################################################################
+---
+########################################################################################
+# close existing loan on disabled pool should fail
+########################################################################################

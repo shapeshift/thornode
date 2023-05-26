@@ -9,29 +9,50 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func deepMerge(a, b map[string]any) map[string]any {
+// trunk-ignore-all(golangci-lint/forcetypeassert)
+
+// deepMerge merges two maps recursively - if there is an array in the map it will deep
+// merge elements that match on keys in overrideKeys.
+func deepMerge(a, b map[string]any, overrideKeys ...string) map[string]any {
 	result := make(map[string]any)
 	for k, v := range a {
 		result[k] = v
 	}
-	for k, v := range b {
-		switch vv := v.(type) {
+
+	for k := range b {
+		switch v := b[k].(type) {
 		case []any:
-			if bv, ok := result[k]; ok {
-				if bv, ok := bv.([]any); ok {
-					result[k] = append(bv, vv...)
+			if av, ok := result[k]; ok {
+				if av, ok := av.([]any); ok {
+
+					// deep merge if key in overrideKeys matches in the source and destination
+					for _, ov := range overrideKeys {
+						for i := range av {
+							for j := range v {
+								if av[i].(map[string]any)[ov] == v[j].(map[string]any)[ov] {
+									av[i] = deepMerge(av[i].(map[string]any), v[j].(map[string]any), overrideKeys...)
+
+									// remove value from v
+									v = append(v[:j], v[j+1:]...)
+									break
+								}
+							}
+						}
+					}
+
+					result[k] = append(av, v...)
 					continue
 				}
 			}
 		case map[string]any:
-			if bv, ok := result[k]; ok {
-				if bv, ok := bv.(map[string]any); ok {
-					result[k] = deepMerge(bv, vv)
+			if av, ok := result[k]; ok {
+				if av, ok := av.(map[string]any); ok {
+					result[k] = deepMerge(av, v, overrideKeys...)
 					continue
 				}
 			}
 		}
-		result[k] = v
+		result[k] = b[k]
 	}
 	return result
 }

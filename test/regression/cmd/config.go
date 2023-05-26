@@ -150,15 +150,22 @@ var (
 	templateAddress = map[string]string{} // addr_thor_dog->thor..., addr_eth_dog->0x...
 	templatePubKey  = map[string]string{} // pubkey_dog->thorpub...
 
-	dogMnemonic    = strings.Repeat("dog ", 23) + "fossil"
+	birdMnemonic   = strings.Repeat("bird ", 23) + "asthma"
 	catMnemonic    = strings.Repeat("cat ", 23) + "crawl"
-	foxMnemonic    = strings.Repeat("fox ", 23) + "filter"
-	pigMnemonic    = strings.Repeat("pig ", 23) + "quick"
+	deerMnemonic   = strings.Repeat("deer ", 23) + "diesel"
+	dogMnemonic    = strings.Repeat("dog ", 23) + "fossil"
+	duckMnemonic   = strings.Repeat("duck ", 23) + "face"
 	fishMnemonic   = strings.Repeat("fish ", 23) + "fade"
-	wolfMnemonic   = strings.Repeat("wolf ", 23) + "victory"
-	mouseMnemonic  = strings.Repeat("mouse ", 23) + "option"
+	foxMnemonic    = strings.Repeat("fox ", 23) + "filter"
+	frogMnemonic   = strings.Repeat("frog ", 23) + "flat"
+	goatMnemonic   = strings.Repeat("goat ", 23) + "install"
 	hawkMnemonic   = strings.Repeat("hawk ", 23) + "juice"
+	lionMnemonic   = strings.Repeat("lion ", 23) + "misery"
+	mouseMnemonic  = strings.Repeat("mouse ", 23) + "option"
+	muleMnemonic   = strings.Repeat("mule ", 23) + "major"
+	pigMnemonic    = strings.Repeat("pig ", 23) + "quick"
 	rabbitMnemonic = strings.Repeat("rabbit ", 23) + "rent"
+	wolfMnemonic   = strings.Repeat("wolf ", 23) + "victory"
 
 	// mnemonics contains the set of all mnemonics for accounts used in tests
 	mnemonics = [...]string{
@@ -166,11 +173,18 @@ var (
 		catMnemonic,
 		foxMnemonic,
 		pigMnemonic,
+		birdMnemonic,
+		deerMnemonic,
+		duckMnemonic,
 		fishMnemonic,
-		wolfMnemonic,
-		mouseMnemonic,
+		frogMnemonic,
+		goatMnemonic,
 		hawkMnemonic,
+		lionMnemonic,
+		mouseMnemonic,
+		muleMnemonic,
 		rabbitMnemonic,
+		wolfMnemonic,
 	}
 )
 

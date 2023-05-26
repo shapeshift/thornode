@@ -1,0 +1,201 @@
+{{ template "default-state.yaml" }}
+---
+{{ template "btc-eth-usdc-pool-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pools
+asserts:
+  - .|length == 3
+---
+########################################################################################
+# enable lending
+########################################################################################
+type: tx-mimir
+signer: {{ addr_thor_dog }}
+key: TorAnchor-ETH-USDC-0X9999999999999999999999999999999999999999
+value: 1
+sequence: 0
+---
+type: tx-mimir
+signer: {{ addr_thor_dog }}
+key: DerivedDepthBasisPts
+value: 10000
+sequence: 1
+---
+type: create-blocks
+count: 2
+---
+type: check
+endpoint: http://localhost:1317/thorchain/mimir
+asserts:
+  - .DERIVEDDEPTHBASISPTS == 10000
+  - ."TORANCHOR-ETH-USDC-0X9999999999999999999999999999999999999999" == 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pools
+asserts:
+  - .|length == 3
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/THOR.BTC
+asserts:
+  - .status == "Available"
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/THOR.ETH
+asserts:
+  - .status == "Available"
+---
+########################################################################################
+# small amount should refund and not result in stuck funds
+# NOTE: less than 2x gas + 1 will still get stuck (same as other transaction types)
+########################################################################################
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 1 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        # TODO:
+        # 1. Update loan quotes to fail if collateral is less than 3x max gas since to
+        # avoid cases where there is not enough to even refund.
+        # 2. Less that this amount results in an over-solvent vault which breaks the
+        # invariant.
+        - amount: "14001" # 2x max gas + 1 sat
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:ETH.ETH:{{ addr_eth_fox }}"
+    block_height: 1
+    finalise_height: 1
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 2 }}"
+      chain: BTC
+      from_address: {{ addr_btc_dog }}
+      to_address: {{ addr_btc_fox }}
+      coins:
+        - amount: "1"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10500"
+          asset: "BTC.BTC"
+      memo: "REFUND:{{ observe_txid 1 }}"
+    block_height: 2
+    finalise_height: 2
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
+asserts:
+  - .|length == 0
+---
+########################################################################################
+# loan that exceeds the lending lever should refund
+########################################################################################
+# TODO: Clean up template genesis state to have even 500k.
+type: tx-mimir
+signer: {{ addr_thor_dog }}
+key: MaxRuneSupply
+value: 503_100_00000000 # 100 RUNE buffer
+---
+type: create-blocks
+count: 1
+---
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 3 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        # ~ 33 RUNE before 33% lever, split by 2 pools, 17 RUNE collateral is over
+        - amount: "1700000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:ETH.ETH:{{ addr_eth_fox }}"
+    block_height: 3
+    finalise_height: 3
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/blockevents
+asserts:
+  - '[.tx[]|select(.type == "refund")]|length == 1'
+  - .tx[]|select(.type == "refund")|.from == "{{ addr_btc_fox }}"
+  - .tx[]|select(.type == "refund")|.reason|match("no availability .*, lending unavailable")
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 4 }}"
+      chain: BTC
+      from_address: {{ addr_btc_dog }}
+      to_address: {{ addr_btc_fox }}
+      coins:
+        - amount: "1686000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10500"
+          asset: "BTC.BTC"
+      memo: "REFUND:{{ observe_txid 3 }}"
+    block_height: 4
+    finalise_height: 4
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+type: check
+endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
+asserts:
+  - .|length == 0

@@ -211,7 +211,7 @@ type: check
 description: no derived btc should exist
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-   - .supply[]|select(.denom == "rune")|.amount|tonumber == 50300000000000
+  - .supply[]|select(.denom == "rune")|.amount|tonumber == 50300000000000
 ---
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
@@ -263,7 +263,7 @@ type: check
 description: check rune supply decreases
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-   - .supply[]|select(.denom == "rune")|.amount|tonumber == 50299990337963
+  - .supply[]|select(.denom == "rune")|.amount|tonumber == 50299990337963
 ---
 type: check
 description: fox account should not receive rune until next block
