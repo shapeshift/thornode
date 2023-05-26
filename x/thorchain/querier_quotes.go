@@ -1132,12 +1132,11 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 
 	// invalidate unexpected parameters
 	allowed := map[string]bool{
-		assetParam:       true,
-		amountParam:      true,
-		loanAssetParam:   true,
-		loanOwnerParam:   true,
-		minOutParam:      true,
-		fromAddressParam: true,
+		assetParam:     true,
+		amountParam:    true,
+		loanAssetParam: true,
+		loanOwnerParam: true,
+		minOutParam:    true,
 	}
 	for p := range params {
 		if !allowed[p] {
@@ -1178,8 +1177,8 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 		return quoteErrorResponse(fmt.Errorf("bad loan owner: %w", err))
 	}
 
-	// parse from address
-	fromAddress, err := quoteParseAddress(ctx, mgr, params[fromAddressParam][0], asset.GetChain())
+	// generate random from address
+	fromAddress, err := types.GetRandomPubKey().GetAddress(asset.Chain)
 	if err != nil {
 		return quoteErrorResponse(fmt.Errorf("bad from address: %w", err))
 	}

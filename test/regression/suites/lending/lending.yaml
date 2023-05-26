@@ -461,7 +461,6 @@ params:
   amount: 500000000
   loan_asset: BTC.BTC
   loan_owner: {{ addr_btc_fox }}
-  from_address: {{ addr_thor_fox }}
 asserts:
   - .memo == "$-:BTC.BTC:{{ addr_btc_fox }}"
   - .inbound_address == "{{ addr_thor_dog }}"
@@ -507,7 +506,6 @@ params:
   amount: 50000000
   loan_asset: BTC.BTC
   loan_owner: {{ addr_btc_fox }}
-  from_address: {{ addr_eth_fox }}
 asserts:
   - .memo == "$-:BTC.BTC:{{ addr_btc_fox }}"
   - .inbound_address == "{{ addr_eth_dog }}"
