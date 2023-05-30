@@ -544,6 +544,18 @@ func (vm *NetworkMgrV111) paySaverYield(ctx cosmos.Context, asset common.Asset, 
 			return err
 		}
 	}
+
+	// scale yield to 0 as utilization approaches MaxSynthsForSaversYield
+	max := vm.k.GetConfigInt64(ctx, constants.MaxSynthsForSaversYield)
+	if max > 0 {
+		maxSaversForSynthYield := cosmos.NewUint(uint64(max))
+		synthSupply := vm.k.GetTotalSupply(ctx, pool.Asset.GetSyntheticAsset())
+		pool.CalcUnits(vm.k.GetVersion(), synthSupply)
+		synthPerPoolDepth := common.GetUncappedShare(pool.SynthUnits, pool.GetPoolUnits(), cosmos.NewUint(10_000))
+		lostYield := common.GetUncappedShare(synthPerPoolDepth, maxSaversForSynthYield, cosmos.NewUint(uint64(basisPts)))
+		basisPts = common.SafeSub(cosmos.NewUint(uint64(basisPts)), lostYield).BigInt().Int64()
+	}
+
 	if basisPts <= 0 {
 		return nil
 	}

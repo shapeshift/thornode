@@ -456,7 +456,7 @@ func (s *NetworkManagerV111TestSuite) TestSaverYieldFunc(c *C) {
 	c.Assert(net.paySaverYield(ctx, common.BTCAsset, cosmos.NewUint(50*common.One)), IsNil)
 	spool, err = mgr.Keeper().GetPool(ctx, spool.Asset)
 	c.Assert(err, IsNil)
-	c.Assert(spool.BalanceAsset.Uint64(), Equals, uint64(1125000000), Commentf("%d", spool.BalanceAsset.Uint64()))
+	c.Assert(spool.BalanceAsset.String(), Equals, "1113100000", Commentf("%d", spool.BalanceAsset.Uint64()))
 }
 
 func (s *NetworkManagerV111TestSuite) TestSaverYieldCall(c *C) {
@@ -498,7 +498,17 @@ func (s *NetworkManagerV111TestSuite) TestSaverYieldCall(c *C) {
 	c.Assert(networkMgr.UpdateNetwork(ctx, constAccessor, mgr.gasMgr, mgr.eventMgr), IsNil)
 	spool, err = mgr.Keeper().GetPool(ctx, spool.Asset.GetSyntheticAsset())
 	c.Assert(err, IsNil)
-	c.Check(spool.BalanceAsset.Uint64(), Equals, uint64(8900753254), Commentf("%d", spool.BalanceAsset.Uint64()))
+	c.Check(spool.BalanceAsset.String(), Equals, "7834021738", Commentf("%d", spool.BalanceAsset.Uint64()))
+
+	// check we don't give yield when synth utilization is too high
+	// add some synths
+	coins := cosmos.NewCoins(cosmos.NewCoin("btc/btc", cosmos.NewInt(101*common.One))) // 51% utilization
+	c.Assert(mgr.coinKeeper.MintCoins(ctx, ModuleName, coins), IsNil)
+	c.Assert(mgr.Keeper().AddToLiquidityFees(ctx, pool.Asset, cosmos.NewUint(50*common.One)), IsNil)
+	c.Assert(networkMgr.UpdateNetwork(ctx, constAccessor, mgr.gasMgr, mgr.eventMgr), IsNil)
+	spool, err = mgr.Keeper().GetPool(ctx, spool.Asset.GetSyntheticAsset())
+	c.Assert(err, IsNil)
+	c.Check(spool.BalanceAsset.String(), Equals, "7834021738", Commentf("%d", spool.BalanceAsset.Uint64()))
 }
 
 func (s *NetworkManagerV111TestSuite) TestRagnarokPool(c *C) {

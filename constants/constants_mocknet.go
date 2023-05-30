@@ -29,6 +29,7 @@ func init() {
 		TxOutDelayRate:                      2000000_00000000,
 		PoolDepthForYggFundingMin:           500_000_00000000,
 		MaxSynthPerPoolDepth:                3_500,
+		MaxSynthsForSaversYield:             5000,
 		PauseLoans:                          0,
 		AllowWideBlame:                      1,
 		TargetOutboundFeeSurplusRune:        10_000_00000000,

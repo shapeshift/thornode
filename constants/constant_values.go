@@ -65,6 +65,7 @@ const (
 	EnableOrderBooks
 	MaxSynthPerAssetDepth // TODO: remove me on hard fork
 	MaxSynthPerPoolDepth
+	MaxSynthsForSaversYield
 	VirtualMultSynths
 	VirtualMultSynthsBasisPoints
 	MinSlashPointsForBadValidator
@@ -169,6 +170,7 @@ var nameToString = map[ConstantName]string{
 	VirtualMultSynthsBasisPoints:        "VirtualMultSynthsBasisPoints",
 	MaxSynthPerAssetDepth:               "MaxSynthPerAssetDepth", // TODO: remove me on hard fork
 	MaxSynthPerPoolDepth:                "MaxSynthPerPoolDepth",
+	MaxSynthsForSaversYield:             "MaxSynthsForSaversYield",
 	MinSlashPointsForBadValidator:       "MinSlashPointsForBadValidator",
 	FullImpLossProtectionBlocks:         "FullImpLossProtectionBlocks",
 	BondLockupPeriod:                    "BondLockupPeriod",

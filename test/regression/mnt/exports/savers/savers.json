@@ -159,7 +159,7 @@
           "address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2",
           "coins": [
             {
-              "amount": "84487323916",
+              "amount": "84487324172",
               "denom": "rune"
             }
           ]
@@ -168,7 +168,7 @@
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "34999995213160",
+              "amount": "34999995213151",
               "denom": "rune"
             }
           ]
@@ -195,7 +195,7 @@
           "address": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
           "coins": [
             {
-              "amount": "5001176813709",
+              "amount": "5001176813462",
               "denom": "rune"
             }
           ]
@@ -314,11 +314,11 @@
       "network": {
         "LPIncomeSplit": "9831",
         "NodeIncomeSplit": "169",
-        "bond_reward_rune": "1176813709",
+        "bond_reward_rune": "1176813462",
         "burned_bep2_rune": "0",
         "burned_erc20_rune": "0",
-        "outbound_gas_spent_rune": "2946204",
-        "outbound_gas_withheld_rune": "3928265",
+        "outbound_gas_spent_rune": "2946177",
+        "outbound_gas_withheld_rune": "3928229",
         "total_bond_units": "7"
       },
       "network_fees": [
@@ -349,13 +349,13 @@
         {
           "LP_units": "100000000000",
           "asset": "BTC.BTC",
-          "balance_asset": "602174292",
-          "balance_rune": "84487323916",
+          "balance_asset": "602181643",
+          "balance_rune": "84487324172",
           "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
           "status": "Available",
-          "synth_units": "235953170"
+          "synth_units": "235640765"
         },
         {
           "LP_units": "0",
@@ -387,7 +387,7 @@
           ],
           "coins": [
             {
-              "amount": "602174292",
+              "amount": "602181643",
               "asset": "BTC.BTC",
               "decimals": "8"
             }

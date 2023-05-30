@@ -57,6 +57,7 @@ func NewConstantValue() *ConstantVals {
 			VirtualMultSynthsBasisPoints:        10_000,             // pool depth multiplier for synthetic swaps (in basis points)
 			MaxSynthPerAssetDepth:               3300,               //  TODO: remove me on hard fork
 			MaxSynthPerPoolDepth:                1700,               // percentage (in basis points) of how many synths are allowed relative to pool depth of the related pool
+			MaxSynthsForSaversYield:             0,                  // percentage (in basis points) synth per pool where synth yield reaches 0%
 			MinSlashPointsForBadValidator:       100,                // The minimum slash point
 			FullImpLossProtectionBlocks:         1440000,            // number of blocks before a liquidity provider gets 100% impermanent loss protection
 			MinCR:                               10_000,             // Minimum collateralization ratio (basis pts)
@@ -82,7 +83,7 @@ func NewConstantValue() *ConstantVals {
 			POLTargetSynthPerPoolDepth:          0,                  // target synth per pool depth for POL (basis points)
 			POLBuffer:                           0,                  // buffer around the POL synth utilization (basis points added to/subtracted from POLTargetSynthPerPoolDepth basis points)
 			RagnarokProcessNumOfLPPerIteration:  200,                // the number of LP to be processed per iteration during ragnarok pool
-			SynthYieldBasisPoints:               5000,               // amount of the yield the capital earns the synth holder receives
+			SynthYieldBasisPoints:               5000,               // amount of the yield the capital earns the synth holder receives if synth per pool is 0%
 			SynthYieldCycle:                     0,                  // number of blocks when the network pays out rewards to yield bearing synths
 			MinimumL1OutboundFeeUSD:             1000000,            // Minimum fee in USD to charge for LP swap, default to $0.01 , nodes need to vote it to a larger value
 			MinimumPoolLiquidityFee:             0,                  // Minimum liquidity fee made by the pool,active pool fail to meet this within a PoolCycle will be demoted

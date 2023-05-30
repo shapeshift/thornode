@@ -181,11 +181,11 @@
           "address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2",
           "coins": [
             {
-              "amount": "67759259",
+              "amount": "67292268",
               "denom": "btc/btc"
             },
             {
-              "amount": "677594972",
+              "amount": "672924547",
               "denom": "eth/eth"
             },
             {
@@ -238,11 +238,11 @@
       },
       "supply": [
         {
-          "amount": "67759259",
+          "amount": "67292268",
           "denom": "btc/btc"
         },
         {
-          "amount": "677594972",
+          "amount": "672924547",
           "denom": "eth/eth"
         },
         {
@@ -458,7 +458,7 @@
         {
           "LP_units": "65624999",
           "asset": "BTC/BTC",
-          "balance_asset": "67759259",
+          "balance_asset": "67292268",
           "balance_rune": "0",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
@@ -479,7 +479,7 @@
         {
           "LP_units": "656249999",
           "asset": "ETH/ETH",
-          "balance_asset": "677594972",
+          "balance_asset": "672924547",
           "balance_rune": "0",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
