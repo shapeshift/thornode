@@ -40,7 +40,7 @@ bifrost:
     max_interval: 3m
     max_elapsed_time: 168h
   signer:
-    backup_keyshares: false
+    backup_keyshares: true
     signer_db_path: /var/data/bifrost/signer_db
     retry_interval: 2s
     reschedule_buffer_blocks: 50 # 5 minutes
