@@ -9,7 +9,7 @@ bifrost:
     compaction_table_size_multiplier: 1
     write_buffer: 4194304
     block_cache_capacity: 8388608
-    compact_on_init: false
+    compact_on_init: true
 
   metrics:
     enabled: true
@@ -73,8 +73,12 @@ bifrost:
       http_post_mode: 1
       disable_tls: 1
       parallel_mempool_scan: 5
-      mempool_tx_id_cache_size: 0
-      scanner_leveldb: *default-leveldb
+      mempool_tx_id_cache_size: 1_000_000
+      scanner_leveldb:
+        <<: *default-leveldb
+        compaction_table_size_multiplier: 10
+        write_buffer: 20971520 # 20mb
+        block_cache_capacity: 536870912 # 512mb
 
       # the following defaults must be defined to override with environment
       chain_host: ""
@@ -123,6 +127,8 @@ bifrost:
         chain_id: BNB
         block_height_discover_back_off: 0.3s
         observation_flexibility_blocks: 2
+      mempool_tx_id_cache_size: 0
+      scanner_leveldb: *default-leveldb
     eth:
       <<: *default-chain
       chain_id: ETH
@@ -132,6 +138,8 @@ bifrost:
         concurrency: 1
         chain_id: ETH
         observation_flexibility_blocks: 20
+      mempool_tx_id_cache_size: 0
+      scanner_leveldb: *default-leveldb
     avax:
       <<: *default-chain
       chain_id: AVAX
@@ -148,6 +156,8 @@ bifrost:
         whitelist_tokens: # stable coins only
           - 0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7 # USDT
           - 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E # USDC
+      mempool_tx_id_cache_size: 0
+      scanner_leveldb: *default-leveldb
     bsc:
       disabled: true
       <<: *default-chain
@@ -168,6 +178,8 @@ bifrost:
           - 0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56 # Binance Pegged BUSD
           - 0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3 # Binance Pegged DAI
           - 0x14016E85a25aeb13065688cAFB43044C2ef86784 # True USD
+      mempool_tx_id_cache_size: 0
+      scanner_leveldb: *default-leveldb
     doge:
       <<: *default-chain
       chain_id: DOGE
@@ -175,6 +187,8 @@ bifrost:
         <<: *default-block-scanner
         chain_id: DOGE
         gas_price_resolution: 500_000 # sats
+      mempool_tx_id_cache_size: 0
+      scanner_leveldb: *default-leveldb
     gaia:
       <<: *default-chain
       chain_id: GAIA
@@ -183,6 +197,8 @@ bifrost:
         chain_id: GAIA
         gas_price_resolution: 100_000 # uatom
         observation_flexibility_blocks: 40
+      mempool_tx_id_cache_size: 0
+      scanner_leveldb: *default-leveldb
     ltc:
       <<: *default-chain
       chain_id: LTC
@@ -190,6 +206,8 @@ bifrost:
         <<: *default-block-scanner
         chain_id: LTC
         observation_flexibility_blocks: 3
+      mempool_tx_id_cache_size: 0
+      scanner_leveldb: *default-leveldb
     bch:
       <<: *default-chain
       chain_id: BCH
@@ -197,6 +215,8 @@ bifrost:
         <<: *default-block-scanner
         chain_id: BCH
         observation_flexibility_blocks: 3
+      mempool_tx_id_cache_size: 0
+      scanner_leveldb: *default-leveldb
 
 ########################################################################################
 # Thor
