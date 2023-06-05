@@ -333,7 +333,7 @@ type: create-blocks
 count: 1
 ---
 type: check
-description: rune balance should have lost transaction fee
+description: rune balance should have lost transaction fee (2*0.02 RUNE, inbound and refund outbound)
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
@@ -353,7 +353,7 @@ type: create-blocks
 count: 1
 ---
 type: check
-description: rune balance should have lost transaction fee
+description: rune balance should have lost transaction fee (2*0.02 RUNE, inbound and refund outbound)
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
@@ -362,7 +362,6 @@ asserts:
 ########################################################################################
 # rune double side deposit with bad l1 address
 ########################################################################################
-# TODO: This succeeds but should not - handler should validate pair address chain.
 type: tx-deposit
 signer: {{ addr_thor_fox }}
 coins:
@@ -374,8 +373,8 @@ type: create-blocks
 count: 1
 ---
 type: check
-description: rune balance should have lost transaction fee
+description: rune balance should have lost transaction fee (2*0.02 RUNE, inbound and refund outbound)
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2489990000000
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2499988000000

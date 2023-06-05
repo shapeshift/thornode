@@ -52,6 +52,8 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.validateV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.110.0")):
 		return h.validateV110(ctx, msg)
 	case version.GTE(semver.MustParse("1.99.0")):
@@ -71,7 +73,7 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	}
 }
 
-func (h AddLiquidityHandler) validateV110(ctx cosmos.Context, msg MsgAddLiquidity) error {
+func (h AddLiquidityHandler) validateV112(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if err := msg.ValidateBasicV98(); err != nil {
 		ctx.Logger().Error(err.Error())
 		return errAddLiquidityFailValidation
@@ -136,6 +138,13 @@ func (h AddLiquidityHandler) validateV110(ctx cosmos.Context, msg MsgAddLiquidit
 	}
 
 	if !msg.AssetAddress.IsEmpty() {
+		// If the needsSwap check disallows a cross-chain AssetAddress,
+		// a position with pending RUNE cannot be completed with Asset,
+		// so fail validation here if the AssetAddress chain is different from the Asset's.
+		if !msg.AssetAddress.IsChain(msg.Asset.GetLayer1Asset().GetChain()) {
+			return errAddLiquidityMismatchAddr
+		}
+
 		polAddress, err := h.mgr.Keeper().GetModuleAddress(ReserveName)
 		if err != nil {
 			return err

@@ -384,6 +384,7 @@ func (s *HandlerAddLiquiditySuite) TestHandlerAddLiquidityFailScenario(c *C) {
 	}
 }
 
+/* Cross-chain add liquidity with swap is currently disabled, but keep this unit test in case enabled in future.
 func (s *HandlerAddLiquiditySuite) TestFairMergeAddLiquidityHandlerWithSwap(c *C) {
 	var err error
 	ctx, mgr := setupManagerForTest(c)
@@ -443,6 +444,7 @@ func (s *HandlerAddLiquiditySuite) TestFairMergeAddLiquidityHandlerWithSwap(c *C
 	c.Check(lp.Units.IsZero(), Equals, false)
 	c.Check(lp.Units.Uint64(), Equals, uint64(1187103604184), Commentf("%d", lp.Units.Uint64()))
 }
+*/
 
 type AddLiquidityTestKeeper struct {
 	keeper.KVStoreDummy

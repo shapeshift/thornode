@@ -162,7 +162,7 @@
           "address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2",
           "coins": [
             {
-              "amount": "209997413971",
+              "amount": "199997413971",
               "denom": "rune"
             }
           ]
@@ -171,7 +171,7 @@
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "35000011964553",
+              "amount": "35000013964553",
               "denom": "rune"
             }
           ]
@@ -180,7 +180,7 @@
           "address": "tthor13wrmhnh2qe98rjse30pl7u6jxszjjwl4f6yycr",
           "coins": [
             {
-              "amount": "2489990000000",
+              "amount": "2499988000000",
               "denom": "rune"
             }
           ]
@@ -301,18 +301,6 @@
       "liquidity_providers": [
         {
           "asset": "BTC.BTC",
-          "asset_address": "0xe3c64974c78f5693bd2bc68b3221d58df5c6e877",
-          "asset_deposit_value": "0",
-          "last_add_height": "14",
-          "pending_asset": "0",
-          "pending_rune": "10000000000",
-          "pending_tx_Id": "838EF5D1E0AAC42530AFF074664D2B8BAC158282845B61A9E9FECE886B95A49B",
-          "rune_address": "tthor13wrmhnh2qe98rjse30pl7u6jxszjjwl4f6yycr",
-          "rune_deposit_value": "0",
-          "units": "0"
-        },
-        {
-          "asset": "BTC.BTC",
           "asset_address": "bcrt1quuds8pd92qnnq0udw0rpg0szpgcslc9pm6tzal",
           "asset_deposit_value": "100000000",
           "last_add_height": "1",
@@ -384,7 +372,7 @@
           "balance_rune": "99989955109",
           "decimals": "8",
           "pending_inbound_asset": "0",
-          "pending_inbound_rune": "10000000000",
+          "pending_inbound_rune": "0",
           "status": "Available",
           "synth_units": "0"
         },
