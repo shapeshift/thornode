@@ -11,7 +11,7 @@
             "@type": "/cosmos.crypto.secp256k1.PubKey",
             "key": "AmF4AUTWZEUSBtgqiR5n2Lgic/Yrr1mWupMo5TAubNRO"
           },
-          "sequence": "7"
+          "sequence": "8"
         },
         {
           "@type": "/cosmos.auth.v1beta1.ModuleAccount",
@@ -159,7 +159,7 @@
           "address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2",
           "coins": [
             {
-              "amount": "300001344355",
+              "amount": "300002387607",
               "denom": "rune"
             }
           ]
@@ -168,7 +168,7 @@
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "34999998122929",
+              "amount": "34999997013086",
               "denom": "rune"
             }
           ]
@@ -195,7 +195,7 @@
           "address": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
           "coins": [
             {
-              "amount": "5000000532716",
+              "amount": "5000000599307",
               "denom": "rune"
             }
           ]
@@ -357,12 +357,12 @@
       "network": {
         "LPIncomeSplit": "9400",
         "NodeIncomeSplit": "600",
-        "bond_reward_rune": "532716",
+        "bond_reward_rune": "599307",
         "burned_bep2_rune": "0",
         "burned_erc20_rune": "0",
         "outbound_gas_spent_rune": "20993861",
         "outbound_gas_withheld_rune": "27995538",
-        "total_bond_units": "8"
+        "total_bond_units": "9"
       },
       "network_fees": [
         {
@@ -397,8 +397,8 @@
         {
           "LP_units": "100000000000",
           "asset": "BTC.BTC",
-          "balance_asset": "100007000",
-          "balance_rune": "99995780179",
+          "balance_asset": "100017100",
+          "balance_rune": "99996127913",
           "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
@@ -409,7 +409,7 @@
           "LP_units": "100000000000",
           "asset": "ETH.ETH",
           "balance_asset": "1000000000",
-          "balance_rune": "100002782088",
+          "balance_rune": "100003129847",
           "decimals": "8",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
@@ -420,7 +420,7 @@
           "LP_units": "100000000000",
           "asset": "ETH.USDC-0X9999999999999999999999999999999999999999",
           "balance_asset": "100000000000",
-          "balance_rune": "100002782088",
+          "balance_rune": "100003129847",
           "decimals": "6",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
@@ -430,8 +430,8 @@
         {
           "LP_units": "0",
           "asset": "THOR.BTC",
-          "balance_asset": "100017499",
-          "balance_rune": "99984935850",
+          "balance_asset": "100006999",
+          "balance_rune": "99995780179",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
           "status": "Available",
@@ -441,8 +441,8 @@
         {
           "LP_units": "0",
           "asset": "THOR.ETH",
-          "balance_asset": "999999999",
-          "balance_rune": "100002434316",
+          "balance_asset": "1000000000",
+          "balance_rune": "100002782088",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
           "status": "Available",
@@ -453,7 +453,7 @@
           "LP_units": "0",
           "asset": "THOR.TOR",
           "balance_asset": "99999999999",
-          "balance_rune": "100002434316",
+          "balance_rune": "100002782088",
           "pending_inbound_asset": "0",
           "pending_inbound_rune": "0",
           "status": "Available",
@@ -480,7 +480,7 @@
           ],
           "coins": [
             {
-              "amount": "100007000",
+              "amount": "100017100",
               "asset": "BTC.BTC",
               "decimals": "8"
             },
@@ -495,7 +495,7 @@
               "decimals": "6"
             }
           ],
-          "inbound_tx_count": "5",
+          "inbound_tx_count": "6",
           "membership": [
             "tthorpub1addwnpepqfshsq2y6ejy2ysxmq4gj8n8mzuzyulk9wh4n946jv5w2vpwdn2yuyp6sp4"
           ],
@@ -536,5 +536,5 @@
     },
     "version": {}
   },
-  "initial_height": "9"
+  "initial_height": "10"
 }

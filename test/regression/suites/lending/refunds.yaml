@@ -49,9 +49,14 @@ endpoint: http://localhost:1317/thorchain/pool/THOR.ETH
 asserts:
   - .status == "Available"
 ---
+type: check
+endpoint: http://localhost:1317/thorchain/inbound_addresses
+asserts:
+  - .[]|select(.chain == "BTC")|.outbound_fee == "14000" # 2x estimated gas (7000 satoshi)
+---
 ########################################################################################
-# small amount should refund and not result in stuck funds
-# NOTE: less than 2x gas + 1 will still get stuck (same as other transaction types)
+# small amount should refund and not result in swallowed funds
+# NOTE: less than outbound fee + 1 will be swallowed (same as other transaction types)
 ########################################################################################
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
@@ -62,12 +67,7 @@ txs:
       from_address: {{ addr_btc_fox }}
       to_address: {{ addr_btc_dog }}
       coins:
-        # TODO:
-        # 1. Update loan quotes to fail if collateral is less than 3x max gas since to
-        # avoid cases where there is not enough to even refund.
-        # 2. Less that this amount results in an over-solvent vault which breaks the
-        # invariant.
-        - amount: "14001" # 2x max gas + 1 sat
+        - amount: "14001" # outbound fee (2x estimated gas) + 1 sat
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -85,6 +85,10 @@ type: check
 endpoint: http://localhost:1317/thorchain/queue/outbound
 asserts:
   - .|length == 1
+  - .[0].coin.asset == "BTC.BTC"
+  - .[0].coin.amount == "1" # The 1 satoshi over the outbound fee
+  - .[0].max_gas[0].asset == "BTC.BTC"
+  - .[0].max_gas[0].amount == "10500" # 1.5x estimated gas (7000 satoshi)
 ---
 type: tx-observed-out
 signer: {{ addr_thor_dog }}
@@ -199,3 +203,46 @@ type: check
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 0
+---
+########################################################################################
+# small amount too small for refund should be added to its pool,
+# without breaking the vault-pool amounts invariant
+########################################################################################
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 5 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "10100" # Lower than outbound fee or max_gas, though still over dust threshold
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:ETH.ETH:{{ addr_eth_fox }}"
+    block_height: 1
+    finalise_height: 1
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+type: check
+endpoint: http://localhost:1317/thorchain/blockevents
+asserts:
+  - '[.end[]|select(.type == "refund")]|length == 1'
+  - .end[]|select(.type == "refund")|.from == "{{ addr_btc_fox }}"
+  - .end[]|select(.type == "refund")|.reason|startswith("fail swap, not enough fee; fail to refund (10100 BTC.BTC)")
+  - .|[.end[]|select(.type=="donate")]|length == 1
+  - .end[]|select(.type=="donate")|.memo == "loan+:ETH.ETH:0xe3c64974c78f5693bd2bc68b3221d58df5c6e877:0::0:::0"
+  - .end[]|select(.type=="donate")|.coin == "10100 BTC.BTC" # Since added to the pool, the vault-pool invariant isn't broken
+  
