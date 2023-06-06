@@ -120,6 +120,36 @@ func (h LoanRepaymentHandler) handle(ctx cosmos.Context, msg MsgLoanRepayment) e
 	}
 }
 
+func (h LoanRepaymentHandler) repay(ctx cosmos.Context, msg MsgLoanRepayment) error {
+	version := h.mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.111.0")):
+		return h.repayV111(ctx, msg)
+	case version.GTE(semver.MustParse("1.110.0")):
+		return h.repayV110(ctx, msg)
+	case version.GTE(semver.MustParse("1.108.0")):
+		return h.repayV108(ctx, msg)
+	case version.GTE(semver.MustParse("1.107.0")):
+		return h.repayV107(ctx, msg)
+	default:
+		return errBadVersion
+	}
+}
+
+func (h LoanRepaymentHandler) swap(ctx cosmos.Context, msg MsgLoanRepayment) error {
+	version := h.mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.110.0")):
+		return h.swapV110(ctx, msg)
+	case version.GTE(semver.MustParse("1.108.0")):
+		return h.swapV108(ctx, msg)
+	case version.GTE(semver.MustParse("1.107.0")):
+		return h.swapV107(ctx, msg)
+	default:
+		return errBadVersion
+	}
+}
+
 func (h LoanRepaymentHandler) handleV111(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	// inject txid into the context if unset
 	var err error
@@ -131,9 +161,9 @@ func (h LoanRepaymentHandler) handleV111(ctx cosmos.Context, msg MsgLoanRepaymen
 	// if the inbound asset is TOR, then lets repay the loan. If not, lets
 	// swap first and try again later
 	if msg.Coin.Asset.Equals(common.TOR) {
-		return h.repayV111(ctx, msg)
+		return h.repay(ctx, msg)
 	} else {
-		return h.swapV111(ctx, msg)
+		return h.swap(ctx, msg)
 	}
 }
 
@@ -230,7 +260,7 @@ func (h LoanRepaymentHandler) repayV111(ctx cosmos.Context, msg MsgLoanRepayment
 	return nil
 }
 
-func (h LoanRepaymentHandler) swapV111(ctx cosmos.Context, msg MsgLoanRepayment) error {
+func (h LoanRepaymentHandler) swapV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	lendAddr, err := h.mgr.Keeper().GetModuleAddress(LendingName)
 	if err != nil {
 		ctx.Logger().Error("fail to get lending address", "error", err)

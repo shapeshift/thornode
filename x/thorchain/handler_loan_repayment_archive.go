@@ -174,30 +174,6 @@ func (h LoanRepaymentHandler) repayV110(ctx cosmos.Context, msg MsgLoanRepayment
 	return nil
 }
 
-func (h LoanRepaymentHandler) swapV110(ctx cosmos.Context, msg MsgLoanRepayment) error {
-	lendAddr, err := h.mgr.Keeper().GetModuleAddress(LendingName)
-	if err != nil {
-		ctx.Logger().Error("fail to get lending address", "error", err)
-		return err
-	}
-
-	txID, ok := ctx.Value(constants.CtxLoanTxID).(common.TxID)
-	if !ok {
-		return fmt.Errorf("fail to get txid")
-	}
-
-	memo := fmt.Sprintf("loan-:%s:%s:%s", msg.CollateralAsset, msg.Owner, msg.MinOut)
-	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
-	tx := common.NewTx(txID, msg.From, lendAddr, common.NewCoins(msg.Coin), common.Gas{fakeGas}, memo)
-	swapMsg := NewMsgSwap(tx, common.TOR, lendAddr, cosmos.ZeroUint(), lendAddr, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
-	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
-		ctx.Logger().Error("fail to add swap to queue", "error", err)
-		return err
-	}
-
-	return nil
-}
-
 func (h LoanRepaymentHandler) handleV108(ctx cosmos.Context, msg MsgLoanRepayment) error {
 	// inject txid into the context if unset
 	var err error
