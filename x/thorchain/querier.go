@@ -604,11 +604,6 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	}
 	bp.Adjust(mgr.GetVersion(), nodeAcc.Bond)
 
-	active, err := mgr.Keeper().ListActiveValidators(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get all active node account: %w", err)
-	}
-
 	result := NewQueryNodeAccount(nodeAcc)
 	result.PeerID = getPeerIDFromPubKey(nodeAcc.PubKeySet.Secp256k1)
 	result.SlashPoints = slashPts
@@ -640,8 +635,7 @@ func queryNode(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 			return nil, fmt.Errorf("no active vaults")
 		}
 
-		bondHardCap := getHardBondCap(active)
-		totalEffectiveBond, err := getTotalEffectiveBond(ctx, mgr, bondHardCap)
+		totalEffectiveBond, bondHardCap, err := getTotalEffectiveBond(ctx, mgr.Keeper())
 		if err != nil {
 			return nil, fmt.Errorf("fail to get total effective bond: %w", err)
 		}
@@ -727,38 +721,12 @@ func getNodeCurrentRewards(ctx cosmos.Context, mgr *Mgrs, nodeAcc NodeAccount, l
 	return reward, nil
 }
 
-// Calculates total "effective bond" - the total bond when taking into account the
-// Bond-weighted hard-cap
-func getTotalEffectiveBond(ctx cosmos.Context, mgr *Mgrs, bondHardCap cosmos.Uint) (cosmos.Uint, error) {
-	activeNodes, err := mgr.Keeper().ListValidatorsByStatus(ctx, NodeActive)
-	if err != nil {
-		return cosmos.ZeroUint(), fmt.Errorf("fail to get active nodes: %w", err)
-	}
-
-	totalEffectiveBond := cosmos.ZeroUint()
-	for _, item := range activeNodes {
-		b := item.Bond
-		if item.Bond.GT(bondHardCap) {
-			b = bondHardCap
-		}
-
-		totalEffectiveBond = totalEffectiveBond.Add(b)
-	}
-
-	return totalEffectiveBond, nil
-}
-
 // queryNodes return all the nodes that has bond
 // /thorchain/nodes
 func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	nodeAccounts, err := mgr.Keeper().ListValidatorsWithBond(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get node accounts: %w", err)
-	}
-
-	active, err := mgr.Keeper().ListActiveValidators(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("fail to get all active node account: %w", err)
 	}
 
 	network, err := mgr.Keeper().GetNetwork(ctx)
@@ -774,8 +742,7 @@ func queryNodes(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *M
 		return nil, fmt.Errorf("no active vaults")
 	}
 
-	bondHardCap := getHardBondCap(active)
-	totalEffectiveBond, err := getTotalEffectiveBond(ctx, mgr, bondHardCap)
+	totalEffectiveBond, bondHardCap, err := getTotalEffectiveBond(ctx, mgr.Keeper())
 	if err != nil {
 		return nil, fmt.Errorf("fail to get total effective bond: %w", err)
 	}
