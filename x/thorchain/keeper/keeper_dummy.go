@@ -571,6 +571,28 @@ func (k KVStoreDummy) GetConfigInt64(ctx cosmos.Context, key constants.ConstantN
 	return -1
 }
 
+func (k KVStoreDummy) IsTradingHalt(ctx cosmos.Context, msg cosmos.Msg) bool            { return false }
+func (k KVStoreDummy) IsGlobalTradingHalted(ctx cosmos.Context) bool                    { return false }
+func (k KVStoreDummy) IsChainTradingHalted(ctx cosmos.Context, chain common.Chain) bool { return false }
+func (k KVStoreDummy) IsChainHalted(ctx cosmos.Context, chain common.Chain) bool        { return false }
+func (k KVStoreDummy) IsLPPaused(ctx cosmos.Context, chain common.Chain) bool           { return false }
+
+func (k KVStoreDummy) GetAnchors(ctx cosmos.Context, asset common.Asset) []common.Asset { return nil }
+func (k KVStoreDummy) AnchorMedian(ctx cosmos.Context, assets []common.Asset) cosmos.Uint {
+	return cosmos.ZeroUint()
+}
+func (k KVStoreDummy) DollarInRune(ctx cosmos.Context) cosmos.Uint { return cosmos.ZeroUint() }
+
+func (k KVStoreDummy) GetNativeTxFee(ctx cosmos.Context) cosmos.Uint   { return cosmos.ZeroUint() }
+func (k KVStoreDummy) GetOutboundTxFee(ctx cosmos.Context) cosmos.Uint { return cosmos.ZeroUint() }
+func (k KVStoreDummy) GetTHORNameRegisterFee(ctx cosmos.Context) cosmos.Uint {
+	return cosmos.ZeroUint()
+}
+
+func (k KVStoreDummy) GetTHORNamePerBlockFee(ctx cosmos.Context) cosmos.Uint {
+	return cosmos.ZeroUint()
+}
+
 // a mock cosmos.Iterator implementation for testing purposes
 type DummyIterator struct {
 	cosmos.Iterator

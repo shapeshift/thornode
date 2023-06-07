@@ -47,6 +47,8 @@ func (h WithdrawLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos
 func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.validateV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.108.0")):
 		return h.validateV108(ctx, msg)
 	case version.GTE(semver.MustParse("1.96.0")):
@@ -58,7 +60,7 @@ func (h WithdrawLiquidityHandler) validate(ctx cosmos.Context, msg MsgWithdrawLi
 	}
 }
 
-func (h WithdrawLiquidityHandler) validateV108(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
+func (h WithdrawLiquidityHandler) validateV112(ctx cosmos.Context, msg MsgWithdrawLiquidity) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return errWithdrawFailValidation
 	}
@@ -82,7 +84,7 @@ func (h WithdrawLiquidityHandler) validateV108(ctx cosmos.Context, msg MsgWithdr
 		return fmt.Errorf("cannot specify a withdrawal asset while the pool is not available")
 	}
 
-	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
+	if h.mgr.Keeper().IsChainHalted(ctx, msg.Asset.Chain) || h.mgr.Keeper().IsLPPaused(ctx, msg.Asset.Chain) {
 		return fmt.Errorf("unable to withdraw liquidity while chain is halted or paused LP actions")
 	}
 

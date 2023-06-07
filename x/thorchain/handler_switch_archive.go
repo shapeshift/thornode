@@ -156,3 +156,15 @@ func (h SwitchHandler) calcCoinV56(ctx cosmos.Context, in cosmos.Uint) cosmos.Ui
 	}
 	return in
 }
+
+func (h SwitchHandler) handleV108(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
+	if isChainHalted(ctx, h.mgr, common.THORChain) {
+		return nil, fmt.Errorf("unable to switch while THORChain is halted")
+	}
+
+	if !msg.Tx.Coins[0].IsNative() && msg.Tx.Coins[0].Asset.IsRune() {
+		return h.toNativeV93(ctx, msg)
+	}
+
+	return nil, fmt.Errorf("only non-native rune can be 'switched' to native rune")
+}

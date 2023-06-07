@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -44,13 +43,16 @@ func (h IPAddressHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result,
 
 func (h IPAddressHandler) validate(ctx cosmos.Context, msg MsgSetIPAddress) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.1.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.validateV112(ctx, msg)
+	case version.GTE(semver.MustParse("0.1.0")):
 		return h.validateV1(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h IPAddressHandler) validateV1(ctx cosmos.Context, msg MsgSetIPAddress) error {
+func (h IPAddressHandler) validateV112(ctx cosmos.Context, msg MsgSetIPAddress) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -69,11 +71,8 @@ func (h IPAddressHandler) validateV1(ctx cosmos.Context, msg MsgSetIPAddress) er
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
-	cost, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
-	if err != nil || cost < 0 {
-		cost = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
-	}
-	if nodeAccount.Bond.LT(cosmos.NewUint(uint64(cost))) {
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
+	if nodeAccount.Bond.LT(cost) {
 		return cosmos.ErrUnauthorized("not enough bond")
 	}
 
@@ -83,25 +82,24 @@ func (h IPAddressHandler) validateV1(ctx cosmos.Context, msg MsgSetIPAddress) er
 func (h IPAddressHandler) handle(ctx cosmos.Context, msg MsgSetIPAddress) error {
 	ctx.Logger().Info("handleMsgSetIPAddress request", "ip address", msg.IPAddress)
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.57.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.handleV112(ctx, msg)
+	case version.GTE(semver.MustParse("0.57.0")):
 		return h.handleV57(ctx, msg)
 	}
 	ctx.Logger().Error(errInvalidVersion.Error())
 	return errBadVersion
 }
 
-func (h IPAddressHandler) handleV57(ctx cosmos.Context, msg MsgSetIPAddress) error {
+func (h IPAddressHandler) handleV112(ctx cosmos.Context, msg MsgSetIPAddress) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
 		return cosmos.ErrUnauthorized(fmt.Sprintf("unable to find account: %s", msg.Signer))
 	}
 
-	c, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
-	if err != nil || c < 0 {
-		c = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
-	}
-	cost := cosmos.NewUint(uint64(c))
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
 	if cost.GT(nodeAccount.Bond) {
 		cost = nodeAccount.Bond
 	}

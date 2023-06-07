@@ -115,7 +115,7 @@ func (vm *NetworkMgrV112) suspendVirtualPool(ctx cosmos.Context, mgr Manager, de
 }
 
 func (vm *NetworkMgrV112) calcAnchor(ctx cosmos.Context, mgr Manager, asset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
-	anchors := getAnchors(ctx, mgr.Keeper(), asset)
+	anchors := mgr.Keeper().GetAnchors(ctx, asset)
 
 	maxAnchorBlocks := mgr.Keeper().GetConfigInt64(ctx, constants.MaxAnchorBlocks)
 
@@ -125,7 +125,7 @@ func (vm *NetworkMgrV112) calcAnchor(ctx cosmos.Context, mgr Manager, asset comm
 	slippageCollector := make([]cosmos.Uint, 0)
 	for _, anchorAsset := range anchors {
 		// skip assets where trading isn't occurring (hence price is likely not correct)
-		if isGlobalTradingHalted(ctx, mgr) || isChainTradingHalted(ctx, mgr, anchorAsset.Chain) {
+		if mgr.Keeper().IsGlobalTradingHalted(ctx) || mgr.Keeper().IsChainTradingHalted(ctx, anchorAsset.Chain) {
 			continue
 		}
 		if !mgr.Keeper().PoolExist(ctx, anchorAsset) {
@@ -155,8 +155,8 @@ func (vm *NetworkMgrV112) calcAnchor(ctx cosmos.Context, mgr Manager, asset comm
 		slippageCollector = append(slippageCollector, cosmos.NewUint(slip.Uint64()))
 	}
 
-	slippage := getMedian(slippageCollector)
-	price := anchorMedian(ctx, mgr, availableAnchors)
+	slippage := common.GetMedianUint(slippageCollector)
+	price := mgr.Keeper().AnchorMedian(ctx, availableAnchors)
 
 	return totalRuneDepth, price, slippage
 }
@@ -715,7 +715,7 @@ func (mv *NetworkMgrV112) fetchPOLPools(ctx cosmos.Context, mgr Manager) Pools {
 			continue
 		}
 
-		if isChainTradingHalted(ctx, mgr, pool.Asset.GetChain()) || isGlobalTradingHalted(ctx, mgr) {
+		if mgr.Keeper().IsChainTradingHalted(ctx, pool.Asset.GetChain()) || mgr.Keeper().IsGlobalTradingHalted(ctx) {
 			continue
 		}
 

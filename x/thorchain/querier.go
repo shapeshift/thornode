@@ -515,7 +515,7 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 		chains = common.Chains{common.RuneAsset().Chain}
 	}
 
-	isGlobalTradingPaused := isGlobalTradingHalted(ctx, mgr)
+	isGlobalTradingPaused := mgr.Keeper().IsGlobalTradingHalted(ctx)
 
 	for _, chain := range chains {
 		// tx send to thorchain doesn't need an address , thus here skip it
@@ -523,8 +523,8 @@ func queryInboundAddresses(ctx cosmos.Context, path []string, req abci.RequestQu
 			continue
 		}
 
-		isChainTradingPaused := isChainTradingHalted(ctx, mgr, chain)
-		isChainLpPaused := isLPPausedV1(ctx, chain, mgr)
+		isChainTradingPaused := mgr.Keeper().IsChainTradingHalted(ctx, chain)
+		isChainLpPaused := mgr.Keeper().IsLPPaused(ctx, chain)
 
 		vaultAddress, err := vault.PubKey.GetAddress(chain)
 		if err != nil {

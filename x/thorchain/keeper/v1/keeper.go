@@ -475,3 +475,23 @@ func (k KVStore) HasCoins(ctx cosmos.Context, addr cosmos.AccAddress, coins cosm
 func (k KVStore) GetAccount(ctx cosmos.Context, addr cosmos.AccAddress) cosmos.Account {
 	return k.accountKeeper.GetAccount(ctx, addr)
 }
+
+func (k KVStore) GetNativeTxFee(ctx cosmos.Context) cosmos.Uint {
+	fee := k.GetConfigInt64(ctx, constants.NativeTransactionFee)
+	return cosmos.NewUint(uint64(fee))
+}
+
+func (k KVStore) GetOutboundTxFee(ctx cosmos.Context) cosmos.Uint {
+	fee := k.GetConfigInt64(ctx, constants.OutboundTransactionFee)
+	return cosmos.NewUint(uint64(fee))
+}
+
+func (k KVStore) GetTHORNameRegisterFee(ctx cosmos.Context) cosmos.Uint {
+	fee := k.GetConstants().GetInt64Value(constants.TNSRegisterFee)
+	return cosmos.NewUint(uint64(fee))
+}
+
+func (k KVStore) GetTHORNamePerBlockFee(ctx cosmos.Context) cosmos.Uint {
+	fee := k.GetConstants().GetInt64Value(constants.TNSFeePerBlock)
+	return cosmos.NewUint(uint64(fee))
+}

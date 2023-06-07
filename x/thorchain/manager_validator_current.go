@@ -94,7 +94,7 @@ func (vm *ValidatorMgrV112) BeginBlock(ctx cosmos.Context, mgr Manager, existing
 		activeChains = activeChains.Distinct()
 
 		for _, chain := range activeChains {
-			shouldChurn = !isChainHalted(ctx, mgr, chain)
+			shouldChurn = !mgr.Keeper().IsChainHalted(ctx, chain)
 			if !shouldChurn {
 				ctx.Logger().Info("Skipping node account rotation for halted chain", "chain", chain)
 				break

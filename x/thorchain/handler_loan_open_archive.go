@@ -536,3 +536,150 @@ func (h LoanOpenHandler) getTotalLiquidityRUNELoanPoolsV107(ctx cosmos.Context) 
 	}
 	return total, nil
 }
+
+func (h LoanOpenHandler) openLoanV111(ctx cosmos.Context, msg MsgLoanOpen) error {
+	var err error
+	zero := cosmos.ZeroUint()
+
+	// convert collateral asset back to layer1 asset
+	// NOTE: if the symbol of a derived asset isn't the chain, this won't work
+	// (ie TERRA.LUNA)
+	msg.CollateralAsset.Chain, err = common.NewChain(msg.CollateralAsset.Symbol.String())
+	if err != nil {
+		return err
+	}
+
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.CollateralAsset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool", "error", err)
+		return err
+	}
+	loan, err := h.mgr.Keeper().GetLoan(ctx, msg.CollateralAsset, msg.Owner)
+	if err != nil {
+		ctx.Logger().Error("fail to get loan", "error", err)
+		return err
+	}
+	totalCollateral, err := h.mgr.Keeper().GetTotalCollateral(ctx, msg.CollateralAsset)
+	if err != nil {
+		return err
+	}
+	totalRune, err := h.getTotalLiquidityRUNELoanPools(ctx)
+	if err != nil {
+		return err
+	}
+	if totalRune.IsZero() {
+		return fmt.Errorf("no liquidity, lending unavailable")
+	}
+
+	// get configs
+	minCR := fetchConfigInt64(ctx, h.mgr, constants.MinCR)
+	maxCR := fetchConfigInt64(ctx, h.mgr, constants.MaxCR)
+	lever := fetchConfigInt64(ctx, h.mgr, constants.LendingLever)
+	enableDerived := fetchConfigInt64(ctx, h.mgr, constants.EnableDerivedAssets)
+
+	// calculate CR
+	currentRuneSupply := h.mgr.Keeper().GetTotalSupply(ctx, common.RuneAsset())
+	maxRuneSupply := fetchConfigInt64(ctx, h.mgr, constants.MaxRuneSupply)
+	if maxRuneSupply <= 0 {
+		return fmt.Errorf("no max supply set")
+	}
+	runeBurnt := common.SafeSub(cosmos.NewUint(uint64(maxRuneSupply)), currentRuneSupply)
+	totalAvailableRuneForProtocol := common.GetSafeShare(cosmos.NewUint(uint64(lever)), cosmos.NewUint(10_000), runeBurnt) // calculate how much of that rune is available for loans
+	if totalAvailableRuneForProtocol.IsZero() {
+		return fmt.Errorf("no availability (0), lending unavailable")
+	}
+	totalAvailableRuneForPool := common.GetSafeShare(pool.BalanceRune, totalRune, totalAvailableRuneForProtocol)
+	totalAvailableAssetForPool := pool.RuneValueInAsset(totalAvailableRuneForPool)
+	if totalCollateral.Add(msg.CollateralAmount).GT(totalAvailableAssetForPool) {
+		return fmt.Errorf("no availability (%d/%d), lending unavailable", totalCollateral.Add(msg.CollateralAmount).Uint64(), totalAvailableAssetForPool.Uint64())
+	}
+	cr := h.getCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
+
+	price := DollarInRune(ctx, h.mgr).QuoUint64(constants.DollarMulti)
+	if price.IsZero() {
+		return fmt.Errorf("TOR price cannot be zero")
+	}
+
+	collateralValueInRune := pool.AssetValueInRune(msg.CollateralAmount)
+	collateralValueInTOR := collateralValueInRune.Mul(price).QuoUint64(1e8)
+	debt := collateralValueInTOR.Quo(cr).MulUint64(10_000)
+	ctx.Logger().Info("Loan Details", "collateral", common.NewCoin(msg.CollateralAsset, msg.CollateralAmount), "debt", debt.Uint64(), "rune price", price.Uint64(), "colRune", collateralValueInRune.Uint64(), "colTOR", collateralValueInTOR.Uint64())
+
+	// sanity checks
+	if debt.IsZero() {
+		return fmt.Errorf("debt cannot be zero")
+	}
+
+	// if the user has over-repayed the loan, credit the difference on the next open
+	cumulativeDebt := debt
+	if loan.DebtDown.GT(loan.DebtUp) {
+		cumulativeDebt = cumulativeDebt.Add(loan.DebtDown.Sub(loan.DebtUp))
+	}
+
+	// update Loan record
+	loan.DebtUp = loan.DebtUp.Add(cumulativeDebt)
+	loan.CollateralUp = loan.CollateralUp.Add(msg.CollateralAmount)
+	loan.LastOpenHeight = ctx.BlockHeight()
+
+	if msg.TargetAsset.Equals(common.TOR) && enableDerived > 0 {
+		toi := TxOutItem{
+			Chain:      msg.TargetAsset.GetChain(),
+			ToAddress:  msg.TargetAddress,
+			Coin:       common.NewCoin(common.TOR, cumulativeDebt),
+			ModuleName: ModuleName,
+		}
+		ok, err := h.mgr.TxOutStore().TryAddTxOutItem(ctx, h.mgr, toi, zero)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return errFailAddOutboundTx
+		}
+	} else {
+		txID, ok := ctx.Value(constants.CtxLoanTxID).(common.TxID)
+		if !ok {
+			return fmt.Errorf("fail to get txid")
+		}
+
+		torCoin := common.NewCoin(common.TOR, cumulativeDebt)
+
+		if err := h.mgr.Keeper().MintToModule(ctx, ModuleName, torCoin); err != nil {
+			return fmt.Errorf("fail to mint loan tor debt: %w", err)
+		}
+		mintEvt := NewEventMintBurn(MintSupplyType, torCoin.Asset.Native(), torCoin.Amount, "swap")
+		if err := h.mgr.EventMgr().EmitEvent(ctx, mintEvt); err != nil {
+			ctx.Logger().Error("fail to emit mint event", "error", err)
+		}
+
+		if err := h.mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(torCoin)); err != nil {
+			return fmt.Errorf("fail to send TOR vault funds: %w", err)
+		}
+
+		lendingAddr, err := h.mgr.Keeper().GetModuleAddress(LendingName)
+		if err != nil {
+			ctx.Logger().Error("fail to get lending address", "error", err)
+			return err
+		}
+
+		tx := common.NewTx(txID, lendingAddr, lendingAddr, common.NewCoins(torCoin), nil, "noop")
+		// we do NOT pass affiliate info here as it was already taken out on the swap of the collateral to derived asset
+		swapMsg := NewMsgSwap(tx, msg.TargetAsset, msg.TargetAddress, msg.MinOut, common.NoAddress, zero, msg.Aggregator, msg.AggregatorTargetAddress, &msg.AggregatorTargetLimit, 0, msg.Signer)
+		handler := NewSwapHandler(h.mgr)
+		if _, err := handler.Run(ctx, swapMsg); err != nil {
+			ctx.Logger().Error("fail to make second swap when opening a loan", "error", err)
+			return err
+		}
+	}
+
+	// update kvstore
+	h.mgr.Keeper().SetLoan(ctx, loan)
+	h.mgr.Keeper().SetTotalCollateral(ctx, msg.CollateralAsset, totalCollateral.Add(msg.CollateralAmount))
+
+	// emit events and metrics
+	evt := NewEventLoanOpen(msg.CollateralAmount, cr, debt, msg.CollateralAsset, msg.TargetAsset, msg.Owner)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); nil != err {
+		ctx.Logger().Error("fail to emit loan open event", "error", err)
+	}
+
+	return nil
+}

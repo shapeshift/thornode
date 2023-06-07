@@ -48,6 +48,11 @@ type Keeper interface {
 	GetConstants() constants.ConstantValues
 	GetConfigInt64(ctx cosmos.Context, key constants.ConstantName) int64
 
+	GetNativeTxFee(ctx cosmos.Context) cosmos.Uint
+	GetOutboundTxFee(ctx cosmos.Context) cosmos.Uint
+	GetTHORNameRegisterFee(ctx cosmos.Context) cosmos.Uint
+	GetTHORNamePerBlockFee(ctx cosmos.Context) cosmos.Uint
+
 	// Keeper Interfaces
 	KeeperConfig
 	KeeperPool
@@ -77,6 +82,8 @@ type Keeper interface {
 	KeeperChainContract
 	KeeperSolvencyVoter
 	KeeperTHORName
+	KeeperHalt
+	KeeperAnchors
 }
 
 type KeeperConfig interface {
@@ -333,6 +340,20 @@ type KeeperTHORName interface {
 	SetTHORName(ctx cosmos.Context, name THORName)
 	GetTHORNameIterator(ctx cosmos.Context) cosmos.Iterator
 	DeleteTHORName(ctx cosmos.Context, _ string) error
+}
+
+type KeeperHalt interface {
+	IsTradingHalt(ctx cosmos.Context, msg cosmos.Msg) bool
+	IsGlobalTradingHalted(ctx cosmos.Context) bool
+	IsChainTradingHalted(ctx cosmos.Context, chain common.Chain) bool
+	IsChainHalted(ctx cosmos.Context, chain common.Chain) bool
+	IsLPPaused(ctx cosmos.Context, chain common.Chain) bool
+}
+
+type KeeperAnchors interface {
+	GetAnchors(ctx cosmos.Context, asset common.Asset) []common.Asset
+	AnchorMedian(ctx cosmos.Context, assets []common.Asset) cosmos.Uint
+	DollarInRune(ctx cosmos.Context) cosmos.Uint
 }
 
 // NewKVStore creates new instances of the thorchain Keeper

@@ -48,6 +48,10 @@ func (k *TestSetNodeKeysKeeper) SendFromModuleToModule(ctx cosmos.Context, from,
 	return nil
 }
 
+func (k *TestSetNodeKeysKeeper) GetNativeTxFee(ctx cosmos.Context) cosmos.Uint {
+	return cosmos.NewUint(200000)
+}
+
 var _ = Suite(&HandlerSetNodeKeysSuite{})
 
 func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {

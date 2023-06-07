@@ -44,6 +44,8 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.validateV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.99.0")):
 		return h.validateV99(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
@@ -61,13 +63,13 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	}
 }
 
-func (h SwapHandler) validateV99(ctx cosmos.Context, msg MsgSwap) error {
+func (h SwapHandler) validateV112(ctx cosmos.Context, msg MsgSwap) error {
 	if err := msg.ValidateBasicV63(); err != nil {
 		return err
 	}
 
 	target := msg.TargetAsset
-	if isTradingHalt(ctx, &msg, h.mgr) {
+	if h.mgr.Keeper().IsTradingHalt(ctx, &msg) {
 		return errors.New("trading is halted, can't process swap")
 	}
 	if target.IsDerivedAsset() || msg.Tx.Coins[0].Asset.IsDerivedAsset() {

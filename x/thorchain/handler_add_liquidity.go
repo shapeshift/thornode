@@ -173,7 +173,7 @@ func (h AddLiquidityHandler) validateV112(ctx cosmos.Context, msg MsgAddLiquidit
 		return errInvalidPoolStatus
 	}
 
-	if isChainHalted(ctx, h.mgr, msg.Asset.Chain) || isLPPaused(ctx, msg.Asset.Chain, h.mgr) {
+	if h.mgr.Keeper().IsChainHalted(ctx, msg.Asset.Chain) || h.mgr.Keeper().IsLPPaused(ctx, msg.Asset.Chain) {
 		return fmt.Errorf("unable to add liquidity while chain has paused LP actions")
 	}
 

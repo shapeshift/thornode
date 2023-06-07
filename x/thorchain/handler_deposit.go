@@ -10,7 +10,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -60,6 +59,8 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	ctx.Logger().Info("receive MsgDeposit", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.handleV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.108.0")):
 		return h.handleV108(ctx, msg)
 	case version.GTE(semver.MustParse("1.105.0")):
@@ -74,16 +75,13 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	return nil, errInvalidVersion
 }
 
-func (h DepositHandler) handleV108(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
-	if isChainHalted(ctx, h.mgr, common.THORChain) {
+func (h DepositHandler) handleV112(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+	if h.mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
 		return nil, fmt.Errorf("unable to use MsgDeposit while THORChain is halted")
 	}
 
-	nativeTxFee, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
-	if err != nil || nativeTxFee < 0 {
-		nativeTxFee = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
-	}
-	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeTxFee)))
+	nativeTxFee := h.mgr.Keeper().GetNativeTxFee(ctx)
+	gas := common.NewCoin(common.RuneNative, nativeTxFee)
 	gasFee, err := gas.Native()
 	if err != nil {
 		return nil, fmt.Errorf("fail to get gas fee: %w", err)
@@ -179,7 +177,7 @@ func (h DepositHandler) handleV108(ctx cosmos.Context, msg MsgDeposit) (*cosmos.
 	_, isSwap := m.(*MsgSwap)
 	_, isAddLiquidity := m.(*MsgAddLiquidity)
 	if isSwap || isAddLiquidity {
-		if isTradingHalt(ctx, m, h.mgr) || h.mgr.Keeper().RagnarokInProgress(ctx) {
+		if h.mgr.Keeper().IsTradingHalt(ctx, m) || h.mgr.Keeper().RagnarokInProgress(ctx) {
 			if txIn.Tx.Coins.IsEmpty() {
 				return &cosmos.Result{}, nil
 			}

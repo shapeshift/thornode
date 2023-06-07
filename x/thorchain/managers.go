@@ -325,6 +325,8 @@ func GetKeeper(version semver.Version, cdc codec.BinaryCodec, coinKeeper bankkee
 func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, error) {
 	constAccessor := constants.GetConstantValues(version)
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return newGasMgrV112(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.109.0")):
 		return newGasMgrV109(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.108.0")):
@@ -355,6 +357,8 @@ func GetEventManager(version semver.Version) (EventManager, error) {
 func GetTxOutStore(version semver.Version, keeper keeper.Keeper, eventMgr EventManager, gasManager GasManager) (TxOutStore, error) {
 	constAccessor := constants.GetConstantValues(version)
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return newTxOutStorageV112(keeper, constAccessor, eventMgr, gasManager), nil
 	case version.GTE(semver.MustParse("1.109.0")):
 		return newTxOutStorageV109(keeper, constAccessor, eventMgr, gasManager), nil
 	case version.GTE(semver.MustParse("1.108.0")):
@@ -518,6 +522,8 @@ func GetOrderBook(version semver.Version, keeper keeper.Keeper) (OrderBook, erro
 // GetSlasher return an implementation of Slasher
 func GetSlasher(version semver.Version, keeper keeper.Keeper, eventMgr EventManager) (Slasher, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return newSlasherV112(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.109.0")):
 		return newSlasherV109(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.108.0")):
@@ -541,7 +547,10 @@ func GetSlasher(version semver.Version, keeper keeper.Keeper, eventMgr EventMana
 
 // GetYggManager return an implementation of YggManager
 func GetYggManager(version semver.Version, keeper keeper.Keeper) (YggManager, error) {
-	if version.GTE(semver.MustParse("0.79.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return newYggMgrV112(keeper), nil
+	case version.GTE(semver.MustParse("0.79.0")):
 		return newYggMgrV79(keeper), nil
 	}
 	return nil, errInvalidVersion

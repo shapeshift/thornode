@@ -9,7 +9,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -22,6 +21,7 @@ func NewSendHandler(mgr Manager) BaseHandler[*MsgSend] {
 			Register("1.87.0", MsgSendValidateV87).
 			Register("0.1.0", MsgSendValidateV1),
 		handlers: NewHandlers[*MsgSend]().
+			Register("1.112.0", MsgSendHandleV112).
 			Register("1.108.0", MsgSendHandleV108).
 			Register("0.1.0", MsgSendHandleV1),
 	}
@@ -47,17 +47,13 @@ func MsgSendLogger(ctx cosmos.Context, msg *MsgSend) {
 	ctx.Logger().Info("receive MsgSend", "from", msg.FromAddress, "to", msg.ToAddress, "coins", msg.Amount)
 }
 
-func MsgSendHandleV108(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
-	if isChainHalted(ctx, mgr, common.THORChain) {
+func MsgSendHandleV112(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
+	if mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
 		return nil, fmt.Errorf("unable to use MsgSend while THORChain is halted")
 	}
 
-	nativeTxFee, err := mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
-	if err != nil || nativeTxFee < 0 {
-		nativeTxFee = mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
-	}
-
-	gas := common.NewCoin(common.RuneNative, cosmos.NewUint(uint64(nativeTxFee)))
+	nativeTxFee := mgr.Keeper().GetNativeTxFee(ctx)
+	gas := common.NewCoin(common.RuneNative, nativeTxFee)
 	gasFee, err := gas.Native()
 	if err != nil {
 		return nil, ErrInternal(err, "fail to get gas fee")

@@ -85,6 +85,8 @@ func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
 	ctx.Logger().Info("handleMsgMimir request", "node", msg.Signer, "key", msg.Key, "value", msg.Value)
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.handleV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.92.0")):
 		return h.handleV92(ctx, msg)
 	case version.GTE(semver.MustParse("1.87.0")):
@@ -96,7 +98,7 @@ func (h MimirHandler) handle(ctx cosmos.Context, msg MsgMimir) error {
 	return errBadVersion
 }
 
-func (h MimirHandler) handleV92(ctx cosmos.Context, msg MsgMimir) error {
+func (h MimirHandler) handleV112(ctx cosmos.Context, msg MsgMimir) error {
 	// Get the current Mimir key value if it exists.
 	currentMimirValue, _ := h.mgr.Keeper().GetMimir(ctx, msg.Key)
 	// Here, an error is assumed to mean the Mimir key is currently unset.
@@ -142,14 +144,7 @@ func (h MimirHandler) handleV92(ctx cosmos.Context, msg MsgMimir) error {
 			ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
 			return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 		}
-		c, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
-		if err != nil {
-			ctx.Logger().Error("fail to get mimir", "error", err)
-		}
-		if c < 0 {
-			c = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
-		}
-		cost := cosmos.NewUint(uint64(c))
+		cost := h.mgr.Keeper().GetNativeTxFee(ctx)
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 		if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 			ctx.Logger().Error("fail to save node account", "error", err)

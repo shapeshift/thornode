@@ -78,6 +78,8 @@ func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	ctx.Logger().Info("handleMsgSwitch request", "destination address", msg.Destination.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.handleV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.108.0")):
 		return h.handleV108(ctx, msg)
 	case version.GTE(semver.MustParse("1.93.0")):
@@ -91,8 +93,8 @@ func (h SwitchHandler) handle(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result
 	}
 }
 
-func (h SwitchHandler) handleV108(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
-	if isChainHalted(ctx, h.mgr, common.THORChain) {
+func (h SwitchHandler) handleV112(ctx cosmos.Context, msg MsgSwitch) (*cosmos.Result, error) {
+	if h.mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
 		return nil, fmt.Errorf("unable to switch while THORChain is halted")
 	}
 
