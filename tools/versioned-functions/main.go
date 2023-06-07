@@ -34,13 +34,13 @@ func init() {
 
 var reVersionedName = regexp.MustCompile(`.*V([0-9]+)$`)
 
-func isVersionedFunction(node ast.Node, fset *token.FileSet) bool {
+func isVersionedFunction(node ast.Node, fset *token.FileSet) (bool, int) {
 	n, ok := node.(*ast.FuncDecl)
 	var version string
 
 	switch {
 	case !ok:
-		return false
+		return false, 0
 	case !reVersionedName.MatchString(n.Name.Name):
 		// search receiever for a versioned struct name
 		if n.Recv != nil {
@@ -57,16 +57,16 @@ func isVersionedFunction(node ast.Node, fset *token.FileSet) bool {
 
 		// if version was not found in receivers it is not versioned
 		if version == "" {
-			return false
+			return false, 0
 		}
+
 	default:
 		// extract the version from the function name
 		version = reVersionedName.FindStringSubmatch(n.Name.Name)[1]
 	}
 
-	// check if the version does not equal the current version
 	fnVersion, _ := strconv.Atoi(version)
-	return fnVersion != *flagVersion
+	return true, fnVersion
 }
 
 func hasBuildFlags(file *ast.File) bool {
@@ -143,11 +143,8 @@ func main() {
 					}
 				}
 
-				// record all versioned functions
-				if isVersionedFunction(node, fset) {
-					fnsMap[node.Pos()] = node
-
-					// dedupe by function receiver and body
+				isVersioned, version := isVersionedFunction(node, fset)
+				if isVersioned {
 					fn, ok := node.(*ast.FuncDecl)
 					if !ok {
 						panic("unreachable")
@@ -162,9 +159,16 @@ func main() {
 							printer.Fprint(fnHash, fset, r.Type)
 						}
 					}
-					name = append(name, fn.Name.Name)
 					printer.Fprint(fnHash, fset, fn.Body)
+
+					// dedupe by function receiver and body
+					name = append(name, fn.Name.Name)
 					fnsDedupe[fnHash.Sum64()] = append(fnsDedupe[fnHash.Sum64()], strings.Join(name, "."))
+
+					// record all versioned functions outside current version
+					if version != *flagVersion {
+						fnsMap[node.Pos()] = node
+					}
 				}
 				return true
 			})
@@ -176,7 +180,7 @@ func main() {
 		if len(fns) > 1 {
 			fmt.Fprintf(os.Stderr, "Error: duplicate versioned functions: %s\n", strings.Join(fns, ", "))
 
-			// abort here after duplicate functions are removed from develop
+			// TODO: abort here after duplicate functions are removed from develop
 			// os.Exit(1)
 		}
 	}
