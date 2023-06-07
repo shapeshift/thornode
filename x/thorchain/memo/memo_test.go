@@ -116,7 +116,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.IsInternal(), Equals, false)
 	c.Check(memo.IsOutbound(), Equals, false)
 
-	memo, err = ParseMemoWithTHORNames(ctx, k, "=:"+common.RuneAsset().String()+":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:870000000")
+	memo, err = ParseMemoWithTHORNames(ctx, k, "=:"+common.RuneAsset().String()+":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:87e7")
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
@@ -222,11 +222,11 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.IsInternal(), Equals, false)
 	c.Check(memo.IsOutbound(), Equals, false)
 
-	memo, err = ParseMemoWithTHORNames(ctx, k, "$+:BTC.BTC:bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej:45:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:1000:aggie:aggtar:55")
+	memo, err = ParseMemoWithTHORNames(ctx, k, "$+:BTC.BTC:bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej:45e3:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:1000:aggie:aggtar:55")
 	c.Assert(err, IsNil)
 	m, ok := memo.(LoanOpenMemo)
 	c.Assert(ok, Equals, true)
-	c.Check(m.MinOut.Uint64(), Equals, uint64(45))
+	c.Check(m.MinOut.Uint64(), Equals, uint64(45000))
 	c.Check(m.TargetAddress.String(), Equals, "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
 	c.Check(m.TargetAsset.Equals(common.BTCAsset), Equals, true)
 	c.Check(m.AffiliateAddress.String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
@@ -235,7 +235,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(m.DexTargetAddress, Equals, "aggtar")
 	c.Check(m.DexTargetLimit.Uint64(), Equals, uint64(55))
 
-	memo, err = ParseMemoWithTHORNames(ctx, k, "$-:BTC.BTC:bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej:78")
+	memo, err = ParseMemoWithTHORNames(ctx, k, "$-:BTC.BTC:bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej:78e4")
 	c.Check(err, IsNil)
 	c.Check(memo.IsType(TxLoanRepayment), Equals, true)
 	c.Check(memo.IsInbound(), Equals, true)
@@ -245,7 +245,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Assert(ok, Equals, true)
 	c.Check(mLoanRepayment.Asset.Equals(common.BTCAsset), Equals, true)
 	c.Check(mLoanRepayment.Owner.String(), Equals, "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej")
-	c.Check(mLoanRepayment.MinOut.Uint64(), Equals, uint64(78))
+	c.Check(mLoanRepayment.MinOut.Uint64(), Equals, uint64(780000))
 
 	// unhappy paths
 	_, err = ParseMemoWithTHORNames(ctx, k, "")

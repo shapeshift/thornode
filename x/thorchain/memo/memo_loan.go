@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
@@ -78,7 +79,16 @@ func NewLoanOpenMemo(targetAsset common.Asset, targetAddr common.Address, minOut
 	}
 }
 
-func ParseLoanOpenMemo(ctx cosmos.Context, keeper keeper.Keeper, targetAsset common.Asset, parts []string) (LoanOpenMemo, error) {
+func ParseLoanOpenMemo(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, asset common.Asset, parts []string) (LoanOpenMemo, error) {
+	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return ParseLoanOpenMemoV112(ctx, keeper, asset, parts)
+	default:
+		return ParseLoanOpenMemoV1(ctx, keeper, asset, parts)
+	}
+}
+
+func ParseLoanOpenMemoV112(ctx cosmos.Context, keeper keeper.Keeper, targetAsset common.Asset, parts []string) (LoanOpenMemo, error) {
 	var err error
 	var targetAddress common.Address
 	affAddr := common.NoAddress
@@ -101,11 +111,10 @@ func ParseLoanOpenMemo(ctx cosmos.Context, keeper keeper.Keeper, targetAsset com
 	}
 
 	if minOutStr := getPart(parts, 3); minOutStr != "" {
-		minOutUint, err := strconv.ParseUint(minOutStr, 10, 64)
+		minOut, err = parseTradeTarget(minOutStr)
 		if err != nil {
 			return LoanOpenMemo{}, err
 		}
-		minOut = cosmos.NewUint(minOutUint)
 	}
 
 	affAddrStr := getPart(parts, 4)
@@ -166,7 +175,16 @@ func NewLoanRepaymentMemo(asset common.Asset, owner common.Address, minOut cosmo
 	}
 }
 
-func ParseLoanRepaymentMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (LoanRepaymentMemo, error) {
+func ParseLoanRepaymentMemo(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, asset common.Asset, parts []string) (LoanRepaymentMemo, error) {
+	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return ParseLoanRepaymentMemoV112(ctx, keeper, asset, parts)
+	default:
+		return ParseLoanRepaymentMemoV1(ctx, keeper, asset, parts)
+	}
+}
+
+func ParseLoanRepaymentMemoV112(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (LoanRepaymentMemo, error) {
 	var err error
 	var owner common.Address
 	minOut := cosmos.ZeroUint()
@@ -185,11 +203,10 @@ func ParseLoanRepaymentMemo(ctx cosmos.Context, keeper keeper.Keeper, asset comm
 	}
 
 	if minOutStr := getPart(parts, 3); minOutStr != "" {
-		min, err := strconv.ParseUint(minOutStr, 10, 64)
+		minOut, err = parseTradeTarget(minOutStr)
 		if err != nil {
 			return LoanRepaymentMemo{}, err
 		}
-		minOut = cosmos.NewUint(min)
 	}
 
 	return NewLoanRepaymentMemo(asset, owner, minOut), nil

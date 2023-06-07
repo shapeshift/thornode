@@ -99,6 +99,8 @@ func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset,
 		return ParseSwapMemoV1(ctx, keeper, asset, parts)
 	}
 	switch {
+	case keeper.GetVersion().GTE(semver.MustParse("1.112.0")):
+		return ParseSwapMemoV112(ctx, keeper, asset, parts)
 	case keeper.GetVersion().GTE(semver.MustParse("1.104.0")):
 		return ParseSwapMemoV104(ctx, keeper, asset, parts)
 	case keeper.GetVersion().GTE(semver.MustParse("1.98.0")):
@@ -110,7 +112,7 @@ func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset,
 	}
 }
 
-func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
+func ParseSwapMemoV112(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
 	var err error
 	var order types.OrderType
 	dexAgg := ""
@@ -139,11 +141,10 @@ func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 	// price limit can be empty , when it is empty , there is no price protection
 	slip := cosmos.ZeroUint()
 	if limitStr := getPart(parts, 3); limitStr != "" {
-		amount, err := cosmos.ParseUint(limitStr)
+		slip, err = parseTradeTarget(limitStr)
 		if err != nil {
-			return SwapMemo{}, fmt.Errorf("swap price limit:%s is invalid", limitStr)
+			return SwapMemo{}, err
 		}
-		slip = amount
 	}
 
 	affAddrStr := getPart(parts, 4)

@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 
@@ -285,9 +286,9 @@ func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 	case TxConsolidate:
 		return ParseConsolidateMemo(parts)
 	case TxLoanOpen:
-		return ParseLoanOpenMemo(cosmos.Context{}, nil, asset, parts)
+		return ParseLoanOpenMemo(cosmos.Context{}, version, nil, asset, parts)
 	case TxLoanRepayment:
-		return ParseLoanRepaymentMemo(cosmos.Context{}, nil, asset, parts)
+		return ParseLoanRepaymentMemo(cosmos.Context{}, version, nil, asset, parts)
 	default:
 		return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
 	}
@@ -348,9 +349,9 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 	case TxTHORName:
 		return ParseManageTHORNameMemo(parts)
 	case TxLoanOpen:
-		return ParseLoanOpenMemo(ctx, keeper, asset, parts)
+		return ParseLoanOpenMemo(ctx, keeper.GetVersion(), keeper, asset, parts)
 	case TxLoanRepayment:
-		return ParseLoanRepaymentMemo(ctx, keeper, asset, parts)
+		return ParseLoanRepaymentMemo(ctx, keeper.GetVersion(), keeper, asset, parts)
 	default:
 		return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
 	}
@@ -408,4 +409,15 @@ func getPart(parts []string, idx int) string {
 		return ""
 	}
 	return parts[idx]
+}
+
+func parseTradeTarget(limit string) (cosmos.Uint, error) {
+	f, _, err := big.ParseFloat(limit, 10, 0, big.ToZero)
+	if err != nil {
+		return cosmos.ZeroUint(), err
+	}
+	i := new(big.Int)
+	f.Int(i) // Note: fractional part will be discarded
+	result := cosmos.NewUintFromBigInt(i)
+	return result, nil
 }
