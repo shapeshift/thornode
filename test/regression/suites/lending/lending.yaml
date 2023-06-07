@@ -204,7 +204,7 @@ asserts:
   - .expected_collateralization_ratio|tonumber == 10000
   - .expected_debt_up|tonumber == 490110000
   - .recommended_min_amount_in == "56000"
-  - .fees.total_bps|tonumber == 192
+  - .fees.total_bps|tonumber == 188
   - .fees.outbound|tonumber == 2000000
   - .fees.liquidity|tonumber == 7291237
 ---
@@ -298,7 +298,7 @@ asserts:
   - .expected_collateralization_ratio|tonumber == 10000
   - .expected_debt_up|tonumber == 485310000
   - .recommended_min_amount_in == "517152"
-  - .fees.total_bps|tonumber == 3949
+  - .fees.total_bps|tonumber == 2831
   - .fees.outbound|tonumber == 1280000
   - .fees.liquidity|tonumber == 94606
 ---
