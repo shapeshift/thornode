@@ -203,6 +203,7 @@ asserts:
   - .expected_collateral_up|tonumber == 495049
   - .expected_collateralization_ratio|tonumber == 10000
   - .expected_debt_up|tonumber == 490110000
+  - .recommended_min_amount_in == "56000"
   - .fees.total_bps|tonumber == 192
   - .fees.outbound|tonumber == 2000000
   - .fees.liquidity|tonumber == 7291237
@@ -296,6 +297,7 @@ asserts:
   - .expected_collateral_up|tonumber == 495074
   - .expected_collateralization_ratio|tonumber == 10000
   - .expected_debt_up|tonumber == 485310000
+  - .recommended_min_amount_in == "517152"
   - .fees.total_bps|tonumber == 3949
   - .fees.outbound|tonumber == 1280000
   - .fees.liquidity|tonumber == 94606
@@ -463,7 +465,6 @@ params:
   loan_owner: {{ addr_btc_fox }}
 asserts:
   - .memo == "$-:BTC.BTC:{{ addr_btc_fox }}"
-  - .inbound_address == "{{ addr_thor_dog }}"
   - .expected_collateral_down|tonumber == 0
   - .expected_debt_down|tonumber == 495021900
   - .fees.liquidity|tonumber == 2525

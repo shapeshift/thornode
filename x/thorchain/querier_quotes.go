@@ -254,17 +254,28 @@ func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgS
 }
 
 func quoteInboundInfo(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, chain common.Chain) (address, router common.Address, confirmations int64, err error) {
-	// get the most secure vault for inbound
-	active, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
-	if err != nil {
-		return common.NoAddress, common.NoAddress, 0, err
-	}
-	constAccessor := mgr.GetConstants()
-	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
-	vault := mgr.Keeper().GetMostSecure(ctx, active, signingTransactionPeriod)
-	address, err = vault.PubKey.GetAddress(chain)
-	if err != nil {
-		return common.NoAddress, common.NoAddress, 0, err
+	// If inbound chain is THORChain there is no inbound address
+	if chain.IsTHORChain() {
+		address = common.NoAddress
+		router = common.NoAddress
+	} else {
+		// get the most secure vault for inbound
+		active, err := mgr.Keeper().GetAsgardVaultsByStatus(ctx, ActiveVault)
+		if err != nil {
+			return common.NoAddress, common.NoAddress, 0, err
+		}
+		constAccessor := mgr.GetConstants()
+		signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
+		vault := mgr.Keeper().GetMostSecure(ctx, active, signingTransactionPeriod)
+		address, err = vault.PubKey.GetAddress(chain)
+		if err != nil {
+			return common.NoAddress, common.NoAddress, 0, err
+		}
+
+		router = common.NoAddress
+		if chain.IsEVM() {
+			router = vault.GetContract(chain).Router
+		}
 	}
 
 	// estimate the inbound confirmation count blocks: ceil(amount/coinbase)
@@ -274,11 +285,6 @@ func quoteInboundInfo(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, chain comm
 		if !amount.Mod(coinbase).IsZero() {
 			confirmations++
 		}
-	}
-
-	router = common.NoAddress
-	if chain.IsEVM() {
-		router = vault.GetContract(chain).Router
 	}
 
 	return address, router, confirmations, nil
@@ -299,6 +305,52 @@ func quoteOutboundInfo(ctx cosmos.Context, mgr *Mgrs, coin common.Coin) (int64, 
 // -------------------------------------------------------------------------------------
 // Swap
 // -------------------------------------------------------------------------------------
+
+// calculateMinSwapAmount returns the recommended minimum swap amount
+// The recommended min swap amount is:
+// - MAX(outbound_fee(src_chain), outbound_fee(dest_chain)) * 4 (priced in the inbound asset)
+//
+// The reason the base value is the MAX of the outbound fees of each chain is because if the swap is refunded
+// the input amount will need to cover the outbound fee of the source chain.
+// A 4x buffer is applied because outbound fees can spike quickly, meaning the original input amount could be less than the new
+// outbound fee. If this happens and the swap is refunded, the refund will fail, and the user will lose the entire input amount.
+func calculateMinSwapAmount(ctx cosmos.Context, mgr *Mgrs, fromAsset, toAsset common.Asset) (cosmos.Uint, error) {
+	srcOutboundFee := mgr.GasMgr().GetFee(ctx, fromAsset.GetChain(), fromAsset)
+	destOutboundFee := mgr.GasMgr().GetFee(ctx, toAsset.GetChain(), toAsset)
+
+	if fromAsset.GetChain().IsTHORChain() && toAsset.GetChain().IsTHORChain() {
+		// If this is a purely THORChain swap, no need to give a 4x buffer since outbound fees do not change
+		// 2x buffer should suffice
+		return srcOutboundFee.Mul(cosmos.NewUint(2)), nil
+	}
+
+	srcPool, err := mgr.Keeper().GetPool(ctx, fromAsset.GetLayer1Asset())
+	if err != nil {
+		return cosmos.ZeroUint(), fmt.Errorf("fail to get pool for asset %s", fromAsset)
+	}
+
+	destPool, err := mgr.Keeper().GetPool(ctx, toAsset.GetLayer1Asset())
+	if err != nil {
+		return cosmos.ZeroUint(), fmt.Errorf("fail to get pool for asset %s", toAsset)
+	}
+
+	// Convert destination chain outbound fee to input asset
+	destInSrcAsset := destOutboundFee
+	if !toAsset.IsNativeRune() {
+		destInSrcAsset = destPool.AssetValueInRune(destOutboundFee)
+	}
+
+	if !fromAsset.IsNativeRune() {
+		destInSrcAsset = srcPool.RuneValueInAsset(destInSrcAsset)
+	}
+
+	minSwapAmount := srcOutboundFee
+	if destInSrcAsset.GT(srcOutboundFee) {
+		minSwapAmount = destInSrcAsset
+	}
+
+	return minSwapAmount.Mul(cosmos.NewUint(4)), nil
+}
 
 func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
 	// extract parameters
@@ -344,9 +396,26 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		if err != nil {
 			return quoteErrorResponse(fmt.Errorf("failed to get account address: %w", err))
 		}
-		err = mgr.Keeper().SendFromAccountToModule(ctx, fromAccAddress, AsgardName, common.NewCoins(common.NewCoin(fromAsset, amount)))
-		if err != nil {
-			return quoteErrorResponse(fmt.Errorf("failed to send from account to module: %w", err))
+
+		synthCoins := cosmos.NewCoins(cosmos.NewCoin(string(fromAsset.Symbol), sdk.NewInt(int64(amount.Uint64()))))
+
+		// If from_address doesn't have enough synth balance just mint required coins to Asgard so swap can be simulated.
+		// Otherwise, just send synth coins to Asgard from from_address
+		if !mgr.Keeper().HasCoins(ctx, fromAccAddress, synthCoins) {
+			err = mgr.Keeper().MintToModule(ctx, ModuleName, common.NewCoin(fromAsset, amount))
+			if err != nil {
+				return quoteErrorResponse(fmt.Errorf("failed to mint coins to module: %w", err))
+			}
+
+			err = mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, common.NewCoins(common.NewCoin(fromAsset, amount)))
+			if err != nil {
+				return quoteErrorResponse(fmt.Errorf("failed to send coins to asgard: %w", err))
+			}
+		} else {
+			err = mgr.Keeper().SendFromAccountToModule(ctx, fromAccAddress, AsgardName, common.NewCoins(common.NewCoin(fromAsset, amount)))
+			if err != nil {
+				return quoteErrorResponse(fmt.Errorf("failed to send from account to module: %w", err))
+			}
 		}
 	}
 
@@ -487,11 +556,11 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	res.Fees.Outbound = outboundFeeAmount.String()
 
 	// estimate the inbound info
-	inboundAddress, routerAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, msg.Tx.Chain)
+	inboundAddress, routerAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, fromAsset.GetChain())
 	if err != nil {
 		return quoteErrorResponse(err)
 	}
-	res.InboundAddress = inboundAddress.String()
+	res.InboundAddress = wrapString(inboundAddress.String())
 	if inboundConfirmations > 0 {
 		res.InboundConfirmationBlocks = wrapInt64(inboundConfirmations)
 		res.InboundConfirmationSeconds = wrapInt64(inboundConfirmations * msg.Tx.Chain.ApproximateBlockMilliseconds() / 1000)
@@ -517,9 +586,15 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	if !fromAsset.Chain.DustThreshold().IsZero() {
 		res.DustThreshold = wrapString(fromAsset.Chain.DustThreshold().String())
 	}
-	res.Notes = fromAsset.Chain.InboundNotes()
+
+	res.Notes = fromAsset.GetChain().InboundNotes()
 	res.Warning = quoteWarning
 	res.Expiry = time.Now().Add(quoteExpiration).Unix()
+	minSwapAmount, err := calculateMinSwapAmount(ctx, mgr, fromAsset, toAsset)
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("Failed to calculate min amount in: %s", err.Error()))
+	}
+	res.RecommendedMinAmountIn = wrapString(minSwapAmount.String())
 
 	return json.MarshalIndent(res, "", "  ")
 }
@@ -648,6 +723,7 @@ func queryQuoteSaverDeposit(ctx cosmos.Context, path []string, req abci.RequestQ
 	chain := asset.GetLayer1Asset().Chain
 	if !chain.DustThreshold().IsZero() {
 		res.DustThreshold = wrapString(chain.DustThreshold().String())
+		res.RecommendedMinAmountIn = res.DustThreshold
 	}
 	res.Notes = chain.InboundNotes()
 	res.Warning = quoteWarning
@@ -942,7 +1018,7 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 	if err != nil {
 		return quoteErrorResponse(err)
 	}
-	res.InboundAddress = inboundAddress.String()
+	res.InboundAddress = wrapString(inboundAddress.String())
 	if inboundConfirmations > 0 {
 		res.InboundConfirmationBlocks = wrapInt64(inboundConfirmations)
 		res.InboundConfirmationSeconds = wrapInt64(inboundConfirmations * asset.Chain.ApproximateBlockMilliseconds() / 1000)
@@ -1111,6 +1187,12 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 		res.Memo = wrapString(memo.String())
 	}
 
+	minLoanOpenAmount, err := calculateMinSwapAmount(ctx, mgr, asset, targetAsset)
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("Failed to calculate min amount in: %s", err.Error()))
+	}
+	res.RecommendedMinAmountIn = wrapString(minLoanOpenAmount.String())
+
 	return json.MarshalIndent(res, "", "  ")
 }
 
@@ -1215,7 +1297,7 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 	if err != nil {
 		return quoteErrorResponse(err)
 	}
-	res.InboundAddress = inboundAddress.String()
+	res.InboundAddress = wrapString(inboundAddress.String())
 	if inboundConfirmations > 0 {
 		res.InboundConfirmationBlocks = wrapInt64(inboundConfirmations)
 		res.InboundConfirmationSeconds = wrapInt64(inboundConfirmations * asset.Chain.ApproximateBlockMilliseconds() / 1000)
@@ -1368,6 +1450,12 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 		MinOut: minOut,
 	}
 	res.Memo = memo.String()
+
+	minLoanCloseAmount, err := calculateMinSwapAmount(ctx, mgr, asset, loanAsset)
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("Failed to calculate min amount in: %s", err.Error()))
+	}
+	res.RecommendedMinAmountIn = wrapString(minLoanCloseAmount.String())
 
 	return json.MarshalIndent(res, "", "  ")
 }

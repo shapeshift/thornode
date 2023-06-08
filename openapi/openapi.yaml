@@ -2619,11 +2619,14 @@ components:
           type: string
           example: "10000"
           description: Defines the minimum transaction size for the chain in base units (sats, wei, uatom). Transctions with asset amounts lower than the dust_threshold are ignored.
+        recommended_min_amount_in:
+          type: string
+          description: The recommended minimum inbound amount for this transaction type & inbound asset. Sending less than this amount could result in failed refunds.
+          example: "15000"
 
     QuoteSwapResponse:
       type: object
       required:
-        - inbound_address
         - expected_amount_out
         - outbound_delay_blocks
         - outbound_delay_seconds
@@ -2701,7 +2704,6 @@ components:
     QuoteLoanOpenResponse:
       type: object
       required:
-        - inbound_address
         - expected_amount_out
         - expected_collateralization_ratio
         - expected_collateral_up
@@ -2738,7 +2740,6 @@ components:
     QuoteLoanCloseResponse:
       type: object
       required:
-        - inbound_address
         - expected_amount_out
         - expected_collateral_down
         - expected_debt_down
