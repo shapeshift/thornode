@@ -7,7 +7,6 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -44,13 +43,16 @@ func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, e
 
 func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion) error {
 	version := h.mgr.GetVersion()
-	if version.GTE(semver.MustParse("0.80.0")) {
+	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.validateV112(ctx, msg)
+	case version.GTE(semver.MustParse("0.80.0")):
 		return h.validateV80(ctx, msg)
 	}
 	return errBadVersion
 }
 
-func (h VersionHandler) validateV80(ctx cosmos.Context, msg MsgSetVersion) error {
+func (h VersionHandler) validateV112(ctx cosmos.Context, msg MsgSetVersion) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -76,11 +78,8 @@ func (h VersionHandler) validateV80(ctx cosmos.Context, msg MsgSetVersion) error
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
-	cost, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
-	if err != nil || cost < 0 {
-		cost = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
-	}
-	if nodeAccount.Bond.LT(cosmos.NewUint(uint64(cost))) {
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
+	if nodeAccount.Bond.LT(cost) {
 		return cosmos.ErrUnauthorized("not enough bond")
 	}
 
@@ -91,6 +90,8 @@ func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion) error {
 	ctx.Logger().Info("handleMsgSetVersion request", "Version:", msg.Version)
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.handleV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.110.0")):
 		return h.handleV110(ctx, msg)
 	case version.GTE(semver.MustParse("0.57.0")):
@@ -100,7 +101,7 @@ func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion) error {
 	}
 }
 
-func (h VersionHandler) handleV110(ctx cosmos.Context, msg MsgSetVersion) error {
+func (h VersionHandler) handleV112(ctx cosmos.Context, msg MsgSetVersion) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		return cosmos.ErrUnauthorized(fmt.Errorf("unable to find account(%s):%w", msg.Signer, err).Error())
@@ -115,11 +116,7 @@ func (h VersionHandler) handleV110(ctx cosmos.Context, msg MsgSetVersion) error 
 		nodeAccount.Version = version.String()
 	}
 
-	c, err := h.mgr.Keeper().GetMimir(ctx, constants.NativeTransactionFee.String())
-	if err != nil || c < 0 {
-		c = h.mgr.GetConstants().GetInt64Value(constants.NativeTransactionFee)
-	}
-	cost := cosmos.NewUint(uint64(c))
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
 	if cost.GT(nodeAccount.Bond) {
 		cost = nodeAccount.Bond
 	}
