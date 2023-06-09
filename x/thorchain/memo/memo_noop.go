@@ -27,5 +27,5 @@ func NewNoOpMemo(action string) NoOpMemo {
 
 // ParseNoOpMemo try to parse the memo
 func ParseNoOpMemo(parts []string) (NoOpMemo, error) {
-	return NewNoOpMemo(getPart(parts, 1)), nil
+	return NewNoOpMemo(GetPart(parts, 1)), nil
 }

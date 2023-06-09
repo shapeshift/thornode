@@ -27,7 +27,7 @@ func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 	if strings.EqualFold(parts[0], "limito") || strings.EqualFold(parts[0], "lo") {
 		order = types.OrderType_limit
 	}
-	if destStr := getPart(parts, 2); destStr != "" {
+	if destStr := GetPart(parts, 2); destStr != "" {
 		if keeper == nil {
 			destination, err = common.NewAddress(destStr)
 		} else {
@@ -39,7 +39,7 @@ func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 	}
 	// price limit can be empty , when it is empty , there is no price protection
 	slip := cosmos.ZeroUint()
-	if limitStr := getPart(parts, 3); limitStr != "" {
+	if limitStr := GetPart(parts, 3); limitStr != "" {
 		amount, err := cosmos.ParseUint(limitStr)
 		if err != nil {
 			return SwapMemo{}, fmt.Errorf("swap price limit:%s is invalid", limitStr)
@@ -47,8 +47,8 @@ func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 		slip = amount
 	}
 
-	affAddrStr := getPart(parts, 4)
-	affPtsStr := getPart(parts, 5)
+	affAddrStr := GetPart(parts, 4)
+	affPtsStr := GetPart(parts, 5)
 	if affAddrStr != "" && affPtsStr != "" {
 		if keeper == nil {
 			affAddr, err = common.NewAddress(affAddrStr)
@@ -65,10 +65,10 @@ func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 		}
 	}
 
-	dexAgg = getPart(parts, 6)
-	dexTargetAddress = getPart(parts, 7)
+	dexAgg = GetPart(parts, 6)
+	dexTargetAddress = GetPart(parts, 7)
 
-	if x := getPart(parts, 8); x != "" {
+	if x := GetPart(parts, 8); x != "" {
 		dexTargetLimit, err = cosmos.ParseUint(x)
 		if err != nil {
 			ctx.Logger().Error("invalid dex target limit, ignore it", "limit", x)

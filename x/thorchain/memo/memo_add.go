@@ -69,7 +69,7 @@ func ParseAddLiquidityMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset c
 	addr := common.NoAddress
 	affAddr := common.NoAddress
 	affPts := cosmos.ZeroUint()
-	if addrStr := getPart(parts, 2); addrStr != "" {
+	if addrStr := GetPart(parts, 2); addrStr != "" {
 		if keeper == nil {
 			addr, err = common.NewAddress(addrStr)
 		} else {
@@ -80,8 +80,8 @@ func ParseAddLiquidityMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset c
 		}
 	}
 
-	affAddrStr := getPart(parts, 3)
-	affPtsStr := getPart(parts, 4)
+	affAddrStr := GetPart(parts, 3)
+	affPtsStr := GetPart(parts, 4)
 	if affAddrStr != "" && affPtsStr != "" {
 		if keeper == nil {
 			affAddr, err = common.NewAddress(affAddrStr)

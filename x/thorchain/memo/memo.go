@@ -404,7 +404,7 @@ func ParseAffiliateBasisPoints(ctx cosmos.Context, keeper keeper.Keeper, affBasi
 
 // Safe accessor for split memo parts - always returns empty
 // string for indices that are out of bounds.
-func getPart(parts []string, idx int) string {
+func GetPart(parts []string, idx int) string {
 	if len(parts) <= idx {
 		return ""
 	}

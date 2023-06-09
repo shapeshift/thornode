@@ -21,7 +21,7 @@ func ParseLoanOpenMemoV1(ctx cosmos.Context, keeper keeper.Keeper, targetAsset c
 		return LoanOpenMemo{}, fmt.Errorf("Not enough loan parameters")
 	}
 
-	destStr := getPart(parts, 2)
+	destStr := GetPart(parts, 2)
 	if keeper == nil {
 		targetAddress, err = common.NewAddress(destStr)
 	} else {
@@ -31,7 +31,7 @@ func ParseLoanOpenMemoV1(ctx cosmos.Context, keeper keeper.Keeper, targetAsset c
 		return LoanOpenMemo{}, err
 	}
 
-	if minOutStr := getPart(parts, 3); minOutStr != "" {
+	if minOutStr := GetPart(parts, 3); minOutStr != "" {
 		minOutUint, err := strconv.ParseUint(minOutStr, 10, 64)
 		if err != nil {
 			return LoanOpenMemo{}, err
@@ -39,8 +39,8 @@ func ParseLoanOpenMemoV1(ctx cosmos.Context, keeper keeper.Keeper, targetAsset c
 		minOut = cosmos.NewUint(minOutUint)
 	}
 
-	affAddrStr := getPart(parts, 4)
-	affPtsStr := getPart(parts, 5)
+	affAddrStr := GetPart(parts, 4)
+	affPtsStr := GetPart(parts, 5)
 	if affAddrStr != "" && affPtsStr != "" {
 		if keeper == nil {
 			affAddr, err = common.NewAddress(affAddrStr)
@@ -57,10 +57,10 @@ func ParseLoanOpenMemoV1(ctx cosmos.Context, keeper keeper.Keeper, targetAsset c
 		affPts = cosmos.NewUint(pts)
 	}
 
-	dexAgg = getPart(parts, 6)
-	dexTargetAddr = getPart(parts, 7)
+	dexAgg = GetPart(parts, 6)
+	dexTargetAddr = GetPart(parts, 7)
 
-	if x := getPart(parts, 8); x != "" {
+	if x := GetPart(parts, 8); x != "" {
 		dexTargetLimit, err = cosmos.ParseUint(x)
 		if err != nil {
 			if keeper != nil {
@@ -81,7 +81,7 @@ func ParseLoanRepaymentMemoV1(ctx cosmos.Context, keeper keeper.Keeper, asset co
 		return LoanRepaymentMemo{}, fmt.Errorf("Not enough loan parameters")
 	}
 
-	ownerStr := getPart(parts, 2)
+	ownerStr := GetPart(parts, 2)
 	if keeper == nil {
 		owner, err = common.NewAddress(ownerStr)
 	} else {
@@ -91,7 +91,7 @@ func ParseLoanRepaymentMemoV1(ctx cosmos.Context, keeper keeper.Keeper, asset co
 		return LoanRepaymentMemo{}, err
 	}
 
-	if minOutStr := getPart(parts, 3); minOutStr != "" {
+	if minOutStr := GetPart(parts, 3); minOutStr != "" {
 		min, err := strconv.ParseUint(minOutStr, 10, 64)
 		if err != nil {
 			return LoanRepaymentMemo{}, err
