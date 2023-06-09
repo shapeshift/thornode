@@ -180,12 +180,7 @@ func (h ObservedTxInHandler) handleV112(ctx cosmos.Context, msg MsgObservedTxIn)
 			ctx.Logger().Error("fail to get vault", "error", err)
 			continue
 		}
-		// do not observe inactive vaults unless it's the confirmation for a txn
-		// that reached consensus/updated the vault when the vault was still active
-		if vault.Status == InactiveVault && !voter.UpdatedVault {
-			ctx.Logger().Error("observed tx on inactive vault", "tx", tx.String())
-			continue
-		}
+
 		if vault.IsAsgard() {
 			if !voter.UpdatedVault {
 				vault.AddFunds(tx.Tx.Coins)
@@ -195,6 +190,7 @@ func (h ObservedTxInHandler) handleV112(ctx cosmos.Context, msg MsgObservedTxIn)
 		if voter.HasFinalised(activeNodeAccounts) {
 			vault.InboundTxCount++
 		}
+
 		memo, _ := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), tx.Tx.Memo) // ignore err
 		if vault.IsYggdrasil() && memo.IsType(TxYggdrasilFund) {
 			// only add the fund to yggdrasil vault when the memo is yggdrasil+
@@ -242,6 +238,15 @@ func (h ObservedTxInHandler) handleV112(ctx cosmos.Context, msg MsgObservedTxIn)
 			ctx.Logger().Info("Tx has not been finalised yet , waiting for confirmation counting", "hash", voter.TxID)
 			continue
 		}
+
+		if vault.Status == InactiveVault {
+			ctx.Logger().Error("observed tx on inactive vault", "tx", tx.String())
+			if newErr := refundTx(ctx, tx, h.mgr, CodeInvalidVault, "observed inbound tx to an inactive vault", ""); newErr != nil {
+				ctx.Logger().Error("fail to refund", "error", newErr)
+			}
+			continue
+		}
+
 		// construct msg from memo
 		m, txErr := processOneTxIn(ctx, h.mgr.GetVersion(), h.mgr.Keeper(), txIn, msg.Signer)
 		if txErr != nil {

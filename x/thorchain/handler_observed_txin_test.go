@@ -786,13 +786,8 @@ func (s *HandlerObservedTxInSuite) TestVaultStatus(c *C) {
 		c.Assert(err, IsNil, Commentf(tc.name))
 		c.Check(keeper.voter.Height, Equals, int64(18), Commentf(tc.name))
 
-		if tc.statusAtConsensus == InactiveVault {
-			c.Check(keeper.voter.UpdatedVault, Equals, false, Commentf(tc.name))
-			c.Check(keeper.vault.InboundTxCount, Equals, int64(0), Commentf(tc.name))
-		} else {
-			c.Check(keeper.voter.UpdatedVault, Equals, true, Commentf(tc.name))
-			c.Check(keeper.vault.InboundTxCount, Equals, int64(0), Commentf(tc.name))
-		}
+		c.Check(keeper.voter.UpdatedVault, Equals, true, Commentf(tc.name))
+		c.Check(keeper.vault.InboundTxCount, Equals, int64(0), Commentf(tc.name))
 
 		keeper.vault.Status = tc.statusAtFinalisation
 		txs[0].BlockHeight = 15
@@ -802,13 +797,8 @@ func (s *HandlerObservedTxInSuite) TestVaultStatus(c *C) {
 		c.Assert(err, IsNil, Commentf(tc.name))
 		c.Check(keeper.voter.FinalisedHeight, Equals, int64(30), Commentf(tc.name))
 
-		if tc.statusAtConsensus == InactiveVault {
-			c.Check(keeper.voter.UpdatedVault, Equals, false, Commentf(tc.name))
-			c.Check(keeper.vault.InboundTxCount, Equals, int64(0), Commentf(tc.name))
-		} else {
-			c.Check(keeper.voter.UpdatedVault, Equals, true, Commentf(tc.name))
-			c.Check(keeper.vault.InboundTxCount, Equals, int64(1), Commentf(tc.name))
-		}
+		c.Check(keeper.voter.UpdatedVault, Equals, true, Commentf(tc.name))
+		c.Check(keeper.vault.InboundTxCount, Equals, int64(1), Commentf(tc.name))
 	}
 }
 

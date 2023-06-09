@@ -304,6 +304,13 @@ func (s *SlasherV112) LackSigning(ctx cosmos.Context, mgr Manager) error {
 				}
 			}
 
+			// if vault is inactive, do not reassign the outbound txn to
+			// another vault
+			if vault.Status == InactiveVault {
+				ctx.Logger().Info("cannot reassign tx from inactive vault", "hash", tx.InHash)
+				continue
+			}
+
 			nas, err := s.keeper.ListActiveValidators(ctx)
 			if err != nil {
 				ctx.Logger().Error("fail to get all active validators", "error", err)

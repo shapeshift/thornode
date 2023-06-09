@@ -650,4 +650,5 @@ type QueryVaultPubKeyContract struct {
 type QueryVaultsPubKeys struct {
 	Asgard    []QueryVaultPubKeyContract `json:"asgard"`
 	Yggdrasil []QueryVaultPubKeyContract `json:"yggdrasil"`
+	Inactive  []QueryVaultPubKeyContract `json:"inactive"`
 }

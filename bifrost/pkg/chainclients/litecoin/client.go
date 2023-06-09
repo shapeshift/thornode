@@ -320,32 +320,12 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 	if time.Since(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
 		return c.asgardAddresses, nil
 	}
-	vaults, err := c.bridge.GetAsgards()
+	newAddresses, err := utxo.GetAsgardAddress(c.chain, MaxAsgardAddresses, c.bridge)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get asgards : %w", err)
 	}
-
-	for _, v := range vaults {
-		addr, err := v.PubKey.GetAddress(common.LTCChain)
-		if err != nil {
-			c.logger.Err(err).Msg("fail to get address")
-			continue
-		}
-		found := false
-		for _, item := range c.asgardAddresses {
-			if item.Equals(addr) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			c.asgardAddresses = append(c.asgardAddresses, addr)
-		}
-
-	}
-	if len(c.asgardAddresses) > MaxAsgardAddresses {
-		startIdx := len(c.asgardAddresses) - MaxAsgardAddresses
-		c.asgardAddresses = c.asgardAddresses[startIdx:]
+	if len(newAddresses) > 0 { // ensure we don't overwrite with empty list
+		c.asgardAddresses = newAddresses
 	}
 	c.lastAsgard = time.Now()
 	return c.asgardAddresses, nil

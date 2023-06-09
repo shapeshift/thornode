@@ -17,6 +17,10 @@ type SlashingV109Suite struct{}
 
 var _ = Suite(&SlashingV109Suite{})
 
+func (s *SlashingV109Suite) SetUpSuite(_ *C) {
+	SetupConfigForTest()
+}
+
 func (s *SlashingV109Suite) TestObservingSlashing(c *C) {
 	var err error
 	ctx, k := setupKeeperForTest(c)

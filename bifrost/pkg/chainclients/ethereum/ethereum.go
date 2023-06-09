@@ -25,6 +25,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/runners"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/signercache"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/shared/utxo"
 
 	tssp "gitlab.com/thorchain/tss/go-tss/tss"
 
@@ -854,32 +855,12 @@ func (c *Client) getAsgardAddress() ([]common.Address, error) {
 	if time.Since(c.lastAsgard) < constants.ThorchainBlockTime && c.asgardAddresses != nil {
 		return c.asgardAddresses, nil
 	}
-	vaults, err := c.bridge.GetAsgards()
+	newAddresses, err := utxo.GetAsgardAddress(common.ETHChain, maxAsgardAddresses, c.bridge)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get asgards : %w", err)
 	}
-
-	for _, v := range vaults {
-		addr, err := v.PubKey.GetAddress(common.ETHChain)
-		if err != nil {
-			c.logger.Err(err).Msg("fail to get address")
-			continue
-		}
-		found := false
-		for _, item := range c.asgardAddresses {
-			if item.Equals(addr) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			c.asgardAddresses = append(c.asgardAddresses, addr)
-		}
-
-	}
-	if len(c.asgardAddresses) > maxAsgardAddresses {
-		startIdx := len(c.asgardAddresses) - maxAsgardAddresses
-		c.asgardAddresses = c.asgardAddresses[startIdx:]
+	if len(newAddresses) > 0 { // ensure we don't overwrite with empty list
+		c.asgardAddresses = newAddresses
 	}
 	c.lastAsgard = time.Now()
 	return c.asgardAddresses, nil

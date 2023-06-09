@@ -2269,12 +2269,17 @@ components:
       required:
         - asgard
         - yggdrasil
+        - inactive
       properties:
         asgard:
           type: array
           items:
             $ref: "#/components/schemas/VaultInfo"
         yggdrasil:
+          type: array
+          items:
+            $ref: "#/components/schemas/VaultInfo"
+        inactive:
           type: array
           items:
             $ref: "#/components/schemas/VaultInfo"

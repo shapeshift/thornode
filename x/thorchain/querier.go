@@ -401,7 +401,13 @@ func queryVaultsPubkeys(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	var resp QueryVaultsPubKeys
 	resp.Asgard = make([]QueryVaultPubKeyContract, 0)
 	resp.Yggdrasil = make([]QueryVaultPubKeyContract, 0)
+	resp.Inactive = make([]QueryVaultPubKeyContract, 0)
 	iter := mgr.Keeper().GetVaultIterator(ctx)
+
+	active, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
@@ -423,11 +429,25 @@ func queryVaultsPubkeys(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 				})
 			}
 		} else if vault.IsAsgard() {
-			if vault.Status == ActiveVault || vault.Status == RetiringVault {
+			switch vault.Status {
+			case ActiveVault, RetiringVault:
 				resp.Asgard = append(resp.Asgard, QueryVaultPubKeyContract{
 					PubKey:  vault.PubKey,
 					Routers: vault.Routers,
 				})
+			case InactiveVault:
+				activeMembers, err := vault.GetMembers(active.GetNodeAddresses())
+				if err != nil {
+					ctx.Logger().Error("fail to get active members of vault", "error", err)
+					continue
+				}
+				allMembers := vault.Membership
+				if HasSuperMajority(len(activeMembers), len(allMembers)) {
+					resp.Inactive = append(resp.Inactive, QueryVaultPubKeyContract{
+						PubKey:  vault.PubKey,
+						Routers: vault.Routers,
+					})
+				}
 			}
 		}
 	}

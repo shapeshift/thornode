@@ -89,6 +89,7 @@ type ThorchainBridge interface {
 	GetObservationsStdTx(txIns stypes.ObservedTxs) ([]cosmos.Msg, error)
 	GetPools() (stypes.Pools, error)
 	GetPubKeys() ([]PubKeyContractAddressPair, error)
+	GetAsgardPubKeys() ([]PubKeyContractAddressPair, error)
 	GetSolvencyMsg(height int64, chain common.Chain, pubKey common.PubKey, coins common.Coins) sdk.Msg
 	GetTHORName(name string) (stypes.THORName, error)
 	GetThorchainVersion() (semver.Version, error)
@@ -455,7 +456,35 @@ func (b *thorchainBridge) GetPubKeys() ([]PubKeyContractAddressPair, error) {
 		return nil, fmt.Errorf("fail to unmarshal pubkeys: %w", err)
 	}
 	var addressPairs []PubKeyContractAddressPair
-	for _, v := range append(result.Asgard, result.Yggdrasil...) {
+	for _, v := range append(result.Asgard, append(result.Yggdrasil, result.Inactive...)...) {
+		kp := PubKeyContractAddressPair{
+			PubKey:    v.PubKey,
+			Contracts: make(map[common.Chain]common.Address),
+		}
+		for _, item := range v.Routers {
+			kp.Contracts[item.Chain] = item.Router
+		}
+
+		addressPairs = append(addressPairs, kp)
+	}
+	return addressPairs, nil
+}
+
+// GetAsgardPubKeys retrieve asgard vaults, and it's relevant smart contracts
+func (b *thorchainBridge) GetAsgardPubKeys() ([]PubKeyContractAddressPair, error) {
+	buf, s, err := b.getWithPath(PubKeysEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get asgard vaults: %w", err)
+	}
+	if s != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code %d", s)
+	}
+	var result stypes.QueryVaultsPubKeys
+	if err := json.Unmarshal(buf, &result); err != nil {
+		return nil, fmt.Errorf("fail to unmarshal pubkeys: %w", err)
+	}
+	var addressPairs []PubKeyContractAddressPair
+	for _, v := range append(result.Asgard, result.Inactive...) {
 		kp := PubKeyContractAddressPair{
 			PubKey:    v.PubKey,
 			Contracts: make(map[common.Chain]common.Address),

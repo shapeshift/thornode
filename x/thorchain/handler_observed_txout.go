@@ -67,6 +67,8 @@ func (h ObservedTxOutHandler) validateV1(ctx cosmos.Context, msg MsgObservedTxOu
 func (h ObservedTxOutHandler) handle(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.112.0")):
+		return h.handleV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.109.0")):
 		return h.handleV109(ctx, msg)
 	case version.GTE(semver.MustParse("1.96.0")):
@@ -134,7 +136,7 @@ func (h ObservedTxOutHandler) preflightV89(ctx cosmos.Context, voter ObservedTxV
 }
 
 // Handle a message to observe outbound tx
-func (h ObservedTxOutHandler) handleV109(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
+func (h ObservedTxOutHandler) handleV112(ctx cosmos.Context, msg MsgObservedTxOut) (*cosmos.Result, error) {
 	activeNodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
 		return nil, wrapError(ctx, err, "fail to get list of active node accounts")
@@ -213,11 +215,17 @@ func (h ObservedTxOutHandler) handleV109(ctx cosmos.Context, msg MsgObservedTxOu
 				"tx", tx.Tx.String())
 			continue
 		}
-
-		// Apply Gas fees
-		if err := addGasFees(ctx, h.mgr, tx); err != nil {
-			ctx.Logger().Error("fail to add gas fee", "error", err)
+		vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
+		if err != nil {
+			ctx.Logger().Error("fail to get vault", "error", err)
 			continue
+		}
+		// Apply Gas fees
+		if vault.Status != InactiveVault {
+			if err := addGasFees(ctx, h.mgr, tx); err != nil {
+				ctx.Logger().Error("fail to add gas fee", "error", err)
+				continue
+			}
 		}
 
 		// add addresses to observing addresses. This is used to detect
@@ -245,7 +253,8 @@ func (h ObservedTxOutHandler) handleV109(ctx cosmos.Context, msg MsgObservedTxOu
 		h.mgr.Keeper().SetObservedTxOutVoter(ctx, voter)
 		// process the msg first , and then deduct the fund from vault last
 		// If sending from one of our vaults, decrement coins
-		vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
+
+		vault, err = h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
 		if err != nil {
 			ctx.Logger().Error("fail to get vault", "error", err)
 			continue
