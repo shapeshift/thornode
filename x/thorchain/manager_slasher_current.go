@@ -382,26 +382,26 @@ func (s *SlasherV112) LackSigning(ctx cosmos.Context, mgr Manager) error {
 				}
 				// Save the tx to as a new tx, select Asgard to send it this time.
 				tx.VaultPubKey = vault.PubKey
-			}
 
-			// update max gas
-			maxGas, err := mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
-			if err != nil {
-				ctx.Logger().Error("fail to get max gas", "error", err)
-			} else {
-				tx.MaxGas = common.Gas{maxGas}
-				// Update MaxGas in ObservedTxVoter action as well
-				if err := updateTxOutGas(ctx, s.keeper, tx, common.Gas{maxGas}); err != nil {
-					ctx.Logger().Error("Failed to update MaxGas of action in ObservedTxVoter", "hash", tx.InHash, "error", err)
+				// update max gas
+				maxGas, err := mgr.GasMgr().GetMaxGas(ctx, tx.Chain)
+				if err != nil {
+					ctx.Logger().Error("fail to get max gas", "error", err)
+				} else {
+					tx.MaxGas = common.Gas{maxGas}
+					// Update MaxGas in ObservedTxVoter action as well
+					if err := updateTxOutGas(ctx, s.keeper, tx, common.Gas{maxGas}); err != nil {
+						ctx.Logger().Error("Failed to update MaxGas of action in ObservedTxVoter", "hash", tx.InHash, "error", err)
+					}
 				}
+				// Equals checks GasRate so update actions GasRate too (before updating in the queue item)
+				// for future updates of MaxGas, which must match for matchActionItem in AddOutTx.
+				gasRate := int64(mgr.GasMgr().GetGasRate(ctx, tx.Chain).Uint64())
+				if err := updateTxOutGasRate(ctx, s.keeper, tx, gasRate); err != nil {
+					ctx.Logger().Error("Failed to update GasRate of action in ObservedTxVoter", "hash", tx.InHash, "error", err)
+				}
+				tx.GasRate = gasRate
 			}
-			// Equals checks GasRate so update actions GasRate too (before updating in the queue item)
-			// for future updates of MaxGas, which must match for matchActionItem in AddOutTx.
-			gasRate := int64(mgr.GasMgr().GetGasRate(ctx, tx.Chain).Uint64())
-			if err := updateTxOutGasRate(ctx, s.keeper, tx, gasRate); err != nil {
-				ctx.Logger().Error("Failed to update GasRate of action in ObservedTxVoter", "hash", tx.InHash, "error", err)
-			}
-			tx.GasRate = gasRate
 
 			// if a pool with the asset name doesn't exist, skip rescheduling
 			if !tx.Coin.Asset.IsRune() && !s.keeper.PoolExist(ctx, tx.Coin.Asset) {
