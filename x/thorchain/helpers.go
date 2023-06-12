@@ -1081,26 +1081,3 @@ func isActionsItemDangling(voter ObservedTxVoter, i int) bool {
 	}
 	return true
 }
-
-// Calculates total "effective bond" - the total bond when taking into account the
-// Bond-weighted hard-cap
-func getTotalEffectiveBond(ctx cosmos.Context, keeper keeper.Keeper) (cosmos.Uint, cosmos.Uint, error) {
-	activeNodes, err := keeper.ListActiveValidators(ctx)
-	if err != nil {
-		return cosmos.ZeroUint(), cosmos.ZeroUint(), fmt.Errorf("fail to get active nodes: %w", err)
-	}
-
-	bondHardCap := getHardBondCap(activeNodes)
-
-	totalEffectiveBond := cosmos.ZeroUint()
-	for _, item := range activeNodes {
-		b := item.Bond
-		if item.Bond.GT(bondHardCap) {
-			b = bondHardCap
-		}
-
-		totalEffectiveBond = totalEffectiveBond.Add(b)
-	}
-
-	return totalEffectiveBond, bondHardCap, nil
-}
