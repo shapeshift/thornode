@@ -374,3 +374,110 @@ func migrateStoreV111(ctx cosmos.Context, mgr *Mgrs) {
 		mgr.Keeper().ForceSetLastObserveHeight(ctx, common.BTCChain, na, 788640)
 	}
 }
+
+func migrateStoreV113(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v113", "error", err)
+		}
+	}()
+
+	// block: 11227005, tx: 5AC64AC48219456C8701E67CB4E6ACA13495F8A8042EBC0E5B4E9DA9CF963A9B
+
+	poolSlashRune := cosmos.NewUint(8101892874988)
+	poolSlashBTC := cosmos.NewUint(297035619)
+
+	// send coins from pool to bond module
+	if err := mgr.Keeper().SendFromModuleToModule(ctx, AsgardName, BondName, common.Coins{common.NewCoin(common.RuneNative, poolSlashRune)}); err != nil {
+		ctx.Logger().Error("fail to transfer coin from reserve to bond module", "error", err)
+		return
+	}
+
+	// send coins from reserve to bond module
+	if err := mgr.Keeper().SendFromModuleToModule(ctx, ReserveName, BondName, common.Coins{common.NewCoin(common.RuneNative, poolSlashRune)}); err != nil {
+		ctx.Logger().Error("fail to transfer coin from reserve to bond module", "error", err)
+		return
+	}
+
+	// revert pool slash
+	pool, err := mgr.Keeper().GetPool(ctx, common.BTCAsset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool", "error", err)
+		return
+	}
+	pool.BalanceAsset = pool.BalanceAsset.Add(poolSlashBTC)
+	pool.BalanceRune = common.SafeSub(pool.BalanceRune, poolSlashRune)
+
+	// store updated pool
+	if err := mgr.Keeper().SetPool(ctx, pool); err != nil {
+		ctx.Logger().Error("fail to set pool", "error", err)
+		return
+	}
+
+	// emit inverted slash event for midgard
+	poolSlashAmt := []PoolAmt{
+		{
+			Asset:  common.BTCAsset,
+			Amount: int64(poolSlashBTC.Uint64()),
+		},
+		{
+			Asset:  common.RuneAsset(),
+			Amount: 0 - int64(poolSlashRune.Uint64()),
+		},
+	}
+	eventSlash := NewEventSlash(common.BTCAsset, poolSlashAmt)
+	if err := mgr.EventMgr().EmitEvent(ctx, eventSlash); err != nil {
+		ctx.Logger().Error("fail to emit slash event", "error", err)
+	}
+
+	// credits from node slashes (sum to 2x the RUNE amount from pool slash)
+	credits := []struct {
+		address string
+		amount  cosmos.Uint
+	}{
+		{address: "thor10rgvc7c44mq5vpcq07dx5fg942eykagm9p6gxh", amount: cosmos.NewUint(956154881499)},
+		{address: "thor1pt8zkvkccj4397kemxeq8sjcyl7y6vacaedpvx", amount: cosmos.NewUint(761044063699)},
+		{address: "thor1nlsfq25y74u8qt2hqmuzh5wd9t4uv28ghc258g", amount: cosmos.NewUint(973107929821)},
+		{address: "thor1u5pfv07xtxz6aj59pnejaxh2dy7ew5s79ds8cw", amount: cosmos.NewUint(1063814699290)},
+		{address: "thor1ypjwdplx07vf42qdfkex39dp8zxqnaects270v", amount: cosmos.NewUint(917937526969)},
+		{address: "thor1vt207wgvefjgk88mtfjuurcl3vw6z4d2gu5psw", amount: cosmos.NewUint(1000265002165)},
+		{address: "thor1vp29289yyvfar0ektscjk08r0tufvl24tn6xf9", amount: cosmos.NewUint(1021124834581)},
+		{address: "thor1u9dnzza6hpesrwq4p8j2f29v6jsyeq4le66j3c", amount: cosmos.NewUint(978832200788)},
+		{address: "thor1xk362wwunmr0gzew05j3euvdkjcvfmfyhmzd82", amount: cosmos.NewUint(1010886872701)},
+		{address: "thor183fwfzgdfxzf5338acw32kplscgltf28j9s68j", amount: cosmos.NewUint(966449181925)},
+		{address: "thor170xscqs5d469chdt83fxatjntc79zucrygsfxj", amount: cosmos.NewUint(1083603612921)},
+		{address: "thor12espg8k5fxqmclx9vyte7cducmmvrtxll40q7z", amount: cosmos.NewUint(996350776100)},
+		{address: "thor18nlluv0zw5g8930sx3r5xn7tqpsvwd7axxfynv", amount: cosmos.NewUint(1027540783824)},
+		{address: "thor1faa0c6sqryr0am6ls9u8y6zs22ju2y7yw8ju9g", amount: cosmos.NewUint(603270429244)},
+		{address: "thor1dqlmsm67h363nuxpd68esg54kt2t7xw2xewqml", amount: cosmos.NewUint(973292135373)},
+		{address: "thor1gukvqaag4vk2l3uq3kjme5x9xy8556pgv5rw4k", amount: cosmos.NewUint(986737992322)},
+		{address: "thor10f40m6nv7ulc0fvhmt07szn3n7ajd7e8xhghc3", amount: cosmos.NewUint(883372826754)},
+	}
+
+	for _, credit := range credits {
+		ctx.Logger().Info("credit", "node", credit.address, "amount", credit.amount)
+
+		// get addresses
+		addr, err := cosmos.AccAddressFromBech32(credit.address)
+		if err != nil {
+			ctx.Logger().Error("fail to parse node address", "error", err)
+			return
+		}
+
+		// get node account
+		na, err := mgr.Keeper().GetNodeAccount(ctx, addr)
+		if err != nil {
+			ctx.Logger().Error("fail to get node account", "error", err)
+			return
+		}
+
+		// update node bond
+		na.Bond = na.Bond.Add(credit.amount)
+
+		// store updated records
+		if err := mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
+			ctx.Logger().Error("fail to save node account", "error", err)
+			return
+		}
+	}
+}
