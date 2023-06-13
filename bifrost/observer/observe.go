@@ -564,7 +564,9 @@ func (o *Observer) getThorchainTxIns(txIn types.TxIn) (stypes.ObservedTxs, error
 		sender, err := common.NewAddress(item.Sender)
 		if err != nil {
 			o.errCounter.WithLabelValues("fail_to_parse_sender", item.Sender).Inc()
-			return nil, fmt.Errorf("fail to parse sender,%s is invalid sender address: %w", item.Sender, err)
+			// log the error , and ignore the transaction, since the address is not valid
+			o.logger.Err(err).Msgf("fail to parse sender,%s is invalid sender address", item.Sender)
+			return nil, nil
 		}
 
 		to, err := common.NewAddress(item.To)
