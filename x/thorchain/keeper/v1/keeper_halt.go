@@ -2,34 +2,14 @@ package keeperv1
 
 import (
 	"fmt"
-	"strings"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-var WhitelistedArbs = []string{ // treasury addresses
-	"thor1egxvam70a86jafa8gcg3kqfmfax3s0m2g3m754",
-	"bc1qq2z2f4gs4nd7t0a9jjp90y9l9zzjtegu4nczha",
-	"qz7262r7uufxk89ematxrf6yquk7zfwrjqm97vskzw",
-	"0x04c5998ded94f89263370444ce64a99b7dbc9f46",
-	"bnb1pa6hpjs7qv0vkd5ks5tqa2xtt2gk5n08yw7v7f",
-	"ltc1qaa064vvv4d6stgywnf777j6dl8rd3tt93fp6jx",
-}
-
 func (k KVStore) IsTradingHalt(ctx cosmos.Context, msg cosmos.Msg) bool {
 	switch m := msg.(type) {
 	case *MsgSwap:
-		for _, raw := range WhitelistedArbs {
-			address, err := common.NewAddress(strings.TrimSpace(raw))
-			if err != nil {
-				ctx.Logger().Error("failt to parse address for trading halt check", "address", raw, "error", err)
-				continue
-			}
-			if address.Equals(m.Tx.FromAddress) {
-				return false
-			}
-		}
 		source := common.EmptyChain
 		if len(m.Tx.Coins) > 0 {
 			source = m.Tx.Coins[0].Asset.GetLayer1Asset().Chain
