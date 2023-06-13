@@ -1240,3 +1240,100 @@ func (h SwapHandler) validateV99(ctx cosmos.Context, msg MsgSwap) error {
 
 	return nil
 }
+
+func (h SwapHandler) validateV112(ctx cosmos.Context, msg MsgSwap) error {
+	if err := msg.ValidateBasicV63(); err != nil {
+		return err
+	}
+
+	target := msg.TargetAsset
+	if h.mgr.Keeper().IsTradingHalt(ctx, &msg) {
+		return errors.New("trading is halted, can't process swap")
+	}
+	if target.IsDerivedAsset() || msg.Tx.Coins[0].Asset.IsDerivedAsset() {
+		if h.mgr.Keeper().GetConfigInt64(ctx, constants.EnableDerivedAssets) == 0 {
+			// since derived assets are disabled, only the protocol can use
+			// them (specifically lending)
+			acc, err := h.mgr.Keeper().GetModuleAddress(LendingName)
+			if err != nil {
+				return err
+			}
+			if !msg.Tx.FromAddress.Equals(acc) && !msg.Destination.Equals(acc) {
+				return errors.New("swapping to/from a derived asset is not allowed, except the lending protocol")
+			}
+		}
+	}
+	if target.IsSyntheticAsset() {
+		// the following  only applicable for chaosnet
+		totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
+		if err != nil {
+			return ErrInternal(err, "fail to get total liquidity RUNE")
+		}
+
+		// total liquidity RUNE after current add liquidity
+		if len(msg.Tx.Coins) > 0 {
+			// calculate rune value on incoming swap, and add to total liquidity.
+			coin := msg.Tx.Coins[0]
+			runeVal := coin.Amount
+			if !coin.Asset.IsRune() {
+				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
+				if err != nil {
+					return ErrInternal(err, "fail to get pool")
+				}
+				runeVal = pool.AssetValueInRune(coin.Amount)
+			}
+			totalLiquidityRUNE = totalLiquidityRUNE.Add(runeVal)
+		}
+		maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
+		if maximumLiquidityRune < 0 || err != nil {
+			maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
+		}
+		if maximumLiquidityRune > 0 {
+			if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
+				return errAddLiquidityRUNEOverLimit
+			}
+		}
+
+		// fail validation if synth supply is already too high, relative to pool depth
+		err = isSynthMintPaused(ctx, h.mgr, target, cosmos.ZeroUint())
+		if err != nil {
+			return err
+		}
+
+		ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
+		if !ensureLiquidityNoLargerThanBond {
+			return nil
+		}
+		securityBond, err := h.getEffectiveSecurityBond(ctx)
+		if err != nil {
+			return ErrInternal(err, "fail to get security bond RUNE")
+		}
+		if totalLiquidityRUNE.GT(securityBond) {
+			ctx.Logger().Info("total liquidity RUNE is more than effective security bond", "liquidity rune", totalLiquidityRUNE, "effective security bond", securityBond)
+			return errAddLiquidityRUNEMoreThanBond
+		}
+	}
+
+	if len(msg.Aggregator) > 0 {
+		swapOutDisabled := h.mgr.Keeper().GetConfigInt64(ctx, constants.SwapOutDexAggregationDisabled)
+		if swapOutDisabled > 0 {
+			return errors.New("swap out dex integration disabled")
+		}
+		if !msg.TargetAsset.Equals(msg.TargetAsset.Chain.GetGasAsset()) {
+			return fmt.Errorf("target asset (%s) is not gas asset , can't use dex feature", msg.TargetAsset)
+		}
+		// validate that a referenced dex aggregator is legit
+		addr, err := FetchDexAggregator(h.mgr.GetVersion(), target.Chain, msg.Aggregator)
+		if err != nil {
+			return err
+		}
+		if addr == "" {
+			return fmt.Errorf("aggregator address is empty")
+		}
+		if len(msg.AggregatorTargetAddress) == 0 {
+			return fmt.Errorf("aggregator target address is empty")
+		}
+	}
+
+	return nil
+}

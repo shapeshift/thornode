@@ -44,6 +44,8 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.113.0")):
+		return h.validateV113(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
 		return h.validateV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.99.0")):
@@ -63,7 +65,7 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	}
 }
 
-func (h SwapHandler) validateV112(ctx cosmos.Context, msg MsgSwap) error {
+func (h SwapHandler) validateV113(ctx cosmos.Context, msg MsgSwap) error {
 	if err := msg.ValidateBasicV63(); err != nil {
 		return err
 	}
@@ -92,10 +94,12 @@ func (h SwapHandler) validateV112(ctx cosmos.Context, msg MsgSwap) error {
 			return ErrInternal(err, "fail to get total liquidity RUNE")
 		}
 
+		var sourceAsset common.Asset
 		// total liquidity RUNE after current add liquidity
 		if len(msg.Tx.Coins) > 0 {
 			// calculate rune value on incoming swap, and add to total liquidity.
 			coin := msg.Tx.Coins[0]
+			sourceAsset = coin.Asset
 			runeVal := coin.Amount
 			if !coin.Asset.IsRune() {
 				pool, err := h.mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
@@ -130,7 +134,9 @@ func (h SwapHandler) validateV112(ctx cosmos.Context, msg MsgSwap) error {
 		if err != nil {
 			return ErrInternal(err, "fail to get security bond RUNE")
 		}
-		if totalLiquidityRUNE.GT(securityBond) {
+		// If source and target are synthetic assets there is no net liquidity gain (RUNE is just moved from pool A to pool B),
+		// so skip this check
+		if totalLiquidityRUNE.GT(securityBond) && !sourceAsset.IsSyntheticAsset() {
 			ctx.Logger().Info("total liquidity RUNE is more than effective security bond", "liquidity rune", totalLiquidityRUNE, "effective security bond", securityBond)
 			return errAddLiquidityRUNEMoreThanBond
 		}
