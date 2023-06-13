@@ -70,8 +70,20 @@ asserts:
   - .balance_rune|tonumber == 300001198632
 ---
 ########################################################################################
-# 1/3 of tor anchor pools depeg (no effect)
+# 1/3 of tor anchor pools depeg (no significant effect)
 ########################################################################################
+type: check
+description: quote before manipulation to compare expected
+endpoint: http://localhost:1317/thorchain/quote/loan/open
+params:
+  asset: BTC.BTC
+  amount: 500000
+  target_asset: RUNE
+  destination: {{ addr_thor_fox }}
+asserts:
+  - .expected_amount_out|tonumber == 486545262
+  - .expected_debt_up|tonumber == 490140000
+---
 type: tx-deposit
 signer: {{ addr_thor_fox }}
 coins:
@@ -81,6 +93,18 @@ memo: "=:ETH.USDZ-0X9999999999999999999999999999999999999999:{{ addr_eth_fox }}"
 ---
 type: create-blocks
 count: 1
+---
+type: check
+description: quote after manipulation to compare expected
+endpoint: http://localhost:1317/thorchain/quote/loan/open
+params:
+  asset: BTC.BTC
+  amount: 500000
+  target_asset: RUNE
+  destination: {{ addr_thor_fox }}
+asserts:
+  - .expected_amount_out|tonumber == 486934519 # some change (TODO below)
+  - .expected_debt_up|tonumber == 490140000 # no change, since no median price change
 ---
 type: check
 endpoint: http://localhost:1317/thorchain/queue/outbound
@@ -160,6 +184,18 @@ asserts:
 ########################################################################################
 # 2/3 of tor anchor pools depeg
 ########################################################################################
+type: check
+description: quote before manipulation to compare expected
+endpoint: http://localhost:1317/thorchain/quote/loan/open
+params:
+  asset: BTC.BTC
+  amount: 5000000
+  target_asset: RUNE
+  destination: {{ addr_thor_fox }}
+asserts:
+  - .expected_amount_out|tonumber == 4010697933
+  - .expected_debt_up|tonumber == 4095920000
+---
 type: tx-deposit
 signer: {{ addr_thor_fox }}
 coins:
@@ -169,6 +205,21 @@ memo: "=:ETH.USDY-0X9999999999999999999999999999999999999999:{{ addr_eth_fox }}"
 ---
 type: create-blocks
 count: 1
+---
+type: check
+description: quote after manipulation to compare expected
+endpoint: http://localhost:1317/thorchain/quote/loan/open
+params:
+  asset: BTC.BTC
+  amount: 5000000
+  target_asset: RUNE
+  destination: {{ addr_thor_fox }}
+asserts:
+  # TODO: Price manipulation of pools up to and including the median, even with virtual
+  # depth, can result in the debt on the loan being manipulated by more than the penalty
+  # on the outbound debt.
+  - .expected_amount_out|tonumber == 4001309682
+  - .expected_debt_up|tonumber == 1555150000
 ---
 type: check
 endpoint: http://localhost:1317/thorchain/queue/outbound
@@ -264,8 +315,34 @@ signer: {{ addr_thor_dog }}
 key: MaxAnchorBlocks
 value: 2
 ---
+type: check
+description: quote before manipulation to compare expected
+endpoint: http://localhost:1317/thorchain/quote/loan/open
+params:
+  asset: BTC.BTC
+  amount: 5000000
+  target_asset: RUNE
+  destination: {{ addr_thor_fox }}
+asserts:
+  - .expected_amount_out|tonumber == 1219164077
+  - .expected_debt_up|tonumber == 1546380000
+---
 type: create-blocks
 count: 3
+---
+type: check
+description: quote after manipulation to compare expected
+endpoint: http://localhost:1317/thorchain/quote/loan/open
+params:
+  asset: BTC.BTC
+  amount: 5000000
+  target_asset: RUNE
+  destination: {{ addr_thor_fox }}
+asserts:
+  # anchor blocks must be set sufficiently high, otherwise debt can be manipulated with
+  # no penalty on the debt outbound from the contracted virtual pool
+  - .expected_amount_out|tonumber == 3991253558
+  - .expected_debt_up|tonumber == 1551170000
 ---
 type: check
 endpoint: http://localhost:1317/thorchain/pool/thor.tor
@@ -296,9 +373,6 @@ txs:
 type: create-blocks
 count: 1
 ---
-# TODO: Since the mint and burn occur in the loan handler directly and depth is not
-# accounted for there is no protection against TOR price manipulation for loan txs if a
-# malicious actor can manipulate the median price at the time of loan handling.
 type: check
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:

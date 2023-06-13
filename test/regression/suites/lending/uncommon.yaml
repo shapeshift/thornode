@@ -248,3 +248,51 @@ asserts:
 ########################################################################################
 # different accounts open loans in same block
 ########################################################################################
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 6 }}"
+      chain: BTC
+      from_address: {{ addr_btc_deer }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "500000" # 0.5% of pool
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:THOR.RUNE:{{ addr_thor_deer }}"
+    block_height: 6
+    finalise_height: 6
+    observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 7 }}"
+      chain: BTC
+      from_address: {{ addr_btc_bird }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "500000" # 0.5% of pool
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:THOR.RUNE:{{ addr_thor_bird }}"
+    block_height: 6
+    finalise_height: 6
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/blockevents
+asserts:
+  - '[.end[]|select(.type=="outbound" and .to=="{{ addr_thor_deer }}")]|length == 1'
+  - '[.end[]|select(.type=="outbound" and .to=="{{ addr_thor_bird }}")]|length == 1'
+  - .end[]|select(.type=="outbound" and .to=="{{ addr_thor_deer }}")|.coin == "464258965 THOR.RUNE"
+  - .end[]|select(.type=="outbound" and .to=="{{ addr_thor_deer }}")|.memo == "OUT:{{ observe_txid 6 }}"
+  - .end[]|select(.type=="outbound" and .to=="{{ addr_thor_bird }}")|.coin == "459822687 THOR.RUNE"
+  - .end[]|select(.type=="outbound" and .to=="{{ addr_thor_bird }}")|.memo == "OUT:{{ observe_txid 7 }}"
