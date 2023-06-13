@@ -152,6 +152,23 @@ func (h LoanOpenHandler) validateV107(ctx cosmos.Context, msg MsgLoanOpen) error
 	return nil
 }
 
+func (h LoanOpenHandler) handleV111(ctx cosmos.Context, msg MsgLoanOpen) error {
+	// inject txid into the context if unset
+	var err error
+	ctx, err = storeContextTxID(ctx, constants.CtxLoanTxID)
+	if err != nil {
+		return err
+	}
+
+	// if the inbound asset is TOR, then lets repay the loan. If not, lets
+	// swap first and try again later
+	if msg.CollateralAsset.IsDerivedAsset() {
+		return h.openLoan(ctx, msg)
+	} else {
+		return h.swap(ctx, msg)
+	}
+}
+
 func (h LoanOpenHandler) handleV108(ctx cosmos.Context, msg MsgLoanOpen) error {
 	// inject txid into the context if unset
 	var err error
@@ -619,6 +636,39 @@ func (h LoanOpenHandler) openLoanV107(ctx cosmos.Context, msg MsgLoanOpen) error
 	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); nil != err {
 		ctx.Logger().Error("fail to emit loan open event", "error", err)
 	}
+
+	return nil
+}
+
+func (h LoanOpenHandler) swapV108(ctx cosmos.Context, msg MsgLoanOpen) error {
+	lendAddr, err := h.mgr.Keeper().GetModuleAddress(LendingName)
+	if err != nil {
+		ctx.Logger().Error("fail to get lending address", "error", err)
+		return err
+	}
+
+	txID, ok := ctx.Value(constants.CtxLoanTxID).(common.TxID)
+	if !ok {
+		return fmt.Errorf("fail to get txid")
+	}
+
+	// ensure TxID does NOT have a collision with another swap, this could
+	// happen if the user submits two identical loan requests in the same
+	// block
+	if ok := h.mgr.Keeper().HasSwapQueueItem(ctx, txID, 0); ok {
+		return fmt.Errorf("txn hash conflict")
+	}
+
+	memo := fmt.Sprintf("loan+:%s:%s:%d:%s:%d:%s:%s:%d", msg.TargetAsset, msg.TargetAddress, msg.MinOut.Uint64(), msg.AffiliateAddress, msg.AffiliateBasisPoints.Uint64(), msg.Aggregator, msg.AggregatorTargetAddress, msg.AggregatorTargetLimit.Uint64())
+	fakeGas := common.NewCoin(msg.CollateralAsset.GetChain().GetGasAsset(), cosmos.OneUint())
+	tx := common.NewTx(txID, msg.Owner, AsgardName, common.NewCoins(common.NewCoin(msg.CollateralAsset, msg.CollateralAmount)), common.Gas{fakeGas}, memo)
+	swapMsg := NewMsgSwap(tx, msg.CollateralAsset.GetDerivedAsset(), lendAddr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+		return err
+	}
+
+	// TODO: send affiliate fee
 
 	return nil
 }

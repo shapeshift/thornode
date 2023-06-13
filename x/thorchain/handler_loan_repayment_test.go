@@ -3,6 +3,7 @@ package thorchain
 import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	. "gopkg.in/check.v1"
 )
 
@@ -96,8 +97,9 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithTOR(c *C) {
 	handler := NewLoanRepaymentHandler(mgr)
 
 	// happy path
+	txid, _ := common.NewTxID("29FC8D032CF17380AA1DC86F85A479CA9433E85887A9317C5D70D87EF56EAFAA")
 	msg := NewMsgLoanRepayment(owner, common.BTCAsset, cosmos.OneUint(), owner, common.NewCoin(common.TOR, cosmos.NewUint(10*common.One)), signer)
-	c.Check(handler.handle(ctx, *msg), IsNil)
+	c.Check(handler.handle(ctx.WithValue(constants.CtxLoanTxID, txid), *msg), IsNil)
 
 	loan, err = mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
 	c.Assert(err, IsNil)
@@ -154,9 +156,10 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithSwap(c *C) {
 
 	// happy path
 	// overpay the loan to include swap fees
+	txid, _ := common.NewTxID("29FC8D032CF17380AA1DC86F85A479CA9433E85887A9317C5D70D87EF56EAFAA")
 	msg := NewMsgLoanRepayment(owner, common.BTCAsset, cosmos.OneUint(), owner, common.NewCoin(common.BTCAsset, cosmos.NewUint(1e8+15000000)), signer)
 	ctx = ctx.WithBlockHeight(2 * 1440000)
-	c.Check(handler.handle(ctx, *msg), IsNil)
+	c.Check(handler.handle(ctx.WithValue(constants.CtxLoanTxID, txid), *msg), IsNil)
 	c.Assert(mgr.SwapQ().EndBlock(ctx, mgr), IsNil) // swap into TOR
 	c.Assert(mgr.SwapQ().EndBlock(ctx, mgr), IsNil) // swap out into collateral
 

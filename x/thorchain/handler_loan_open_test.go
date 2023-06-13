@@ -187,10 +187,11 @@ func (s *HandlerLoanSuite) TestLoanOpenHandleToTOR(c *C) {
 	handler := NewLoanOpenHandler(mgr)
 
 	// happy path
+	txid, _ := common.NewTxID("29FC8D032CF17380AA1DC86F85A479CA9433E85887A9317C5D70D87EF56EAFAA")
 	receiver := GetRandomTHORAddress()
 	signer, _ := cosmos.AccAddressFromBech32("tthor1qxcgl07dm3vvewwxag7u0q7nq2uk984v60xpl0")
 	msg := NewMsgLoanOpen(owner, common.BTCAsset, cosmos.NewUint(1e8), receiver, common.TOR, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", cosmos.ZeroUint(), signer)
-	c.Assert(handler.handle(ctx, *msg), IsNil)
+	c.Assert(handler.handle(ctx.WithValue(constants.CtxLoanTxID, txid), *msg), IsNil)
 	c.Assert(mgr.SwapQ().EndBlock(ctx, mgr), IsNil)
 
 	loan, err := mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
@@ -252,10 +253,11 @@ func (s *HandlerLoanSuite) TestLoanSwapFails(c *C) {
 	handler := NewLoanOpenHandler(mgr)
 
 	// unhappy path
+	txid, _ := common.NewTxID("29FC8D032CF17380AA1DC86F85A479CA9433E85887A9317C5D70D87EF56EAFAA")
 	receiver, _ := common.NewAddress("bcrt1qdn665723epwlg8u2mk7rg4yp7n72mzwqzuv9ye")
 	signer, _ := cosmos.AccAddressFromBech32("tthor1qxcgl07dm3vvewwxag7u0q7nq2uk984v60xpl0")
 	msg := NewMsgLoanOpen(owner, common.BTCAsset, cosmos.NewUint(1e8), receiver, common.BTCAsset, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", cosmos.ZeroUint(), signer)
-	c.Assert(handler.handle(ctx, *msg), IsNil)
+	c.Assert(handler.handle(ctx.WithValue(constants.CtxLoanTxID, txid), *msg), IsNil)
 	c.Assert(mgr.SwapQ().EndBlock(ctx, mgr), IsNil)
 
 	loan, err := mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)

@@ -612,7 +612,13 @@ count: 1
 type: check
 endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
-  - '[.end[]|select(.type == "refund")]|length == 1'
+  - .|[.end[]|select(.type == "refund")]|length == 1
   - .end[]|select(.type == "refund")|.reason == "pool(THOR.TOR) is not available"
-  # TODO: Refund should be sent to the originating account not the lending module.
-  # - .end[]|select(.type == "refund")|.from == "{{ addr_thor_fox }}"
+  - .end[]|select(.type == "refund")|.from == "{{ addr_thor_fox }}"
+  # The from field is the user's which receives the refund
+  - .end[]|select(.type == "refund")|.to == "{{ addr_module_asgard }}"
+  # The to field is the address to which the user first sends the funds (not the swap destination).
+  - .|[.end[]|select(.type == "outbound")]|length == 1
+  - .end[]|select(.type == "outbound")|.from == "{{ addr_module_asgard }}"
+  - .end[]|select(.type == "outbound")|.to == "{{ addr_thor_fox }}"
+  

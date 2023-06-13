@@ -38,8 +38,9 @@ const MaxETHGas = 50000000
 type contextKey string
 
 const (
-	CtxMetricLabels contextKey = "metricLabels"
-	CtxLoanTxID     contextKey = "loan-txid"
+	CtxMetricLabels  contextKey = "metricLabels"
+	CtxLoanTxID      contextKey = "loan-txid"
+	CtxLoanToAddress contextKey = "loan-toaddress"
 )
 
 const MimirKeyRegex = `^[a-zA-Z0-9-]+$`

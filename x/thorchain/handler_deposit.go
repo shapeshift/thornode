@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
+	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
@@ -59,6 +60,8 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	ctx.Logger().Info("receive MsgDeposit", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.113.0")):
+		return h.handleV113(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
 		return h.handleV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.108.0")):
@@ -75,7 +78,7 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	return nil, errInvalidVersion
 }
 
-func (h DepositHandler) handleV112(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+func (h DepositHandler) handleV113(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	if h.mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
 		return nil, fmt.Errorf("unable to use MsgDeposit while THORChain is halted")
 	}
@@ -197,7 +200,16 @@ func (h DepositHandler) handleV112(ctx cosmos.Context, msg MsgDeposit) (*cosmos.
 		return &cosmos.Result{}, nil
 	}
 
-	result, err := handler(ctx, m)
+	// if it is a loan, inject the TxID and ToAddress into the context
+	_, isLoanOpen := m.(*MsgLoanOpen)
+	_, isLoanRepayment := m.(*MsgLoanRepayment)
+	mCtx := ctx
+	if isLoanOpen || isLoanRepayment {
+		mCtx = ctx.WithValue(constants.CtxLoanTxID, txIn.Tx.ID)
+		mCtx = mCtx.WithValue(constants.CtxLoanToAddress, txIn.Tx.ToAddress)
+	}
+
+	result, err := handler(mCtx, m)
 	if err != nil {
 		code := uint32(1)
 		var e se.Error
