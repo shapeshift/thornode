@@ -581,7 +581,8 @@ func (k KVStoreDummy) GetAnchors(ctx cosmos.Context, asset common.Asset) []commo
 func (k KVStoreDummy) AnchorMedian(ctx cosmos.Context, assets []common.Asset) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
-func (k KVStoreDummy) DollarInRune(ctx cosmos.Context) cosmos.Uint { return cosmos.ZeroUint() }
+func (k KVStoreDummy) DollarsPerRune(ctx cosmos.Context) cosmos.Uint { return cosmos.ZeroUint() }
+func (k KVStoreDummy) DollarInRune(ctx cosmos.Context) cosmos.Uint   { return cosmos.ZeroUint() } // TODO: remove me on hard fork
 
 func (k KVStoreDummy) GetNativeTxFee(ctx cosmos.Context) cosmos.Uint   { return cosmos.ZeroUint() }
 func (k KVStoreDummy) GetOutboundTxFee(ctx cosmos.Context) cosmos.Uint { return cosmos.ZeroUint() }

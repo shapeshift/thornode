@@ -382,7 +382,7 @@ func (s *HelperSuite) TestRefundBondDisableRequestToLeaveNode(c *C) {
 	c.Assert(keeper.na.Status == NodeDisabled, Equals, true)
 }
 
-func (s *HelperSuite) TestDollarInRune(c *C) {
+func (s *HelperSuite) TestDollarsPerRune(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
 	mgr.Keeper().SetMimir(ctx, "TorAnchor-BNB-BUSD-BD1", 1) // enable BUSD pool as a TOR anchor
@@ -396,7 +396,7 @@ func (s *HelperSuite) TestDollarInRune(c *C) {
 	pool.Decimals = 8
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	runeUSDPrice := telem(DollarInRune(ctx, mgr).QuoUint64(constants.DollarMulti))
+	runeUSDPrice := telem(mgr.Keeper().DollarsPerRune(ctx))
 	c.Assert(runeUSDPrice, Equals, float32(8.300317))
 
 	// Now try with a second pool, identical depths.
@@ -411,7 +411,7 @@ func (s *HelperSuite) TestDollarInRune(c *C) {
 	pool.Decimals = 8
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	runeUSDPrice = telem(DollarInRune(ctx, mgr).QuoUint64(constants.DollarMulti))
+	runeUSDPrice = telem(mgr.Keeper().DollarsPerRune(ctx))
 	c.Assert(runeUSDPrice, Equals, float32(8.300317))
 }
 

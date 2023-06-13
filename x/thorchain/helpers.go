@@ -774,7 +774,14 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 	}
 
 	// get 1 RUNE price in USD
-	runeUSDPrice := telem(mgr.Keeper().DollarInRune(ctx).QuoUint64(constants.DollarMulti))
+	var runeUSDPrice float32
+	version := mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.113.0")):
+		runeUSDPrice = telem(mgr.Keeper().DollarsPerRune(ctx))
+	default:
+		runeUSDPrice = telem(mgr.Keeper().DollarInRune(ctx).QuoUint64(constants.DollarMulti))
+	}
 	telemetry.SetGauge(runeUSDPrice, "thornode", "price", "usd", "thor", "rune")
 
 	// emit pool metrics

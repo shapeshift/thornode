@@ -103,7 +103,7 @@ This is the number used to be applied to `MaxAnchorSlip`
 
 ## Miscellaneous
 
-`DollarInRune`: Manual override of amount of rune in a dollar. Used for metrics data collection
+`DollarsPerRune`: Manual override of number of dollars per one rune. Used for metrics data collection and RUNE calculation from MinimumL1OutboundFeeUSD
 `THORNames`: Enable/Disable THORNames
 `TNSRegisterFee`: TNS registration fee of new names
 `TNSFeePerBlock`: TNS cost per block to retain ownership of a name

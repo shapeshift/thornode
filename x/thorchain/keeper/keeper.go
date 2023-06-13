@@ -353,7 +353,8 @@ type KeeperHalt interface {
 type KeeperAnchors interface {
 	GetAnchors(ctx cosmos.Context, asset common.Asset) []common.Asset
 	AnchorMedian(ctx cosmos.Context, assets []common.Asset) cosmos.Uint
-	DollarInRune(ctx cosmos.Context) cosmos.Uint
+	DollarsPerRune(ctx cosmos.Context) cosmos.Uint
+	DollarInRune(ctx cosmos.Context) cosmos.Uint // TODO: remove me on hard fork
 }
 
 // NewKVStore creates new instances of the thorchain Keeper

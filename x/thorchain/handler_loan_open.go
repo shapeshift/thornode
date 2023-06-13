@@ -155,6 +155,8 @@ func (h LoanOpenHandler) handle(ctx cosmos.Context, msg MsgLoanOpen) error {
 func (h LoanOpenHandler) openLoan(ctx cosmos.Context, msg MsgLoanOpen) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.113.0")):
+		return h.openLoanV113(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
 		return h.openLoanV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.111.0")):
@@ -197,7 +199,7 @@ func (h LoanOpenHandler) handleV111(ctx cosmos.Context, msg MsgLoanOpen) error {
 	}
 }
 
-func (h LoanOpenHandler) openLoanV112(ctx cosmos.Context, msg MsgLoanOpen) error {
+func (h LoanOpenHandler) openLoanV113(ctx cosmos.Context, msg MsgLoanOpen) error {
 	var err error
 	zero := cosmos.ZeroUint()
 
@@ -255,7 +257,7 @@ func (h LoanOpenHandler) openLoanV112(ctx cosmos.Context, msg MsgLoanOpen) error
 	}
 	cr := h.getCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
 
-	price := h.mgr.Keeper().DollarInRune(ctx).QuoUint64(constants.DollarMulti)
+	price := h.mgr.Keeper().DollarsPerRune(ctx)
 	if price.IsZero() {
 		return fmt.Errorf("TOR price cannot be zero")
 	}
