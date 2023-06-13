@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sync"
 	"text/template"
 
 	"gitlab.com/thorchain/thornode/constants"
@@ -13,6 +14,7 @@ import (
 
 // nativeTxIDs are scoped to the routine and contain the native txids for all sent txs
 var nativeTxIDs = map[int][]string{}
+var nativeTxIDsMu = sync.Mutex{}
 
 // templates contain all base templates referenced in tests
 var templates *template.Template

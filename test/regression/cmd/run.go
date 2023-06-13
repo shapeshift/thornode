@@ -79,7 +79,9 @@ func run(out io.Writer, path string, routine int) error {
 	}
 
 	// create routine local state (used later by custom template functions in operations)
+	nativeTxIDsMu.Lock()
 	nativeTxIDs[routine] = []string{}
+	nativeTxIDsMu.Unlock()
 	tmpls := template.Must(templates.Clone())
 
 	// ensure no naming collisions

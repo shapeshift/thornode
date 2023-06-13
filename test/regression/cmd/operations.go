@@ -285,6 +285,8 @@ func (op *OpCheck) Execute(out io.Writer, routine int, _ *os.Process, logs chan 
 		funcMap := template.FuncMap{
 			"native_txid": func(i int) string {
 				// allow reverse indexing
+				nativeTxIDsMu.Lock()
+				defer nativeTxIDsMu.Unlock()
 				if i < 0 {
 					i += len(nativeTxIDs[routine]) + 1
 				}
@@ -481,6 +483,8 @@ func (op *OpTxObservedOut) Execute(out io.Writer, routine int, _ *os.Process, lo
 	funcMap := template.FuncMap{
 		"native_txid": func(i int) string {
 			// allow reverse indexing
+			nativeTxIDsMu.Lock()
+			defer nativeTxIDsMu.Unlock()
 			if i < 0 {
 				i += len(nativeTxIDs[routine]) + 1
 			}
@@ -689,7 +693,9 @@ func sendMsg(out io.Writer, routine int, msg sdk.Msg, signer sdk.AccAddress, seq
 	if txRes.Code != 0 {
 		log.Debug().Uint32("code", txRes.Code).Str("log", txRes.RawLog).Msg("tx send failed")
 	} else {
+		nativeTxIDsMu.Lock()
 		nativeTxIDs[routine] = append(nativeTxIDs[routine], txRes.TxHash)
+		nativeTxIDsMu.Unlock()
 	}
 
 	return err
