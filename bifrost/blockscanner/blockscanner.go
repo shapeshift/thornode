@@ -81,6 +81,7 @@ func NewBlockScanner(cfg config.BifrostBlockScannerConfiguration, scannerStorage
 	}
 
 	scanner.previousBlock, err = scanner.FetchLastHeight()
+	logger.Info().Int64("block height", scanner.previousBlock).Msg("block scanner last fetch height")
 	return scanner, err
 }
 
@@ -232,19 +233,21 @@ func (b *BlockScanner) scanBlocks() {
 				continue
 			}
 
+			// determine how often we print a info log line for scanner
+			// progress. General goal is about once per minute
+			ms := b.cfg.ChainID.ApproximateBlockMilliseconds()
+			mod := (60_000 + ms - 1) / ms
 			// enable this one , so we could see how far it is behind
-			if currentBlock%100 == 0 {
+			if currentBlock%mod == 0 || !b.healthy {
 				b.logger.Info().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray)).Msg("scan block")
 			}
 			atomic.AddInt64(&b.previousBlock, 1)
 			// if current block height is less than 50 blocks behind the tip , then it should catch up soon, should be safe to mark block scanner as healthy
 			// if the block scanner is too far away from tip , should not mark the block scanner as healthy , otherwise it might cause , reschedule and double send
 			if chainHeight-currentBlock <= 50 {
-				b.logger.Debug().Msgf("the gap is %d , set it to healthy", chainHeight-currentBlock)
 				b.healthy = true
-			} else {
-				b.logger.Debug().Msgf("the gap is %d , healthy: %+v", chainHeight-currentBlock, b.healthy)
 			}
+			b.logger.Debug().Msgf("the gap is %d , healthy: %+v", chainHeight-currentBlock, b.healthy)
 
 			b.metrics.GetCounter(metrics.TotalBlockScanned).Inc()
 			if len(txIn.TxArray) > 0 {
