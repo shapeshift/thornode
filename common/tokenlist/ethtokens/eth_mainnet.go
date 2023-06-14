@@ -7,6 +7,9 @@ import (
 	_ "embed"
 )
 
+//go:embed eth_mainnet_V114.json
+var ETHTokenListRawV114 []byte
+
 //go:embed eth_mainnet_V108.json
 var ETHTokenListRawV108 []byte
 

@@ -21,3 +21,6 @@ var ETHTokenListRawV101 []byte
 
 //go:embed eth_testnet_V108.json
 var ETHTokenListRawV108 []byte
+
+//go:embed eth_testnet_V114.json
+var ETHTokenListRawV114 []byte
