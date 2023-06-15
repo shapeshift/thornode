@@ -2,7 +2,7 @@ FROM python:3.10-slim
 WORKDIR /app
 ENV PYTHONPATH /app
 
-RUN apt-get update && apt-get install -y libsecp256k1-0 build-essential git
+RUN apt-get update && apt-get install -y libsecp256k1-1 build-essential git
 
 
 COPY requirements.txt .
