@@ -57,6 +57,7 @@ bifrost:
       http_request_write_timeout: 30s
       max_http_request_retry: "10"
     leveldb: *default-leveldb
+    auto_observe: true
   tss:
     rendezvous: asgard
     p2p_port: 5040

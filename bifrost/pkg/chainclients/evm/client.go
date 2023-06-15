@@ -598,34 +598,34 @@ func (c *EVMClient) buildOutboundTx(txOutItem stypes.TxOutItem, memo mem.Memo, n
 // --------------------------------- sign ---------------------------------
 
 // SignTx returns the signed transaction.
-func (c *EVMClient) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, error) {
+func (c *EVMClient) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, *stypes.TxInItem, error) {
 	if !tx.Chain.Equals(c.cfg.ChainID) {
-		return nil, nil, fmt.Errorf("chain %s is not support by evm chain client", tx.Chain)
+		return nil, nil, nil, fmt.Errorf("chain %s is not support by evm chain client", tx.Chain)
 	}
 
 	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
 		c.logger.Info().Interface("tx", tx).Msg("transaction signed before, ignore")
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	if tx.ToAddress.IsEmpty() {
-		return nil, nil, fmt.Errorf("to address is empty")
+		return nil, nil, nil, fmt.Errorf("to address is empty")
 	}
 	if tx.VaultPubKey.IsEmpty() {
-		return nil, nil, fmt.Errorf("vault public key is empty")
+		return nil, nil, nil, fmt.Errorf("vault public key is empty")
 	}
 
 	memo, err := mem.ParseMemo(common.LatestVersion, tx.Memo)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fail to parse memo(%s):%w", tx.Memo, err)
+		return nil, nil, nil, fmt.Errorf("fail to parse memo(%s):%w", tx.Memo, err)
 	}
 
 	if memo.IsInbound() {
-		return nil, nil, fmt.Errorf("inbound memo should not be used for outbound tx")
+		return nil, nil, nil, fmt.Errorf("inbound memo should not be used for outbound tx")
 	}
 
 	if len(tx.Memo) == 0 {
-		return nil, nil, fmt.Errorf("can't sign tx when it doesn't have memo")
+		return nil, nil, nil, fmt.Errorf("can't sign tx when it doesn't have memo")
 	}
 
 	// the nonce is stored as the transaction checkpoint, if it is set deserialize it
@@ -633,37 +633,37 @@ func (c *EVMClient) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, e
 	var nonce uint64
 	if tx.Checkpoint != nil {
 		if err := json.Unmarshal(tx.Checkpoint, &nonce); err != nil {
-			return nil, nil, fmt.Errorf("fail to unmarshal checkpoint: %w", err)
+			return nil, nil, nil, fmt.Errorf("fail to unmarshal checkpoint: %w", err)
 		}
 	} else {
 		fromAddr, err := tx.VaultPubKey.GetAddress(c.cfg.ChainID)
 		if err != nil {
-			return nil, nil, fmt.Errorf("fail to get AVAX address for pub key(%s): %w", tx.VaultPubKey, err)
+			return nil, nil, nil, fmt.Errorf("fail to get AVAX address for pub key(%s): %w", tx.VaultPubKey, err)
 		}
 		nonce, err = c.evmScanner.GetNonce(fromAddr.String())
 		if err != nil {
-			return nil, nil, fmt.Errorf("fail to fetch account(%s) nonce : %w", fromAddr, err)
+			return nil, nil, nil, fmt.Errorf("fail to fetch account(%s) nonce : %w", fromAddr, err)
 		}
 	}
 
 	// serialize nonce for later
 	nonceBytes, err := json.Marshal(nonce)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fail to marshal nonce: %w", err)
+		return nil, nil, nil, fmt.Errorf("fail to marshal nonce: %w", err)
 	}
 
 	outboundTx, err := c.buildOutboundTx(tx, memo, nonce)
 	if err != nil {
 		c.logger.Err(err).Msg("Failed to build outbound tx")
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	rawTx, err := c.sign(outboundTx, tx.VaultPubKey, height, tx)
 	if err != nil || len(rawTx) == 0 {
-		return nil, nonceBytes, fmt.Errorf("fail to sign message: %w", err)
+		return nil, nonceBytes, nil, fmt.Errorf("fail to sign message: %w", err)
 	}
 
-	return rawTx, nil, nil
+	return rawTx, nil, nil, nil
 }
 
 // sign is design to sign a given message with keysign party and keysign wrapper

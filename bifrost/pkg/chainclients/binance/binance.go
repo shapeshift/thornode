@@ -295,21 +295,21 @@ func (b *Binance) checkAccountMemoFlag(addr string) bool {
 }
 
 // SignTx sign the the given TxArrayItem
-func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []byte, error) {
+func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []byte, *stypes.TxInItem, error) {
 	var payload []msg.Transfer
 	if b.signerCacheManager.HasSigned(tx.CacheHash()) {
 		b.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	toAddr, err := types.AccAddressFromBech32(tx.ToAddress.String())
 	if err != nil {
 		b.logger.Error().Err(err).Msgf("fail to parse account address(%s)", tx.ToAddress.String())
 		// if we fail to parse the to address , then we log an error and move on
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	if b.checkAccountMemoFlag(toAddr.String()) {
 		b.logger.Info().Msgf("address: %s has memo flag set , ignore tx", tx.ToAddress)
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	var gasCoin common.Coins
 
@@ -340,18 +340,18 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []
 
 	if len(payload) == 0 {
 		b.logger.Error().Msg("payload is empty , this should not happen")
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	fromAddr := b.GetAddress(tx.VaultPubKey)
 	sendMsg := b.parseTx(fromAddr, payload)
 	if err := sendMsg.ValidateBasic(); err != nil {
-		return nil, nil, fmt.Errorf("invalid send msg: %w", err)
+		return nil, nil, nil, fmt.Errorf("invalid send msg: %w", err)
 	}
 
 	currentHeight, err := b.bnbScanner.GetHeight()
 	if err != nil {
 		b.logger.Error().Err(err).Msg("fail to get current binance block height")
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// the metadata is stored as the transaction checkpoint, if it is set deserialize it
@@ -360,14 +360,14 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []
 	if tx.Checkpoint != nil {
 		if err := json.Unmarshal(tx.Checkpoint, &meta); err != nil {
 			b.logger.Error().Err(err).Msg("fail to unmarshal checkpoint")
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 	} else {
 		meta = b.accts.Get(tx.VaultPubKey)
 		if currentHeight > meta.BlockHeight {
 			acc, err := b.GetAccount(tx.VaultPubKey, nil)
 			if err != nil {
-				return nil, nil, fmt.Errorf("fail to get account info: %w", err)
+				return nil, nil, nil, fmt.Errorf("fail to get account info: %w", err)
 			}
 			meta = BinanceMetadata{
 				AccountNumber: acc.AccountNumber,
@@ -390,22 +390,22 @@ func (b *Binance) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []
 	// serialize the checkpoint for later
 	checkpointBytes, err := json.Marshal(meta)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fail to marshal checkpoint: %w", err)
+		return nil, nil, nil, fmt.Errorf("fail to marshal checkpoint: %w", err)
 	}
 
 	rawBz, err := b.signMsg(signMsg, fromAddr, tx.VaultPubKey, thorchainHeight, tx)
 	if err != nil {
-		return nil, checkpointBytes, fmt.Errorf("fail to sign message: %w", err)
+		return nil, checkpointBytes, nil, fmt.Errorf("fail to sign message: %w", err)
 	}
 
 	if len(rawBz) == 0 {
 		b.logger.Warn().Msg("this should not happen, the message is empty")
 		// the transaction was already signed
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	hexTx := []byte(hex.EncodeToString(rawBz))
-	return hexTx, nil, nil
+	return hexTx, nil, nil, nil
 }
 
 func (b *Binance) sign(signMsg btx.StdSignMsg, poolPubKey common.PubKey) ([]byte, error) {

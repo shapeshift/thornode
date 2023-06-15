@@ -47,7 +47,7 @@ func (s *DogecoinSignerSuite) TestSignTxWithTSS(c *C) {
 		"0000000000000068f0710c510e94bd29aa624745da43e32a1de887387306bfda")
 	blockMeta.AddCustomerTransaction(txHash)
 	c.Assert(s.client.temporalStorage.SaveBlockMeta(blockMeta.Height, blockMeta), IsNil)
-	buf, _, err := s.client.SignTx(txOutItem, 1)
+	buf, _, _, err := s.client.SignTx(txOutItem, 1)
 	c.Assert(err, IsNil)
 	c.Assert(buf, NotNil)
 }

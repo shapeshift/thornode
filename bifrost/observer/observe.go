@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -29,6 +30,11 @@ import (
 
 const maxTxArrayLen = 100
 
+// signedTxOutCacheSize is the number of signed tx out observations to keep in memory
+// to prevent duplicate observations. Based on historical data at the time of writing,
+// the peak of Thorchain's L1 swaps was 10k per day.
+const signedTxOutCacheSize = 10_000
+
 // Observer observer service
 type Observer struct {
 	logger              zerolog.Logger
@@ -45,6 +51,11 @@ type Observer struct {
 	thorchainBridge     thorclient.ThorchainBridge
 	storage             *ObserverStorage
 	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr
+
+	// signedTxOutCache is a cache to keep track of observations for outbounds which were
+	// manually observed after completion of signing and should be filtered from future
+	// mempool and block observations.
+	signedTxOutCache *lru.Cache
 }
 
 // NewObserver create a new instance of Observer for chain
@@ -65,6 +76,12 @@ func NewObserver(pubkeyMgr *pubkeymanager.PubKeyManager,
 	if tssKeysignMetricMgr == nil {
 		return nil, fmt.Errorf("tss keysign manager is nil")
 	}
+
+	signedTxOutCache, err := lru.New(signedTxOutCacheSize)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create signed tx out cache: %w", err)
+	}
+
 	return &Observer{
 		logger:              logger,
 		chains:              chains,
@@ -79,6 +96,7 @@ func NewObserver(pubkeyMgr *pubkeymanager.PubKeyManager,
 		thorchainBridge:     thorchainBridge,
 		storage:             storage,
 		tssKeysignMetricMgr: tssKeysignMetricMgr,
+		signedTxOutCache:    signedTxOutCache,
 	}, nil
 }
 
@@ -101,6 +119,16 @@ func (o *Observer) Start() error {
 	go o.processSolvencyQueue()
 	go o.deck()
 	return nil
+}
+
+// ObserveSigned is called when a tx is signed by the signer and returns an observation that should be immediately submitted. Observations passed to this method will be cached in memory and skipped if they are later observed in the mempool or block.
+func (o *Observer) ObserveSigned(txIn types.TxIn) {
+	// add all transaction ids to the signed tx out cache
+	for _, tx := range txIn.TxArray {
+		o.signedTxOutCache.Add(tx.Tx, nil)
+	}
+
+	o.globalTxsQueue <- txIn
 }
 
 func (o *Observer) restoreDeck() {
@@ -289,8 +317,12 @@ func (o *Observer) filterObservations(chain common.Chain, items []types.TxInItem
 		// check if the from address is a valid pool
 		if ok, cpi := o.pubkeyMgr.IsValidPoolAddress(txInItem.Sender, chain); ok {
 			txInItem.ObservedVaultPubKey = cpi.PubKey
-			txs = append(txs, txInItem)
 			isInternal = true
+
+			// skip the outbound observation if we signed and manually observed
+			if !o.signedTxOutCache.Contains(txInItem.Tx) {
+				txs = append(txs, txInItem)
+			}
 		}
 		// check if the to address is a valid pool address
 		// for inbound message , if it is still in mempool , it will be ignored unless it is internal transaction

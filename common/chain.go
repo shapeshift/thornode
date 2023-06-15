@@ -94,6 +94,11 @@ func GetEVMChains() []Chain {
 	return []Chain{ETHChain, AVAXChain, BSCChain}
 }
 
+// GetUTXOChains returns all "UTXO" chains connected to THORChain.
+func GetUTXOChains() []Chain {
+	return []Chain{BTCChain, LTCChain, BCHChain, DOGEChain}
+}
+
 // IsEVM returns true if given chain is an EVM chain.
 // See working definition of an "EVM" chain in the
 // `GetEVMChains` function description
@@ -101,6 +106,17 @@ func (c Chain) IsEVM() bool {
 	evmChains := GetEVMChains()
 	for _, evm := range evmChains {
 		if c.Equals(evm) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsUTXO returns true if given chain is a UTXO chain.
+func (c Chain) IsUTXO() bool {
+	utxoChains := GetUTXOChains()
+	for _, utxo := range utxoChains {
+		if c.Equals(utxo) {
 			return true
 		}
 	}

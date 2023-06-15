@@ -348,49 +348,49 @@ func (c *Client) buildTx(tx stypes.TxOutItem, sourceScript []byte) (*wire.MsgTx,
 
 // SignTx builds and signs the outbound transaction. Returns the signed transaction, a
 // serialized checkpoint on error, and an error.
-func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []byte, error) {
+func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []byte, *stypes.TxInItem, error) {
 	if !tx.Chain.Equals(common.LTCChain) {
-		return nil, nil, errors.New("not LTC chain")
+		return nil, nil, nil, errors.New("not LTC chain")
 	}
 
 	// skip outbounds without coins
 	if tx.Coins.IsEmpty() {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	// skip outbounds that have been signed
 	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
 		c.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	// only one keysign per chain at a time
 	vaultSignerLock := c.getVaultSignerLock(tx.VaultPubKey.String())
 	if vaultSignerLock == nil {
 		c.logger.Error().Msgf("fail to get signer lock for vault pub key: %s", tx.VaultPubKey.String())
-		return nil, nil, fmt.Errorf("fail to get signer lock")
+		return nil, nil, nil, fmt.Errorf("fail to get signer lock")
 	}
 	vaultSignerLock.Lock()
 	defer vaultSignerLock.Unlock()
 
 	sourceScript, err := c.getSourceScript(tx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fail to get source pay to address script: %w", err)
+		return nil, nil, nil, fmt.Errorf("fail to get source pay to address script: %w", err)
 	}
 
 	// verify output address
 	outputAddr, err := ltcutil.DecodeAddress(tx.ToAddress.String(), c.getChainCfg())
 	if err != nil {
-		return nil, nil, fmt.Errorf("fail to decode next address: %w", err)
+		return nil, nil, nil, fmt.Errorf("fail to decode next address: %w", err)
 	}
 	if outputAddr.String() != tx.ToAddress.String() {
 		c.logger.Info().Msgf("output address: %s, to address: %s can't roundtrip", outputAddr.String(), tx.ToAddress.String())
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	switch outputAddr.(type) {
 	case *ltcutil.AddressPubKey:
 		c.logger.Info().Msgf("address: %s is address pubkey type, should not be used", outputAddr)
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	default: // keep lint happy
 	}
 
@@ -399,20 +399,20 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []b
 	redeemTx := &wire.MsgTx{}
 	if tx.Checkpoint != nil {
 		if err := json.Unmarshal(tx.Checkpoint, &checkpoint); err != nil {
-			return nil, nil, fmt.Errorf("fail to unmarshal checkpoint: %w", err)
+			return nil, nil, nil, fmt.Errorf("fail to unmarshal checkpoint: %w", err)
 		}
 		if err := redeemTx.Deserialize(bytes.NewReader(checkpoint.UnsignedTx)); err != nil {
-			return nil, nil, fmt.Errorf("fail to deserialize tx: %w", err)
+			return nil, nil, nil, fmt.Errorf("fail to deserialize tx: %w", err)
 		}
 	} else {
 		redeemTx, checkpoint.IndividualAmounts, err = c.buildTx(tx, sourceScript)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		buf := bytes.NewBuffer([]byte{})
 		err = redeemTx.Serialize(buf)
 		if err != nil {
-			return nil, nil, fmt.Errorf("fail to serialize tx: %w", err)
+			return nil, nil, nil, fmt.Errorf("fail to serialize tx: %w", err)
 		}
 		checkpoint.UnsignedTx = buf.Bytes()
 	}
@@ -420,16 +420,18 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []b
 	// serialize the checkpoint for later
 	checkpointBytes, err := json.Marshal(checkpoint)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fail to marshal checkpoint: %w", err)
+		return nil, nil, nil, fmt.Errorf("fail to marshal checkpoint: %w", err)
 	}
 
 	wg := &sync.WaitGroup{}
 	var utxoErr error
 	c.logger.Info().Msgf("UTXOs to sign: %d", len(redeemTx.TxIn))
 
+	totalAmount := int64(0)
 	for idx, txIn := range redeemTx.TxIn {
 		key := fmt.Sprintf("%s-%d", txIn.PreviousOutPoint.Hash, txIn.PreviousOutPoint.Index)
 		outputAmount := checkpoint.IndividualAmounts[key]
+		totalAmount += outputAmount
 		wg.Add(1)
 		go func(i int, amount int64) {
 			defer wg.Done()
@@ -445,17 +447,49 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []b
 	wg.Wait()
 	if utxoErr != nil {
 		err = utxo.PostKeysignFailure(c.bridge, tx, c.logger, thorchainHeight, utxoErr)
-		return nil, checkpointBytes, fmt.Errorf("fail to sign the message: %w", err)
+		return nil, checkpointBytes, nil, fmt.Errorf("fail to sign the message: %w", err)
 	}
 	finalSize := redeemTx.SerializeSize()
 	finalVBytes := mempool.GetTxVirtualSize(ltcutil.NewTx(redeemTx))
 	c.logger.Info().Msgf("final size: %d, final vbyte: %d", finalSize, finalVBytes)
 	var signedTx bytes.Buffer
 	if err := redeemTx.Serialize(&signedTx); err != nil {
-		return nil, nil, fmt.Errorf("fail to serialize tx to bytes: %w", err)
+		return nil, nil, nil, fmt.Errorf("fail to serialize tx to bytes: %w", err)
 	}
 
-	return signedTx.Bytes(), nil, nil
+	// create the observation to be sent by the signer before broadcast
+	chainHeight, err := c.getBlockHeight()
+	if err != nil { // fall back to the scanner height, thornode voter does not use height
+		chainHeight = c.currentBlockHeight.Load()
+	}
+	amt := redeemTx.TxOut[0].Value // the first output is the outbound amount
+	gas := totalAmount
+	for _, txOut := range redeemTx.TxOut { // subtract all vouts to from vins to get the gas
+		gas -= txOut.Value
+	}
+	var txIn *stypes.TxInItem
+	sender, err := tx.VaultPubKey.GetAddress(tx.Chain)
+	if err == nil {
+		txIn = stypes.NewTxInItem(
+			chainHeight+1,
+			redeemTx.TxHash().String(),
+			tx.Memo,
+			sender.String(),
+			tx.ToAddress.String(),
+			common.NewCoins(
+				common.NewCoin(c.chain.GetGasAsset(), cosmos.NewUint(uint64(amt))),
+			),
+			common.Gas(common.NewCoins(
+				common.NewCoin(c.chain.GetGasAsset(), cosmos.NewUint(uint64(gas))),
+			)),
+			tx.VaultPubKey,
+			"",
+			"",
+			nil,
+		)
+	}
+
+	return signedTx.Bytes(), nil, txIn, nil
 }
 
 func (c *Client) signUTXO(redeemTx *wire.MsgTx, tx stypes.TxOutItem, amount int64, sourceScript []byte, idx int, thorchainHeight int64) error {
@@ -628,7 +662,7 @@ func (c *Client) consolidateUTXOs() {
 			c.logger.Err(err).Msg("fail to get THORChain block height")
 			continue
 		}
-		rawTx, _, err := c.SignTx(txOutItem, height)
+		rawTx, _, _, err := c.SignTx(txOutItem, height)
 		if err != nil {
 			c.logger.Err(err).Msg("fail to sign consolidate txout item")
 			continue

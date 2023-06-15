@@ -183,14 +183,6 @@ func main() {
 		log.Fatal().Msg("fail to load any chains")
 	}
 	tssKeysignMetricMgr := metrics.NewTssKeysignMetricMgr()
-	// start signer
-	sign, err := signer.NewSigner(cfg.Signer, thorchainBridge, k, pubkeyMgr, tssIns, chains, m, tssKeysignMetricMgr)
-	if err != nil {
-		log.Fatal().Err(err).Msg("fail to create instance of signer")
-	}
-	if err := sign.Start(); err != nil {
-		log.Fatal().Err(err).Msg("fail to start signer")
-	}
 
 	// start observer
 	obs, err := observer.NewObserver(pubkeyMgr, chains, thorchainBridge, m, cfg.Chains[tcommon.BTCChain].BlockScanner.DBPath, tssKeysignMetricMgr)
@@ -199,6 +191,15 @@ func main() {
 	}
 	if err = obs.Start(); err != nil {
 		log.Fatal().Err(err).Msg("fail to start observer")
+	}
+
+	// start signer
+	sign, err := signer.NewSigner(cfg.Signer, thorchainBridge, k, pubkeyMgr, tssIns, chains, m, tssKeysignMetricMgr, obs)
+	if err != nil {
+		log.Fatal().Err(err).Msg("fail to create instance of signer")
+	}
+	if err := sign.Start(); err != nil {
+		log.Fatal().Err(err).Msg("fail to start signer")
 	}
 
 	// wait....

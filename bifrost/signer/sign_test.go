@@ -179,9 +179,9 @@ func (b *MockChainClient) IsBlockScannerHealthy() bool {
 	return true
 }
 
-func (b *MockChainClient) SignTx(tai stypes.TxOutItem, height int64) ([]byte, []byte, error) {
+func (b *MockChainClient) SignTx(tai stypes.TxOutItem, height int64) ([]byte, []byte, *stypes.TxInItem, error) {
 	if b.ks == nil {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	// assert that this signing should have the checkpoint set
@@ -198,7 +198,7 @@ func (b *MockChainClient) SignTx(tai stypes.TxOutItem, height int64) ([]byte, []
 	b.signCount += 1
 	sig, _, err := b.ks.RemoteSign([]byte(tai.Memo), tai.VaultPubKey.String())
 
-	return sig, []byte(tai.Memo), err
+	return sig, []byte(tai.Memo), nil, err
 }
 
 func (b *MockChainClient) GetConfig() config.BifrostChainConfiguration {

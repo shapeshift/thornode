@@ -36,6 +36,34 @@ type TxInItem struct {
 }
 type TxInStatus byte
 
+func NewTxInItem(
+	blockHeight int64,
+	tx string,
+	memo string,
+	sender string,
+	to string,
+	coins common.Coins,
+	gas common.Gas,
+	observedVaultPubKey common.PubKey,
+	aggregator string,
+	aggregatorTarget string,
+	aggregatorTargetLimit *cosmos.Uint,
+) *TxInItem {
+	return &TxInItem{
+		BlockHeight:           blockHeight,
+		Tx:                    tx,
+		Memo:                  memo,
+		Sender:                sender,
+		To:                    to,
+		Coins:                 coins,
+		Gas:                   gas,
+		ObservedVaultPubKey:   observedVaultPubKey,
+		Aggregator:            aggregator,
+		AggregatorTarget:      aggregatorTarget,
+		AggregatorTargetLimit: aggregatorTargetLimit,
+	}
+}
+
 const (
 	Processing TxInStatus = iota
 	Failed

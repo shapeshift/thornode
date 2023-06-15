@@ -366,7 +366,7 @@ func (s *EVMSuite) TestClient(c *C) {
 	out := txOut.TxArray[0].TxOutItem()
 	out.Chain = common.AVAXChain
 	out.Memo = "OUT:B6BD1A69831B9CCC0A1E9939E9AFBFCA144C427B3F61E176EBDCB14E57981C1B"
-	r, _, err := a2.SignTx(out, 1)
+	r, _, _, err := a2.SignTx(out, 1)
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
 
@@ -421,7 +421,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(err, IsNil)
 
 	// Not AVAX chain
-	result, _, err := e.SignTx(stypes.TxOutItem{
+	result, _, _, err := e.SignTx(stypes.TxOutItem{
 		Chain:       common.BTCChain,
 		ToAddress:   addr,
 		VaultPubKey: "",
@@ -430,7 +430,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// to address is empty
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		VaultPubKey: "",
 	}, 1)
@@ -438,7 +438,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// vault pub key is empty
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: "",
@@ -447,7 +447,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// memo is empty
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -456,7 +456,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// memo can't be parsed
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -466,7 +466,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(err, NotNil)
 	c.Assert(result, IsNil)
 	// memo is inbound
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -476,7 +476,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(result, IsNil)
 
 	// Outbound
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -495,7 +495,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	asset, err := common.NewAsset("AVAX.TKN-0X3B7FA4DD21C6F9BA3CA375217EAD7CAB9D6BF483")
 	c.Assert(err, IsNil)
 	// Outbound
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -512,7 +512,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(result, NotNil)
 
 	// refund
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -528,7 +528,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	// refund
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -545,7 +545,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(result, NotNil)
 
 	// migrate
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -561,7 +561,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	// migrate
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -578,7 +578,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(result, NotNil)
 	// yggdrasil +
 
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -594,7 +594,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	// yggdrasil +
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,
@@ -610,7 +610,7 @@ func (s *EVMSuite) TestSignEVMTx(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
 	// yggdrasil -
-	result, _, err = e.SignTx(stypes.TxOutItem{
+	result, _, _, err = e.SignTx(stypes.TxOutItem{
 		Chain:       common.AVAXChain,
 		ToAddress:   addr,
 		VaultPubKey: e.localPubKey,

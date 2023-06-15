@@ -345,39 +345,39 @@ func (c *Client) convertThorchainAmountToWei(amt *big.Int) *big.Int {
 }
 
 // SignTx sign the the given TxArrayItem
-func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, error) {
+func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, *stypes.TxInItem, error) {
 	if !tx.Chain.Equals(common.ETHChain) {
-		return nil, nil, fmt.Errorf("chain %s is not support by ETH chain client", tx.Chain)
+		return nil, nil, nil, fmt.Errorf("chain %s is not support by ETH chain client", tx.Chain)
 	}
 
 	if c.signerCacheManager.HasSigned(tx.CacheHash()) {
 		c.logger.Info().Msgf("transaction(%+v), signed before , ignore", tx)
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	if tx.ToAddress.IsEmpty() {
-		return nil, nil, fmt.Errorf("to address is empty")
+		return nil, nil, nil, fmt.Errorf("to address is empty")
 	}
 	if tx.VaultPubKey.IsEmpty() {
-		return nil, nil, fmt.Errorf("vault public key is empty")
+		return nil, nil, nil, fmt.Errorf("vault public key is empty")
 	}
 
 	if len(tx.Memo) == 0 {
-		return nil, nil, fmt.Errorf("can't sign tx when it doesn't have memo")
+		return nil, nil, nil, fmt.Errorf("can't sign tx when it doesn't have memo")
 	}
 
 	memo, err := mem.ParseMemo(common.LatestVersion, tx.Memo)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fail to parse memo(%s):%w", tx.Memo, err)
+		return nil, nil, nil, fmt.Errorf("fail to parse memo(%s):%w", tx.Memo, err)
 	}
 
 	if memo.IsInbound() {
-		return nil, nil, fmt.Errorf("inbound memo should not be used for outbound tx")
+		return nil, nil, nil, fmt.Errorf("inbound memo should not be used for outbound tx")
 	}
 
 	contractAddr := c.getSmartContractAddr(tx.VaultPubKey)
 	if contractAddr.IsEmpty() {
-		return nil, nil, fmt.Errorf("can't sign tx , fail to get smart contract address")
+		return nil, nil, nil, fmt.Errorf("can't sign tx , fail to get smart contract address")
 	}
 
 	value := big.NewInt(0)
@@ -395,7 +395,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, erro
 
 	fromAddr, err := tx.VaultPubKey.GetAddress(common.ETHChain)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fail to get ETH address for pub key(%s): %w", tx.VaultPubKey, err)
+		return nil, nil, nil, fmt.Errorf("fail to get ETH address for pub key(%s): %w", tx.VaultPubKey, err)
 	}
 
 	dest := ecommon.HexToAddress(tx.ToAddress.String())
@@ -407,16 +407,16 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, erro
 		if tx.Aggregator == "" {
 			data, err = c.vaultABI.Pack("transferOut", dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
 			if err != nil {
-				return nil, nil, fmt.Errorf("fail to create data to call smart contract(transferOut): %w", err)
+				return nil, nil, nil, fmt.Errorf("fail to create data to call smart contract(transferOut): %w", err)
 			}
 		} else {
 			memoType := memo.GetType()
 			if memoType == mem.TxRefund || memoType == mem.TxRagnarok {
-				return nil, nil, fmt.Errorf("%s can't use transferOutAndCall", memoType)
+				return nil, nil, nil, fmt.Errorf("%s can't use transferOutAndCall", memoType)
 			}
 			c.logger.Info().Msgf("aggregator target address: %s", tx.AggregatorTargetAsset)
 			if ethValue.Uint64() == 0 {
-				return nil, nil, fmt.Errorf("transferOutAndCall can only be used when outbound asset is ETH")
+				return nil, nil, nil, fmt.Errorf("transferOutAndCall can only be used when outbound asset is ETH")
 			}
 			targetLimit := tx.AggregatorTargetLimit
 			if targetLimit == nil {
@@ -428,43 +428,43 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, erro
 			// when address can't be round trip , the tx out item will be dropped
 			if !strings.EqualFold(aggAddr.String(), tx.Aggregator) {
 				c.logger.Error().Msgf("aggregator address can't roundtrip , ignore tx (%s != %s)", tx.Aggregator, aggAddr.String())
-				return nil, nil, nil
+				return nil, nil, nil, nil
 			}
 			if !strings.EqualFold(targetAddr.String(), tx.AggregatorTargetAsset) {
 				c.logger.Error().Msgf("aggregator target asset address can't roundtrip , ignore tx (%s != %s)", tx.AggregatorTargetAsset, targetAddr.String())
-				return nil, nil, nil
+				return nil, nil, nil, nil
 			}
 			data, err = c.vaultABI.Pack("transferOutAndCall", aggAddr, targetAddr, dest, targetLimit.BigInt(), tx.Memo)
 			if err != nil {
-				return nil, nil, fmt.Errorf("fail to create data to call smart contract(transferOutAndCall): %w", err)
+				return nil, nil, nil, fmt.Errorf("fail to create data to call smart contract(transferOutAndCall): %w", err)
 			}
 		}
 	case mem.TxMigrate, mem.TxYggdrasilFund:
 		if tx.Aggregator != "" || tx.AggregatorTargetAsset != "" {
-			return nil, nil, fmt.Errorf("migration / yggdrasil+ can't use aggregator")
+			return nil, nil, nil, fmt.Errorf("migration / yggdrasil+ can't use aggregator")
 		}
 		if IsETH(tokenAddr) {
 			data, err = c.vaultABI.Pack("transferOut", dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
 			if err != nil {
-				return nil, nil, fmt.Errorf("fail to create data to call smart contract(transferOut): %w", err)
+				return nil, nil, nil, fmt.Errorf("fail to create data to call smart contract(transferOut): %w", err)
 			}
 		} else {
 			newSmartContractAddr := c.getSmartContractByAddress(tx.ToAddress)
 			if newSmartContractAddr.IsEmpty() {
-				return nil, nil, fmt.Errorf("fail to get new smart contract address")
+				return nil, nil, nil, fmt.Errorf("fail to get new smart contract address")
 			}
 			data, err = c.vaultABI.Pack("transferAllowance", ecommon.HexToAddress(newSmartContractAddr.String()), dest, ecommon.HexToAddress(tokenAddr), value, tx.Memo)
 			if err != nil {
-				return nil, nil, fmt.Errorf("fail to create data to call smart contract(transferAllowance): %w", err)
+				return nil, nil, nil, fmt.Errorf("fail to create data to call smart contract(transferAllowance): %w", err)
 			}
 		}
 	case mem.TxYggdrasilReturn:
 		if tx.Aggregator != "" || tx.AggregatorTargetAsset != "" {
-			return nil, nil, fmt.Errorf("yggdrasil- can't use aggregator")
+			return nil, nil, nil, fmt.Errorf("yggdrasil- can't use aggregator")
 		}
 		newSmartContractAddr := c.getSmartContractByAddress(tx.ToAddress)
 		if newSmartContractAddr.IsEmpty() {
-			return nil, nil, fmt.Errorf("fail to get new smart contract address")
+			return nil, nil, nil, fmt.Errorf("fail to get new smart contract address")
 		}
 		hasRouterUpdated = !newSmartContractAddr.Equals(contractAddr)
 
@@ -483,7 +483,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, erro
 		}
 		data, err = c.vaultABI.Pack("returnVaultAssets", ecommon.HexToAddress(newSmartContractAddr.String()), dest, coins, tx.Memo)
 		if err != nil {
-			return nil, nil, fmt.Errorf("fail to create data to call smart contract(transferVaultAssets): %w", err)
+			return nil, nil, nil, fmt.Errorf("fail to create data to call smart contract(transferVaultAssets): %w", err)
 		}
 	}
 
@@ -492,12 +492,12 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, erro
 	var nonce uint64
 	if tx.Checkpoint != nil {
 		if err := json.Unmarshal(tx.Checkpoint, &nonce); err != nil {
-			return nil, nil, fmt.Errorf("fail to deserialize checkpoint: %w", err)
+			return nil, nil, nil, fmt.Errorf("fail to deserialize checkpoint: %w", err)
 		}
 	} else {
 		nonce, err = c.GetNonce(fromAddr.String())
 		if err != nil {
-			return nil, nil, fmt.Errorf("fail to fetch account(%s) nonce : %w", fromAddr, err)
+			return nil, nil, nil, fmt.Errorf("fail to fetch account(%s) nonce : %w", fromAddr, err)
 		}
 	}
 	c.logger.Info().Uint64("nonce", nonce).Msg("account info")
@@ -505,7 +505,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, erro
 	// serialize nonce for later
 	nonceBytes, err := json.Marshal(nonce)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fail to marshal nonce: %w", err)
+		return nil, nil, nil, fmt.Errorf("fail to marshal nonce: %w", err)
 	}
 
 	// compare the gas rate prescribed by THORChain against the price it can get from the chain
@@ -534,7 +534,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, erro
 		// when this fail , chain client should skip the outbound and move on to the next. The network will reschedule the outbound
 		// after 300 blocks
 		c.logger.Err(err).Msgf("fail to estimate gas")
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 	c.logger.Info().Msgf("memo:%s estimated gas unit: %d", tx.Memo, estimatedGas)
 
@@ -591,10 +591,10 @@ func (c *Client) SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, erro
 
 	rawTx, err := c.sign(createdTx, tx.VaultPubKey, height, tx)
 	if err != nil || len(rawTx) == 0 {
-		return nil, nonceBytes, fmt.Errorf("fail to sign message: %w", err)
+		return nil, nonceBytes, nil, fmt.Errorf("fail to sign message: %w", err)
 	}
 
-	return rawTx, nil, nil
+	return rawTx, nil, nil, nil
 }
 
 // sign is design to sign a given message with keysign party and keysign wrapper

@@ -232,7 +232,7 @@ func (s *ObserverSuite) SetUpSuite(c *C) {
 
 	s.NewMockBinanceInstance(c, "")
 
-	r, _, err := s.b.SignTx(out, 1440)
+	r, _, _, err := s.b.SignTx(out, 1440)
 	c.Assert(err, IsNil)
 	c.Assert(r, NotNil)
 	buf, err := hex.DecodeString(string(r))

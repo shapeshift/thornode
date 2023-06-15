@@ -25,7 +25,7 @@ type ChainClient interface {
 	IsBlockScannerHealthy() bool
 
 	// SignTx returns the signed transaction.
-	SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, error)
+	SignTx(tx stypes.TxOutItem, height int64) ([]byte, []byte, *stypes.TxInItem, error)
 
 	// BroadcastTx broadcasts the transaction and returns the transaction hash.
 	BroadcastTx(_ stypes.TxOutItem, _ []byte) (string, error)

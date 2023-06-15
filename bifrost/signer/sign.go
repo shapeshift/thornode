@@ -18,6 +18,7 @@ import (
 	"gitlab.com/thorchain/thornode/app"
 	"gitlab.com/thorchain/thornode/bifrost/blockscanner"
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
+	"gitlab.com/thorchain/thornode/bifrost/observer"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients"
 	"gitlab.com/thorchain/thornode/bifrost/pubkeymanager"
 	"gitlab.com/thorchain/thornode/bifrost/thorclient"
@@ -48,6 +49,7 @@ type Signer struct {
 	constantsProvider     *ConstantsProvider
 	localPubKey           common.PubKey
 	tssKeysignMetricMgr   *metrics.TssKeysignMetricMgr
+	observer              *observer.Observer
 }
 
 // NewSigner create a new instance of signer
@@ -59,6 +61,7 @@ func NewSigner(cfg config.BifrostSignerConfiguration,
 	chains map[common.Chain]chainclients.ChainClient,
 	m *metrics.Metrics,
 	tssKeysignMetricMgr *metrics.TssKeysignMetricMgr,
+	obs *observer.Observer,
 ) (*Signer, error) {
 	storage, err := NewSignerStore(cfg.SignerDbPath, cfg.LevelDB, thorchainBridge.GetConfig().SignerPasswd)
 	if err != nil {
@@ -124,6 +127,7 @@ func NewSigner(cfg config.BifrostSignerConfiguration,
 		constantsProvider:     constantProvider,
 		localPubKey:           na.PubKeySet.Secp256k1,
 		tssKeysignMetricMgr:   tssKeysignMetricMgr,
+		observer:              obs,
 	}, nil
 }
 
@@ -181,19 +185,20 @@ func (s *Signer) signTransactions() {
 	}
 }
 
-func runWithContext(ctx context.Context, fn func() ([]byte, error)) ([]byte, error) {
+func runWithContext(ctx context.Context, fn func() ([]byte, *types.TxInItem, error)) ([]byte, *types.TxInItem, error) {
 	ch := make(chan error, 1)
 	var checkpoint []byte
+	var txIn *types.TxInItem
 	go func() {
 		var err error
-		checkpoint, err = fn()
+		checkpoint, txIn, err = fn()
 		ch <- err
 	}()
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, nil, ctx.Err()
 	case err := <-ch:
-		return checkpoint, err
+		return checkpoint, txIn, err
 	}
 }
 
@@ -203,7 +208,34 @@ func (s *Signer) processTransactions() {
 		wg.Add(1)
 
 		go func(items []TxOutStoreItem) {
-			defer wg.Done()
+			chain := items[0].TxOutItem.Chain // all items in a batch should be the same chain
+
+			// make all observations for the batch before returning
+			observations := []types.TxInItem{}
+			defer func() {
+				if len(observations) > 0 {
+					s.observer.ObserveSigned(types.TxIn{
+						Count:                strconv.Itoa(len(observations)),
+						Chain:                chain,
+						TxArray:              observations,
+						MemPool:              true,
+						Filtered:             true,
+						SentUnFinalised:      false,
+						Finalised:            false,
+						ConfirmationRequired: 0,
+					})
+				}
+
+				wg.Done()
+			}()
+
+			// precondition: all transactions should be for the same chain
+			for _, item := range items {
+				if !item.TxOutItem.Chain.Equals(chain) {
+					s.logger.Error().Msgf("tx out items for different chains in the same batch: %s, %s", item.TxOutItem.Chain, items[0].TxOutItem.Chain)
+					return
+				}
+			}
 
 			// if any tx out items are in broadcast or round 7 failure retry, only proceed with those
 			retryItems := []TxOutStoreItem{}
@@ -232,9 +264,16 @@ func (s *Signer) processTransactions() {
 					s.logger.Info().Int("num", i).Int64("height", item.Height).Int("status", int(item.Status)).Interface("tx", item.TxOutItem).Msgf("Signing transaction")
 					// a single keysign should not take longer than 5 minutes , regardless TSS or local
 					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-					if checkpoint, err := runWithContext(ctx, func() ([]byte, error) {
+					checkpoint, obs, err := runWithContext(ctx, func() ([]byte, *types.TxInItem, error) {
 						return s.signAndBroadcast(item)
-					}); err != nil {
+					})
+
+					// if enabled and the observation is non-nil, add to this batch's observations
+					if s.cfg.AutoObserve && obs != nil {
+						observations = append(observations, *obs)
+					}
+
+					if err != nil {
 						// mark the txout on round 7 failure to block other txs for the chain / pubkey
 						ksErr := tss.KeysignError{}
 						if errors.As(err, &ksErr) && ksErr.IsRound7() {
@@ -386,8 +425,9 @@ func (s *Signer) sendKeygenToThorchain(height int64, poolPk common.PubKey, blame
 // signAndBroadcast will sign the tx and broadcast it to the corresponding chain. On
 // SignTx error for the chain client, if we receive checkpoint bytes we also return them
 // with the error so they can be set on the TxOutStoreItem and re-used on a subsequent
-// retry to avoid double spend.
-func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
+// retry to avoid double spend. The second returned value is an optional observation
+// that should be submitted to THORChain.
+func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, *types.TxInItem, error) {
 	height := item.Height
 	tx := item.TxOutItem
 
@@ -399,54 +439,54 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
 	blockHeight, err := s.thorchainBridge.GetBlockHeight()
 	if err != nil {
 		s.logger.Error().Err(err).Msgf("fail to get block height")
-		return nil, err
+		return nil, nil, err
 	}
 	signingTransactionPeriod, err := s.constantsProvider.GetInt64Value(blockHeight, constants.SigningTransactionPeriod)
 	s.logger.Debug().Msgf("signing transaction period:%d", signingTransactionPeriod)
 	if err != nil {
 		s.logger.Error().Err(err).Msgf("fail to get constant value for(%s)", constants.SigningTransactionPeriod)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// if not in round 7 retry, discard outbound if within configured blocks of reschedule
 	if !item.Round7Retry && blockHeight-signingTransactionPeriod > height-s.cfg.RescheduleBufferBlocks {
 		s.logger.Error().Msgf("tx was created at block height(%d), now it is (%d), it is older than (%d) blocks, skip it", height, blockHeight, signingTransactionPeriod)
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	chain, err := s.getChain(tx.Chain)
 	if err != nil {
 		s.logger.Error().Err(err).Msgf("not supported %s", tx.Chain.String())
-		return nil, err
+		return nil, nil, err
 	}
 	mimirKey := "HALTSIGNING"
 	haltSigningGlobalMimir, err := s.thorchainBridge.GetMimir(mimirKey)
 	if err != nil {
 		s.logger.Err(err).Msgf("fail to get %s", mimirKey)
-		return nil, err
+		return nil, nil, err
 	}
 	if haltSigningGlobalMimir > 0 {
 		s.logger.Info().Msg("signing has been halted globally")
-		return nil, nil
+		return nil, nil, nil
 	}
 	mimirKey = fmt.Sprintf("HALTSIGNING%s", tx.Chain)
 	haltSigningMimir, err := s.thorchainBridge.GetMimir(mimirKey)
 	if err != nil {
 		s.logger.Err(err).Msgf("fail to get %s", mimirKey)
-		return nil, err
+		return nil, nil, err
 	}
 	if haltSigningMimir > 0 {
 		s.logger.Info().Msgf("signing for %s is halted", tx.Chain)
-		return nil, nil
+		return nil, nil, nil
 	}
 	if !s.shouldSign(tx) {
 		s.logger.Info().Str("signer_address", chain.GetAddress(tx.VaultPubKey)).Msg("different pool address, ignore")
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if len(tx.ToAddress) == 0 {
 		s.logger.Info().Msg("To address is empty, THORNode don't know where to send the fund , ignore")
-		return nil, nil // return nil and discard item
+		return nil, nil, nil // return nil and discard item
 	}
 
 	// don't sign if the block scanner is unhealthy. This is because the
@@ -455,7 +495,7 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
 	// scenario, the network could broadcast a transaction several times,
 	// bleeding funds.
 	if !chain.IsBlockScannerHealthy() {
-		return nil, fmt.Errorf("the block scanner for chain %s is unhealthy, not signing transactions due to it", chain.GetChain())
+		return nil, nil, fmt.Errorf("the block scanner for chain %s is unhealthy, not signing transactions due to it", chain.GetChain())
 	}
 
 	// Check if we're sending all funds back , given we don't have memo in txoutitem anymore, so it rely on the coins field to be empty
@@ -464,7 +504,7 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
 		tx, err = s.handleYggReturn(height, tx)
 		if err != nil {
 			s.logger.Error().Err(err).Msg("failed to handle yggdrasil return")
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -475,7 +515,7 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
 
 	if !tx.OutHash.IsEmpty() {
 		s.logger.Info().Str("OutHash", tx.OutHash.String()).Msg("tx had been sent out before")
-		return nil, nil // return nil and discard item
+		return nil, nil, nil // return nil and discard item
 	}
 
 	// We get the keysign object from thorchain again to ensure it hasn't
@@ -485,28 +525,29 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
 	txOut, err := s.thorchainBridge.GetKeysign(height, tx.VaultPubKey.String())
 	if err != nil {
 		s.logger.Error().Err(err).Msg("fail to get keysign items")
-		return nil, err
+		return nil, nil, err
 	}
 	for _, txArray := range txOut.TxArray {
 		if txArray.TxOutItem().Equals(tx) && !txArray.OutHash.IsEmpty() {
 			// already been signed, we can skip it
 			s.logger.Info().Str("tx_id", tx.OutHash.String()).Msgf("already signed. skipping...")
-			return nil, nil
+			return nil, nil, nil
 		}
 	}
 
 	// If SignedTx is set, we already signed and should only retry broadcast.
 	var signedTx, checkpoint []byte
 	var elapse time.Duration
+	var observation *types.TxInItem
 	if len(item.SignedTx) > 0 {
 		s.logger.Info().Str("memo", tx.Memo).Msg("retrying broadcast of already signed tx")
 		signedTx = item.SignedTx
 	} else {
 		startKeySign := time.Now()
-		signedTx, checkpoint, err = chain.SignTx(tx, height)
+		signedTx, checkpoint, observation, err = chain.SignTx(tx, height)
 		if err != nil {
 			s.logger.Error().Err(err).Msg("fail to sign tx")
-			return checkpoint, err
+			return checkpoint, nil, err
 		}
 		elapse = time.Since(startKeySign)
 	}
@@ -514,8 +555,10 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
 	// looks like the transaction is already signed
 	if len(signedTx) == 0 {
 		s.logger.Warn().Msgf("signed transaction is empty")
-		return nil, nil
+		return nil, nil, nil
 	}
+
+	// broadcast the transaction
 	hash, err := chain.BroadcastTx(tx, signedTx)
 	if err != nil {
 		s.logger.Error().Err(err).Str("memo", tx.Memo).Msg("fail to broadcast tx to chain")
@@ -526,14 +569,14 @@ func (s *Signer) signAndBroadcast(item TxOutStoreItem) ([]byte, error) {
 			s.logger.Error().Err(err).Msg("fail to update tx out store item with signed tx")
 		}
 
-		return nil, err
+		return nil, observation, err
 	}
 
 	if s.isTssKeysign(tx.VaultPubKey) {
 		s.tssKeysignMetricMgr.SetTssKeysignMetric(hash, elapse.Milliseconds())
 	}
 
-	return nil, nil
+	return nil, observation, nil
 }
 
 func (s *Signer) handleYggReturn(height int64, tx types.TxOutItem) (types.TxOutItem, error) {

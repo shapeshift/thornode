@@ -546,6 +546,10 @@ type BifrostSignerConfiguration struct {
 	// attempting to sign and broadcast (for outbounds not in round 7 retry).
 	RescheduleBufferBlocks int64          `mapstructure:"reschedule_buffer_blocks"`
 	LevelDB                LevelDBOptions `mapstructure:"leveldb"`
+
+	// AutoObserve will automatically submit the observation for outbound transactions once
+	// they are signed - regardless of broadcast success.
+	AutoObserve bool `mapstructure:"auto_observe"`
 }
 
 type BifrostBackOff struct {
