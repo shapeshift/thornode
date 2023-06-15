@@ -229,7 +229,7 @@ func (pkm *PubKeyManager) removePubKeyInternal(pk common.PubKey) {
 	}
 }
 
-func (pkm *PubKeyManager) fetchPubKeys() {
+func (pkm *PubKeyManager) fetchPubKeys(prune bool) {
 	addressPairs, err := pkm.getPubkeys()
 	if err != nil {
 		pkm.logger.Error().Err(err).Msg("fail to get pubkeys from THORChain")
@@ -252,17 +252,20 @@ func (pkm *PubKeyManager) fetchPubKeys() {
 			pubkeys = append(pubkeys, vault.PubKey)
 		}
 	}
-	pkm.rwMutex.Lock()
-	defer pkm.rwMutex.Unlock()
-	// prune retired addresses
-	for i, pk := range pkm.pubkeys {
-		if pk.NodeAccount {
-			// never remove our own pubkey
-			continue
-		}
-		if i < (len(pkm.pubkeys) - 2) { // don't delete the more recent (last) pubkeys
-			if !pubkeys.Contains(pk.PubKey) {
-				pkm.removePubKeyInternal(pk.PubKey)
+
+	if prune {
+		pkm.rwMutex.Lock()
+		defer pkm.rwMutex.Unlock()
+		// prune retired addresses
+		for i, pk := range pkm.pubkeys {
+			if pk.NodeAccount {
+				// never remove our own pubkey
+				continue
+			}
+			if i < (len(pkm.pubkeys) - 2) { // don't delete the more recent (last) pubkeys
+				if !pubkeys.Contains(pk.PubKey) {
+					pkm.removePubKeyInternal(pk.PubKey)
+				}
 			}
 		}
 	}
@@ -271,12 +274,12 @@ func (pkm *PubKeyManager) fetchPubKeys() {
 func (pkm *PubKeyManager) updatePubKeys() {
 	pkm.logger.Info().Msg("start to update pub keys")
 	defer pkm.logger.Info().Msg("stop to update pub keys")
-	for {
+	for i := 1; ; i++ {
 		select {
 		case <-pkm.stopChan:
 			return
 		case <-time.After(constants.ThorchainBlockTime):
-			pkm.fetchPubKeys()
+			pkm.fetchPubKeys(i%100 == 0) // only prune every 100 blocks
 		}
 	}
 }
@@ -317,11 +320,18 @@ func (pkm *PubKeyManager) RegisterCallback(callback OnNewPubKey) {
 }
 
 func (pkm *PubKeyManager) fireCallback(pk common.PubKey) {
+	// fire callbacks in parallel and wait for all to complete
+	wg := sync.WaitGroup{}
 	for _, item := range pkm.callback {
-		if err := item(pk); err != nil {
-			pkm.logger.Err(err).Msg("fail to call callback")
-		}
+		wg.Add(1)
+		go func(item OnNewPubKey) {
+			if err := item(pk); err != nil {
+				pkm.logger.Err(err).Msg("fail to call callback")
+			}
+			wg.Done()
+		}(item)
 	}
+	wg.Wait()
 }
 
 // GetContracts return all the contracts for the requested chain

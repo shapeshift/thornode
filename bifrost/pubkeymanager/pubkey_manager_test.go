@@ -121,7 +121,7 @@ func (s *PubKeyMgrSuite) TestFetchKeys(c *C) {
 	c.Check(len(pubkeyMgr.GetPubKeys()), Equals, 2)
 	err = pubkeyMgr.Start()
 	c.Assert(err, IsNil)
-	pubkeyMgr.fetchPubKeys()
+	pubkeyMgr.fetchPubKeys(true)
 	pubKeys := pubkeyMgr.GetPubKeys()
 	c.Check(len(pubKeys), Equals, 3)
 	c.Check(pubKeys[0].Equals(pk1), Equals, false)

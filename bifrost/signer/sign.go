@@ -312,11 +312,6 @@ func (s *Signer) processKeygen(ch <-chan ttypes.KeygenBlock) {
 			}
 			s.logger.Info().Msgf("Received a keygen block %+v from the Thorchain", keygenBlock)
 			for _, keygenReq := range keygenBlock.Keygens {
-				// Add pubkeys to pubkey manager for monitoring...
-				// each member might become a yggdrasil pool
-				for _, pk := range keygenReq.GetMembers() {
-					s.pubkeyMgr.AddPubKey(pk, false)
-				}
 				keygenStart := time.Now()
 				pubKey, blame, err := s.tssKeygen.GenerateNewKey(keygenBlock.Height, keygenReq.GetMembers())
 				if !blame.IsEmpty() {
@@ -324,12 +319,19 @@ func (s *Signer) processKeygen(ch <-chan ttypes.KeygenBlock) {
 					s.logger.Error().Err(err).Msg("Blame")
 				}
 				keygenTime := time.Since(keygenStart).Milliseconds()
+
 				if err != nil {
 					s.errCounter.WithLabelValues("fail_to_keygen_pubkey", "").Inc()
 					s.logger.Error().Err(err).Msg("fail to generate new pubkey")
 				}
 				if !pubKey.Secp256k1.IsEmpty() {
 					s.pubkeyMgr.AddPubKey(pubKey.Secp256k1, true)
+				}
+
+				// Add pubkeys to pubkey manager for monitoring...
+				// each member might become a yggdrasil pool
+				for _, pk := range keygenReq.GetMembers() {
+					s.pubkeyMgr.AddPubKey(pk, false)
 				}
 
 				if err := s.sendKeygenToThorchain(keygenBlock.Height, pubKey.Secp256k1, blame, keygenReq.GetMembers(), keygenReq.Type, keygenTime); err != nil {
