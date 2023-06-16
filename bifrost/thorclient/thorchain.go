@@ -71,6 +71,10 @@ type thorchainBridge struct {
 
 	lastBlockHeightCheck     time.Time
 	lastThorchainBlockHeight int64
+
+	pubKeyCheckLock        *sync.Mutex
+	lastPubKeysCheck       time.Time
+	lastPubKeyAddressPairs []byte
 }
 
 type ThorchainBridge interface {
@@ -123,13 +127,14 @@ func NewThorchainBridge(cfg config.BifrostClientConfiguration, m *metrics.Metric
 	httpClient.Logger = nil
 
 	return &thorchainBridge{
-		logger:        logger,
-		cfg:           cfg,
-		keys:          k,
-		errCounter:    m.GetCounterVec(metrics.ThorchainClientError),
-		httpClient:    httpClient,
-		m:             m,
-		broadcastLock: &sync.RWMutex{},
+		logger:          logger,
+		cfg:             cfg,
+		keys:            k,
+		errCounter:      m.GetCounterVec(metrics.ThorchainClientError),
+		httpClient:      httpClient,
+		m:               m,
+		broadcastLock:   &sync.RWMutex{},
+		pubKeyCheckLock: &sync.Mutex{},
 	}, nil
 }
 
@@ -442,14 +447,30 @@ func (b *thorchainBridge) GetAsgards() (stypes.Vaults, error) {
 	return vaults, nil
 }
 
-// GetPubKeys retrieve asgard vaults and yggdrasil vaults , and it's relevant smart contracts
-func (b *thorchainBridge) GetPubKeys() ([]PubKeyContractAddressPair, error) {
+func (b *thorchainBridge) getVaultPubkeys() ([]byte, error) {
+	b.pubKeyCheckLock.Lock()
+	defer b.pubKeyCheckLock.Unlock()
+	if time.Since(b.lastPubKeysCheck) < constants.ThorchainBlockTime && b.lastPubKeyAddressPairs != nil {
+		return b.lastPubKeyAddressPairs, nil
+	}
+
 	buf, s, err := b.getWithPath(PubKeysEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("fail to get asgard vaults: %w", err)
 	}
 	if s != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code %d", s)
+	}
+	b.lastPubKeyAddressPairs = buf
+	b.lastPubKeysCheck = time.Now()
+	return buf, nil
+}
+
+// GetPubKeys retrieve asgard vaults and yggdrasil vaults , and it's relevant smart contracts
+func (b *thorchainBridge) GetPubKeys() ([]PubKeyContractAddressPair, error) {
+	buf, err := b.getVaultPubkeys()
+	if err != nil {
+		return nil, fmt.Errorf("fail to get vault pubkeys ,err: %w", err)
 	}
 	var result stypes.QueryVaultsPubKeys
 	if err := json.Unmarshal(buf, &result); err != nil {
@@ -464,7 +485,6 @@ func (b *thorchainBridge) GetPubKeys() ([]PubKeyContractAddressPair, error) {
 		for _, item := range v.Routers {
 			kp.Contracts[item.Chain] = item.Router
 		}
-
 		addressPairs = append(addressPairs, kp)
 	}
 	return addressPairs, nil
@@ -472,12 +492,9 @@ func (b *thorchainBridge) GetPubKeys() ([]PubKeyContractAddressPair, error) {
 
 // GetAsgardPubKeys retrieve asgard vaults, and it's relevant smart contracts
 func (b *thorchainBridge) GetAsgardPubKeys() ([]PubKeyContractAddressPair, error) {
-	buf, s, err := b.getWithPath(PubKeysEndpoint)
+	buf, err := b.getVaultPubkeys()
 	if err != nil {
-		return nil, fmt.Errorf("fail to get asgard vaults: %w", err)
-	}
-	if s != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code %d", s)
+		return nil, fmt.Errorf("fail to get vault pubkeys ,err: %w", err)
 	}
 	var result stypes.QueryVaultsPubKeys
 	if err := json.Unmarshal(buf, &result); err != nil {
@@ -492,7 +509,6 @@ func (b *thorchainBridge) GetAsgardPubKeys() ([]PubKeyContractAddressPair, error
 		for _, item := range v.Routers {
 			kp.Contracts[item.Chain] = item.Router
 		}
-
 		addressPairs = append(addressPairs, kp)
 	}
 	return addressPairs, nil

@@ -13,13 +13,14 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	"gitlab.com/thorchain/tss/go-tss/conversion"
+
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	openapi "gitlab.com/thorchain/thornode/openapi/gen"
 	q "gitlab.com/thorchain/thornode/x/thorchain/query"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
-	"gitlab.com/thorchain/tss/go-tss/conversion"
 )
 
 var (
@@ -408,7 +409,9 @@ func queryVaultsPubkeys(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// usually ChurnInterval is 43200, sometimes when the network has issues , we 10x this value ,
+	// so if the inactive vault is older than 500_000 blocks , should not be monitored
+	cutOffAge := ctx.BlockHeight() - 500000
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		var vault Vault
@@ -436,6 +439,9 @@ func queryVaultsPubkeys(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 					Routers: vault.Routers,
 				})
 			case InactiveVault:
+				if vault.BlockHeight < cutOffAge {
+					continue
+				}
 				activeMembers, err := vault.GetMembers(active.GetNodeAddresses())
 				if err != nil {
 					ctx.Logger().Error("fail to get active members of vault", "error", err)
