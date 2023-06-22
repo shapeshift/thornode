@@ -583,14 +583,23 @@ func (k KVStoreDummy) AnchorMedian(ctx cosmos.Context, assets []common.Asset) co
 }
 func (k KVStoreDummy) DollarsPerRune(ctx cosmos.Context) cosmos.Uint { return cosmos.ZeroUint() }
 func (k KVStoreDummy) DollarInRune(ctx cosmos.Context) cosmos.Uint   { return cosmos.ZeroUint() } // TODO: remove me on hard fork
-
-func (k KVStoreDummy) GetNativeTxFee(ctx cosmos.Context) cosmos.Uint   { return cosmos.ZeroUint() }
-func (k KVStoreDummy) GetOutboundTxFee(ctx cosmos.Context) cosmos.Uint { return cosmos.ZeroUint() }
-func (k KVStoreDummy) GetTHORNameRegisterFee(ctx cosmos.Context) cosmos.Uint {
+func (k KVStoreDummy) DollarConfigInRune(ctx cosmos.Context, key constants.ConstantName) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) GetTHORNamePerBlockFee(ctx cosmos.Context) cosmos.Uint {
+func (k KVStoreDummy) GetNativeTxFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+	return cosmos.ZeroUint()
+}
+
+func (k KVStoreDummy) GetOutboundTxFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+	return cosmos.ZeroUint()
+}
+
+func (k KVStoreDummy) GetTHORNameRegisterFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+	return cosmos.ZeroUint()
+}
+
+func (k KVStoreDummy) GetTHORNamePerBlockFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
 

@@ -47,11 +47,12 @@ type Keeper interface {
 
 	GetConstants() constants.ConstantValues
 	GetConfigInt64(ctx cosmos.Context, key constants.ConstantName) int64
+	DollarConfigInRune(ctx cosmos.Context, key constants.ConstantName) cosmos.Uint
 
-	GetNativeTxFee(ctx cosmos.Context) cosmos.Uint
-	GetOutboundTxFee(ctx cosmos.Context) cosmos.Uint
-	GetTHORNameRegisterFee(ctx cosmos.Context) cosmos.Uint
-	GetTHORNamePerBlockFee(ctx cosmos.Context) cosmos.Uint
+	GetNativeTxFee(ctx cosmos.Context, version semver.Version) cosmos.Uint
+	GetOutboundTxFee(ctx cosmos.Context, version semver.Version) cosmos.Uint
+	GetTHORNameRegisterFee(ctx cosmos.Context, version semver.Version) cosmos.Uint
+	GetTHORNamePerBlockFee(ctx cosmos.Context, version semver.Version) cosmos.Uint
 
 	// Keeper Interfaces
 	KeeperConfig

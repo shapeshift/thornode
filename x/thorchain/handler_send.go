@@ -52,7 +52,7 @@ func MsgSendHandleV112(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.R
 		return nil, fmt.Errorf("unable to use MsgSend while THORChain is halted")
 	}
 
-	nativeTxFee := mgr.Keeper().GetNativeTxFee(ctx)
+	nativeTxFee := mgr.Keeper().GetNativeTxFee(ctx, mgr.GetVersion())
 	gas := common.NewCoin(common.RuneNative, nativeTxFee)
 	gasFee, err := gas.Native()
 	if err != nil {

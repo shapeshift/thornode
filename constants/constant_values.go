@@ -109,6 +109,11 @@ const (
 	TargetOutboundFeeSurplusRune
 	MaxOutboundFeeMultiplierBasisPoints
 	MinOutboundFeeMultiplierBasisPoints
+	OutboundTransactionFeeUSD
+	NativeTransactionFeeUSD
+	TNSRegisterFeeUSD
+	TNSFeePerBlockUSD
+	EnableUSDFees
 )
 
 var nameToString = map[ConstantName]string{
@@ -117,7 +122,9 @@ var nameToString = map[ConstantName]string{
 	MaxRuneSupply:                       "MaxRuneSupply",
 	BlocksPerYear:                       "BlocksPerYear",
 	OutboundTransactionFee:              "OutboundTransactionFee",
+	OutboundTransactionFeeUSD:           "OutboundTransactionFeeUSD",
 	NativeTransactionFee:                "NativeTransactionFee",
+	NativeTransactionFeeUSD:             "NativeTransactionFeeUSD",
 	PoolCycle:                           "PoolCycle",
 	MinRunePoolDepth:                    "MinRunePoolDepth",
 	MaxAvailablePools:                   "MaxAvailablePools",
@@ -180,8 +187,10 @@ var nameToString = map[ConstantName]string{
 	TxOutDelayMax:                       "TxOutDelayMax",
 	MaxTxOutOffset:                      "MaxTxOutOffset",
 	TNSRegisterFee:                      "TNSRegisterFee",
+	TNSRegisterFeeUSD:                   "TNSRegisterFeeUSD",
 	TNSFeeOnSale:                        "TNSFeeOnSale",
 	TNSFeePerBlock:                      "TNSFeePerBlock",
+	TNSFeePerBlockUSD:                   "TNSFeePerBlockUSD",
 	PermittedSolvencyGap:                "PermittedSolvencyGap",
 	ValidatorMaxRewardRatio:             "ValidatorMaxRewardRatio",
 	NodeOperatorFee:                     "NodeOperatorFee",
@@ -211,6 +220,7 @@ var nameToString = map[ConstantName]string{
 	TargetOutboundFeeSurplusRune:        "TargetOutboundFeeSurplusRune",
 	MaxOutboundFeeMultiplierBasisPoints: "MaxOutboundFeeMultiplierBasisPoints",
 	MinOutboundFeeMultiplierBasisPoints: "MinOutboundFeeMultiplierBasisPoints",
+	EnableUSDFees:                       "EnableUSDFees",
 }
 
 // String implement fmt.stringer

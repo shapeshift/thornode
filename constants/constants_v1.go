@@ -8,8 +8,10 @@ func NewConstantValue() *ConstantVals {
 			BlocksPerYear:                       5256000,
 			MaxRuneSupply:                       -1,                 // max supply of rune. Default set to -1 to avoid consensus failure
 			IncentiveCurve:                      100,                // configures incentive pendulum
-			OutboundTransactionFee:              2_000000,           // A 0.02 Rune fee on all swaps and withdrawals
-			NativeTransactionFee:                2_000000,           // A 0.02 Rune fee on all on chain txs
+			OutboundTransactionFee:              2_000000,           // TODO: remove me on hard fork
+			OutboundTransactionFeeUSD:           2_000000,           // $0.02 fee on all swaps and withdrawals
+			NativeTransactionFee:                2_000000,           // TODO: remove me on hard fork
+			NativeTransactionFeeUSD:             2_000000,           // $0.02 fee on all on chain txs
 			PoolCycle:                           43200,              // Make a pool available every 3 days
 			StagedPoolCost:                      10_00000000,        // amount of rune to take from a staged pool on every pool cycle
 			KillSwitchStart:                     0,                  // block height to start the kill switch of BEP2/ERC20 old RUNE
@@ -55,7 +57,7 @@ func NewConstantValue() *ConstantVals {
 			EnableOrderBooks:                    0,                  // enable order books instead of swap queue
 			VirtualMultSynths:                   2,                  // pool depth multiplier for synthetic swaps
 			VirtualMultSynthsBasisPoints:        10_000,             // pool depth multiplier for synthetic swaps (in basis points)
-			MaxSynthPerAssetDepth:               3300,               //  TODO: remove me on hard fork
+			MaxSynthPerAssetDepth:               3300,               // TODO: remove me on hard fork
 			MaxSynthPerPoolDepth:                1700,               // percentage (in basis points) of how many synths are allowed relative to pool depth of the related pool
 			MaxSynthsForSaversYield:             0,                  // percentage (in basis points) synth per pool where synth yield reaches 0%
 			MinSlashPointsForBadValidator:       100,                // The minimum slash point
@@ -69,9 +71,11 @@ func NewConstantValue() *ConstantVals {
 			TxOutDelayRate:                      25_00000000,        // outbound rune per block rate for scheduled transactions (excluding native assets)
 			TxOutDelayMax:                       17280,              // max number of blocks a transaction can be delayed
 			MaxTxOutOffset:                      720,                // max blocks to offset a txout into a future block
-			TNSRegisterFee:                      10_00000000,        // registration fee for new THORName
+			TNSRegisterFee:                      10_00000000,        // TODO: remove me on hard fork
+			TNSRegisterFeeUSD:                   10_00000000,        // registration fee for new THORName in USD
 			TNSFeeOnSale:                        1000,               // fee for TNS sale in basis points
-			TNSFeePerBlock:                      20,                 // per block cost for TNS, in rune
+			TNSFeePerBlock:                      20,                 // TODO: remove me on hard fork
+			TNSFeePerBlockUSD:                   20,                 // per block cost for TNS in USD
 			PermittedSolvencyGap:                100,                // the setting is in basis points
 			ValidatorMaxRewardRatio:             1,                  // the ratio to MinimumBondInRune at which validators stop receiving rewards proportional to their bond
 			PoolDepthForYggFundingMin:           500_000_00000000,   // the minimum pool depth in RUNE required for ygg funding
@@ -94,6 +98,7 @@ func NewConstantValue() *ConstantVals {
 			TargetOutboundFeeSurplusRune:        100_000_00000000,   // Target amount of RUNE for Outbound Fee Surplus: the sum of the diff between outbound cost to user and outbound cost to network
 			MaxOutboundFeeMultiplierBasisPoints: 30_000,             // Maximum multiplier applied to base outbound fee charged to user, in basis points
 			MinOutboundFeeMultiplierBasisPoints: 15_000,             // Minimum multiplier applied to base outbound fee charged to user, in basis points
+			EnableUSDFees:                       0,                  // enable USD fees
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,

@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Thornode API
-  version: 1.113.1
+  version: 1.114.0
   contact:
     email: devs@thorchain.org
   description: Thornode REST API.
@@ -2297,6 +2297,10 @@ components:
         - vaults_migrating
         - gas_spent_rune
         - gas_withheld_rune
+        - outbound_tx_fee_rune
+        - native_tx_fee_rune
+        - tns_register_fee_rune
+        - tns_fee_per_block_rune
       properties:
         bond_reward_rune:
           type: string
@@ -2334,6 +2338,22 @@ components:
           type: string
           example: "15000"
           description: Current outbound fee multiplier, in basis points
+        outbound_tx_fee_rune:
+          type: string
+          example: "100000000"
+          description: the outbound transaction fee in rune, converted from the OutboundTransactionFeeUSD mimir
+        native_tx_fee_rune:
+          type: string
+          example: "100000000"
+          description: the native transaction fee in rune, converted from the NativeTransactionFeeUSD mimir
+        tns_register_fee_rune:
+          type: string
+          example: "1000000000"
+          description: the thorname register fee in rune, converted from the TNSRegisterFeeUSD mimir
+        tns_fee_per_block_rune:
+          type: string
+          example: "20"
+          description: the thorname fee per block in rune, converted from the TNSFeePerBlockUSD mimir
 
     POLResponse:
       type: object

@@ -17,6 +17,7 @@ import (
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/hashicorp/go-multierror"
+	log "github.com/rs/zerolog/log"
 )
 
 const (
@@ -181,4 +182,14 @@ func GetKeybase(thorchainHome string) (KeybaseStore, error) {
 		SignerPasswd: password,
 		Keybase:      kb,
 	}, err
+}
+
+// SafeUintFromInt64 create a new Uint from an int64. It is expected that the int64 is
+// positive - if not, we log an error and return zero to prevent overflow errors.
+func SafeUintFromInt64(i int64) Uint {
+	if i < 0 {
+		log.Error().Int64("i", i).Msg("cannot create a uint from a negative int64")
+		return ZeroUint()
+	}
+	return NewUint(uint64(i))
 }

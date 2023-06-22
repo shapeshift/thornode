@@ -83,7 +83,7 @@ func (h ManageTHORNameHandler) validateV112(ctx cosmos.Context, msg MsgManageTHO
 		if err := h.validateNameV1(msg.Name); err != nil {
 			return err
 		}
-		registrationFee := h.mgr.Keeper().GetTHORNameRegisterFee(ctx)
+		registrationFee := h.mgr.Keeper().GetTHORNameRegisterFee(ctx, h.mgr.GetVersion())
 		if msg.Coin.Amount.LTE(registrationFee) {
 			return fmt.Errorf("not enough funds")
 		}
@@ -152,12 +152,12 @@ func (h ManageTHORNameHandler) handleV112(ctx cosmos.Context, msg MsgManageTHORN
 		// registration fee is for THORChain addresses only
 		if !exists {
 			// minus registration fee
-			registrationFee := h.mgr.Keeper().GetTHORNameRegisterFee(ctx)
+			registrationFee := h.mgr.Keeper().GetTHORNameRegisterFee(ctx, h.mgr.GetVersion())
 			msg.Coin.Amount = common.SafeSub(msg.Coin.Amount, registrationFee)
 			registrationFeePaid = registrationFee
 			addBlocks = h.mgr.GetConstants().GetInt64Value(constants.BlocksPerYear) // registration comes with 1 free year
 		}
-		feePerBlock := h.mgr.Keeper().GetTHORNamePerBlockFee(ctx)
+		feePerBlock := h.mgr.Keeper().GetTHORNamePerBlockFee(ctx, h.mgr.GetVersion())
 		fundPaid = msg.Coin.Amount
 		addBlocks += (int64(msg.Coin.Amount.Uint64()) / int64(feePerBlock.Uint64()))
 		if tn.ExpireBlockHeight < ctx.BlockHeight() {

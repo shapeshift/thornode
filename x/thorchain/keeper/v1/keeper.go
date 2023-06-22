@@ -476,22 +476,57 @@ func (k KVStore) GetAccount(ctx cosmos.Context, addr cosmos.AccAddress) cosmos.A
 	return k.accountKeeper.GetAccount(ctx, addr)
 }
 
-func (k KVStore) GetNativeTxFee(ctx cosmos.Context) cosmos.Uint {
+func (k KVStore) GetNativeTxFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+	if version.GTE(semver.MustParse("1.114.0")) {
+		usdFees, _ := k.GetMimir(ctx, constants.EnableUSDFees.String())
+		if usdFees > 0 {
+			return k.DollarConfigInRune(ctx, constants.NativeTransactionFeeUSD)
+		}
+	}
 	fee := k.GetConfigInt64(ctx, constants.NativeTransactionFee)
 	return cosmos.NewUint(uint64(fee))
 }
 
-func (k KVStore) GetOutboundTxFee(ctx cosmos.Context) cosmos.Uint {
+func (k KVStore) GetOutboundTxFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+	if version.GTE(semver.MustParse("1.114.0")) {
+		usdFees, _ := k.GetMimir(ctx, constants.EnableUSDFees.String())
+		if usdFees > 0 {
+			return k.DollarConfigInRune(ctx, constants.OutboundTransactionFeeUSD)
+		}
+	}
 	fee := k.GetConfigInt64(ctx, constants.OutboundTransactionFee)
 	return cosmos.NewUint(uint64(fee))
 }
 
-func (k KVStore) GetTHORNameRegisterFee(ctx cosmos.Context) cosmos.Uint {
+func (k KVStore) GetTHORNameRegisterFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+	if version.GTE(semver.MustParse("1.114.0")) {
+		usdFees, _ := k.GetMimir(ctx, constants.EnableUSDFees.String())
+		if usdFees > 0 {
+			return k.DollarConfigInRune(ctx, constants.TNSRegisterFeeUSD)
+		}
+	}
 	fee := k.GetConstants().GetInt64Value(constants.TNSRegisterFee)
 	return cosmos.NewUint(uint64(fee))
 }
 
-func (k KVStore) GetTHORNamePerBlockFee(ctx cosmos.Context) cosmos.Uint {
+func (k KVStore) GetTHORNamePerBlockFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+	if version.GTE(semver.MustParse("1.114.0")) {
+		usdFees, _ := k.GetMimir(ctx, constants.EnableUSDFees.String())
+		if usdFees > 0 {
+			return k.DollarConfigInRune(ctx, constants.TNSFeePerBlockUSD)
+		}
+	}
 	fee := k.GetConstants().GetInt64Value(constants.TNSFeePerBlock)
 	return cosmos.NewUint(uint64(fee))
+}
+
+// DollarConfigInRune returns the dollar denominated config value in RUNE. If the RUNE
+// price feed returns zero, the USD value will be returned.
+func (k KVStore) DollarConfigInRune(ctx cosmos.Context, value constants.ConstantName) cosmos.Uint {
+	usd := cosmos.SafeUintFromInt64(k.GetConfigInt64(ctx, value))
+	runeUSDPrice := k.DollarsPerRune(ctx)
+	if !runeUSDPrice.IsZero() {
+		return usd.MulUint64(common.One).Quo(runeUSDPrice)
+	}
+	return usd
 }

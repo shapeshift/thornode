@@ -71,7 +71,7 @@ func (h IPAddressHandler) validateV112(ctx cosmos.Context, msg MsgSetIPAddress) 
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
-	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx, h.mgr.GetVersion())
 	if nodeAccount.Bond.LT(cost) {
 		return cosmos.ErrUnauthorized("not enough bond")
 	}
@@ -99,7 +99,7 @@ func (h IPAddressHandler) handleV112(ctx cosmos.Context, msg MsgSetIPAddress) er
 		return cosmos.ErrUnauthorized(fmt.Sprintf("unable to find account: %s", msg.Signer))
 	}
 
-	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx, h.mgr.GetVersion())
 	if cost.GT(nodeAccount.Bond) {
 		cost = nodeAccount.Bond
 	}

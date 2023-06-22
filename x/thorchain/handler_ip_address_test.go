@@ -44,10 +44,6 @@ func (k *TestIPAddresslKeeper) SendFromModuleToModule(ctx cosmos.Context, from, 
 	return nil
 }
 
-func (k *TestIPAddresslKeeper) GetNativeTxFee(ctx cosmos.Context) cosmos.Uint {
-	return cosmos.NewUint(200000)
-}
-
 var _ = Suite(&HandlerIPAddressSuite{})
 
 func (s *HandlerIPAddressSuite) TestValidate(c *C) {

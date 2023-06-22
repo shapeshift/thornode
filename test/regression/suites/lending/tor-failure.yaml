@@ -621,4 +621,3 @@ asserts:
   - .|[.end[]|select(.type == "outbound")]|length == 1
   - .end[]|select(.type == "outbound")|.from == "{{ addr_module_asgard }}"
   - .end[]|select(.type == "outbound")|.to == "{{ addr_thor_fox }}"
-  
