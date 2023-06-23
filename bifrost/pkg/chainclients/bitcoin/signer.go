@@ -380,7 +380,7 @@ func (c *Client) SignTx(tx stypes.TxOutItem, thorchainHeight int64) ([]byte, []b
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("fail to decode next address: %w", err)
 	}
-	if outputAddr.String() != tx.ToAddress.String() {
+	if !strings.EqualFold(outputAddr.String(), tx.ToAddress.String()) {
 		c.logger.Info().Msgf("output address: %s, to address: %s can't roundtrip", outputAddr.String(), tx.ToAddress.String())
 		return nil, nil, nil, nil
 	}
