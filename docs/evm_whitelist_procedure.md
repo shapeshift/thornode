@@ -43,6 +43,6 @@ Examples: https://gitlab.com/thorchain/thornode/-/blob/develop/x/thorchain/aggre
 
 - Must be verified on Etherscan (or equivalent, eg Snowtrace for AVA)
 - If support `swapIn(params)`, must call `router.depositWithExpiry(params, +15minsUNIXSeconds)`,
-- If support `swapOut(params)`, must have a function exactly `swapOut(address,address,uint)`
+- If support `swapOut(params)`, must have a function exactly `swapOut(address,address,uint256)`
 - Must have re-entrancy protection on all functions https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol
 - Must not be proxied (https://docs.openzeppelin.com/upgrades-plugins/1.x/proxies)
