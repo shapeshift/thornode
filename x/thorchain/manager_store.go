@@ -93,6 +93,8 @@ func (smgr *StoreMgr) migrate(ctx cosmos.Context, i uint64) error {
 		migrateStoreV111(ctx, smgr.mgr)
 	case 113:
 		migrateStoreV113(ctx, smgr.mgr)
+	case 114:
+		migrateStoreV114(ctx, smgr.mgr)
 	}
 
 	smgr.mgr.Keeper().SetStoreVersion(ctx, int64(i))
