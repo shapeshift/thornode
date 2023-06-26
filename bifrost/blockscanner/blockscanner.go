@@ -240,6 +240,8 @@ func (b *BlockScanner) scanBlocks() {
 			// enable this one , so we could see how far it is behind
 			if currentBlock%mod == 0 || !b.healthy {
 				b.logger.Info().Int64("block height", currentBlock).Int("txs", len(txIn.TxArray)).Msg("scan block")
+
+				b.logger.Info().Msgf("the gap is %d , healthy: %+v", chainHeight-currentBlock, b.healthy)
 			}
 			atomic.AddInt64(&b.previousBlock, 1)
 			// if current block height is less than 50 blocks behind the tip , then it should catch up soon, should be safe to mark block scanner as healthy

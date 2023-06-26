@@ -3,6 +3,8 @@ package tss
 import (
 	"fmt"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/blang/semver"
@@ -59,11 +61,36 @@ func (kg *KeyGen) getVersion() semver.Version {
 	return kg.currentVersion
 }
 
-func (kg *KeyGen) GenerateNewKey(keygenBlockHeight int64, pKeys common.PubKeys) (common.PubKeySet, types.Blame, error) {
+func (kg *KeyGen) GenerateNewKey(keygenBlockHeight int64, pKeys common.PubKeys) (pk common.PubKeySet, blame types.Blame, err error) {
 	// No need to do key gen
 	if len(pKeys) == 0 {
 		return common.EmptyPubKeySet, types.Blame{}, nil
 	}
+
+	// add some logging
+	defer func() {
+		if blame.IsEmpty() {
+			kg.logger.Info().Int64("height", keygenBlockHeight).Str("pubkey", pk.String()).Msg("tss keygen results success")
+		} else {
+			blames := make([]string, len(blame.BlameNodes))
+			for i := range blame.BlameNodes {
+				pk, err := common.NewPubKey(blame.BlameNodes[i].Pubkey)
+				if err != nil {
+					kg.logger.Error().Err(err).Int64("height", keygenBlockHeight).Str("pubkey", blame.BlameNodes[i].Pubkey).Msg("tss keygen results error")
+					continue
+				}
+				acc, err := pk.GetThorAddress()
+				if err != nil {
+					kg.logger.Error().Err(err).Int64("height", keygenBlockHeight).Str("pubkey", pk.String()).Msg("tss keygen results error")
+					continue
+				}
+				blames[i] = acc.String()
+			}
+			sort.Strings(blames)
+			kg.logger.Info().Int64("height", keygenBlockHeight).Str("pubkey", pk.String()).Str("round", blame.Round).Str("blames", strings.Join(blames, ", ")).Str("reason", blame.FailReason).Msg("tss keygen results blame")
+		}
+	}()
+
 	var keys []string
 	for _, item := range pKeys {
 		keys = append(keys, item.String())
@@ -84,7 +111,6 @@ func (kg *KeyGen) GenerateNewKey(keygenBlockHeight int64, pKeys common.PubKeys) 
 	defer timer.Stop()
 
 	var resp keygen.Response
-	var err error
 	go func() {
 		resp, err = kg.server.Keygen(keyGenReq)
 		ch <- true
@@ -98,7 +124,7 @@ func (kg *KeyGen) GenerateNewKey(keygenBlockHeight int64, pKeys common.PubKeys) 
 	}
 
 	// copy blame to our own struct
-	blame := types.Blame{
+	blame = types.Blame{
 		FailReason: resp.Blame.FailReason,
 		IsUnicast:  resp.Blame.IsUnicast,
 		Round:      resp.Blame.Round,

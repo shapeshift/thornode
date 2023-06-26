@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sort"
+	"strings"
 
 	"github.com/armon/go-metrics"
 	"github.com/blang/semver"
@@ -102,7 +104,31 @@ func validateSigner(ctx cosmos.Context, mgr Manager, signer cosmos.AccAddress) e
 func MsgTssPoolHandleV93(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {
-		ctx.Logger().Error(msg.Blame.String())
+		blames := make([]string, len(msg.Blame.BlameNodes))
+		for i := range msg.Blame.BlameNodes {
+			pk, err := common.NewPubKey(msg.Blame.BlameNodes[i].Pubkey)
+			if err != nil {
+				ctx.Logger().Error("fail to get tss keygen pubkey", "pubkey", msg.Blame.BlameNodes[i].Pubkey, "error", err)
+				continue
+			}
+			acc, err := pk.GetThorAddress()
+			if err != nil {
+				ctx.Logger().Error("fail to get tss keygen thor address", "pubkey", msg.Blame.BlameNodes[i].Pubkey, "error", err)
+				continue
+			}
+			blames[i] = acc.String()
+		}
+		sort.Strings(blames)
+		ctx.Logger().Info(
+			"tss keygen results blame",
+			"height", msg.Height,
+			"id", msg.ID,
+			"pubkey", msg.PoolPubKey,
+			"round", msg.Blame.Round,
+			"blames", strings.Join(blames, ", "),
+			"reason", msg.Blame.FailReason,
+			"blamer", msg.Signer,
+		)
 	}
 	// only record TSS metric when keygen is success
 	if msg.IsSuccess() && !msg.PoolPubKey.IsEmpty() {
@@ -165,6 +191,12 @@ func MsgTssPoolHandleV93(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*cos
 		mgr.Keeper().SetTssVoter(ctx, voter)
 		mgr.Slasher().DecSlashPoints(slashCtx, observeSlashPoints, voter.GetSigners()...)
 		if msg.IsSuccess() {
+			ctx.Logger().Info(
+				"tss keygen results success",
+				"height", msg.Height,
+				"id", msg.ID,
+				"pubkey", msg.PoolPubKey,
+			)
 			vaultType := YggdrasilVault
 			if msg.KeygenType == AsgardKeygen {
 				vaultType = AsgardVault
@@ -200,6 +232,7 @@ func MsgTssPoolHandleV93(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*cos
 			}
 
 			if len(initVaults) == len(keygenBlock.Keygens) {
+				ctx.Logger().Info("tss keygen results churn", "asgards", len(initVaults))
 				for _, v := range initVaults {
 					if err := mgr.NetworkMgr().RotateVault(ctx, v); err != nil {
 						return nil, fmt.Errorf("fail to rotate vault: %w", err)
