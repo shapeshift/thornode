@@ -78,7 +78,7 @@ func (h VersionHandler) validateV112(ctx cosmos.Context, msg MsgSetVersion) erro
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
-	cost := h.mgr.Keeper().GetNativeTxFee(ctx, h.mgr.GetVersion())
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
 	if nodeAccount.Bond.LT(cost) {
 		return cosmos.ErrUnauthorized("not enough bond")
 	}
@@ -116,7 +116,7 @@ func (h VersionHandler) handleV112(ctx cosmos.Context, msg MsgSetVersion) error 
 		nodeAccount.Version = version.String()
 	}
 
-	cost := h.mgr.Keeper().GetNativeTxFee(ctx, h.mgr.GetVersion())
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
 	if cost.GT(nodeAccount.Bond) {
 		cost = nodeAccount.Bond
 	}

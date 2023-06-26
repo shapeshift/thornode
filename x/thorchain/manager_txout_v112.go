@@ -800,7 +800,7 @@ func (tos *TxOutStorageV112) nativeTxOut(ctx cosmos.Context, mgr Manager, toi Tx
 		ctx.Logger().Error("fail to get from address", "err", err)
 		return err
 	}
-	outboundTxFee := tos.keeper.GetOutboundTxFee(ctx, mgr.GetVersion())
+	outboundTxFee := tos.keeper.GetOutboundTxFee(ctx)
 
 	tx := common.NewTx(
 		common.BlankTxID,

@@ -63,7 +63,7 @@ func (gm *GasMgrV112) GetGas() common.Gas {
 // GetFee retrieve the network fee information from kv store, and calculate the dynamic fee customer should pay
 // the return value is the amount of fee in asset
 func (gm *GasMgrV112) GetFee(ctx cosmos.Context, chain common.Chain, asset common.Asset) cosmos.Uint {
-	transactionFee := gm.keeper.GetOutboundTxFee(ctx, gm.mgr.GetVersion())
+	transactionFee := gm.keeper.GetOutboundTxFee(ctx)
 	// if the asset is Native RUNE , then we could just return the transaction Fee
 	// because transaction fee is always in native RUNE
 	if asset.IsRune() && chain.Equals(common.THORChain) {
@@ -202,7 +202,7 @@ func (gm *GasMgrV112) getRuneInAssetValue(ctx cosmos.Context, transactionFee cos
 
 // GetGasRate return the gas rate
 func (gm *GasMgrV112) GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.Uint {
-	transactionFee := gm.keeper.GetOutboundTxFee(ctx, gm.mgr.GetVersion())
+	transactionFee := gm.keeper.GetOutboundTxFee(ctx)
 	if chain.Equals(common.THORChain) {
 		return transactionFee
 	}
@@ -222,7 +222,7 @@ func (gm *GasMgrV112) GetGasRate(ctx cosmos.Context, chain common.Chain) cosmos.
 }
 
 func (gm *GasMgrV112) GetNetworkFee(ctx cosmos.Context, chain common.Chain) (types.NetworkFee, error) {
-	transactionFee := gm.keeper.GetOutboundTxFee(ctx, gm.mgr.GetVersion())
+	transactionFee := gm.keeper.GetOutboundTxFee(ctx)
 	if chain.Equals(common.THORChain) {
 		return types.NewNetworkFee(common.THORChain, 1, transactionFee.Uint64()), nil
 	}

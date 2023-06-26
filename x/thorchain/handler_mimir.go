@@ -144,7 +144,7 @@ func (h MimirHandler) handleV112(ctx cosmos.Context, msg MsgMimir) error {
 			ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
 			return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 		}
-		cost := h.mgr.Keeper().GetNativeTxFee(ctx, h.mgr.GetVersion())
+		cost := h.mgr.Keeper().GetNativeTxFee(ctx)
 		nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 		if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 			ctx.Logger().Error("fail to save node account", "error", err)

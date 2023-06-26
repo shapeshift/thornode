@@ -587,19 +587,19 @@ func (k KVStoreDummy) DollarConfigInRune(ctx cosmos.Context, key constants.Const
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) GetNativeTxFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+func (k KVStoreDummy) GetNativeTxFee(ctx cosmos.Context) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) GetOutboundTxFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+func (k KVStoreDummy) GetOutboundTxFee(ctx cosmos.Context) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) GetTHORNameRegisterFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+func (k KVStoreDummy) GetTHORNameRegisterFee(ctx cosmos.Context) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
 
-func (k KVStoreDummy) GetTHORNamePerBlockFee(ctx cosmos.Context, version semver.Version) cosmos.Uint {
+func (k KVStoreDummy) GetTHORNamePerBlockFee(ctx cosmos.Context) cosmos.Uint {
 	return cosmos.ZeroUint()
 }
 

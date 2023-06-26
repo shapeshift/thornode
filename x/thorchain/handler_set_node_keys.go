@@ -64,7 +64,7 @@ func (h SetNodeKeysHandler) validateV112(ctx cosmos.Context, msg MsgSetNodeKeys)
 		return cosmos.ErrUnauthorized(fmt.Sprintf("unauthorized account(%s)", msg.Signer))
 	}
 
-	cost := h.mgr.Keeper().GetNativeTxFee(ctx, h.mgr.GetVersion())
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
 	if nodeAccount.Bond.LT(cost) {
 		return cosmos.ErrUnauthorized("not enough bond")
 	}
@@ -108,7 +108,7 @@ func (h SetNodeKeysHandler) handleV112(ctx cosmos.Context, msg MsgSetNodeKeys) (
 		return nil, cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
-	cost := h.mgr.Keeper().GetNativeTxFee(ctx, h.mgr.GetVersion())
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
 	if cost.GT(nodeAccount.Bond) {
 		cost = nodeAccount.Bond
 	}

@@ -17,7 +17,7 @@ func (h DepositHandler) handleV112(ctx cosmos.Context, msg MsgDeposit) (*cosmos.
 		return nil, fmt.Errorf("unable to use MsgDeposit while THORChain is halted")
 	}
 
-	nativeTxFee := h.mgr.Keeper().GetNativeTxFee(ctx, h.mgr.GetVersion())
+	nativeTxFee := h.mgr.Keeper().GetNativeTxFee(ctx)
 	gas := common.NewCoin(common.RuneNative, nativeTxFee)
 	gasFee, err := gas.Native()
 	if err != nil {
