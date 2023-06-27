@@ -415,3 +415,67 @@ func MsgTssPoolHandleV73(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*cos
 
 	return &cosmos.Result{}, nil
 }
+
+func MsgTssPoolValidateV71(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+	newMsg, err := NewMsgTssPool(msg.PubKeys, msg.PoolPubKey, nil, msg.KeygenType, msg.Height, msg.Blame, msg.Chains, msg.Signer, msg.KeygenTime)
+	if err != nil {
+		return fmt.Errorf("fail to recreate MsgTssPool,err: %w", err)
+	}
+	if msg.ID != newMsg.ID {
+		return cosmos.ErrUnknownRequest("invalid tss message")
+	}
+
+	churnRetryBlocks := mgr.GetConstants().GetInt64Value(constants.ChurnRetryInterval)
+	if msg.Height <= ctx.BlockHeight()-churnRetryBlocks {
+		return cosmos.ErrUnknownRequest("invalid keygen block")
+	}
+
+	keygenBlock, err := mgr.Keeper().GetKeygenBlock(ctx, msg.Height)
+	if err != nil {
+		return fmt.Errorf("fail to get keygen block from data store: %w", err)
+	}
+
+	for _, keygen := range keygenBlock.Keygens {
+		keyGenMembers := keygen.GetMembers()
+		if !msg.GetPubKeys().Equals(keyGenMembers) {
+			continue
+		}
+		// Make sure the keygen type are consistent
+		if msg.KeygenType != keygen.Type {
+			continue
+		}
+		for _, member := range keygen.GetMembers() {
+			addr, err := member.GetThorAddress()
+			if err == nil && addr.Equals(msg.Signer) {
+				return validateSigner(ctx, mgr, msg.Signer)
+			}
+		}
+	}
+
+	return cosmos.ErrUnauthorized("not authorized")
+}
+
+func validateSigner(ctx cosmos.Context, mgr Manager, signer cosmos.AccAddress) error {
+	nodeSigner, err := mgr.Keeper().GetNodeAccount(ctx, signer)
+	if err != nil {
+		return fmt.Errorf("invalid signer")
+	}
+	if nodeSigner.IsEmpty() {
+		return fmt.Errorf("invalid signer")
+	}
+	if nodeSigner.Status != NodeActive && nodeSigner.Status != NodeReady {
+		return fmt.Errorf("invalid signer status(%s)", nodeSigner.Status)
+	}
+	// ensure we have enough rune
+	minBond, err := mgr.Keeper().GetMimir(ctx, constants.MinimumBondInRune.String())
+	if minBond < 0 || err != nil {
+		minBond = mgr.GetConstants().GetInt64Value(constants.MinimumBondInRune)
+	}
+	if nodeSigner.Bond.LT(cosmos.NewUint(uint64(minBond))) {
+		return fmt.Errorf("signer doesn't have enough rune")
+	}
+	return nil
+}

@@ -14,4 +14,41 @@ type: check
 description: ip address should be stored
 endpoint: http://localhost:1317/thorchain/node/{{ addr_thor_dog }}
 asserts:
-- .ip_address == "10.0.0.1"
+  - .ip_address == "10.0.0.1"
+---
+type: tx-deposit
+description: fox creates a node with less than fee
+signer: {{ addr_thor_fox }}
+coins:
+  - asset: "rune"
+    amount: "1"
+memo: "BOND:{{ addr_thor_fox }}"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should make it on chain, sequence 1
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "1"
+---
+type: check
+description: fox should have a node
+endpoint: http://localhost:1317/thorchain/node/{{ addr_thor_fox }}
+asserts:
+  - .total_bond == "1"
+---
+type: tx-set-ip-address
+description: broke fox sets ip
+signer: {{ addr_thor_fox }}
+ip_address: "10.0.0.2"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should not make it on chain, sequence unchanged
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "1"

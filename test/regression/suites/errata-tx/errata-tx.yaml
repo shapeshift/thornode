@@ -5,8 +5,8 @@
 type: create-blocks
 count: 1
 ---
-# observe a btc transaction
 type: tx-observed-in
+description: active dog observes a btc transaction
 signer: {{ addr_thor_dog }}
 txs:
 - tx:
@@ -35,8 +35,8 @@ endpoint: http://localhost:1317/thorchain/tx/{{ observe_txid 1 }}
 asserts:
 - .observed_tx.status == "done"
 ---
-# report the transaction as an errata
 type: tx-errata-tx
+description: active dog reports the transaction as an errata
 signer: {{ addr_thor_dog }}
 tx_id: "{{ observe_txid 1 }}"
 chain: "BTC.BTC"
@@ -49,3 +49,33 @@ description: transaction should be reverted
 endpoint: http://localhost:1317/thorchain/tx/{{ observe_txid 1 }}
 asserts:
 - .observed_tx.status == "reverted"
+---
+type: tx-observed-in
+description: unauthorized fox reports an errata
+signer: {{ addr_thor_fox }}
+txs:
+- tx:
+    id: '{{ observe_txid 1 }}'
+    chain: BTC
+    from_address: {{ addr_btc_fox }}
+    to_address: {{ addr_btc_dog }}
+    coins:
+      - amount: "5000000"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10000"
+        asset: "BTC.BTC"
+    memo: "=:THOR.RUNE:{{ addr_thor_fox }}"
+  block_height: 1
+  finalise_height: 1
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should not make it on chain, no seq num
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence|length == 0

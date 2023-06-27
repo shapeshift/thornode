@@ -25,6 +25,7 @@ func NewTssHandler(mgr Manager) BaseHandler[*MsgTssPool] {
 		mgr:    mgr,
 		logger: MsgTssPoolLogger,
 		validators: NewValidators[*MsgTssPool]().
+			Register("1.114.0", MsgTssPoolValidateV114).
 			Register("0.71.0", MsgTssPoolValidateV71),
 		handlers: NewHandlers[*MsgTssPool]().
 			Register("1.93.0", MsgTssPoolHandleV93).
@@ -37,7 +38,7 @@ func MsgTssPoolLogger(ctx cosmos.Context, msg *MsgTssPool) {
 	ctx.Logger().Info("handleMsgTssPool request", "ID:", msg.ID)
 }
 
-func MsgTssPoolValidateV71(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) error {
+func MsgTssPoolValidateV114(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -71,7 +72,7 @@ func MsgTssPoolValidateV71(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) err
 		for _, member := range keygen.GetMembers() {
 			addr, err := member.GetThorAddress()
 			if err == nil && addr.Equals(msg.Signer) {
-				return validateSigner(ctx, mgr, msg.Signer)
+				return validateTssAuth(ctx, mgr.Keeper(), msg.Signer)
 			}
 		}
 	}
@@ -79,8 +80,8 @@ func MsgTssPoolValidateV71(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) err
 	return cosmos.ErrUnauthorized("not authorized")
 }
 
-func validateSigner(ctx cosmos.Context, mgr Manager, signer cosmos.AccAddress) error {
-	nodeSigner, err := mgr.Keeper().GetNodeAccount(ctx, signer)
+func validateTssAuth(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccAddress) error {
+	nodeSigner, err := k.GetNodeAccount(ctx, signer)
 	if err != nil {
 		return fmt.Errorf("invalid signer")
 	}
@@ -91,10 +92,7 @@ func validateSigner(ctx cosmos.Context, mgr Manager, signer cosmos.AccAddress) e
 		return fmt.Errorf("invalid signer status(%s)", nodeSigner.Status)
 	}
 	// ensure we have enough rune
-	minBond, err := mgr.Keeper().GetMimir(ctx, constants.MinimumBondInRune.String())
-	if minBond < 0 || err != nil {
-		minBond = mgr.GetConstants().GetInt64Value(constants.MinimumBondInRune)
-	}
+	minBond := k.GetConfigInt64(ctx, constants.MinimumBondInRune)
 	if nodeSigner.Bond.LT(cosmos.NewUint(uint64(minBond))) {
 		return fmt.Errorf("signer doesn't have enough rune")
 	}
@@ -378,5 +376,5 @@ func judgeLateSigner(ctx cosmos.Context, mgr Manager, msg *MsgTssPool, voter Tss
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func TssAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgTssPool) error {
-	return nil
+	return validateTssAuth(ctx, k, msg.Signer)
 }

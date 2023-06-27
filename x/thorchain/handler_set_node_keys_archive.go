@@ -99,3 +99,41 @@ func (h SetNodeKeysHandler) handleV57(ctx cosmos.Context, msg MsgSetNodeKeys) (*
 
 	return &cosmos.Result{}, nil
 }
+
+func (h SetNodeKeysHandler) validateV112(ctx cosmos.Context, msg MsgSetNodeKeys) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
+	if err != nil {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("fail to get node account(%s):%s", msg.Signer.String(), err)) // notAuthorized
+	}
+	if nodeAccount.IsEmpty() {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("unauthorized account(%s)", msg.Signer))
+	}
+
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
+	if nodeAccount.Bond.LT(cost) {
+		return cosmos.ErrUnauthorized("not enough bond")
+	}
+
+	// You should not able to update node address when the node is in active mode
+	// for example if they update observer address
+	if nodeAccount.Status == NodeActive {
+		return fmt.Errorf("node %s is active, so it can't update itself", nodeAccount.NodeAddress)
+	}
+	if nodeAccount.Status == NodeDisabled {
+		return fmt.Errorf("node %s is disabled, so it can't update itself", nodeAccount.NodeAddress)
+	}
+
+	if err := h.mgr.Keeper().EnsureNodeKeysUnique(ctx, msg.ValidatorConsPubKey, msg.PubKeySetSet); err != nil {
+		return err
+	}
+
+	if !nodeAccount.PubKeySet.IsEmpty() {
+		return fmt.Errorf("node %s already has pubkey set assigned", nodeAccount.NodeAddress)
+	}
+
+	return nil
+}

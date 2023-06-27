@@ -83,3 +83,30 @@ func (h IPAddressHandler) handleV57(ctx cosmos.Context, msg MsgSetIPAddress) err
 
 	return nil
 }
+
+func (h IPAddressHandler) validateV112(ctx cosmos.Context, msg MsgSetIPAddress) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+
+	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
+	if err != nil {
+		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	}
+	if nodeAccount.IsEmpty() {
+		ctx.Logger().Error("unauthorized account", "address", msg.Signer.String())
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	}
+	if nodeAccount.Type != NodeTypeValidator {
+		ctx.Logger().Error("unauthorized account, node account must be a validator", "address", msg.Signer.String(), "type", nodeAccount.Type)
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
+	}
+
+	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
+	if nodeAccount.Bond.LT(cost) {
+		return cosmos.ErrUnauthorized("not enough bond")
+	}
+
+	return nil
+}

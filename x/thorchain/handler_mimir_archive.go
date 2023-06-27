@@ -284,3 +284,21 @@ func (h MimirHandler) handleV92(ctx cosmos.Context, msg MsgMimir) error {
 	}
 	return nil
 }
+
+func (h MimirHandler) validateV106(ctx cosmos.Context, msg MsgMimir) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+	if !mimirValidKeyV95(msg.Key) || len(msg.Key) > 64 {
+		return cosmos.ErrUnknownRequest("invalid mimir key")
+	}
+	if isAdmin(msg.Signer) {
+		// If the signer is an admin key, check the admin access controls for this mimir.
+		if !isAdminAllowedForMimir(msg.Key) {
+			return cosmos.ErrUnauthorized(fmt.Sprintf("%s cannot set this mimir key", msg.Signer))
+		}
+	} else if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
+	}
+	return nil
+}

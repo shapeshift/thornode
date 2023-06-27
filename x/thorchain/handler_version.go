@@ -44,6 +44,8 @@ func (h VersionHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, e
 func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.114.0")):
+		return h.validateV114(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
 		return h.validateV112(ctx, msg)
 	case version.GTE(semver.MustParse("0.80.0")):
@@ -52,7 +54,7 @@ func (h VersionHandler) validate(ctx cosmos.Context, msg MsgSetVersion) error {
 	return errBadVersion
 }
 
-func (h VersionHandler) validateV112(ctx cosmos.Context, msg MsgSetVersion) error {
+func (h VersionHandler) validateV114(ctx cosmos.Context, msg MsgSetVersion) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -64,25 +66,9 @@ func (h VersionHandler) validateV112(ctx cosmos.Context, msg MsgSetVersion) erro
 	if len(v.Build) > 0 || len(v.Pre) > 0 {
 		return cosmos.ErrUnknownRequest("THORChain doesn't use Pre/Build version")
 	}
-	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
-	if err != nil {
-		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
-		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
+	if err := validateVersionAuth(ctx, h.mgr.Keeper(), msg.Signer); err != nil {
+		return cosmos.ErrUnauthorized(err.Error())
 	}
-	if nodeAccount.IsEmpty() {
-		ctx.Logger().Error("unauthorized account", "address", msg.Signer.String())
-		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorizaed", msg.Signer))
-	}
-	if nodeAccount.Type != NodeTypeValidator {
-		ctx.Logger().Error("unauthorized account, node account must be a validator", "address", msg.Signer.String(), "type", nodeAccount.Type)
-		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
-	}
-
-	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
-	if nodeAccount.Bond.LT(cost) {
-		return cosmos.ErrUnauthorized("not enough bond")
-	}
-
 	return nil
 }
 
@@ -157,9 +143,30 @@ func (h VersionHandler) handleV112(ctx cosmos.Context, msg MsgSetVersion) error 
 	return nil
 }
 
+func validateVersionAuth(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccAddress) error {
+	nodeAccount, err := k.GetNodeAccount(ctx, signer)
+	if err != nil {
+		ctx.Logger().Error("fail to get node account", "error", err, "address", signer.String())
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", signer))
+	}
+	if nodeAccount.IsEmpty() {
+		ctx.Logger().Error("unauthorized account", "address", signer.String())
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", signer))
+	}
+	if nodeAccount.Type != NodeTypeValidator {
+		ctx.Logger().Error("unauthorized account, node account must be a validator", "address", signer.String(), "type", nodeAccount.Type)
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", signer))
+	}
+	cost := k.GetNativeTxFee(ctx)
+	if nodeAccount.Bond.LT(cost) {
+		return cosmos.ErrUnauthorized("not enough bond")
+	}
+	return nil
+}
+
 // VersionAnteHandler called by the ante handler to gate mempool entry
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func VersionAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgSetVersion) error {
-	return nil
+	return validateVersionAuth(ctx, k, msg.Signer)
 }

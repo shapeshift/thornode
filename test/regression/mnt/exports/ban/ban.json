@@ -310,6 +310,7 @@
       "tx_outs": null,
       "vaults": [
         {
+          "block_height": "2",
           "chains": [
             "THOR",
             "BTC",
@@ -363,5 +364,5 @@
     },
     "version": {}
   },
-  "initial_height": "2"
+  "initial_height": "3"
 }

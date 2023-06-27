@@ -52,6 +52,8 @@ func (h MimirHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, err
 func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.114.0")):
+		return h.validateV114(ctx, msg)
 	case version.GTE(semver.MustParse("1.106.0")):
 		return h.validateV106(ctx, msg)
 	case version.GTE(semver.MustParse("1.95.0")):
@@ -63,20 +65,15 @@ func (h MimirHandler) validate(ctx cosmos.Context, msg MsgMimir) error {
 	}
 }
 
-func (h MimirHandler) validateV106(ctx cosmos.Context, msg MsgMimir) error {
+func (h MimirHandler) validateV114(ctx cosmos.Context, msg MsgMimir) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 	if !mimirValidKeyV95(msg.Key) || len(msg.Key) > 64 {
 		return cosmos.ErrUnknownRequest("invalid mimir key")
 	}
-	if isAdmin(msg.Signer) {
-		// If the signer is an admin key, check the admin access controls for this mimir.
-		if !isAdminAllowedForMimir(msg.Key) {
-			return cosmos.ErrUnauthorized(fmt.Sprintf("%s cannot set this mimir key", msg.Signer))
-		}
-	} else if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
-		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
+	if err := validateMimirAuth(ctx, h.mgr.Keeper(), msg); err != nil {
+		return err
 	}
 	return nil
 }
@@ -216,9 +213,21 @@ func (h MimirHandler) handleV112(ctx cosmos.Context, msg MsgMimir) error {
 	return nil
 }
 
+func validateMimirAuth(ctx cosmos.Context, k keeper.Keeper, msg MsgMimir) error {
+	if isAdmin(msg.Signer) {
+		// If the signer is an admin key, check the admin access controls for this mimir.
+		if !isAdminAllowedForMimir(msg.Key) {
+			return cosmos.ErrUnauthorized(fmt.Sprintf("%s cannot set this mimir key", msg.Signer))
+		}
+	} else if !isSignedByActiveNodeAccounts(ctx, k, msg.GetSigners()) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
+	}
+	return nil
+}
+
 // MimirAnteHandler called by the ante handler to gate mempool entry
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func MimirAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgMimir) error {
-	return nil
+	return validateMimirAuth(ctx, k, msg)
 }

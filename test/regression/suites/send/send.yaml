@@ -1,0 +1,58 @@
+{{ template "default-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: ensure fox's starting balance
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
+asserts:
+  - .balances|length == 1
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500000000000
+---
+type: tx-send
+description: fox sends full rune balance to wolf (total minus fee)
+from_address: {{ addr_thor_fox }}
+to_address: {{ addr_thor_wolf }}
+amount:
+  - denom: rune
+    amount: "2499998000000"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should make it on chain
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "1"
+---
+type: check
+description: fox should no longer have a rune balance
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
+asserts:
+  - .balances|length == 0
+---
+type: check
+description: wolf's balance should increase
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_wolf }}
+asserts:
+  - .balances|length == 1
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2499998000000
+---
+type: tx-send
+description: broke fox tries another send, should not make it on chain
+from_address: {{ addr_thor_fox }}
+to_address: {{ addr_thor_wolf }}
+amount:
+  - denom: rune
+    amount: "1"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should not make it on chain, sequence unchanged
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "1"

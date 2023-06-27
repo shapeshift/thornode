@@ -14,3 +14,17 @@ count: 1
 ## this block fails since dog banned himself
 #type: create-blocks
 #count: 1
+---
+# unauthorized fox sends a ban, should not make it on chain
+type: tx-ban
+signer: {{ addr_thor_fox }}
+node_address: {{ addr_thor_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should not make it on chain, no seq num
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence|length == 0

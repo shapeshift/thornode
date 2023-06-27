@@ -296,3 +296,59 @@ func (h TssKeysignHandler) handleV109(ctx cosmos.Context, msg MsgTssKeysignFail)
 
 	return &cosmos.Result{}, nil
 }
+
+func (h TssKeysignHandler) validateV109(ctx cosmos.Context, msg MsgTssKeysignFail) error {
+	if err := msg.ValidateBasic(); err != nil {
+		return err
+	}
+	m, err := NewMsgTssKeysignFail(msg.Height, msg.Blame, msg.Memo, msg.Coins, msg.Signer, msg.PubKey)
+	if err != nil {
+		ctx.Logger().Error("fail to reconstruct keysign fail msg", "error", err)
+		return err
+	}
+	if !strings.EqualFold(m.ID, msg.ID) {
+		return cosmos.ErrUnknownRequest("invalid keysign fail message")
+	}
+	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
+		shouldAccept := false
+		vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
+		if err != nil {
+			return ErrInternal(err, "fail to get retiring vaults")
+		}
+		if len(vaults) > 0 {
+			for _, signer := range msg.GetSigners() {
+				nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, signer)
+				if err != nil {
+					return ErrInternal(err, "fail to get node account")
+				}
+
+				for _, v := range vaults {
+					if v.GetMembership().Contains(nodeAccount.PubKeySet.Secp256k1) {
+						shouldAccept = true
+						break
+					}
+				}
+				if shouldAccept {
+					break
+				}
+			}
+		}
+		if !shouldAccept {
+			return cosmos.ErrUnauthorized("not authorized")
+		}
+		ctx.Logger().Info("keysign failure message from retiring vault member, should accept")
+	}
+
+	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		return wrapError(ctx, err, "fail to get list of active node accounts")
+	}
+
+	allowWideBlame := fetchConfigInt64(ctx, h.mgr, constants.AllowWideBlame)
+	if allowWideBlame == 0 && !HasSimpleMajority(len(active)-len(msg.Blame.BlameNodes), len(active)) {
+		ctx.Logger().Error("blame cast too wide", "blame", len(msg.Blame.BlameNodes))
+		return fmt.Errorf("blame cast too wide: %d/%d", len(msg.Blame.BlameNodes), len(active))
+	}
+
+	return nil
+}

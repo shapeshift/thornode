@@ -89,5 +89,15 @@ func MsgSendHandleV112(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.R
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func SendAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgSend) error {
+	nativeTxFee := k.GetNativeTxFee(ctx)
+	gas := common.NewCoin(common.RuneNative, nativeTxFee)
+	gasFee, err := gas.Native()
+	if err != nil {
+		return fmt.Errorf("fail to get gas fee: %w", err)
+	}
+	totalCoins := cosmos.NewCoins(gasFee)
+	if !k.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
+		return cosmos.ErrInsufficientCoins(err, "insufficient funds")
+	}
 	return nil
 }

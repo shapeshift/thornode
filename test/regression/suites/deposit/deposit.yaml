@@ -1,0 +1,57 @@
+{{ template "default-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: ensure fox's starting balance
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
+asserts:
+  - .balances|length == 1
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500000000000
+---
+type: tx-deposit
+description: fox bonds their full rune balance (total minus fee)
+signer: {{ addr_thor_fox }}
+coins:
+  - amount: "2499998000000"
+    asset: "rune"
+memo: "bond:{{ addr_thor_fox }}"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should make it on chain
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "1"
+---
+type: check
+description: fox's node should have bond
+endpoint: http://localhost:1317/thorchain/node/{{ addr_thor_fox }}
+asserts:
+  - .total_bond == "2499998000000"
+---
+type: check
+description: fox should no longer have a rune balance
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
+asserts:
+  - .balances|length == 0
+---
+type: tx-deposit
+description: broke fox tries another deposit, should not make it on chain
+signer: {{ addr_thor_fox }}
+coins:
+  - amount: "1"
+    asset: "rune"
+memo: "bond:{{ addr_thor_fox }}"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should not make it on chain, sequence unchanged
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "1"

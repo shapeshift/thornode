@@ -358,5 +358,8 @@ func (h ErrataTxHandler) processErrataOutboundTxV65(ctx cosmos.Context, msg MsgE
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func ErrataTxAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgErrataTx) error {
+	if !isSignedByActiveNodeAccounts(ctx, k, msg.GetSigners()) {
+		return cosmos.ErrUnauthorized(errNotAuthorized.Error())
+	}
 	return nil
 }

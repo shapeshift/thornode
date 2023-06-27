@@ -1,0 +1,70 @@
+{{ template "default-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+type: tx-deposit
+description: fox creates a node with less than 2x fee
+signer: {{ addr_thor_fox }}
+coins:
+  - asset: "rune"
+    amount: "2000001"
+memo: "BOND:{{ addr_thor_fox }}"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should make it on chain, sequence 1
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "1"
+---
+type: check
+description: fox should have a node with no version
+endpoint: http://localhost:1317/thorchain/node/{{ addr_thor_fox }}
+asserts:
+  - .total_bond == "2000001"
+  - .version == "0.0.0"
+---
+type: tx-version
+description: fox sets version
+signer: {{ addr_thor_fox }}
+version: "0.1.2"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should make it on chain, sequence 2
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "2"
+---
+type: check
+description: fox's version should be set
+endpoint: http://localhost:1317/thorchain/node/{{ addr_thor_fox }}
+asserts:
+  - .total_bond == "1"
+  - .version == "0.1.2"
+---
+type: tx-version
+description: broke fox sets version
+signer: {{ addr_thor_fox }}
+version: "0.1.3"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should not make it on chain, sequence unchanged
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "2"
+---
+type: check
+description: fox's node should be unchanged
+endpoint: http://localhost:1317/thorchain/node/{{ addr_thor_fox }}
+asserts:
+  - .total_bond == "1"
+  - .version == "0.1.2"

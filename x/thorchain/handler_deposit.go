@@ -262,5 +262,15 @@ func (h DepositHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func DepositAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgDeposit) error {
+	nativeTxFee := k.GetNativeTxFee(ctx)
+	gas := common.NewCoin(common.RuneNative, nativeTxFee)
+	gasFee, err := gas.Native()
+	if err != nil {
+		return fmt.Errorf("fail to get gas fee: %w", err)
+	}
+	totalCoins := cosmos.NewCoins(gasFee)
+	if !k.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
+		return cosmos.ErrInsufficientCoins(err, "insufficient funds")
+	}
 	return nil
 }

@@ -32,10 +32,13 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 		return ctx, err
 	}
 
-	// run the message-specific ante for each msg, all must succeed
-	for _, msg := range tx.GetMsgs() {
-		if err := ad.anteHandleMessage(ctx, version, msg); err != nil {
-			return ctx, err
+	// TODO on hard fork remove version check, before 114 all antes return nil
+	if version.GTE(semver.MustParse("1.114.0")) {
+		// run the message-specific ante for each msg, all must succeed
+		for _, msg := range tx.GetMsgs() {
+			if err := ad.anteHandleMessage(ctx, version, msg); err != nil {
+				return ctx, err
+			}
 		}
 	}
 

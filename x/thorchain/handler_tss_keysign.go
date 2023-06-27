@@ -50,6 +50,8 @@ func (h TssKeysignHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result
 func (h TssKeysignHandler) validate(ctx cosmos.Context, msg MsgTssKeysignFail) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.114.0")):
+		return h.validateV114(ctx, msg)
 	case version.GTE(semver.MustParse("1.109.0")):
 		return h.validateV109(ctx, msg)
 	case version.GTE(semver.MustParse("0.70.0")):
@@ -58,7 +60,7 @@ func (h TssKeysignHandler) validate(ctx cosmos.Context, msg MsgTssKeysignFail) e
 	return errBadVersion
 }
 
-func (h TssKeysignHandler) validateV109(ctx cosmos.Context, msg MsgTssKeysignFail) error {
+func (h TssKeysignHandler) validateV114(ctx cosmos.Context, msg MsgTssKeysignFail) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -70,34 +72,9 @@ func (h TssKeysignHandler) validateV109(ctx cosmos.Context, msg MsgTssKeysignFai
 	if !strings.EqualFold(m.ID, msg.ID) {
 		return cosmos.ErrUnknownRequest("invalid keysign fail message")
 	}
-	if !isSignedByActiveNodeAccounts(ctx, h.mgr.Keeper(), msg.GetSigners()) {
-		shouldAccept := false
-		vaults, err := h.mgr.Keeper().GetAsgardVaultsByStatus(ctx, RetiringVault)
-		if err != nil {
-			return ErrInternal(err, "fail to get retiring vaults")
-		}
-		if len(vaults) > 0 {
-			for _, signer := range msg.GetSigners() {
-				nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, signer)
-				if err != nil {
-					return ErrInternal(err, "fail to get node account")
-				}
 
-				for _, v := range vaults {
-					if v.GetMembership().Contains(nodeAccount.PubKeySet.Secp256k1) {
-						shouldAccept = true
-						break
-					}
-				}
-				if shouldAccept {
-					break
-				}
-			}
-		}
-		if !shouldAccept {
-			return cosmos.ErrUnauthorized("not authorized")
-		}
-		ctx.Logger().Info("keysign failure message from retiring vault member, should accept")
+	if err := validateKeysignAuth(ctx, h.mgr.Keeper(), msg.GetSigners()); err != nil {
+		return err
 	}
 
 	active, err := h.mgr.Keeper().ListActiveValidators(ctx)
@@ -269,9 +246,41 @@ func (h TssKeysignHandler) handleV110(ctx cosmos.Context, msg MsgTssKeysignFail)
 	return &cosmos.Result{}, nil
 }
 
+func validateKeysignAuth(ctx cosmos.Context, k keeper.Keeper, signers []cosmos.AccAddress) error {
+	if isSignedByActiveNodeAccounts(ctx, k, signers) {
+		return nil
+	}
+	shouldAccept := false
+	vaults, err := k.GetAsgardVaultsByStatus(ctx, RetiringVault)
+	if err != nil {
+		return ErrInternal(err, "fail to get retiring vaults")
+	}
+	if len(vaults) > 0 {
+		for _, signer := range signers {
+			nodeAccount, err := k.GetNodeAccount(ctx, signer)
+			if err != nil {
+				return ErrInternal(err, "fail to get node account")
+			}
+			for _, v := range vaults {
+				if v.GetMembership().Contains(nodeAccount.PubKeySet.Secp256k1) {
+					shouldAccept = true
+					break
+				}
+			}
+			if shouldAccept {
+				break
+			}
+		}
+	}
+	if !shouldAccept {
+		return cosmos.ErrUnauthorized("not authorized")
+	}
+	return nil
+}
+
 // TssKeysignAnteHandler called by the ante handler to gate mempool entry
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func TssKeysignFailAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgTssKeysignFail) error {
-	return nil
+	return validateKeysignAuth(ctx, k, msg.GetSigners())
 }

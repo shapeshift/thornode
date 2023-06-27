@@ -1,0 +1,46 @@
+{{ template "default-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+type: tx-mimir
+description: active dog sets mimir
+key: RegressionTest
+value: 1
+signer: {{ addr_thor_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: dog's tx should make it on chain
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_dog }}
+asserts:
+  - .result.value.sequence == "1"
+---
+type: check
+description: mimir should be set
+endpoint: http://localhost:1317/thorchain/mimir
+asserts:
+  - .REGRESSIONTEST == 1
+---
+type: tx-mimir
+description: unauthorized fox sets mimir, should not make it on chain
+key: FoxTest
+value: 1
+signer: {{ addr_thor_fox }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should not make it on chain, no seq num
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence|length == 0
+---
+type: check
+description: mimir should not be set
+endpoint: http://localhost:1317/thorchain/mimir
+asserts:
+  - .FOXTEST|length == 0

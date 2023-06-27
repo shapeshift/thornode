@@ -134,5 +134,8 @@ func (h NodePauseChainHandler) handleV87(ctx cosmos.Context, msg MsgNodePauseCha
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func NodePauseChainAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgNodePauseChain) error {
+	if !isSignedByActiveNodeAccounts(ctx, k, msg.GetSigners()) {
+		return cosmos.ErrUnauthorized(fmt.Sprintf("%+v are not authorized", msg.GetSigners()))
+	}
 	return nil
 }

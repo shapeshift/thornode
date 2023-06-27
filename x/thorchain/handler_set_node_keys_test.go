@@ -3,6 +3,7 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	se "github.com/cosmos/cosmos-sdk/types/errors"
 	. "gopkg.in/check.v1"
@@ -91,13 +92,22 @@ func (s *HandlerSetNodeKeysSuite) TestValidate(c *C) {
 	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 
+	// cannot set node keys if already set
+	keeper.na.Status = NodeStandby
+	msg = NewMsgSetNodeKeys(keeper.na.PubKeySet, consensPubKey, keeper.na.NodeAddress)
+	err = handler.validate(ctx, *msg)
+	c.Assert(strings.Contains(err.Error(), "already has pubkey"), Equals, true)
+
 	// cannot set node keys when duplicate
 	keeper.na.Status = NodeStandby
 	keeper.ensure = fmt.Errorf("duplicate keys")
-	msg = NewMsgSetNodeKeys(keeper.na.PubKeySet, consensPubKey, keeper.na.NodeAddress)
+	tmpKeys := keeper.na.PubKeySet
+	keeper.na.PubKeySet = common.PubKeySet{}
+	msg = NewMsgSetNodeKeys(tmpKeys, consensPubKey, keeper.na.NodeAddress)
 	err = handler.validate(ctx, *msg)
 	c.Assert(err, ErrorMatches, "duplicate keys")
 	keeper.ensure = nil
+	keeper.na.PubKeySet = tmpKeys
 
 	// invalid msg
 	msg = &MsgSetNodeKeys{}

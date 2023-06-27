@@ -21,3 +21,17 @@ description: pools should be halted
 endpoint: http://localhost:1317/thorchain/inbound_addresses
 asserts:
 - .[0].halted == true
+---
+type: tx-node-pause-chain
+description: unauthorized fox sends pause chain, should not make it on chain
+signer: {{ addr_thor_fox }}
+value: 667
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should not make it on chain, no seq num
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence|length == 0
