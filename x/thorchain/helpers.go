@@ -161,6 +161,71 @@ func refundTxV110(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uin
 	return nil
 }
 
+func getMaxSwapQuantity(ctx cosmos.Context, mgr Manager, sourceAsset, targetAsset common.Asset, swp StreamingSwap) (uint64, error) {
+	if swp.Frequency == 0 {
+		return 0, nil
+	}
+	// collect pools involved in this swap
+	var pools Pools
+	totalRuneDepth := cosmos.ZeroUint()
+	for _, asset := range []common.Asset{sourceAsset, targetAsset} {
+		if asset.IsNativeRune() {
+			continue
+		}
+		if asset.IsDerivedAsset() {
+			// TODO: support derived assets, current not a great way to
+			// convert derived asset --> layer1 asset well.
+			return 0, fmt.Errorf("derived assets are not currently supported by streaming swaps")
+		}
+
+		pool, err := mgr.Keeper().GetPool(ctx, asset.GetLayer1Asset())
+		if err != nil {
+			ctx.Logger().Error("fail to fetch pool", "error", err)
+			return 0, err
+		}
+		pools = append(pools, pool)
+		totalRuneDepth = totalRuneDepth.Add(pool.BalanceRune)
+	}
+	if len(pools) == 0 {
+		return 0, fmt.Errorf("dev error: no pools selected during a streaming swap")
+	}
+	virtualDepth := totalRuneDepth.QuoUint64(uint64(len(pools))) // virtual rune depth
+	if !sourceAsset.IsNativeRune() {
+		// since the inbound asset is not rune, the virtual depth needs to be
+		// recalculated to be the asset side
+		virtualDepth = common.GetUncappedShare(virtualDepth, pools[0].BalanceRune, pools[0].BalanceAsset)
+	}
+	// we multiply by 10 to ensure we can support decimals (ie 5 / 2 == 2.5)
+	minBP := mgr.Keeper().GetConfigInt64(ctx, constants.MinBPStreamingSwap) * 10
+	minBP /= int64(len(pools)) // since multiple swaps are executed, then minBP should be adjusted
+	if minBP == 0 {
+		return 0, fmt.Errorf("streaming swaps are not allows with a min BP of zero")
+	}
+	minSize := common.GetSafeShare(cosmos.NewUint(uint64(minBP)), cosmos.NewUint(10_000*10), virtualDepth)
+	if minSize.IsZero() {
+		return 1, nil
+	}
+	maxSwapQuantity := swp.Deposit.Quo(minSize)
+
+	// make sure maxSwapQuantity doesn't infringe on max length that a
+	// streaming swap can exist
+	maxLength := mgr.Keeper().GetConfigInt64(ctx, constants.MaxStreamingSwapLength)
+	if swp.Frequency == 0 {
+		return 1, nil
+	}
+	maxSwapInMaxLength := uint64(maxLength) / swp.Frequency
+	if maxSwapQuantity.GT(cosmos.NewUint(maxSwapInMaxLength)) {
+		return maxSwapInMaxLength, nil
+	}
+
+	// sanity check that max swap quantity is not zero
+	if maxSwapQuantity.IsZero() {
+		return 1, nil
+	}
+
+	return maxSwapQuantity.Uint64(), nil
+}
+
 func getFee(input, output common.Coins, transactionFee cosmos.Uint) common.Fee {
 	var fee common.Fee
 	assetTxCount := 0

@@ -39,6 +39,7 @@ type (
 	Pools                    = types.Pools
 	LiquidityProvider        = types.LiquidityProvider
 	Loan                     = types.Loan
+	StreamingSwap            = types.StreamingSwap
 	ObservedTxVoter          = types.ObservedTxVoter
 	BanVoter                 = types.BanVoter
 	ErrataTxVoter            = types.ErrataTxVoter

@@ -123,6 +123,10 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryScheduledOutbound(ctx, mgr)
 		case q.QuerySwapQueue.Key:
 			return querySwapQueue(ctx, mgr)
+		case q.QueryStreamingSwap.Key:
+			return queryStreamingSwap(ctx, path[1:], mgr)
+		case q.QueryStreamingSwaps.Key:
+			return queryStreamingSwaps(ctx, mgr)
 		case q.QueryTssKeygenMetrics.Key:
 			return queryTssKeygenMetric(ctx, path[1:], req, mgr)
 		case q.QueryTssMetrics.Key:
@@ -1063,6 +1067,37 @@ func queryLiquidityProvider(ctx cosmos.Context, path []string, req abci.RequestQ
 		saver := NewQuerySaver(lp, pool)
 		return jsonify(ctx, saver)
 	}
+}
+
+func queryStreamingSwaps(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
+	var streams StreamingSwaps
+	iter := mgr.Keeper().GetStreamingSwapIterator(ctx)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		var stream StreamingSwap
+		mgr.Keeper().Cdc().MustUnmarshal(iter.Value(), &stream)
+		streams = append(streams, stream)
+	}
+	return jsonify(ctx, streams)
+}
+
+func queryStreamingSwap(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("tx id not provided")
+	}
+	txid, err := common.NewTxID(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to parse txid", "error", err)
+		return nil, fmt.Errorf("could not parse txid: %w", err)
+	}
+
+	swp, err := mgr.Keeper().GetStreamingSwap(ctx, txid)
+	if err != nil {
+		ctx.Logger().Error("fail to get streaming swap", "error", err)
+		return nil, fmt.Errorf("could not get streaming swap: %w", err)
+	}
+
+	return jsonify(ctx, swp)
 }
 
 func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {

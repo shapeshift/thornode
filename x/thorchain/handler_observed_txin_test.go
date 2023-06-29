@@ -732,7 +732,7 @@ func (s HandlerObservedTxInSuite) TestSwapWithAffiliate(c *C) {
 		"",
 		"", nil,
 		MarketOrder,
-		GetRandomBech32Addr(),
+		0, 0, GetRandomBech32Addr(),
 	)
 	handler.addSwap(ctx, *msg)
 	swaps, err := queue.FetchQueue(ctx)

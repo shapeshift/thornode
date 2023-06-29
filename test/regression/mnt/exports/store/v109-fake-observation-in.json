@@ -285,7 +285,6 @@
           "value": "5000"
         }
       ],
-      "msg_swaps": [],
       "network": {
         "NodeIncomeSplit": "10000",
         "bond_reward_rune": "2219686",
@@ -311,6 +310,7 @@
       ],
       "observed_tx_in_voters": null,
       "observed_tx_out_voters": null,
+      "orderbook_items": [],
       "pools": [
         {
           "LP_units": "367723442089047",
@@ -334,6 +334,8 @@
         }
       ],
       "reserve_contributors": null,
+      "streaming_swaps": [],
+      "swap_queue_items": [],
       "tx_outs": null,
       "vaults": [
         {

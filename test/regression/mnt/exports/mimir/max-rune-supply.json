@@ -293,7 +293,6 @@
           "value": "50000000000000"
         }
       ],
-      "msg_swaps": [],
       "network": {
         "bond_reward_rune": "0",
         "burned_bep2_rune": "100000",
@@ -318,8 +317,11 @@
       ],
       "observed_tx_in_voters": null,
       "observed_tx_out_voters": null,
+      "orderbook_items": [],
       "pools": null,
       "reserve_contributors": null,
+      "streaming_swaps": [],
+      "swap_queue_items": [],
       "tx_outs": null,
       "vaults": [
         {

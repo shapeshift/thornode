@@ -517,6 +517,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/BanResponse"
 
+  # ----------------------- streaming swaps  --------------------------
+
+  /thorchain/swap/streaming/{hash}:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - $ref: "#/components/parameters/hash"
+    get:
+      description: Returns the state of a streaming swap
+      operationId: stream_swap
+      tags:
+        - StreamingSwap
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamingSwapResponse"
+
+  /thorchain/swaps/streaming:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+    get:
+      description: Returns the state of all streaming swaps
+      operationId: stream_swaps
+      tags:
+        - StreamingSwap
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamingSwapsResponse"
+
   # ------------------------------ queue ------------------------------
 
   /thorchain/queue:
@@ -794,6 +829,13 @@ paths:
         schema:
           type: string
           example: "0x1c7b17362c84287bd1184447e6dfeaf920c31bbe"
+      - name: streaming_freq
+        in: query
+        description: the frequency or interval in which streaming swaps are swap
+        schema:
+          type: integer
+          format: int64
+          example: 10
       - name: from_address
         in: query
         description: the from address, required if the from asset is a synth
@@ -1493,6 +1535,46 @@ components:
           items:
             $ref: "#/components/schemas/VaultRouter"
 
+    StreamingSwap:
+      type: object
+      properties:
+        tx_id:
+          type: string
+          example: "CF524818D42B63D25BBA0CCC4909F127CAA645C0F9CD07324F2824CC151A64C7"
+          description: the hash of a transaction
+        frequency:
+          type: integer
+          format: uint64
+          description: how often each swap is made, in blocks
+        quantity:
+          type: integer
+          format: uint64
+          description: the total number of swaps in a streaming swaps
+        count:
+          type: integer
+          format: uint64
+          description: the amount of swap attempts so far
+        last_height:
+          type: integer
+          format: int64
+          description: the block height of the latest swap
+        trade_target:
+          type: string
+          example: "100"
+          description: the total number of tokens the swapper wants to receive of the output asset
+        deposit:
+          type: string
+          example: "100"
+          description: the number of input tokens the swapper has deposited
+        in:
+          type: string
+          example: "100"
+          description: the amount of input tokens that have been swapped so far
+        out:
+          type: string
+          example: "100"
+          description: the amount of output tokens that have been swapped so far
+
     Tx:
       type: object
       required:
@@ -1702,6 +1784,14 @@ components:
           type: integer
           format: int64
           description: 0 if a market order (immediately completed or refunded), 1 if a limit order (held until fulfillable)
+        stream_quantity:
+          type: integer
+          format: uint64
+          description: number of swaps to execute in a streaming swap
+        stream_frequency:
+          type: integer
+          format: uint64
+          description: the frequency (in blocks) to execute the streaming swap
 
     TxOutItem:
       type: object
@@ -2256,6 +2346,14 @@ components:
       items:
         $ref: "#/components/schemas/Node"
 
+    StreamingSwapsResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/StreamingSwap"
+
+    StreamingSwapResponse:
+      $ref: "#/components/schemas/StreamingSwap"
+
     VaultsResponse:
       type: array
       items:
@@ -2675,6 +2773,11 @@ components:
           type: string
           description: the amount of the target asset the user can expect to receive after fees
           example: "10000"
+        max_streaming_quantity:
+          type: integer
+          format: int64
+          description: the maxiumum amount of trades a streaming swap can do for a trade
+          example: 10
 
     QuoteSaverDepositResponse:
       type: object

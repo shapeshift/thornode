@@ -312,7 +312,6 @@
       ],
       "loans": [],
       "mimirs": [],
-      "msg_swaps": [],
       "network": {
         "LPIncomeSplit": "10000",
         "bond_reward_rune": "44",
@@ -338,6 +337,7 @@
       ],
       "observed_tx_in_voters": null,
       "observed_tx_out_voters": null,
+      "orderbook_items": [],
       "pools": [
         {
           "LP_units": "200000000",
@@ -352,6 +352,8 @@
         }
       ],
       "reserve_contributors": null,
+      "streaming_swaps": [],
+      "swap_queue_items": [],
       "tx_outs": null,
       "vaults": [
         {

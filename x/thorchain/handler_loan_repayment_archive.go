@@ -190,7 +190,7 @@ func (h LoanRepaymentHandler) repayV111(ctx cosmos.Context, msg MsgLoanRepayment
 
 	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
 	tx := common.NewTx(txID, lendAddr, lendAddr, coins, common.Gas{fakeGas}, "noop")
-	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, msg.MinOut, common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
+	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, msg.MinOut, common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, 0, 0, msg.Signer)
 	handler := NewSwapHandler(h.mgr)
 	if _, err := handler.Run(ctx, swapMsg); err != nil {
 		ctx.Logger().Error("fail to make second swap when closing a loan", "error", err)
@@ -264,7 +264,7 @@ func (h LoanRepaymentHandler) repayV110(ctx cosmos.Context, msg MsgLoanRepayment
 
 	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
 	tx := common.NewTx(txID, lendAddr, lendAddr, coins, common.Gas{fakeGas}, "noop")
-	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, msg.MinOut, common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
+	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, msg.MinOut, common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, 0, 0, msg.Signer)
 	handler := NewSwapHandler(h.mgr)
 	if _, err := handler.Run(ctx, swapMsg); err != nil {
 		ctx.Logger().Error("fail to make second swap when closing a loan", "error", err)
@@ -356,7 +356,7 @@ func (h LoanRepaymentHandler) repayV108(ctx cosmos.Context, msg MsgLoanRepayment
 
 	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
 	tx := common.NewTx(txID, lendAddr, lendAddr, coins, common.Gas{fakeGas}, "noop")
-	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
+	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, 0, 0, msg.Signer)
 	handler := NewSwapHandler(h.mgr)
 	if _, err := handler.Run(ctx, swapMsg); err != nil {
 		ctx.Logger().Error("fail to make second swap when closing a loan", "error", err)
@@ -391,7 +391,7 @@ func (h LoanRepaymentHandler) swapV110(ctx cosmos.Context, msg MsgLoanRepayment)
 	memo := fmt.Sprintf("loan-:%s:%s:%s", msg.CollateralAsset, msg.Owner, msg.MinOut)
 	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
 	tx := common.NewTx(txID, msg.From, lendAddr, common.NewCoins(msg.Coin), common.Gas{fakeGas}, memo)
-	swapMsg := NewMsgSwap(tx, common.TOR, lendAddr, cosmos.ZeroUint(), lendAddr, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
+	swapMsg := NewMsgSwap(tx, common.TOR, lendAddr, cosmos.ZeroUint(), lendAddr, cosmos.ZeroUint(), "", "", nil, 0, 0, 0, msg.Signer)
 	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
 		ctx.Logger().Error("fail to add swap to queue", "error", err)
 		return err
@@ -415,7 +415,7 @@ func (h LoanRepaymentHandler) swapV108(ctx cosmos.Context, msg MsgLoanRepayment)
 	memo := fmt.Sprintf("loan-:%s:%s", msg.CollateralAsset, msg.Owner)
 	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
 	tx := common.NewTx(txID, lendAddr, lendAddr, common.NewCoins(msg.Coin), common.Gas{fakeGas}, memo)
-	swapMsg := NewMsgSwap(tx, common.TOR, lendAddr, cosmos.ZeroUint(), lendAddr, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
+	swapMsg := NewMsgSwap(tx, common.TOR, lendAddr, cosmos.ZeroUint(), lendAddr, cosmos.ZeroUint(), "", "", nil, 0, 0, 0, msg.Signer)
 	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
 		ctx.Logger().Error("fail to add swap to queue", "error", err)
 		return err
@@ -503,7 +503,7 @@ func (h LoanRepaymentHandler) repayV107(ctx cosmos.Context, msg MsgLoanRepayment
 
 	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
 	tx := common.NewTx(txID, lendAddr, lendAddr, coins, common.Gas{fakeGas}, "noop")
-	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
+	swapMsg := NewMsgSwap(tx, msg.CollateralAsset, msg.Owner, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, 0, 0, 0, msg.Signer)
 	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
 		ctx.Logger().Error("fail to add swap to queue", "error", err)
 		return err
@@ -546,7 +546,7 @@ func (h LoanRepaymentHandler) swapV107(ctx cosmos.Context, msg MsgLoanRepayment)
 	memo := fmt.Sprintf("loan-:%s:%s", msg.CollateralAsset, msg.Owner)
 	fakeGas := common.NewCoin(msg.Coin.Asset, cosmos.OneUint())
 	tx := common.NewTx(txID, lendAddr, lendAddr, common.NewCoins(msg.Coin), common.Gas{fakeGas}, memo)
-	swapMsg := NewMsgSwap(tx, common.TOR, lendAddr, cosmos.ZeroUint(), lendAddr, cosmos.ZeroUint(), "", "", nil, 0, msg.Signer)
+	swapMsg := NewMsgSwap(tx, common.TOR, lendAddr, cosmos.ZeroUint(), lendAddr, cosmos.ZeroUint(), "", "", nil, 0, 0, 0, msg.Signer)
 	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
 		ctx.Logger().Error("fail to add swap to queue", "error", err)
 		return err

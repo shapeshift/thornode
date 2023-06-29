@@ -183,6 +183,7 @@ var (
 	NewNetworkFee                  = types.NewNetworkFee
 	NewTHORName                    = types.NewTHORName
 	NewLoan                        = types.NewLoan
+	NewStreamingSwap               = types.NewStreamingSwap
 	GetPoolStatus                  = types.GetPoolStatus
 	GetRandomVault                 = types.GetRandomVault
 	GetRandomYggVault              = types.GetRandomYggVault
@@ -287,6 +288,8 @@ type (
 	LiquidityProviders             = types.LiquidityProviders
 	Loan                           = types.Loan
 	Loans                          = types.Loans
+	StreamingSwap                  = types.StreamingSwap
+	StreamingSwaps                 = types.StreamingSwaps
 	ObservedTxs                    = types.ObservedTxs
 	ObservedTx                     = types.ObservedTx
 	ObservedTxVoter                = types.ObservedTxVoter

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -41,6 +42,7 @@ const (
 	affiliateParam            = "affiliate"
 	affiliateBpsParam         = "affiliate_bps"
 	minOutParam               = "min_out"
+	frequencyParam            = "streaming_freq"
 
 	quoteWarning    = "Do not cache this response. Do not send funds after the expiry."
 	quoteExpiration = 15 * time.Minute
@@ -382,6 +384,23 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		return quoteErrorResponse(fmt.Errorf("bad amount: %w", err))
 	}
 
+	// parse streaming frequency
+	streamingFreq := uint64(0) // default value
+	if len(params[frequencyParam]) > 0 {
+		streamingFreq, err = strconv.ParseUint(params[frequencyParam][0], 10, 64)
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("bad streaming frequency amount: %w", err))
+		}
+	}
+	swp := StreamingSwap{
+		Frequency: streamingFreq,
+		Deposit:   amount,
+	}
+	maxSwapQuantity, err := getMaxSwapQuantity(ctx, mgr, fromAsset, toAsset, swp)
+	if err != nil {
+		return quoteErrorResponse(fmt.Errorf("failed to calculate max streaming swap quantity"))
+	}
+
 	// if from asset is a synth, transfer asset to asgard module
 	if fromAsset.IsSyntheticAsset() {
 		if len(params[fromAddressParam]) == 0 {
@@ -504,6 +523,8 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		SlipLimit:            limit,
 		AffiliateAddress:     common.Address(affiliateMemo),
 		AffiliateBasisPoints: affiliateBps,
+		StreamFrequency:      streamingFreq,
+		StreamQuantity:       maxSwapQuantity,
 	}
 
 	// if from asset chain has memo length restrictions use a prefix
@@ -538,6 +559,8 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		Destination:          destination,
 		AffiliateAddress:     affiliate,
 		AffiliateBasisPoints: affiliateBps,
+		StreamFrequency:      streamingFreq,
+		StreamQuantity:       maxSwapQuantity,
 	}
 
 	// simulate the swap
@@ -554,6 +577,9 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	// the amount out will deduct the outbound fee
 	res.ExpectedAmountOut = emitAmount.Sub(outboundFeeAmount).String()
 	res.Fees.Outbound = outboundFeeAmount.String()
+
+	maxQ := int64(maxSwapQuantity)
+	res.MaxStreamingQuantity = &maxQ
 
 	// estimate the inbound info
 	inboundAddress, routerAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, fromAsset.GetChain())

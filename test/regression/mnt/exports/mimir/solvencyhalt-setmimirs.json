@@ -309,7 +309,6 @@
           "value": "2"
         }
       ],
-      "msg_swaps": [],
       "network": {
         "LPIncomeSplit": "9800",
         "NodeIncomeSplit": "200",
@@ -342,6 +341,7 @@
       ],
       "observed_tx_in_voters": null,
       "observed_tx_out_voters": null,
+      "orderbook_items": [],
       "pools": [
         {
           "LP_units": "100000000000",
@@ -356,6 +356,8 @@
         }
       ],
       "reserve_contributors": null,
+      "streaming_swaps": [],
+      "swap_queue_items": [],
       "tx_outs": null,
       "vaults": [
         {

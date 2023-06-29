@@ -65,11 +65,24 @@ func ValidateGenesis(data GenesisState) error {
 		}
 	}
 
-	for _, item := range data.MsgSwaps {
+	for _, item := range data.OrderbookItems {
 		if err := item.ValidateBasic(); err != nil {
 			return fmt.Errorf("invalid swap msg: %w", err)
 		}
 	}
+
+	for _, item := range data.SwapQueueItems {
+		if err := item.ValidateBasic(); err != nil {
+			return fmt.Errorf("invalid swap msg: %w", err)
+		}
+	}
+
+	for _, item := range data.StreamingSwaps {
+		if err := item.Valid(); err != nil {
+			return fmt.Errorf("invalid streaming swap: %w", err)
+		}
+	}
+
 	for _, nf := range data.NetworkFees {
 		if err := nf.Valid(); err != nil {
 			return fmt.Errorf("invalid network fee: %w", err)
@@ -115,7 +128,9 @@ func DefaultGenesisState() GenesisState {
 		LastChainHeights:    make([]LastChainHeight, 0),
 		Network:             NewNetwork(),
 		POL:                 NewProtocolOwnedLiquidity(),
-		MsgSwaps:            make([]MsgSwap, 0),
+		OrderbookItems:      make([]MsgSwap, 0),
+		SwapQueueItems:      make([]MsgSwap, 0),
+		StreamingSwaps:      make([]StreamingSwap, 0),
 		NetworkFees:         make([]NetworkFee, 0),
 		ChainContracts:      make([]ChainContract, 0),
 		THORNames:           make([]THORName, 0),
@@ -205,11 +220,22 @@ func InitGenesis(ctx cosmos.Context, keeper keeper.Keeper, data GenesisState) []
 	// panic(err)
 	// }
 
-	for _, item := range data.MsgSwaps {
+	for _, item := range data.OrderbookItems {
 		if err := keeper.SetOrderBookItem(ctx, item); err != nil {
 			panic(err)
 		}
 	}
+
+	for _, item := range data.SwapQueueItems {
+		if err := keeper.SetSwapQueueItem(ctx, item, 0); err != nil {
+			panic(err)
+		}
+	}
+
+	for _, item := range data.StreamingSwaps {
+		keeper.SetStreamingSwap(ctx, item)
+	}
+
 	for _, nf := range data.NetworkFees {
 		if err := keeper.SaveNetworkFee(ctx, nf.Chain, nf); err != nil {
 			panic(err)
@@ -424,6 +450,24 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		swapMsgs = append(swapMsgs, m)
 	}
 
+	swapQ := make([]MsgSwap, 0)
+	iterSwapQ := k.GetSwapQueueIterator(ctx)
+	defer iterSwapQ.Close()
+	for ; iterSwapQ.Valid(); iterSwapQ.Next() {
+		var m MsgSwap
+		k.Cdc().MustUnmarshal(iterSwapQ.Value(), &m)
+		swapQ = append(swapQ, m)
+	}
+
+	streamSwaps := make([]StreamingSwap, 0)
+	iterStreamingSwap := k.GetStreamingSwapIterator(ctx)
+	defer iterStreamingSwap.Close()
+	for ; iterStreamingSwap.Valid(); iterStreamingSwap.Next() {
+		var s StreamingSwap
+		k.Cdc().MustUnmarshal(iterStreamingSwap.Value(), &s)
+		streamSwaps = append(streamSwaps, s)
+	}
+
 	networkFees := make([]NetworkFee, 0)
 	iterNetworkFee := k.GetNetworkFeeIterator(ctx)
 	defer iterNetworkFee.Close()
@@ -502,7 +546,9 @@ func ExportGenesis(ctx cosmos.Context, k keeper.Keeper) GenesisState {
 		LastChainHeights:   lastChainHeights,
 		Network:            network,
 		POL:                pol,
-		MsgSwaps:           swapMsgs,
+		OrderbookItems:     swapMsgs,
+		SwapQueueItems:     swapQ,
+		StreamingSwaps:     streamSwaps,
 		NetworkFees:        networkFees,
 		ChainContracts:     chainContracts,
 		THORNames:          names,

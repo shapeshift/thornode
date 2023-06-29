@@ -178,6 +178,14 @@ func (k KVStoreDummy) GetPoolLUVI(ctx cosmos.Context, asset common.Asset) (cosmo
 	return cosmos.ZeroUint(), kaboom
 }
 
+func (k KVStoreDummy) GetStreamingSwapIterator(ctx cosmos.Context) cosmos.Iterator { return nil }
+func (k KVStoreDummy) SetStreamingSwap(ctx cosmos.Context, _ StreamingSwap)        {}
+func (k KVStoreDummy) GetStreamingSwap(ctx cosmos.Context, _ common.TxID) (StreamingSwap, error) {
+	return StreamingSwap{}, kaboom
+}
+func (k KVStoreDummy) StreamingSwapExists(ctx cosmos.Context, _ common.TxID) bool { return false }
+func (k KVStoreDummy) RemoveStreamingSwap(ctx cosmos.Context, _ common.TxID)      {}
+
 func (k KVStoreDummy) GetLoanIterator(ctx cosmos.Context, _ common.Asset) cosmos.Iterator {
 	return nil
 }

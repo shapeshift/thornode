@@ -7,6 +7,7 @@ import "thorchain/v1/x/thorchain/types/type_pool.proto";
 import "thorchain/v1/x/thorchain/types/type_chain_contract.proto";
 import "thorchain/v1/x/thorchain/types/type_network_fee.proto";
 import "thorchain/v1/x/thorchain/types/msg_swap.proto";
+import "thorchain/v1/x/thorchain/types/type_streaming_swap.proto";
 import "thorchain/v1/x/thorchain/types/type_network.proto";
 import "thorchain/v1/x/thorchain/types/type_pol.proto";
 import "thorchain/v1/x/thorchain/types/type_reserve_contributor.proto";
@@ -43,7 +44,7 @@ message GenesisState {
   repeated types.ReserveContributor reserve_contributors = 12 [(gogoproto.castrepeated) = "gitlab.com/thorchain/thornode/x/thorchain/types.ReserveContributors", (gogoproto.nullable) = false];
   types.Network network = 13 [(gogoproto.nullable) = false];
   reserved 14,15,16,17,18;
-  repeated types.MsgSwap msg_swaps = 19 [(gogoproto.nullable) = false];
+  repeated types.MsgSwap orderbook_items = 19 [(gogoproto.nullable) = false];
   repeated types.NetworkFee network_fees = 20 [(gogoproto.nullable) = false];
   reserved 21;
   repeated types.ChainContract chain_contracts = 22 [(gogoproto.nullable) = false];
@@ -53,4 +54,6 @@ message GenesisState {
   repeated types.BondProviders bond_providers = 26 [(gogoproto.nullable) = false];
   types.ProtocolOwnedLiquidity POL = 27 [(gogoproto.nullable) = false];
   repeated types.Loan loans = 28 [(gogoproto.nullable) = false];
+  repeated types.StreamingSwap streaming_swaps = 29 [(gogoproto.nullable) = false];
+  repeated types.MsgSwap swap_queue_items = 30 [(gogoproto.nullable) = false];
 }

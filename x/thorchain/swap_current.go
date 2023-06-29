@@ -12,20 +12,20 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type SwapperV110 struct {
+type SwapperV115 struct {
 	coinsToBurn common.Coins
 	coinsToMint common.Coins
 }
 
-func newSwapperV110() *SwapperV110 {
-	return &SwapperV110{
+func newSwapperV115() *SwapperV115 {
+	return &SwapperV115{
 		coinsToBurn: make(common.Coins, 0),
 		coinsToMint: make(common.Coins, 0),
 	}
 }
 
 // validateMessage is trying to validate the legitimacy of the incoming message and decide whether THORNode can handle it
-func (s *SwapperV110) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
+func (s *SwapperV115) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
 	if err := tx.Valid(); err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (s *SwapperV110) validateMessage(tx common.Tx, target common.Asset, destina
 	return nil
 }
 
-func (s *SwapperV110) Swap(ctx cosmos.Context,
+func (s *SwapperV115) Swap(ctx cosmos.Context,
 	keeper keeper.Keeper,
 	tx common.Tx,
 	target common.Asset,
@@ -48,6 +48,7 @@ func (s *SwapperV110) Swap(ctx cosmos.Context,
 	dexAgg string,
 	dexAggTargetAsset string,
 	dexAggLimit *cosmos.Uint,
+	swp StreamingSwap,
 	transactionFee cosmos.Uint, synthVirtualDepthMult int64, mgr Manager,
 ) (cosmos.Uint, []*EventSwap, error) {
 	var swapEvents []*EventSwap
@@ -176,12 +177,15 @@ func (s *SwapperV110) Swap(ctx cosmos.Context,
 			toi.ModuleName = ModuleName
 		}
 
-		ok, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi, swapTarget)
-		if err != nil {
-			return assetAmount, swapEvents, ErrInternal(err, "fail to add outbound tx")
-		}
-		if !ok {
-			return assetAmount, swapEvents, errFailAddOutboundTx
+		// streaming swap outbounds are handled in the swap queue manager
+		if swp.Valid() != nil {
+			ok, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi, swapTarget)
+			if err != nil {
+				return assetAmount, swapEvents, ErrInternal(err, "fail to add outbound tx")
+			}
+			if !ok {
+				return assetAmount, swapEvents, errFailAddOutboundTx
+			}
 		}
 	}
 
@@ -195,7 +199,7 @@ func (s *SwapperV110) Swap(ctx cosmos.Context,
 	return assetAmount, swapEvents, nil
 }
 
-func (s *SwapperV110) burnCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
+func (s *SwapperV115) burnCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
 	err := mgr.Keeper().SendFromModuleToModule(ctx, AsgardName, ModuleName, coins)
 	if err != nil {
 		ctx.Logger().Error("fail to move coins during swap", "error", err)
@@ -214,7 +218,7 @@ func (s *SwapperV110) burnCoins(ctx cosmos.Context, mgr Manager, coins common.Co
 	return nil
 }
 
-func (s *SwapperV110) mintCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
+func (s *SwapperV115) mintCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
 	if len(coins) == 0 {
 		return nil
 	}
@@ -236,7 +240,7 @@ func (s *SwapperV110) mintCoins(ctx cosmos.Context, mgr Manager, coins common.Co
 	return nil
 }
 
-func (s *SwapperV110) swapOne(ctx cosmos.Context,
+func (s *SwapperV115) swapOne(ctx cosmos.Context,
 	mgr Manager, tx common.Tx,
 	target common.Asset,
 	destination common.Address,
@@ -388,7 +392,7 @@ func (s *SwapperV110) swapOne(ctx cosmos.Context,
 
 // calculate the number of assets sent to the address (includes liquidity fee)
 // nolint
-func (s *SwapperV110) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV115) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x * X * Y ) / ( x + X )^2
 	numerator := x.Mul(X).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -400,7 +404,7 @@ func (s *SwapperV110) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 
 // CalculateLiquidityFee the fee of the swap
 // nolint
-func (s *SwapperV110) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV115) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x^2 *  Y ) / ( x + X )^2
 	numerator := x.Mul(x).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -412,7 +416,7 @@ func (s *SwapperV110) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 
 // CalcSwapSlip - calculate the swap slip, expressed in basis points (10000)
 // nolint
-func (s *SwapperV110) CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
+func (s *SwapperV115) CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// Cast to DECs
 	xD := cosmos.NewDecFromBigInt(xi.BigInt())
 	XD := cosmos.NewDecFromBigInt(Xi.BigInt())

@@ -24,4 +24,6 @@ message MsgSwap {
   string aggregator_target_address = 9;
   string aggregator_target_limit = 10 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = true];
   OrderType order_type = 11;
+  uint64 stream_quantity = 12;
+  uint64 stream_frequency = 13;
 }

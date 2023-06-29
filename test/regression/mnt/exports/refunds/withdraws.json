@@ -403,7 +403,6 @@
       ],
       "loans": [],
       "mimirs": [],
-      "msg_swaps": [],
       "network": {
         "LPIncomeSplit": "9602",
         "NodeIncomeSplit": "398",
@@ -443,6 +442,7 @@
       ],
       "observed_tx_in_voters": null,
       "observed_tx_out_voters": null,
+      "orderbook_items": [],
       "pools": [
         {
           "LP_units": "133333333333",
@@ -488,6 +488,8 @@
         }
       ],
       "reserve_contributors": null,
+      "streaming_swaps": [],
+      "swap_queue_items": [],
       "tx_outs": null,
       "vaults": [
         {

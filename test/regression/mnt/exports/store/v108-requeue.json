@@ -296,7 +296,6 @@
       "liquidity_providers": null,
       "loans": [],
       "mimirs": [],
-      "msg_swaps": [],
       "network": {
         "NodeIncomeSplit": "10000",
         "bond_reward_rune": "3329529",
@@ -637,6 +636,7 @@
         }
       ],
       "observed_tx_out_voters": null,
+      "orderbook_items": [],
       "pools": [
         {
           "LP_units": "19400325778610",
@@ -650,6 +650,8 @@
         }
       ],
       "reserve_contributors": null,
+      "streaming_swaps": [],
+      "swap_queue_items": [],
       "tx_outs": [
         {
           "height": "9900002",

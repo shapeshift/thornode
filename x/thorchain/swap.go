@@ -17,6 +17,7 @@ type Swapper interface {
 		dexAgg string,
 		dexAggTargetAsset string,
 		dexAggLimit *cosmos.Uint,
+		swp StreamingSwap,
 		transactionFee cosmos.Uint,
 		synthVirtualDepthMult int64,
 		mgr Manager,
@@ -29,6 +30,8 @@ type Swapper interface {
 // GetSwapper return an implementation of Swapper
 func GetSwapper(version semver.Version) (Swapper, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.115.0")):
+		return newSwapperV115(), nil
 	case version.GTE(semver.MustParse("1.110.0")):
 		return newSwapperV110(), nil
 	case version.GTE(semver.MustParse("1.103.0")):

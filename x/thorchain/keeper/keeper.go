@@ -85,6 +85,7 @@ type Keeper interface {
 	KeeperTHORName
 	KeeperHalt
 	KeeperAnchors
+	KeeperStreamingSwap
 }
 
 type KeeperConfig interface {
@@ -113,6 +114,14 @@ type KeeperLastHeight interface {
 	SetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64) error
 	ForceSetLastObserveHeight(ctx cosmos.Context, chain common.Chain, address cosmos.AccAddress, height int64)
 	GetLastObserveHeight(ctx cosmos.Context, address cosmos.AccAddress) (map[common.Chain]int64, error)
+}
+
+type KeeperStreamingSwap interface {
+	GetStreamingSwapIterator(ctx cosmos.Context) cosmos.Iterator
+	SetStreamingSwap(ctx cosmos.Context, _ StreamingSwap)
+	GetStreamingSwap(ctx cosmos.Context, _ common.TxID) (StreamingSwap, error)
+	StreamingSwapExists(ctx cosmos.Context, _ common.TxID) bool
+	RemoveStreamingSwap(ctx cosmos.Context, _ common.TxID)
 }
 
 type KeeperLoan interface {

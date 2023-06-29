@@ -152,12 +152,22 @@ func checkExportInvariants(out io.Writer, genesis map[string]any) error {
 		}
 	}
 
+	// adjust vault depths to ignore streaming swap amounts
+	for _, swp := range genesisState.StreamingSwaps {
+		for _, msg := range genesisState.SwapQueueItems {
+			if swp.TxID.Equals(msg.Tx.ID) {
+				sumVaultAsset = sumVaultAsset.SafeSub(common.NewCoin(msg.Tx.Coins[0].Asset, common.SafeSub(swp.Deposit, swp.In)))
+				sumVaultAsset = sumVaultAsset.SafeSub(common.NewCoin(msg.TargetAsset, swp.Out))
+			}
+		}
+	}
+
 	// print any discrepencies
 	for _, coin := range sumPoolAsset {
 		for _, vaultCoin := range sumVaultAsset {
 			if coin.Asset.Equals(vaultCoin.Asset) && !coin.Amount.Equal(vaultCoin.Amount) {
 				if coin.Amount.GT(vaultCoin.Amount) {
-					fmt.Printf("%s pool has %s more than its vaults\n", coin.Asset, common.SafeSub(vaultCoin.Amount, coin.Amount))
+					fmt.Printf("%s pool has %s more than its vaults\n", coin.Asset, common.SafeSub(coin.Amount, vaultCoin.Amount))
 				}
 				if vaultCoin.Amount.GT(coin.Amount) {
 					fmt.Printf("%s vaults have %s more than their pool\n", coin.Asset, common.SafeSub(vaultCoin.Amount, coin.Amount))

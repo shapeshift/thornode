@@ -42,6 +42,7 @@ var (
 	NewPool                    = types.NewPool
 	NewJail                    = types.NewJail
 	NewLoan                    = types.NewLoan
+	NewStreamingSwap           = types.NewStreamingSwap
 	NewNetwork                 = types.NewNetwork
 	NewProtocolOwnedLiquidity  = types.NewProtocolOwnedLiquidity
 	NewObservedTx              = types.NewObservedTx
@@ -88,6 +89,7 @@ type (
 	Pools                    = types.Pools
 	LiquidityProvider        = types.LiquidityProvider
 	Loan                     = types.Loan
+	StreamingSwap            = types.StreamingSwap
 	ObservedTxs              = types.ObservedTxs
 	ObservedTxVoter          = types.ObservedTxVoter
 	BanVoter                 = types.BanVoter

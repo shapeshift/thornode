@@ -86,18 +86,22 @@ func (items swapItems) Sort() swapItems {
 	return sorted
 }
 
-// SwapQueueV104 is going to manage the swaps queue
-type SwapQueueV104 struct {
-	k keeper.Keeper
+// SwapQueueV115 is going to manage the swaps queue
+type SwapQueueV115 struct {
+	k       keeper.Keeper
+	handler func(mgr Manager) cosmos.Handler
 }
 
-// newSwapQueueV104 create a new vault manager
-func newSwapQueueV104(k keeper.Keeper) *SwapQueueV104 {
-	return &SwapQueueV104{k: k}
+// newSwapQueueV115 create a new vault manager
+func newSwapQueueV115(k keeper.Keeper) *SwapQueueV115 {
+	return &SwapQueueV115{
+		k:       k,
+		handler: NewInternalHandler,
+	}
 }
 
 // FetchQueue - grabs all swap queue items from the kvstore and returns them
-func (vm *SwapQueueV104) FetchQueue(ctx cosmos.Context) (swapItems, error) { // nolint
+func (vm *SwapQueueV115) FetchQueue(ctx cosmos.Context) (swapItems, error) { // nolint
 	items := make(swapItems, 0)
 	iterator := vm.k.GetSwapQueueIterator(ctx)
 	defer iterator.Close()
@@ -115,6 +119,33 @@ func (vm *SwapQueueV104) FetchQueue(ctx cosmos.Context) (swapItems, error) { // 
 			continue
 		}
 
+		// exclude streaming swaps when its not "their time". Always want to
+		// allow the first sub-swap immediately (ie no LastHeight yet)
+		if msg.IsStreaming() {
+			pausedStreaming := vm.k.GetConfigInt64(ctx, constants.PauseStreamingSwaps)
+			if pausedStreaming > 0 {
+				continue
+			}
+			swp := msg.GetStreamingSwap()
+			if vm.k.StreamingSwapExists(ctx, msg.Tx.ID) {
+				var err error
+				swp, err = vm.k.GetStreamingSwap(ctx, msg.Tx.ID)
+				if err != nil {
+					ctx.Logger().Error("fail to fetch streaming swap", "error", err)
+					continue
+				}
+			}
+			if swp.LastHeight > 0 { // if we don't have a height, do first swap attempt now
+				if swp.LastHeight >= ctx.BlockHeight() {
+					// last swap must be in the past
+					continue // skip
+				}
+				if (ctx.BlockHeight()-swp.LastHeight)%int64(swp.Frequency) != 0 {
+					continue // skip
+				}
+			}
+		}
+
 		items = append(items, swapItem{
 			msg:   msg,
 			index: i,
@@ -127,8 +158,8 @@ func (vm *SwapQueueV104) FetchQueue(ctx cosmos.Context) (swapItems, error) { // 
 }
 
 // EndBlock trigger the real swap to be processed
-func (vm *SwapQueueV104) EndBlock(ctx cosmos.Context, mgr Manager) error {
-	handler := NewInternalHandler(mgr)
+func (vm *SwapQueueV115) EndBlock(ctx cosmos.Context, mgr Manager) error {
+	handler := vm.handler(mgr)
 
 	minSwapsPerBlock, err := vm.k.GetMimir(ctx, constants.MinSwapsPerBlock.String())
 	if minSwapsPerBlock < 0 || err != nil {
@@ -157,33 +188,131 @@ func (vm *SwapQueueV104) EndBlock(ctx cosmos.Context, mgr Manager) error {
 
 	for i := int64(0); i < vm.getTodoNum(int64(len(swaps)), minSwapsPerBlock, maxSwapsPerBlock); i++ {
 		pick := swaps[i]
+		// grab swp BEFORE a streaming swap modified the msg.Tx.Coins[0].Amount
+		// value. This is used later to refund the correct amount
+		swp := pick.msg.GetStreamingSwap()
+
+		triggerRefund := false
 		_, err := handler(ctx, &pick.msg)
 		if err != nil {
 			ctx.Logger().Error("fail to swap", "msg", pick.msg.Tx.String(), "error", err)
 
 			var refundErr error
+			triggerRefund = !pick.msg.IsStreaming()
 
-			// Get the full ObservedTx from the TxID, for the vault ObservedPubKey to first try to refund from.
-			voter, voterErr := mgr.Keeper().GetObservedTxInVoter(ctx, pick.msg.Tx.ID)
-			if voterErr == nil && !voter.Tx.IsEmpty() {
-				refundErr = refundTx(ctx, ObservedTx{Tx: pick.msg.Tx, ObservedPubKey: voter.Tx.ObservedPubKey}, mgr, CodeSwapFail, err.Error(), "")
-			} else {
-				// If the full ObservedTx could not be retrieved, proceed with just the MsgSwap's Tx (no ObservedPubKey).
-				ctx.Logger().Error("fail to get non-empty observed tx", "error", voterErr)
-				refundErr = refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, CodeSwapFail, err.Error(), "")
+			if pick.msg.IsStreaming() {
+				if vm.k.StreamingSwapExists(ctx, pick.msg.Tx.ID) {
+					var getErr error
+					swp, getErr = vm.k.GetStreamingSwap(ctx, pick.msg.Tx.ID)
+					if getErr != nil {
+						ctx.Logger().Error("fail to fetch streaming swap", "error", getErr)
+						return getErr
+					}
+				}
+
+				// if we haven't made any swaps yet, its safe to do a regular
+				// refund. Otherwise allow later code to do partial refunds
+				triggerRefund = swp.In.IsZero() && swp.Out.IsZero()
+				if triggerRefund {
+					// revert the tx amount to the be original deposit amount
+					pick.msg.Tx.Coins[0].Amount = swp.Deposit
+					vm.k.RemoveStreamingSwap(ctx, pick.msg.Tx.ID)
+					vm.k.RemoveSwapQueueItem(ctx, pick.msg.Tx.ID, pick.index)
+				}
 			}
 
-			if nil != refundErr {
-				ctx.Logger().Error("fail to refund swap", "error", err)
+			if triggerRefund {
+				// Get the full ObservedTx from the TxID, for the vault ObservedPubKey to first try to refund from.
+				voter, voterErr := mgr.Keeper().GetObservedTxInVoter(ctx, pick.msg.Tx.ID)
+				if voterErr == nil && !voter.Tx.IsEmpty() {
+					refundErr = refundTx(ctx, ObservedTx{Tx: pick.msg.Tx, ObservedPubKey: voter.Tx.ObservedPubKey}, mgr, CodeSwapFail, err.Error(), "")
+				} else {
+					// If the full ObservedTx could not be retrieved, proceed with just the MsgSwap's Tx (no ObservedPubKey).
+					ctx.Logger().Error("fail to get non-empty observed tx", "error", voterErr)
+					refundErr = refundTx(ctx, ObservedTx{Tx: pick.msg.Tx}, mgr, CodeSwapFail, err.Error(), "")
+				}
+
+				if nil != refundErr {
+					ctx.Logger().Error("fail to refund swap", "error", err)
+				}
 			}
 		}
-		vm.k.RemoveSwapQueueItem(ctx, pick.msg.Tx.ID, pick.index)
+
+		if pick.msg.IsStreaming() {
+			swp, err := vm.k.GetStreamingSwap(ctx, pick.msg.Tx.ID)
+			if err != nil {
+				ctx.Logger().Error("fail to fetch streaming swap", "error", err)
+				return err
+			}
+			swp.Count += 1
+			swp.LastHeight = ctx.BlockHeight()
+			if !triggerRefund {
+				mgr.Keeper().SetStreamingSwap(ctx, swp)
+			}
+			if swp.Valid() == nil && swp.IsDone() {
+				vm.k.RemoveSwapQueueItem(ctx, pick.msg.Tx.ID, pick.index)
+				vm.k.RemoveStreamingSwap(ctx, pick.msg.Tx.ID)
+
+				tois := make([]TxOutItem, 0)
+				if !swp.Out.IsZero() {
+					dexAgg := ""
+					if len(pick.msg.Aggregator) > 0 {
+						dexAgg, err = FetchDexAggregator(
+							mgr.GetVersion(),
+							pick.msg.TargetAsset.GetChain(),
+							pick.msg.Aggregator,
+						)
+						if err != nil {
+							return err
+						}
+					}
+					dexAggTargetAsset := pick.msg.AggregatorTargetAddress
+
+					tois = append(tois, TxOutItem{
+						Chain:                 pick.msg.TargetAsset.GetChain(),
+						InHash:                pick.msg.Tx.ID,
+						ToAddress:             pick.msg.Destination,
+						Coin:                  common.NewCoin(pick.msg.TargetAsset, swp.Out),
+						Aggregator:            dexAgg,
+						AggregatorTargetAsset: dexAggTargetAsset,
+						AggregatorTargetLimit: pick.msg.AggregatorTargetLimit,
+					})
+				}
+				if swp.Deposit.GT(swp.In) {
+					remainder := common.SafeSub(swp.Deposit, swp.In)
+					source := pick.msg.Tx.Coins[0].Asset
+					toi := TxOutItem{
+						Chain:     source.GetChain(),
+						InHash:    pick.msg.Tx.ID,
+						ToAddress: pick.msg.Tx.FromAddress,
+						Coin:      common.NewCoin(source, remainder),
+					}
+					tois = append(tois, toi)
+				}
+
+				for _, item := range tois {
+					// let the txout manager mint our outbound asset if it is a synthetic asset
+					if item.Chain.IsTHORChain() && (item.Coin.Asset.IsSyntheticAsset() || item.Coin.Asset.IsDerivedAsset()) {
+						item.ModuleName = ModuleName
+					}
+					ok, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, item, cosmos.ZeroUint())
+					if err != nil {
+						return ErrInternal(err, "fail to add outbound tx")
+					}
+					if !ok {
+						return errFailAddOutboundTx
+					}
+				}
+			}
+		} else {
+			vm.k.RemoveSwapQueueItem(ctx, pick.msg.Tx.ID, pick.index)
+		}
 	}
 	return nil
 }
 
 // getTodoNum - determine how many swaps to do.
-func (vm *SwapQueueV104) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock int64) int64 {
+func (vm *SwapQueueV115) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock int64) int64 {
 	// Do half the length of the queue. Unless...
 	//	1. The queue length is greater than maxSwapsPerBlock
 	//  2. The queue legnth is less than minSwapsPerBlock
@@ -199,7 +328,7 @@ func (vm *SwapQueueV104) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock
 
 // scoreMsgs - this takes a list of MsgSwap, and converts them to a scored
 // swapItem list
-func (vm *SwapQueueV104) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualDepthMult int64) (swapItems, error) {
+func (vm *SwapQueueV115) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualDepthMult int64) (swapItems, error) {
 	pools := make(map[common.Asset]Pool)
 
 	for i, item := range items {
@@ -263,7 +392,7 @@ func (vm *SwapQueueV104) scoreMsgs(ctx cosmos.Context, items swapItems, synthVir
 }
 
 // getLiquidityFeeAndSlip calculate liquidity fee and slip, fee is in RUNE
-func (vm *SwapQueueV104) getLiquidityFeeAndSlip(ctx cosmos.Context, pool Pool, sourceCoin common.Coin, item *swapItem, virtualDepthMult int64) {
+func (vm *SwapQueueV115) getLiquidityFeeAndSlip(ctx cosmos.Context, pool Pool, sourceCoin common.Coin, item *swapItem, virtualDepthMult int64) {
 	// Get our X, x, Y values
 	var X, x, Y cosmos.Uint
 	x = sourceCoin.Amount

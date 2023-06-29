@@ -74,6 +74,46 @@ func (h SwapHandler) validateV113(ctx cosmos.Context, msg MsgSwap) error {
 	if h.mgr.Keeper().IsTradingHalt(ctx, &msg) {
 		return errors.New("trading is halted, can't process swap")
 	}
+
+	if msg.IsStreaming() {
+		sourceAsset := msg.Tx.Coins[0].Asset
+		targetAsset := msg.TargetAsset
+		pausedStreaming := fetchConfigInt64(ctx, h.mgr, constants.PauseStreamingSwaps)
+		if pausedStreaming > 0 {
+			return fmt.Errorf("streaming swaps are paused")
+		}
+
+		swp := msg.GetStreamingSwap()
+		if h.mgr.Keeper().StreamingSwapExists(ctx, msg.Tx.ID) {
+			var err error
+			swp, err = h.mgr.Keeper().GetStreamingSwap(ctx, msg.Tx.ID)
+			if err != nil {
+				ctx.Logger().Error("fail to fetch streaming swap", "error", err)
+				return err
+			}
+		}
+
+		if swp.Count == 0 { // only check these verifications on the first swap of a streaming swap
+			maxLength := fetchConfigInt64(ctx, h.mgr, constants.MaxStreamingSwapLength)
+			if uint64(maxLength) < swp.Frequency*swp.Quantity {
+				return fmt.Errorf("streaming swap cannot exceed %d blocks: %d * %d", maxLength, swp.Quantity, swp.Frequency)
+			}
+
+			maxSwapQuantity, err := getMaxSwapQuantity(ctx, h.mgr, sourceAsset, targetAsset, swp)
+			if err != nil {
+				return err
+			}
+			if maxSwapQuantity < swp.Quantity {
+				return fmt.Errorf("streaming swap is too small for this quantity of swaps. Reduce the swap quantity: %d>%d", swp.Quantity, maxSwapQuantity)
+			}
+			//////////////////////////////////////////////////////////////////////
+			//////////////////////////////////////////////////////////////////////
+		} else if swp.IsDone() || swp.In.GTE(swp.Deposit) {
+			// check both swap count and swap in vs deposit to cover all basis
+			return fmt.Errorf("streaming swap is completed, cannot continue to swap again")
+		}
+	}
+
 	if target.IsDerivedAsset() || msg.Tx.Coins[0].Asset.IsDerivedAsset() {
 		if h.mgr.Keeper().GetConfigInt64(ctx, constants.EnableDerivedAssets) == 0 {
 			// since derived assets are disabled, only the protocol can use
@@ -225,6 +265,31 @@ func (h SwapHandler) handleV110(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		return nil, err
 	}
 
+	swp := msg.GetStreamingSwap()
+	if msg.IsStreaming() {
+		if h.mgr.Keeper().StreamingSwapExists(ctx, msg.Tx.ID) {
+			swp, err = h.mgr.Keeper().GetStreamingSwap(ctx, msg.Tx.ID)
+			if err != nil {
+				ctx.Logger().Error("fail to fetch streaming swap", "error", err)
+				return nil, err
+			}
+		}
+		if swp.Quantity == 0 {
+			sourceAsset := msg.Tx.Coins[0].Asset
+			targetAsset := msg.TargetAsset
+			swp.Quantity, err = getMaxSwapQuantity(ctx, h.mgr, sourceAsset, targetAsset, swp)
+			if err != nil {
+				return nil, err
+			}
+		}
+		h.mgr.Keeper().SetStreamingSwap(ctx, swp)
+		// hijack the inbound amount
+		// NOTE: its okay if the amount is zero. The swap will fail as it
+		// should, which will cause the swap queue manager later to send out
+		// the In/Out amounts accordingly
+		msg.Tx.Coins[0].Amount, msg.TradeTarget = swp.NextSize()
+	}
+
 	emit, _, swapErr := swapper.Swap(
 		ctx,
 		h.mgr.Keeper(),
@@ -235,6 +300,7 @@ func (h SwapHandler) handleV110(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		dexAgg,
 		dexAggTargetAsset,
 		msg.AggregatorTargetLimit,
+		swp,
 		transactionFee,
 		synthVirtualDepthMult,
 		h.mgr)
@@ -248,6 +314,18 @@ func (h SwapHandler) handleV110(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if msg.IsStreaming() {
+		// only increment In/Out if we have a successful swap
+		swp.In = swp.In.Add(msg.Tx.Coins[0].Amount)
+		swp.Out = swp.Out.Add(emit)
+		h.mgr.Keeper().SetStreamingSwap(ctx, swp)
+		if !swp.IsDone() {
+			// exit early so we don't execute follow-on handlers mid streaming swap
+			return &cosmos.Result{}, nil
+		}
+		emit = swp.Out
 	}
 
 	mem, err := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Tx.Memo)

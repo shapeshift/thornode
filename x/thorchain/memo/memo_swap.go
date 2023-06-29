@@ -2,6 +2,7 @@ package thorchain
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/blang/semver"
@@ -22,6 +23,8 @@ type SwapMemo struct {
 	DexTargetAddress     string
 	DexTargetLimit       *cosmos.Uint
 	OrderType            types.OrderType
+	StreamFrequency      uint64
+	StreamQuantity       uint64
 }
 
 func (m SwapMemo) GetDestination() common.Address       { return m.Destination }
@@ -32,11 +35,16 @@ func (m SwapMemo) GetDexAggregator() string             { return m.DexAggregator
 func (m SwapMemo) GetDexTargetAddress() string          { return m.DexTargetAddress }
 func (m SwapMemo) GetDexTargetLimit() *cosmos.Uint      { return m.DexTargetLimit }
 func (m SwapMemo) GetOrderType() types.OrderType        { return m.OrderType }
+func (m SwapMemo) GetStreamQuantity() uint64            { return m.StreamQuantity }
+func (m SwapMemo) GetStreamFrequency() uint64           { return m.StreamFrequency }
 
 func (m SwapMemo) String() string {
 	slipLimit := m.SlipLimit.String()
 	if m.SlipLimit.IsZero() {
 		slipLimit = ""
+	}
+	if m.StreamFrequency > 0 || m.StreamQuantity > 0 {
+		slipLimit = fmt.Sprintf("%s/%d/%d", m.SlipLimit.String(), m.StreamFrequency, m.StreamQuantity)
 	}
 
 	// prefer short notation for generate swap memo
@@ -77,7 +85,7 @@ func (m SwapMemo) String() string {
 	return strings.Join(args[:last], ":")
 }
 
-func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, dexAgg, dexTargetAddress string, dexTargetLimit cosmos.Uint, orderType types.OrderType) SwapMemo {
+func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, dexAgg, dexTargetAddress string, dexTargetLimit cosmos.Uint, orderType types.OrderType, quan, freq uint64) SwapMemo {
 	swapMemo := SwapMemo{
 		MemoBase:             MemoBase{TxType: TxSwap, Asset: asset},
 		Destination:          dest,
@@ -87,6 +95,8 @@ func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affA
 		DexAggregator:        dexAgg,
 		DexTargetAddress:     dexTargetAddress,
 		OrderType:            orderType,
+		StreamQuantity:       quan,
+		StreamFrequency:      freq,
 	}
 	if !dexTargetLimit.IsZero() {
 		swapMemo.DexTargetLimit = &dexTargetLimit
@@ -99,6 +109,8 @@ func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset,
 		return ParseSwapMemoV1(ctx, keeper, asset, parts)
 	}
 	switch {
+	case keeper.GetVersion().GTE(semver.MustParse("1.115.0")):
+		return ParseSwapMemoV115(ctx, keeper, asset, parts)
 	case keeper.GetVersion().GTE(semver.MustParse("1.112.0")):
 		return ParseSwapMemoV112(ctx, keeper, asset, parts)
 	case keeper.GetVersion().GTE(semver.MustParse("1.104.0")):
@@ -112,7 +124,7 @@ func ParseSwapMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset,
 	}
 }
 
-func ParseSwapMemoV112(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
+func ParseSwapMemoV115(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
 	var err error
 	var order types.OrderType
 	dexAgg := ""
@@ -138,12 +150,38 @@ func ParseSwapMemoV112(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 			return SwapMemo{}, err
 		}
 	}
+
 	// price limit can be empty , when it is empty , there is no price protection
 	slip := cosmos.ZeroUint()
+	streamFreq := uint64(0)
+	streamQuantity := uint64(0)
 	if limitStr := GetPart(parts, 3); limitStr != "" {
-		slip, err = parseTradeTarget(limitStr)
-		if err != nil {
-			return SwapMemo{}, err
+		if strings.Contains(limitStr, "/") {
+			parts := strings.SplitN(limitStr, "/", 3)
+			if len(parts) < 1 {
+				return SwapMemo{}, fmt.Errorf("invalid streaming swap format: %s", limitStr)
+			}
+			slip, err = parseTradeTarget(parts[0])
+			if err != nil {
+				return SwapMemo{}, fmt.Errorf("swap price limit:%s is invalid: %s", parts[0], err)
+			}
+			if len(parts) > 1 {
+				streamFreq, err = strconv.ParseUint(parts[1], 10, 64)
+				if err != nil {
+					return SwapMemo{}, fmt.Errorf("failed to parse stream frequency: %s: %s", parts[1], err)
+				}
+			}
+			if len(parts) > 2 {
+				streamQuantity, err = strconv.ParseUint(parts[2], 10, 64)
+				if err != nil {
+					return SwapMemo{}, fmt.Errorf("failed to parse stream quantity: %s: %s", parts[2], err)
+				}
+			}
+		} else {
+			slip, err = parseTradeTarget(limitStr)
+			if err != nil {
+				return SwapMemo{}, fmt.Errorf("swap price limit:%s is invalid: %s", limitStr, err)
+			}
 		}
 	}
 
@@ -176,5 +214,5 @@ func ParseSwapMemoV112(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 		}
 	}
 
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order), nil
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, streamQuantity, streamFreq), nil
 }

@@ -1,0 +1,443 @@
+{{ template "default-state.yaml" }}
+---
+{{ template "btc-eth-pool-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: eth and btc pools should exist
+endpoint: http://localhost:1317/thorchain/pools
+asserts:
+  - .|length == 2
+---
+########################################################################################
+# streaming swap to ETH.ETH (100% conversion)
+########################################################################################
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 1 }}'
+    chain: BTC
+    from_address: {{ addr_btc_fox }}
+    to_address: {{ addr_btc_dog }}
+    coins:
+      - amount: "5000000"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10000"
+        asset: "BTC.BTC"
+    memo: "=:ETH.ETH:{{ addr_eth_fox }}:0/1"
+  block_height: 1
+  finalise_height: 1
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: check streaming swap was created
+endpoint: http://localhost:1317/thorchain/swap/streaming/{{ observe_txid 1 }}
+asserts:
+  - .deposit == "5000000"
+  - .in == "500000"
+  - .count == 1
+  - .tx_id == "0000000000000000000000000000000000000000000000000000000000000001"
+  - .frequency == 1
+  - .quantity == 10
+  - .out == "4901721"
+  - .last_height == 2
+  - .trade_target == "0"
+---
+type: check
+description: check streaming swap is in list
+endpoint: http://localhost:1317/thorchain/swaps/streaming
+asserts:
+  - .|length == 1
+---
+type: create-blocks
+count: 9
+---
+type: check
+description: check streaming swap is NOT in list
+endpoint: http://localhost:1317/thorchain/swaps/streaming
+asserts:
+  - .|length == 0
+---
+type: check
+description: outbound should be scheduled
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+  - .[0]|.in_hash == "{{ observe_txid 1 }}"
+  - .[0]|.coin.asset == "ETH.ETH"
+  - .[0]|.coin.amount == "43762861"
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 1 }}'
+    chain: ETH
+    from_address: {{ addr_eth_dog }}
+    to_address: {{ addr_eth_fox }}
+    coins:
+      - amount: "43762861"
+        asset: "ETH.ETH"
+        decimals: 8
+    gas:
+      - amount: "960000"
+        asset: "ETH.ETH"
+    memo: "OUT:{{ observe_txid 1 }}"
+  block_height: 5
+  finalise_height: 5
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+########################################################################################
+# streaming swap to ETH.ETH with paused trading halfway through (parital conversion)
+########################################################################################
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 2 }}'
+    chain: BTC
+    from_address: {{ addr_btc_fox }}
+    to_address: {{ addr_btc_dog }}
+    coins:
+      - amount: "6000000"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10000"
+        asset: "BTC.BTC"
+    memo: "=:ETH.ETH:{{ addr_eth_fox }}:0/1/10"
+  block_height: 1
+  finalise_height: 1
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: check streaming swap was created
+endpoint: http://localhost:1317/thorchain/swap/streaming/{{ observe_txid 2 }}
+asserts:
+  - .deposit == "6000000"
+  - .in == "600000"
+  - .count == 1
+---
+type: check
+description: check streaming swap is in list
+endpoint: http://localhost:1317/thorchain/swaps/streaming
+asserts:
+  - .|length == 1
+---
+type: create-blocks
+count: 5
+---
+type: tx-mimir
+key: HaltETHTrading
+value: 1
+signer: {{ addr_thor_dog }}
+---
+type: create-blocks
+count: 4
+---
+type: check
+description: check streaming swap is NOT in list
+endpoint: http://localhost:1317/thorchain/swaps/streaming
+asserts:
+  - .|length == 0
+---
+type: check
+description: outbound should be scheduled
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 2
+  - .[0]|.in_hash == "{{ observe_txid 2 }}"
+  - .[0]|.coin.asset == "ETH.ETH"
+  - .[0]|.coin.amount == "26402226"
+  - .[1]|.coin.asset == "BTC.BTC"
+  - .[1]|.coin.amount == "2386001"
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 3 }}'
+    chain: ETH
+    from_address: {{ addr_eth_dog }}
+    to_address: {{ addr_eth_fox }}
+    coins:
+      - amount: "26402226"
+        asset: "ETH.ETH"
+        decimals: 8
+    gas:
+      - amount: "960000"
+        asset: "ETH.ETH"
+    memo: "OUT:{{ observe_txid 2 }}"
+  block_height: 5
+  finalise_height: 5
+  observed_pub_key: {{ pubkey_dog }}
+- tx:
+    id: '{{ observe_txid 4 }}'
+    chain: BTC
+    from_address: {{ addr_btc_dog }}
+    to_address: {{ addr_btc_fox }}
+    coins:
+      - amount: "2386001"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10500"
+        asset: "BTC.BTC"
+    memo: "OUT:{{ observe_txid 2 }}"
+  block_height: 6
+  finalise_height: 6
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: outbound should be scheduled
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+########################################################################################
+# streaming swap to ETH.ETH (2/5 conversion)
+########################################################################################
+type: tx-mimir
+key: HaltETHTrading
+value: 0
+signer: {{ addr_thor_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 5 }}'
+    chain: BTC
+    from_address: {{ addr_btc_fox }}
+    to_address: {{ addr_btc_dog }}
+    coins:
+      - amount: "6000000"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10000"
+        asset: "BTC.BTC"
+    memo: "=:ETH.ETH:{{ addr_eth_fox }}:41666695/1/5"
+  block_height: 6
+  finalise_height: 6
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 5
+---
+type: check
+description: check streaming swap is NOT in list
+endpoint: http://localhost:1317/thorchain/swaps/streaming
+asserts:
+  - .|length == 0
+---
+type: check
+description: outbound should be scheduled
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 2
+  - .[0]|.in_hash == "{{ observe_txid 5 }}"
+  - .[0]|.coin.asset == "ETH.ETH"
+  - .[0]|.coin.amount == "7134239"
+  - .[0]|.memo == "OUT:{{ observe_txid 5 }}"
+  - .[1]|.in_hash == "{{ observe_txid 5 }}"
+  - .[1]|.coin.asset == "BTC.BTC"
+  - .[1]|.coin.amount == "4786001"
+  - .[1]|.memo == "OUT:{{ observe_txid 5 }}"
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 6 }}'
+    chain: ETH
+    from_address: {{ addr_eth_dog }}
+    to_address: {{ addr_eth_fox }}
+    coins:
+      - amount: "7134239"
+        asset: "ETH.ETH"
+        decimals: 8
+    gas:
+      - amount: "960000"
+        asset: "ETH.ETH"
+    memo: "OUT:{{ observe_txid 5 }}"
+  block_height: 5
+  finalise_height: 5
+  observed_pub_key: {{ pubkey_dog }}
+- tx:
+    id: '{{ observe_txid 7 }}'
+    chain: BTC
+    from_address: {{ addr_btc_dog }}
+    to_address: {{ addr_btc_fox }}
+    coins:
+      - amount: "4786001"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10500"
+        asset: "BTC.BTC"
+    memo: "OUT:{{ observe_txid 5 }}"
+  block_height: 5
+  finalise_height: 5
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+########################################################################################
+# streaming swap to ETH.ETH (full refund). Too many swaps requests, causing
+# error due to lower than 5BP trade
+########################################################################################
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 8 }}'
+    chain: BTC
+    from_address: {{ addr_btc_fox }}
+    to_address: {{ addr_btc_dog }}
+    coins:
+      - amount: "6000000"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10000"
+        asset: "BTC.BTC"
+    memo: "=:ETH.ETH:{{ addr_eth_fox }}:0/1/11"
+  block_height: 6
+  finalise_height: 6
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: outbound should be scheduled
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+  - .[0]|.in_hash == "{{ observe_txid 8 }}"
+  - .[0]|.coin.asset == "BTC.BTC"
+  - .[0]|.coin.amount == "5986001"
+  - .[0]|.memo == "REFUND:{{ observe_txid 8 }}"
+---
+type: create-blocks
+count: 1
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 9 }}'
+    chain: BTC
+    from_address: {{ addr_btc_dog }}
+    to_address: {{ addr_btc_fox }}
+    coins:
+      - amount: "5986001"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10500"
+        asset: "BTC.BTC"
+    memo: "OUT:{{ observe_txid 8 }}"
+  block_height: 5
+  finalise_height: 5
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+########################################################################################
+# test that a streaming swap with less than the min size defaults to a normal trade
+########################################################################################
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 10 }}'
+    chain: BTC
+    from_address: {{ addr_btc_fox }}
+    to_address: {{ addr_btc_dog }}
+    coins:
+      - amount: "300000"
+        asset: "BTC.BTC"
+        decimals: 8
+    gas:
+      - amount: "10000"
+        asset: "BTC.BTC"
+    memo: "=:ETH.ETH:{{ addr_eth_fox }}:0/1"
+  block_height: 6
+  finalise_height: 6
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: outbound should be scheduled
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+  - .[0]|.in_hash == "{{ observe_txid 10 }}"
+  - .[0]|.coin.asset == "ETH.ETH"
+  - .[0]|.coin.amount == "804300"
+  - .[0]|.memo == "OUT:{{ observe_txid 10 }}"
+---
+type: create-blocks
+count: 1
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+- tx:
+    id: '{{ observe_txid 11 }}'
+    chain: ETH
+    from_address: {{ addr_eth_dog }}
+    to_address: {{ addr_eth_fox }}
+    coins:
+      - amount: "804300"
+        asset: "ETH.ETH"
+        decimals: 8
+    gas:
+      - amount: "960000"
+        asset: "ETH.ETH"
+    memo: "OUT:{{ observe_txid 10 }}"
+  block_height: 10
+  finalise_height: 10
+  observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: outbound should be scheduled
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---
+type: check
+description: check streaming swap is in list
+endpoint: http://localhost:1317/thorchain/swaps/streaming
+asserts:
+  - .|length == 0
+---

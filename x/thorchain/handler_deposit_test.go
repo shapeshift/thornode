@@ -187,14 +187,14 @@ func (s *HandlerDepositSuite) TestAddSwapV64(c *C) {
 		"",
 	)
 	// no affiliate fee
-	msg := NewMsgSwap(tx, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, GetRandomBech32Addr())
+	msg := NewMsgSwap(tx, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, 0, 0, GetRandomBech32Addr())
 	handler.addSwapV65(ctx, *msg)
 	swap, err := mgr.Keeper().GetSwapQueueItem(ctx, tx.ID, 0)
 	c.Assert(err, IsNil)
 	c.Assert(swap.String(), Equals, msg.String())
 
 	// affiliate fee, with more than 10K as basis points
-	msg1 := NewMsgSwap(tx, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(20000), "", "", nil, MarketOrder, GetRandomBech32Addr())
+	msg1 := NewMsgSwap(tx, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(20000), "", "", nil, MarketOrder, 0, 0, GetRandomBech32Addr())
 	handler.addSwapV65(ctx, *msg1)
 	swap, err = mgr.Keeper().GetSwapQueueItem(ctx, tx.ID, 0)
 	c.Assert(err, IsNil)
@@ -206,7 +206,7 @@ func (s *HandlerDepositSuite) TestAddSwapV64(c *C) {
 
 	// normal affiliate fee
 	tx.Coins[0].Amount = cosmos.NewUint(common.One)
-	msg2 := NewMsgSwap(tx, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000), "", "", nil, MarketOrder, GetRandomBech32Addr())
+	msg2 := NewMsgSwap(tx, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000), "", "", nil, MarketOrder, 0, 0, GetRandomBech32Addr())
 	handler.addSwapV65(ctx, *msg2)
 	swap, err = mgr.Keeper().GetSwapQueueItem(ctx, tx.ID, 0)
 	c.Assert(err, IsNil)
@@ -234,7 +234,7 @@ func (s *HandlerDepositSuite) TestAddSwapV64(c *C) {
 
 	c.Assert(mgr.Keeper().MintToModule(ctx, ModuleName, tx1.Coins[0]), IsNil)
 	c.Assert(mgr.Keeper().SendFromModuleToModule(ctx, ModuleName, AsgardName, tx1.Coins), IsNil)
-	msg3 := NewMsgSwap(tx1, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000), "", "", nil, MarketOrder, GetRandomBech32Addr())
+	msg3 := NewMsgSwap(tx1, common.BTCAsset, GetRandomBTCAddress(), cosmos.ZeroUint(), GetRandomTHORAddress(), cosmos.NewUint(1000), "", "", nil, MarketOrder, 0, 0, GetRandomBech32Addr())
 	handler.addSwapV65(ctx, *msg3)
 	swap, err = mgr.Keeper().GetSwapQueueItem(ctx, tx1.ID, 0)
 	c.Assert(err, IsNil)

@@ -44,6 +44,7 @@ const (
 	prefixNetwork                 types.DbPrefix = "network/"
 	prefixPOL                     types.DbPrefix = "pol/"
 	prefixLoan                    types.DbPrefix = "loan/"
+	prefixStreamingSwap           types.DbPrefix = "stream/"
 	prefixLoanTotalCollateral     types.DbPrefix = "loan_col_total/"
 	prefixObservingAddresses      types.DbPrefix = "observing_addresses/"
 	prefixTss                     types.DbPrefix = "tss/"

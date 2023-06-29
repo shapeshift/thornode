@@ -384,7 +384,7 @@ func (ob *OrderBookV1) EndBlock(ctx cosmos.Context, mgr Manager) error {
 				"",
 				"", nil,
 				MarketOrder,
-				msg.Signer,
+				0, 0, msg.Signer,
 			)
 			if affiliateSwap.Tx.Coins[0].Amount.GTE(affiliateAmt) {
 				affiliateSwap.Tx.Coins[0].Amount = affiliateAmt

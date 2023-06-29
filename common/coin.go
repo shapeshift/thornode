@@ -262,6 +262,16 @@ func (cs Coins) Add(coin Coin) Coins {
 	return append(cs, coin)
 }
 
+func (cs Coins) SafeSub(coin Coin) Coins {
+	for i, c := range cs {
+		if c.Asset.Equals(coin.Asset) {
+			cs[i].Amount = SafeSub(cs[i].Amount, coin.Amount)
+			return cs
+		}
+	}
+	return cs
+}
+
 // This overwrites cs by changing its slice-referenced values,
 // so it is recommended to use destination := make(Coins, len(source))
 // and copy(destination, source) first.

@@ -80,6 +80,9 @@ const (
 	TNSRegisterFee
 	TNSFeeOnSale
 	TNSFeePerBlock
+	PauseStreamingSwaps
+	MinBPStreamingSwap
+	MaxStreamingSwapLength
 	MinCR
 	MaxCR
 	PauseLoans
@@ -211,6 +214,9 @@ var nameToString = map[ConstantName]string{
 	ILPCutoff:                           "ILPCutoff",
 	ChurnMigrateRounds:                  "ChurnMigrateRounds",
 	MaxAffiliateFeeBasisPoints:          "MaxAffiliateFeeBasisPoints",
+	PauseStreamingSwaps:                 "PauseStreamingSwaps",
+	MinBPStreamingSwap:                  "MinBPStreamingSwap",
+	MaxStreamingSwapLength:              "MaxStreamingSwapLength",
 	MinCR:                               "MinCR",
 	MaxCR:                               "MaxCR",
 	PauseLoans:                          "PauseLoans",

@@ -505,6 +505,7 @@ func (h ObservedTxInHandler) addSwapV63(ctx cosmos.Context, msg MsgSwap) {
 			"",
 			"", nil,
 			MarketOrder,
+			0, 0,
 			msg.Signer,
 		)
 		if affiliateSwap.Tx.Coins[0].Amount.GTE(amt) {
