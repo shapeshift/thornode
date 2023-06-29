@@ -473,6 +473,13 @@ func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	}
 	vaultsMigrating := (len(vaults) != 0)
 
+	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get active validators: %w", err)
+	}
+
+	effectiveSecurityBond := getEffectiveSecurityBond(nodeAccounts)
+
 	targetOutboundFeeSurplus := mgr.Keeper().GetConfigInt64(ctx, constants.TargetOutboundFeeSurplusRune)
 	maxMultiplierBasisPoints := mgr.Keeper().GetConfigInt64(ctx, constants.MaxOutboundFeeMultiplierBasisPoints)
 	minMultiplierBasisPoints := mgr.Keeper().GetConfigInt64(ctx, constants.MinOutboundFeeMultiplierBasisPoints)
@@ -485,6 +492,7 @@ func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 		BurnedBep2Rune:        data.BurnedBep2Rune.String(),
 		BurnedErc20Rune:       data.BurnedErc20Rune.String(),
 		TotalBondUnits:        data.TotalBondUnits.String(),
+		EffectiveSecurityBond: effectiveSecurityBond.String(),
 		TotalReserve:          mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName).String(),
 		VaultsMigrating:       vaultsMigrating,
 		GasSpentRune:          cosmos.NewUint(data.OutboundGasSpentRune).String(),
