@@ -12,7 +12,9 @@ import (
 // and returns true if the version was found in the store
 func (k KVStore) GetVersionWithCtx(ctx cosmos.Context) (semver.Version, bool) {
 	// InfiniteGasMeter allows calls without affecting gas and consensus
+	// TODO remove on hard fork, ante handler provides the infinite meter
 	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+
 	key := k.GetKey(ctx, prefixVersion, "")
 	store := ctx.KVStore(k.storeKey)
 	val := store.Get([]byte(key))

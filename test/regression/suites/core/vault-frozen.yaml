@@ -44,13 +44,13 @@ type: check
 description: remove me
 endpoint: http://localhost:1317/thorchain/queue/outbound
 asserts:
-  - .[0].in_hash == "4D3C0AF82E11A11B54BD02B70DA05CEA6F8C6292547486B4C73934C28F93B651" 
+  - .[0].in_hash == "D96B553D63BCC6DB749B184F566BF0B37B595B026E9AA7B35B5C7D654237C965"
 ---
 type: tx-observed-out
 signer: {{ addr_thor_dog }}
 txs:
 - tx:
-    id: '4D3C0AF82E11A11B54BD02B70DA05CEA6F8C6292547486B4C73934C28F93B651'
+    id: 'D96B553D63BCC6DB749B184F566BF0B37B595B026E9AA7B35B5C7D654237C965'
     chain: BTC
     from_address: {{ addr_btc_dog }}
     to_address: {{ addr_btc_fox }}
@@ -61,7 +61,7 @@ txs:
     gas:
       - amount: "10500"
         asset: "BTC.BTC"
-    memo: "OUT:4D3C0AF82E11A11B54BD02B70DA05CEA6F8C6292547486B4C73934C28F93B651"
+    memo: "OUT:D96B553D63BCC6DB749B184F566BF0B37B595B026E9AA7B35B5C7D654237C965"
   block_height: 2
   finalise_height: 2
   observed_pub_key: "tthorpub1addwnpepqfshsq2y6ejy2ysxmq4gj8n8mzuzyulk9wh4n946jv5w2vpwdn2yuyp6sp4"

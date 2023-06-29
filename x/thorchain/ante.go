@@ -108,3 +108,26 @@ func (ad AnteDecorator) anteHandleMessage(ctx sdk.Context, version semver.Versio
 		return cosmos.ErrUnknownRequest("invalid message type")
 	}
 }
+
+// InfiniteGasDecorator uses an infinite gas meter to prevent out-of-gas panics
+// and allow non-versioned changes to be made without breaking consensus,
+// as long as the resulting state is consistent.
+type InfiniteGasDecorator struct {
+	keeper keeper.Keeper
+}
+
+func NewInfiniteGasDecorator(keeper keeper.Keeper) InfiniteGasDecorator {
+	return InfiniteGasDecorator{
+		keeper: keeper,
+	}
+}
+
+func (d InfiniteGasDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
+	version, hasVersion := d.keeper.GetVersionWithCtx(ctx)
+	if !hasVersion || version.LT(semver.MustParse("1.115.0")) {
+		// TODO remove on hard fork
+		return next(ctx, tx, simulate)
+	}
+	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	return next(ctx, tx, simulate)
+}

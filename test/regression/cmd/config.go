@@ -74,7 +74,7 @@ func clientContextAndFactory(routine int) (client.Context, tx.Factory) {
 	txFactory = txFactory.WithTxConfig(clientCtx.TxConfig)
 	txFactory = txFactory.WithAccountRetriever(clientCtx.AccountRetriever)
 	txFactory = txFactory.WithChainID(clientCtx.ChainID)
-	txFactory = txFactory.WithGas(1e8)
+	txFactory = txFactory.WithGas(0)
 	txFactory = txFactory.WithSignMode(signing.SignMode_SIGN_MODE_DIRECT)
 
 	return clientCtx, txFactory

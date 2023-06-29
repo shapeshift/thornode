@@ -402,11 +402,12 @@ type OpTxBan struct {
 	NodeAddress sdk.AccAddress `json:"node_address"`
 	Signer      sdk.AccAddress `json:"signer"`
 	Sequence    *int64         `json:"sequence"`
+	Gas         *int64         `json:"gas"`
 }
 
 func (op *OpTxBan) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
 	msg := types.NewMsgBan(op.NodeAddress, op.Signer)
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxErrataTx ------------------------------
@@ -417,11 +418,12 @@ type OpTxErrataTx struct {
 	Chain    common.Chain   `json:"chain"`
 	Signer   sdk.AccAddress `json:"signer"`
 	Sequence *int64         `json:"sequence"`
+	Gas      *int64         `json:"gas"`
 }
 
 func (op *OpTxErrataTx) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
 	msg := types.NewMsgErrataTx(op.TxID, op.Chain, op.Signer)
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxNetworkFee ------------------------------
@@ -434,11 +436,12 @@ type OpTxNetworkFee struct {
 	TransactionRate uint64         `json:"transaction_rate"`
 	Signer          sdk.AccAddress `json:"signer"`
 	Sequence        *int64         `json:"sequence"`
+	Gas             *int64         `json:"gas"`
 }
 
 func (op *OpTxNetworkFee) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
 	msg := types.NewMsgNetworkFee(op.BlockHeight, op.Chain, op.TransactionSize, op.TransactionRate, op.Signer)
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxNodePauseChain ------------------------------
@@ -448,11 +451,12 @@ type OpTxNodePauseChain struct {
 	Value    int64          `json:"value"`
 	Signer   sdk.AccAddress `json:"signer"`
 	Sequence *int64         `json:"sequence"`
+	Gas      *int64         `json:"gas"`
 }
 
 func (op *OpTxNodePauseChain) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
 	msg := types.NewMsgNodePauseChain(op.Value, op.Signer)
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxObservedIn ------------------------------
@@ -462,11 +466,12 @@ type OpTxObservedIn struct {
 	Txs      []types.ObservedTx `json:"txs"`
 	Signer   sdk.AccAddress     `json:"signer"`
 	Sequence *int64             `json:"sequence"`
+	Gas      *int64             `json:"gas"`
 }
 
 func (op *OpTxObservedIn) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
 	msg := types.NewMsgObservedTxIn(op.Txs, op.Signer)
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxObservedOut ------------------------------
@@ -476,6 +481,7 @@ type OpTxObservedOut struct {
 	Txs      []types.ObservedTx `json:"txs"`
 	Signer   sdk.AccAddress     `json:"signer"`
 	Sequence *int64             `json:"sequence"`
+	Gas      *int64             `json:"gas"`
 }
 
 func (op *OpTxObservedOut) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
@@ -503,7 +509,7 @@ func (op *OpTxObservedOut) Execute(out io.Writer, routine int, _ *os.Process, lo
 	}
 
 	msg := types.NewMsgObservedTxOut(op.Txs, op.Signer)
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxSetIPAddress ------------------------------
@@ -513,11 +519,12 @@ type OpTxSetIPAddress struct {
 	IPAddress string         `json:"ip_address"`
 	Signer    sdk.AccAddress `json:"signer"`
 	Sequence  *int64         `json:"sequence"`
+	Gas       *int64         `json:"gas"`
 }
 
 func (op *OpTxSetIPAddress) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
 	msg := types.NewMsgSetIPAddress(op.IPAddress, op.Signer)
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxSolvency ------------------------------
@@ -530,6 +537,7 @@ type OpTxSolvency struct {
 	Height   int64          `json:"height"`
 	Signer   sdk.AccAddress `json:"signer"`
 	Sequence *int64         `json:"sequence"`
+	Gas      *int64         `json:"gas"`
 }
 
 func (op *OpTxSolvency) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
@@ -537,7 +545,7 @@ func (op *OpTxSolvency) Execute(out io.Writer, routine int, _ *os.Process, logs 
 	if err != nil {
 		return err
 	}
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxSetNodeKeys ------------------------------
@@ -548,11 +556,12 @@ type OpTxSetNodeKeys struct {
 	ValidatorConsPubKey string           `json:"validator_cons_pub_key"`
 	Signer              sdk.AccAddress   `json:"signer"`
 	Sequence            *int64           `json:"sequence"`
+	Gas                 *int64           `json:"gas"`
 }
 
 func (op *OpTxSetNodeKeys) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
 	msg := types.NewMsgSetNodeKeys(op.PubKeySet, op.ValidatorConsPubKey, op.Signer)
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxTssKeysign ------------------------------
@@ -562,10 +571,11 @@ type OpTxTssKeysign struct {
 	types.MsgTssKeysignFail `yaml:",inline"`
 	// Signer                  sdk.AccAddress `json:"signer"`
 	Sequence *int64 `json:"sequence"`
+	Gas      *int64 `json:"gas"`
 }
 
 func (op *OpTxTssKeysign) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
-	return sendMsg(out, routine, &op.MsgTssKeysignFail, op.MsgTssKeysignFail.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, &op.MsgTssKeysignFail, op.MsgTssKeysignFail.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxTssPool ------------------------------
@@ -582,6 +592,7 @@ type OpTxTssPool struct {
 	Signer          sdk.AccAddress   `json:"signer"`
 	KeygenTime      int64            `json:"keygen_time"`
 	Sequence        *int64           `json:"sequence"`
+	Gas             *int64           `json:"gas"`
 }
 
 func (op *OpTxTssPool) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
@@ -589,7 +600,7 @@ func (op *OpTxTssPool) Execute(out io.Writer, routine int, _ *os.Process, logs c
 	if err != nil {
 		return err
 	}
-	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, msg, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxDeposit ------------------------------
@@ -598,10 +609,11 @@ type OpTxDeposit struct {
 	OpBase           `yaml:",inline"`
 	types.MsgDeposit `yaml:",inline"`
 	Sequence         *int64 `json:"sequence"`
+	Gas              *int64 `json:"gas"`
 }
 
 func (op *OpTxDeposit) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
-	return sendMsg(out, routine, &op.MsgDeposit, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, &op.MsgDeposit, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxMimir ------------------------------
@@ -610,10 +622,11 @@ type OpTxMimir struct {
 	OpBase         `yaml:",inline"`
 	types.MsgMimir `yaml:",inline"`
 	Sequence       *int64 `json:"sequence"`
+	Gas            *int64 `json:"gas"`
 }
 
 func (op *OpTxMimir) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
-	return sendMsg(out, routine, &op.MsgMimir, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, &op.MsgMimir, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxSend ------------------------------
@@ -622,10 +635,11 @@ type OpTxSend struct {
 	OpBase        `yaml:",inline"`
 	types.MsgSend `yaml:",inline"`
 	Sequence      *int64 `json:"sequence"`
+	Gas           *int64 `json:"gas"`
 }
 
 func (op *OpTxSend) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
-	return sendMsg(out, routine, &op.MsgSend, op.FromAddress, op.Sequence, op, logs)
+	return sendMsg(out, routine, &op.MsgSend, op.FromAddress, op.Sequence, op.Gas, op, logs)
 }
 
 // ------------------------------ OpTxVersion ------------------------------
@@ -634,17 +648,18 @@ type OpTxVersion struct {
 	OpBase              `yaml:",inline"`
 	types.MsgSetVersion `yaml:",inline"`
 	Sequence            *int64 `json:"sequence"`
+	Gas                 *int64 `json:"gas"`
 }
 
 func (op *OpTxVersion) Execute(out io.Writer, routine int, _ *os.Process, logs chan string) error {
-	return sendMsg(out, routine, &op.MsgSetVersion, op.Signer, op.Sequence, op, logs)
+	return sendMsg(out, routine, &op.MsgSetVersion, op.Signer, op.Sequence, op.Gas, op, logs)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Helpers
 ////////////////////////////////////////////////////////////////////////////////////////
 
-func sendMsg(out io.Writer, routine int, msg sdk.Msg, signer sdk.AccAddress, seq *int64, op any, logs chan string) error {
+func sendMsg(out io.Writer, routine int, msg sdk.Msg, signer sdk.AccAddress, seq *int64, gas *int64, op any, logs chan string) error {
 	log := log.Output(zerolog.ConsoleWriter{Out: out})
 
 	// check that message is valid
@@ -668,6 +683,10 @@ func sendMsg(out io.Writer, routine int, msg sdk.Msg, signer sdk.AccAddress, seq
 	txf := txFactory
 	if seq != nil {
 		txf = txFactory.WithSequence(uint64(*seq))
+	}
+	// override the cosmos gas if provided
+	if gas != nil {
+		txf = txFactory.WithGas(uint64(*gas))
 	}
 
 	// send message

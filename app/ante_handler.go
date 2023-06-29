@@ -47,7 +47,12 @@ func NewAnteHandler(options AnteHandlerOptions) (sdk.AnteHandler, error) {
 	}
 
 	anteDecorators := []sdk.AnteDecorator{
-		ante.NewSetUpContextDecorator(), // outermost AnteDecorator. SetUpContext must be called first
+		// outermost AnteDecorator. SetUpContext must be called first
+		ante.NewSetUpContextDecorator(),
+
+		// replace gas meter immediately after setting up ctx
+		thorchain.NewInfiniteGasDecorator(options.THORChainKeeper),
+
 		ante.NewRejectExtensionOptionsDecorator(),
 		ante.NewMempoolFeeDecorator(),
 		ante.NewValidateBasicDecorator(),
@@ -56,7 +61,7 @@ func NewAnteHandler(options AnteHandlerOptions) (sdk.AnteHandler, error) {
 		ante.NewConsumeGasForTxSizeDecorator(options.AccountKeeper),
 		ante.NewDeductFeeDecorator(options.AccountKeeper, options.BankKeeper, options.FeegrantKeeper),
 
-		// only difference from cosmos is the THORChain decorator
+		// run thorchain-specific msg antes
 		thorchain.NewAnteDecorator(options.THORChainKeeper),
 
 		ante.NewSetPubKeyDecorator(options.AccountKeeper), // SetPubKeyDecorator must be called before all signature verification decorators

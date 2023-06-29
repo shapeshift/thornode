@@ -366,6 +366,7 @@ asserts:
 type: tx-version
 version: "1.108.0"
 signer: {{ addr_thor_dog }}
+gas: 100000000
 ---
 type: create-blocks
 count: 2 # Two blocks to be sure the store migration takes place before the next check.
