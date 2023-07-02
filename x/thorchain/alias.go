@@ -225,7 +225,8 @@ var (
 	NewYggdrasilFund       = mem.NewYggdrasilFund
 	NewMigrateMemo         = mem.NewMigrateMemo
 
-	FetchDexAggregator = aggregators.FetchDexAggregator
+	FetchDexAggregator         = aggregators.FetchDexAggregator
+	FetchDexAggregatorGasLimit = aggregators.FetchDexAggregatorGasLimit
 )
 
 type (

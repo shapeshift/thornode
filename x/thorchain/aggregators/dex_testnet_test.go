@@ -16,8 +16,11 @@ func (s *DexAggregatorTestnetSuite) TestDexAggregators(c *C) {
 
 	// happy path
 	addr, err := FetchDexAggregator(ver, common.ETHChain, "3848")
+	gasLimit, _ := FetchDexAggregatorGasLimit(ver, common.ETHChain, "3848")
+
 	c.Assert(err, IsNil)
 	c.Check(addr, Equals, "0x69800327b38A4CeF30367Dec3f64c2f2386f3848")
+	c.Check(gasLimit, Equals, uint64(400_000))
 
 	// unhappy path
 	_, err = FetchDexAggregator(ver, common.BTCChain, "156")
