@@ -4,12 +4,10 @@
 package aggregators
 
 import (
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 )
 
-func DexAggregatorsV112(version semver.Version) []Aggregator {
+func DexAggregatorsV112() []Aggregator {
 	return []Aggregator{
 		// TSAggregatorVTHOR Ethereum V2
 		{common.ETHChain, `0x0581a9aB98c467dCA614C940104E6dD102BE5C7d`, 400_000},

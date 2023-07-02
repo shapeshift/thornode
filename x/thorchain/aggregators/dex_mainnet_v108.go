@@ -4,12 +4,10 @@
 package aggregators
 
 import (
-	"github.com/blang/semver"
-
 	"gitlab.com/thorchain/thornode/common"
 )
 
-func DexAggregatorsV108(version semver.Version) []Aggregator {
+func DexAggregatorsV108() []Aggregator {
 	return []Aggregator{
 		// TSSwapGeneric Avalanche V2
 		{common.AVAXChain, `0x77b34A3340eDdD56799749be4Be2c322547E2428`, 400_000},
