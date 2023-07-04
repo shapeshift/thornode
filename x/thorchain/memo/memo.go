@@ -207,7 +207,10 @@ func (m MemoBase) GetDexAggregator() string         { return "" }
 func (m MemoBase) GetDexTargetAddress() string      { return "" }
 func (m MemoBase) GetDexTargetLimit() *cosmos.Uint  { return nil }
 
-func parseBase(memo string) (MemoBase, []string, error) {
+func parseBase(version semver.Version, memo string) (MemoBase, []string, error) {
+	if version.GTE(semver.MustParse("1.115.0")) {
+		memo = strings.Split(memo, "|")[0]
+	}
 	parts := strings.Split(memo, ":")
 	mem := MemoBase{TxType: TxUnknown}
 	if len(memo) == 0 {
@@ -240,7 +243,7 @@ func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 		}
 	}()
 
-	mem, parts, err := parseBase(memo)
+	mem, parts, err := parseBase(version, memo)
 	if err != nil {
 		return mem, err
 	}
@@ -301,7 +304,7 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 		}
 	}()
 
-	mem, parts, err := parseBase(memo)
+	mem, parts, err := parseBase(keeper.GetVersion(), memo)
 	if err != nil {
 		return mem, err
 	}
