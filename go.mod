@@ -49,7 +49,7 @@ require (
 	gitlab.com/thorchain/bifrost/ltcd-txscript v0.0.0-20221030141522-6ec18ecc4447
 	gitlab.com/thorchain/bifrost/txscript v0.0.0-20221115150551-993a3adacf25
 	gitlab.com/thorchain/binance-sdk v1.2.3-0.20210117202539-d569b6b9ba5d
-	gitlab.com/thorchain/tss/go-tss v1.6.1
+	gitlab.com/thorchain/tss/go-tss v1.6.2
 	go.uber.org/atomic v1.9.0
 	golang.org/x/oauth2 v0.3.0
 	golang.org/x/sync v0.1.0
