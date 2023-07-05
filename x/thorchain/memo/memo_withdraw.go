@@ -3,6 +3,7 @@ package thorchain
 import (
 	"fmt"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
@@ -25,7 +26,7 @@ func NewWithdrawLiquidityMemo(asset common.Asset, amt cosmos.Uint, withdrawalAss
 	}
 }
 
-func ParseWithdrawLiquidityMemo(asset common.Asset, parts []string) (WithdrawLiquidityMemo, error) {
+func ParseWithdrawLiquidityMemo(version semver.Version, asset common.Asset, parts []string) (WithdrawLiquidityMemo, error) {
 	var err error
 	if len(parts) < 2 {
 		return WithdrawLiquidityMemo{}, fmt.Errorf("not enough parameters")
@@ -42,7 +43,7 @@ func ParseWithdrawLiquidityMemo(asset common.Asset, parts []string) (WithdrawLiq
 		}
 	}
 	if len(parts) > 3 {
-		withdrawalAsset, err = common.NewAsset(parts[3])
+		withdrawalAsset, err = common.NewAssetWithShortCodes(version, parts[3])
 		if err != nil {
 			return WithdrawLiquidityMemo{}, err
 		}

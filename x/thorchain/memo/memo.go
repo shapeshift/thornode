@@ -227,7 +227,7 @@ func parseBase(version semver.Version, memo string) (MemoBase, []string, error) 
 		if len(parts) < 2 {
 			return mem, parts, fmt.Errorf("cannot parse given memo: length %d", len(parts))
 		}
-		mem.Asset, err = common.NewAsset(parts[1])
+		mem.Asset, err = common.NewAssetWithShortCodes(version, parts[1])
 		if err != nil {
 			return mem, parts, err
 		}
@@ -258,7 +258,7 @@ func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 	case TxAdd:
 		return ParseAddLiquidityMemo(cosmos.Context{}, nil, asset, parts)
 	case TxWithdraw:
-		return ParseWithdrawLiquidityMemo(asset, parts)
+		return ParseWithdrawLiquidityMemo(version, asset, parts)
 	case TxSwap, TxLimitOrder:
 		if mem.GetType() == TxLimitOrder && version.LT(semver.MustParse("1.98.0")) {
 			return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
@@ -319,7 +319,7 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 	case TxAdd:
 		return ParseAddLiquidityMemo(ctx, keeper, asset, parts)
 	case TxWithdraw:
-		return ParseWithdrawLiquidityMemo(asset, parts)
+		return ParseWithdrawLiquidityMemo(keeper.GetVersion(), asset, parts)
 	case TxSwap, TxLimitOrder:
 		if mem.GetType() == TxLimitOrder && keeper.GetVersion().LT(semver.MustParse("1.98.0")) {
 			return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
@@ -350,7 +350,7 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 	case TxConsolidate:
 		return ParseConsolidateMemo(parts)
 	case TxTHORName:
-		return ParseManageTHORNameMemo(parts)
+		return ParseManageTHORNameMemo(keeper.GetVersion(), parts)
 	case TxLoanOpen:
 		return ParseLoanOpenMemo(ctx, keeper.GetVersion(), keeper, asset, parts)
 	case TxLoanRepayment:

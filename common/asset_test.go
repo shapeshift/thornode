@@ -1,6 +1,7 @@
 package common
 
 import (
+	"github.com/blang/semver"
 	. "gopkg.in/check.v1"
 )
 
@@ -84,4 +85,16 @@ func (s AssetSuite) TestAsset(c *C) {
 	c.Check(asset.Equals(BTCAsset), Equals, false)
 	c.Check(asset.IsEmpty(), Equals, false)
 	c.Check(asset.String(), Equals, "BTC/BTC")
+
+	// test shorts
+	asset, err = NewAssetWithShortCodes(semver.MustParse("1.115.0"), "b")
+	c.Assert(err, IsNil)
+	c.Check(asset.String(), Equals, "BTC.BTC")
+	asset, err = NewAssetWithShortCodes(semver.MustParse("1.115.0"), "BLAH.BLAH")
+	c.Assert(err, IsNil)
+	c.Check(asset.String(), Equals, "BLAH.BLAH")
+
+	asset, err = NewAssetWithShortCodes(semver.MustParse("0.0.0"), "BTC.BTC")
+	c.Assert(err, IsNil)
+	c.Check(asset.String(), Equals, "BTC.BTC")
 }

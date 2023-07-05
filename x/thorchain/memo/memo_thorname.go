@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -35,7 +36,7 @@ func NewManageTHORNameMemo(name string, chain common.Chain, addr common.Address,
 	}
 }
 
-func ParseManageTHORNameMemo(parts []string) (ManageTHORNameMemo, error) {
+func ParseManageTHORNameMemo(version semver.Version, parts []string) (ManageTHORNameMemo, error) {
 	var err error
 	var name string
 	var owner cosmos.AccAddress
@@ -65,7 +66,7 @@ func ParseManageTHORNameMemo(parts []string) (ManageTHORNameMemo, error) {
 	}
 
 	if len(parts) >= 6 {
-		preferredAsset, err = common.NewAsset(parts[5])
+		preferredAsset, err = common.NewAssetWithShortCodes(version, parts[5])
 		if err != nil {
 			return ManageTHORNameMemo{}, err
 		}

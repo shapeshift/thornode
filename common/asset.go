@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/gogo/protobuf/jsonpb"
 )
 
@@ -80,6 +81,31 @@ func NewAsset(input string) (Asset, error) {
 	}
 
 	return asset, nil
+}
+
+func NewAssetWithShortCodes(version semver.Version, input string) (Asset, error) {
+	shorts := make(map[string]string)
+	switch {
+	case version.GTE(semver.MustParse("1.115.0")):
+		shorts["a"] = "AVAX.AVAX"
+		shorts["b"] = "BTC.BTC"
+		shorts["c"] = "BCH.BCH"
+		shorts["n"] = "BNB.BNB"
+		shorts["s"] = "BSC.BNB"
+		shorts["d"] = "DOGE.DOGE"
+		shorts["e"] = "ETH.ETH"
+		shorts["g"] = "GAIA.ATOM"
+		shorts["l"] = "LTC.LTC"
+		shorts["r"] = "THOR.RUNE"
+	default:
+		// do nothing
+	}
+
+	long, ok := shorts[input]
+	if ok {
+		input = long
+	}
+	return NewAsset(input)
 }
 
 // Equals determinate whether two assets are equivalent
