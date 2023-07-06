@@ -9,11 +9,11 @@ import (
 
 type StreamingSwaps []StreamingSwap
 
-func NewStreamingSwap(hash common.TxID, quan, freq uint64, target, deposit cosmos.Uint) StreamingSwap {
+func NewStreamingSwap(hash common.TxID, quan, interval uint64, target, deposit cosmos.Uint) StreamingSwap {
 	return StreamingSwap{
 		TxID:        hash,
 		Quantity:    quan,
-		Frequency:   freq,
+		Interval:    interval,
 		TradeTarget: target,
 		Deposit:     deposit,
 		In:          cosmos.ZeroUint(),
@@ -25,8 +25,8 @@ func (m *StreamingSwap) Valid() error {
 	if m.Quantity < 1 {
 		return fmt.Errorf("quantity cannot be less than 1")
 	}
-	if m.Frequency < 1 {
-		return fmt.Errorf("frequency cannot be less than 1")
+	if m.Interval < 1 {
+		return fmt.Errorf("interval cannot be less than 1")
 	}
 	if m.Deposit.IsZero() {
 		return fmt.Errorf("deposit amount cannot be zero")

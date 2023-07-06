@@ -489,3 +489,24 @@ asserts:
   - .memo == "=:THOR.RUNE:{{ addr_thor_fox }}"
   - .inbound_address == null
   - .recommended_min_amount_in == "4110"
+---
+########################################################################################
+# quote and swap a streaming swap
+########################################################################################
+type: check
+description: check swap quote
+endpoint: http://localhost:1317/thorchain/quote/swap
+params:
+  from_asset: ETH.ETH
+  to_asset: BTC.BTC
+  amount: 100000000
+  destination: {{ addr_btc_fox }}
+  streaming_interval: 10
+asserts:
+  - .memo == "=:BTC.BTC:{{ addr_btc_fox }}:0/10/19"
+  - .max_streaming_quantity == 19
+  - .approx_streaming_savings == 0.94736844
+  - .streaming_swap_blocks == 190
+  - .streaming_swap_seconds == 1140
+  - .total_swap_seconds == 1140
+---

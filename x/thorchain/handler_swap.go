@@ -78,7 +78,7 @@ func (h SwapHandler) validateV113(ctx cosmos.Context, msg MsgSwap) error {
 	if msg.IsStreaming() {
 		sourceAsset := msg.Tx.Coins[0].Asset
 		targetAsset := msg.TargetAsset
-		pausedStreaming := fetchConfigInt64(ctx, h.mgr, constants.PauseStreamingSwaps)
+		pausedStreaming := fetchConfigInt64(ctx, h.mgr, constants.StreamingSwapPause)
 		if pausedStreaming > 0 {
 			return fmt.Errorf("streaming swaps are paused")
 		}
@@ -94,9 +94,9 @@ func (h SwapHandler) validateV113(ctx cosmos.Context, msg MsgSwap) error {
 		}
 
 		if swp.Count == 0 { // only check these verifications on the first swap of a streaming swap
-			maxLength := fetchConfigInt64(ctx, h.mgr, constants.MaxStreamingSwapLength)
-			if uint64(maxLength) < swp.Frequency*swp.Quantity {
-				return fmt.Errorf("streaming swap cannot exceed %d blocks: %d * %d", maxLength, swp.Quantity, swp.Frequency)
+			maxLength := fetchConfigInt64(ctx, h.mgr, constants.StreamingSwapMaxLength)
+			if uint64(maxLength) < swp.Interval*swp.Quantity {
+				return fmt.Errorf("streaming swap cannot exceed %d blocks: %d * %d", maxLength, swp.Quantity, swp.Interval)
 			}
 
 			maxSwapQuantity, err := getMaxSwapQuantity(ctx, h.mgr, sourceAsset, targetAsset, swp)

@@ -62,9 +62,10 @@ func NewConstantValue() *ConstantVals {
 			MaxSynthsForSaversYield:             0,                  // percentage (in basis points) synth per pool where synth yield reaches 0%
 			MinSlashPointsForBadValidator:       100,                // The minimum slash point
 			FullImpLossProtectionBlocks:         1440000,            // number of blocks before a liquidity provider gets 100% impermanent loss protection
-			PauseStreamingSwaps:                 0,                  // pause streaming swaps from being processed or accepted
-			MinBPStreamingSwap:                  0,                  // min basis points for a streaming swap trade
-			MaxStreamingSwapLength:              3850,               // max number of blocks a streaming swap can trade for
+			StreamingSwapPause:                  0,                  // pause streaming swaps from being processed or accepted
+			StreamingSwapMinBPFee:               0,                  // min swap fee (in basis points) for a streaming swap trade
+			StreamingSwapMaxLength:              14400,              // max number of blocks a streaming swap can trade for
+			StreamingSwapMaxLengthNative:        14400 * 365,        // max number of blocks native streaming swaps can trade over
 			MinCR:                               10_000,             // Minimum collateralization ratio (basis pts)
 			MaxCR:                               60_000,             // Maximum collateralization ratio (basis pts)
 			PauseLoans:                          1,                  // pause opening new loans and repaying loans

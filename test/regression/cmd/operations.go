@@ -659,7 +659,7 @@ func (op *OpTxVersion) Execute(out io.Writer, routine int, _ *os.Process, logs c
 // Helpers
 ////////////////////////////////////////////////////////////////////////////////////////
 
-func sendMsg(out io.Writer, routine int, msg sdk.Msg, signer sdk.AccAddress, seq *int64, gas *int64, op any, logs chan string) error {
+func sendMsg(out io.Writer, routine int, msg sdk.Msg, signer sdk.AccAddress, seq, gas *int64, op any, logs chan string) error {
 	log := log.Output(zerolog.ConsoleWriter{Out: out})
 
 	// check that message is valid

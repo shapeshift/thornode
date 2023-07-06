@@ -162,7 +162,7 @@ func refundTxV110(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uin
 }
 
 func getMaxSwapQuantity(ctx cosmos.Context, mgr Manager, sourceAsset, targetAsset common.Asset, swp StreamingSwap) (uint64, error) {
-	if swp.Frequency == 0 {
+	if swp.Interval == 0 {
 		return 0, nil
 	}
 	// collect pools involved in this swap
@@ -189,19 +189,48 @@ func getMaxSwapQuantity(ctx cosmos.Context, mgr Manager, sourceAsset, targetAsse
 	if len(pools) == 0 {
 		return 0, fmt.Errorf("dev error: no pools selected during a streaming swap")
 	}
-	virtualDepth := totalRuneDepth.QuoUint64(uint64(len(pools))) // virtual rune depth
+	var virtualDepth cosmos.Uint
+	switch len(pools) {
+	case 1:
+		// single swap, virtual depth is the same size as the single pool
+		virtualDepth = totalRuneDepth
+	case 2:
+		// double swap, dynamically calculate a virtual pool that is between the
+		// depth of pool1 and pool2. This calculation should result in a
+		// consistent swap fee (in bps) no matter the depth of the pools. The
+		// larger the difference between the pools, the more the virtual pool
+		// skews towards the smaller pool. This results in less rewards given
+		// to the larger pool, and more rewards given to the smaller pool.
+
+		// (2*r1*r2) / (r1+r2)
+		r1 := pools[0].BalanceRune
+		r2 := pools[1].BalanceRune
+		num := r1.Mul(r2).MulUint64(2)
+		denom := r1.Add(r2)
+		if denom.IsZero() {
+			return 0, fmt.Errorf("dev error: both pools have no rune balance")
+		}
+		virtualDepth = num.Quo(denom)
+	default:
+		return 0, fmt.Errorf("dev error: unsupported number of pools in a streaming swap: %d", len(pools))
+	}
 	if !sourceAsset.IsNativeRune() {
 		// since the inbound asset is not rune, the virtual depth needs to be
 		// recalculated to be the asset side
 		virtualDepth = common.GetUncappedShare(virtualDepth, pools[0].BalanceRune, pools[0].BalanceAsset)
 	}
-	// we multiply by 10 to ensure we can support decimals (ie 5 / 2 == 2.5)
-	minBP := mgr.Keeper().GetConfigInt64(ctx, constants.MinBPStreamingSwap) * 10
+	// we divide by 2 because a swap size of 5bps (of the pool) will create a
+	// 10bps swap fee. Since this param is for the swap fee, not swap size, we
+	// divide by 2
+	// we multiply by 100 to ensure we can support decimal points (ie 5bps / 2 / 2 == 1.25)
+	minBP := mgr.Keeper().GetConfigInt64(ctx, constants.StreamingSwapMinBPFee) * constants.StreamingSwapMinBPFeeMulti / 2
 	minBP /= int64(len(pools)) // since multiple swaps are executed, then minBP should be adjusted
 	if minBP == 0 {
 		return 0, fmt.Errorf("streaming swaps are not allows with a min BP of zero")
 	}
-	minSize := common.GetSafeShare(cosmos.NewUint(uint64(minBP)), cosmos.NewUint(10_000*10), virtualDepth)
+	// constants.StreamingSwapMinBPFee is in 10k basis point x 10, so we add an
+	// addition zero here (_0)
+	minSize := common.GetSafeShare(cosmos.SafeUintFromInt64(minBP), cosmos.SafeUintFromInt64(10_000*constants.StreamingSwapMinBPFeeMulti), virtualDepth)
 	if minSize.IsZero() {
 		return 1, nil
 	}
@@ -209,11 +238,16 @@ func getMaxSwapQuantity(ctx cosmos.Context, mgr Manager, sourceAsset, targetAsse
 
 	// make sure maxSwapQuantity doesn't infringe on max length that a
 	// streaming swap can exist
-	maxLength := mgr.Keeper().GetConfigInt64(ctx, constants.MaxStreamingSwapLength)
-	if swp.Frequency == 0 {
+	var maxLength int64
+	if sourceAsset.IsNative() && targetAsset.IsNative() {
+		maxLength = mgr.Keeper().GetConfigInt64(ctx, constants.StreamingSwapMaxLengthNative)
+	} else {
+		maxLength = mgr.Keeper().GetConfigInt64(ctx, constants.StreamingSwapMaxLength)
+	}
+	if swp.Interval == 0 {
 		return 1, nil
 	}
-	maxSwapInMaxLength := uint64(maxLength) / swp.Frequency
+	maxSwapInMaxLength := uint64(maxLength) / swp.Interval
 	if maxSwapQuantity.GT(cosmos.NewUint(maxSwapInMaxLength)) {
 		return maxSwapInMaxLength, nil
 	}

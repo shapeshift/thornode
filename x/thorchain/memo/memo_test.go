@@ -140,7 +140,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	swapMemo, ok := memo.(SwapMemo)
 	c.Assert(ok, Equals, true)
 	c.Check(swapMemo.GetStreamQuantity(), Equals, uint64(20), Commentf("%d", swapMemo.GetStreamQuantity()))
-	c.Check(swapMemo.GetStreamFrequency(), Equals, uint64(10))
+	c.Check(swapMemo.GetStreamInterval(), Equals, uint64(10))
 	c.Check(swapMemo.String(), Equals, "=:THOR.RUNE:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:1200/10/20")
 
 	// wacky lending tests

@@ -13,7 +13,7 @@ const MaxAffiliateFeeBasisPoints = 1_000
 var _ cosmos.Msg = &MsgSwap{}
 
 // NewMsgSwap is a constructor function for MsgSwap
-func NewMsgSwap(tx common.Tx, target common.Asset, destination common.Address, tradeTarget cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, agg, aggregatorTargetAddr string, aggregatorTargetLimit *cosmos.Uint, otype OrderType, quan, freq uint64, signer cosmos.AccAddress) *MsgSwap {
+func NewMsgSwap(tx common.Tx, target common.Asset, destination common.Address, tradeTarget cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, agg, aggregatorTargetAddr string, aggregatorTargetLimit *cosmos.Uint, otype OrderType, quan, interval uint64, signer cosmos.AccAddress) *MsgSwap {
 	return &MsgSwap{
 		Tx:                      tx,
 		TargetAsset:             target,
@@ -27,19 +27,19 @@ func NewMsgSwap(tx common.Tx, target common.Asset, destination common.Address, t
 		AggregatorTargetLimit:   aggregatorTargetLimit,
 		OrderType:               otype,
 		StreamQuantity:          quan,
-		StreamFrequency:         freq,
+		StreamInterval:          interval,
 	}
 }
 
 func (m *MsgSwap) IsStreaming() bool {
-	return m.StreamFrequency > 0
+	return m.StreamInterval > 0
 }
 
 func (m *MsgSwap) GetStreamingSwap() StreamingSwap {
 	return NewStreamingSwap(
 		m.Tx.ID,
 		m.StreamQuantity,
-		m.StreamFrequency,
+		m.StreamInterval,
 		m.TradeTarget,
 		m.Tx.Coins[0].Amount,
 	)

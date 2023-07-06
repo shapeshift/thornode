@@ -26,7 +26,7 @@ func (s *KeeperStreamingSwapSuite) TestStreamingSwap(c *C) {
 	swp, err = k.GetStreamingSwap(ctx, txID)
 	c.Assert(err, IsNil)
 	c.Check(swp.Quantity, Equals, uint64(10))
-	c.Check(swp.Frequency, Equals, uint64(20))
+	c.Check(swp.Interval, Equals, uint64(20))
 	c.Check(swp.TradeTarget.String(), Equals, "13")
 	c.Check(swp.Deposit.String(), Equals, "1000")
 	iter := k.GetStreamingSwapIterator(ctx)

@@ -64,9 +64,9 @@ func (s *StreamingSwapSuite) TestValidate(c *C) {
 	swp.Quantity = 0
 	c.Assert(swp.Valid(), NotNil)
 	swp.Quantity = 2
-	swp.Frequency = 0
+	swp.Interval = 0
 	c.Assert(swp.Valid(), NotNil)
-	swp.Frequency = 10
+	swp.Interval = 10
 	swp.Deposit = cosmos.ZeroUint()
 	c.Assert(swp.Valid(), NotNil)
 }

@@ -303,13 +303,13 @@ func (s SwapQueueV115Suite) TestStreamingSwapSelection(c *C) {
 	c.Check(items, HasLen, 0)
 
 	// last height is halfway there
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + (int64(swp.Frequency) / 2))
+	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + (int64(swp.Interval) / 2))
 	items, err = queue.FetchQueue(ctx)
 	c.Assert(err, IsNil)
 	c.Check(items, HasLen, 0)
 
-	// last height is frequency blocks ago
-	ctx = ctx.WithBlockHeight(swp.LastHeight + int64(swp.Frequency))
+	// last height is interval blocks ago
+	ctx = ctx.WithBlockHeight(swp.LastHeight + int64(swp.Interval))
 	items, err = queue.FetchQueue(ctx)
 	c.Assert(err, IsNil)
 	c.Check(items, HasLen, 1)

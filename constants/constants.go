@@ -28,6 +28,10 @@ var ThorchainBlockTime = 5 * time.Second
 // MaxMemoSize Maximum Memo Size
 const MaxMemoSize = 250
 
+// StreamingSwapMinBPFee multiplier. This is used to allow decimal points for
+// streaming swap math
+const StreamingSwapMinBPFeeMulti = int64(100)
+
 // used to preserve precision when determining the dollar price of rune.
 const DollarMulti = 1e9
 

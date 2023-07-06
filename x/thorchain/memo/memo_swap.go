@@ -23,7 +23,7 @@ type SwapMemo struct {
 	DexTargetAddress     string
 	DexTargetLimit       *cosmos.Uint
 	OrderType            types.OrderType
-	StreamFrequency      uint64
+	StreamInterval       uint64
 	StreamQuantity       uint64
 }
 
@@ -36,15 +36,15 @@ func (m SwapMemo) GetDexTargetAddress() string          { return m.DexTargetAddr
 func (m SwapMemo) GetDexTargetLimit() *cosmos.Uint      { return m.DexTargetLimit }
 func (m SwapMemo) GetOrderType() types.OrderType        { return m.OrderType }
 func (m SwapMemo) GetStreamQuantity() uint64            { return m.StreamQuantity }
-func (m SwapMemo) GetStreamFrequency() uint64           { return m.StreamFrequency }
+func (m SwapMemo) GetStreamInterval() uint64            { return m.StreamInterval }
 
 func (m SwapMemo) String() string {
 	slipLimit := m.SlipLimit.String()
 	if m.SlipLimit.IsZero() {
 		slipLimit = ""
 	}
-	if m.StreamFrequency > 0 || m.StreamQuantity > 0 {
-		slipLimit = fmt.Sprintf("%s/%d/%d", m.SlipLimit.String(), m.StreamFrequency, m.StreamQuantity)
+	if m.StreamInterval > 0 || m.StreamQuantity > 1 {
+		slipLimit = fmt.Sprintf("%s/%d/%d", m.SlipLimit.String(), m.StreamInterval, m.StreamQuantity)
 	}
 
 	// prefer short notation for generate swap memo
@@ -65,7 +65,7 @@ func (m SwapMemo) String() string {
 	}
 
 	last := 3
-	if !m.SlipLimit.IsZero() {
+	if !m.SlipLimit.IsZero() || m.StreamInterval > 0 || m.StreamQuantity > 1 {
 		last = 4
 	}
 
@@ -85,7 +85,7 @@ func (m SwapMemo) String() string {
 	return strings.Join(args[:last], ":")
 }
 
-func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, dexAgg, dexTargetAddress string, dexTargetLimit cosmos.Uint, orderType types.OrderType, quan, freq uint64) SwapMemo {
+func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, dexAgg, dexTargetAddress string, dexTargetLimit cosmos.Uint, orderType types.OrderType, quan, interval uint64) SwapMemo {
 	swapMemo := SwapMemo{
 		MemoBase:             MemoBase{TxType: TxSwap, Asset: asset},
 		Destination:          dest,
@@ -96,7 +96,7 @@ func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affA
 		DexTargetAddress:     dexTargetAddress,
 		OrderType:            orderType,
 		StreamQuantity:       quan,
-		StreamFrequency:      freq,
+		StreamInterval:       interval,
 	}
 	if !dexTargetLimit.IsZero() {
 		swapMemo.DexTargetLimit = &dexTargetLimit
@@ -153,7 +153,7 @@ func ParseSwapMemoV115(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 
 	// price limit can be empty , when it is empty , there is no price protection
 	slip := cosmos.ZeroUint()
-	streamFreq := uint64(0)
+	streamInterval := uint64(0)
 	streamQuantity := uint64(0)
 	if limitStr := GetPart(parts, 3); limitStr != "" {
 		if strings.Contains(limitStr, "/") {
@@ -166,9 +166,9 @@ func ParseSwapMemoV115(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 				return SwapMemo{}, fmt.Errorf("swap price limit:%s is invalid: %s", parts[0], err)
 			}
 			if len(parts) > 1 {
-				streamFreq, err = strconv.ParseUint(parts[1], 10, 64)
+				streamInterval, err = strconv.ParseUint(parts[1], 10, 64)
 				if err != nil {
-					return SwapMemo{}, fmt.Errorf("failed to parse stream frequency: %s: %s", parts[1], err)
+					return SwapMemo{}, fmt.Errorf("failed to parse stream interval: %s: %s", parts[1], err)
 				}
 			}
 			if len(parts) > 2 {
@@ -214,5 +214,5 @@ func ParseSwapMemoV115(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 		}
 	}
 
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, streamQuantity, streamFreq), nil
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, streamQuantity, streamInterval), nil
 }
