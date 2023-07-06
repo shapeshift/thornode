@@ -36,6 +36,7 @@ const (
 
 	// Bond type
 	AsgardKeygen = types.KeygenType_AsgardKeygen
+	BondCost     = types.BondType_bond_cost
 )
 
 var (
@@ -61,6 +62,7 @@ var (
 	NewVault                   = types.NewVault
 	NewReserveContributor      = types.NewReserveContributor
 	NewTHORName                = types.NewTHORName
+	NewEventBond               = types.NewEventBond
 	NewEventMintBurn           = types.NewEventMintBurn
 	GetRandomTx                = types.GetRandomTx
 	GetRandomValidatorNode     = types.GetRandomValidatorNode

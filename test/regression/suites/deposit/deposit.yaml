@@ -11,10 +11,10 @@ asserts:
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500000000000
 ---
 type: tx-deposit
-description: fox bonds their full rune balance (total minus fee)
+description: fox bonds their full rune balance without enough left for fee
 signer: {{ addr_thor_fox }}
 coins:
-  - amount: "2499998000000"
+  - amount: "2500000000000"
     asset: "rune"
 memo: "bond:{{ addr_thor_fox }}"
 ---
@@ -28,10 +28,40 @@ asserts:
   - .result.value.sequence == "1"
 ---
 type: check
+description: fox should should only have been charged a fee
+endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
+asserts:
+  - .balances|length == 1
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2499998000000
+---
+type: check
+description: fox should not have a bonded node
+endpoint: http://localhost:1317/thorchain/node/{{ addr_thor_fox }}
+asserts:
+  - .total_bond == "0"
+---
+type: tx-deposit
+description: fox bonds their full rune balance, leaving enough for fee
+signer: {{ addr_thor_fox }}
+coins:
+  - amount: "2499996000000"
+    asset: "rune"
+memo: "bond:{{ addr_thor_fox }}"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: fox's tx should make it on chain
+endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
+asserts:
+  - .result.value.sequence == "2"
+---
+type: check
 description: fox's node should have bond
 endpoint: http://localhost:1317/thorchain/node/{{ addr_thor_fox }}
 asserts:
-  - .total_bond == "2499998000000"
+  - .total_bond == "2499996000000"
 ---
 type: check
 description: fox should no longer have a rune balance
@@ -54,4 +84,4 @@ type: check
 description: fox's tx should not make it on chain, sequence unchanged
 endpoint: http://localhost:1317/auth/accounts/{{ addr_thor_fox }}
 asserts:
-  - .result.value.sequence == "1"
+  - .result.value.sequence == "2"

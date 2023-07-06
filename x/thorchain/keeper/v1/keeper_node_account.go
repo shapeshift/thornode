@@ -220,11 +220,26 @@ func (k KVStore) EnsureNodeKeysUnique(ctx cosmos.Context, consensusPubKey string
 		if na.ValidatorConsPubKey == consensusPubKey {
 			return dbError(ctx, "", fmt.Errorf("%s already exist", na.ValidatorConsPubKey))
 		}
-		if pubKeys.Equals(common.EmptyPubKeySet) {
-			return dbError(ctx, "", errors.New("PubKeySet cannot be empty"))
-		}
-		if na.PubKeySet.Equals(pubKeys) {
-			return dbError(ctx, "", fmt.Errorf("%s already exist", pubKeys))
+
+		v, _ := k.GetVersionWithCtx(ctx)
+		if v.GTE(semver.MustParse("1.115.0")) {
+			if pubKeys.IsEmpty() {
+				return dbError(ctx, "", errors.New("PubKeySet cannot be empty"))
+			}
+			if na.PubKeySet.Contains(pubKeys.Secp256k1) {
+				return dbError(ctx, "", fmt.Errorf("%s already exist", pubKeys))
+			}
+			if na.PubKeySet.Contains(pubKeys.Ed25519) {
+				return dbError(ctx, "", fmt.Errorf("%s already exist", pubKeys))
+			}
+		} else {
+			// TODO remove on hard fork
+			if pubKeys.Equals(common.EmptyPubKeySet) {
+				return dbError(ctx, "", errors.New("PubKeySet cannot be empty"))
+			}
+			if na.PubKeySet.Equals(pubKeys) {
+				return dbError(ctx, "", fmt.Errorf("%s already exist", pubKeys))
+			}
 		}
 	}
 
@@ -401,5 +416,44 @@ func (k KVStore) GetBondProviders(ctx cosmos.Context, addr cosmos.AccAddress) (B
 // SetBondProviders - update the bond providers of a node account
 func (k KVStore) SetBondProviders(ctx cosmos.Context, record BondProviders) error {
 	k.setBondProviders(ctx, k.GetKey(ctx, prefixBondProviders, record.NodeAddress.String()), record)
+	return nil
+}
+
+func (k KVStore) DeductNativeTxFeeFromBond(ctx cosmos.Context, nodeAddr cosmos.AccAddress) error {
+	fee := k.GetNativeTxFee(ctx)
+	if fee.IsZero() {
+		return nil // no fee
+	}
+
+	// deduct fee from node account's bond
+	na, err := k.GetNodeAccount(ctx, nodeAddr)
+	if err != nil {
+		return err
+	}
+	if na.Bond.LT(fee) {
+		return fmt.Errorf("not enound bond for fee")
+	}
+	na.Bond = common.SafeSub(na.Bond, fee)
+	if err := k.SetNodeAccount(ctx, na); err != nil {
+		return fmt.Errorf("fail to save node account: %w", err)
+	}
+
+	// transfer fee from bond module to reserve
+	coins := common.NewCoins(common.NewCoin(common.RuneNative, fee))
+	if err := k.SendFromModuleToModule(ctx, BondName, ReserveName, coins); err != nil {
+		return err
+	}
+
+	// emit bond cost event
+	tx := common.Tx{}
+	tx.ID = common.BlankTxID
+	tx.FromAddress = na.BondAddress
+	bondEvent := NewEventBond(fee, BondCost, tx)
+	events, err := bondEvent.Events()
+	if err != nil {
+		return fmt.Errorf("fail to get events: %w", err)
+	}
+	ctx.EventManager().EmitEvents(events)
+
 	return nil
 }

@@ -111,3 +111,41 @@ func MsgSendHandleV108(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.R
 
 	return &cosmos.Result{}, nil
 }
+
+func MsgSendHandleV112(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
+	if mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
+		return nil, fmt.Errorf("unable to use MsgSend while THORChain is halted")
+	}
+
+	nativeTxFee := mgr.Keeper().GetNativeTxFee(ctx)
+	gas := common.NewCoin(common.RuneNative, nativeTxFee)
+	gasFee, err := gas.Native()
+	if err != nil {
+		return nil, ErrInternal(err, "fail to get gas fee")
+	}
+
+	totalCoins := cosmos.NewCoins(gasFee).Add(msg.Amount...)
+	if !mgr.Keeper().HasCoins(ctx, msg.FromAddress, totalCoins) {
+		return nil, cosmos.ErrInsufficientCoins(err, "insufficient funds")
+	}
+
+	// send gas to reserve
+	sdkErr := mgr.Keeper().SendFromAccountToModule(ctx, msg.FromAddress, ReserveName, common.NewCoins(gas))
+	if sdkErr != nil {
+		return nil, fmt.Errorf("unable to send gas to reserve: %w", sdkErr)
+	}
+
+	sdkErr = mgr.Keeper().SendCoins(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
+	if sdkErr != nil {
+		return nil, sdkErr
+	}
+
+	ctx.EventManager().EmitEvent(
+		cosmos.NewEvent(
+			cosmos.EventTypeMessage,
+			cosmos.NewAttribute(cosmos.AttributeKeyModule, types.AttributeValueCategory),
+		),
+	)
+
+	return &cosmos.Result{}, nil
+}

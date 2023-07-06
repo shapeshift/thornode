@@ -247,7 +247,6 @@ func (s *HandlerDepositSuite) TestAddSwapV64(c *C) {
 }
 
 func (s *HandlerDepositSuite) TestTargetModule(c *C) {
-	fee := common.NewCoin(common.RuneAsset(), cosmos.NewUint(2000000))
 	acctAddr := GetRandomBech32Addr()
 	testCases := []struct {
 		name            string
@@ -265,7 +264,7 @@ func (s *HandlerDepositSuite) TestTargetModule(c *C) {
 			},
 			validator: func(c *C, ctx cosmos.Context, result *cosmos.Result, err error, name string, balDelta cosmos.Uint) {
 				c.Check(err, IsNil, Commentf(name))
-				c.Assert(cosmos.NewUint(20_00000000).Add(fee.Amount).String(), Equals, balDelta.String(), Commentf(name))
+				c.Assert(cosmos.NewUint(20_00000000).String(), Equals, balDelta.String(), Commentf(name))
 			},
 		},
 	}
@@ -274,7 +273,6 @@ func (s *HandlerDepositSuite) TestTargetModule(c *C) {
 		handler := NewDepositHandler(mgr)
 		msg := tc.messageProvider(c, ctx)
 		totalCoins := common.NewCoins(msg.Coins[0])
-		totalCoins.Add(fee)
 		c.Assert(mgr.Keeper().MintToModule(ctx, ModuleName, totalCoins[0]), IsNil)
 		c.Assert(mgr.Keeper().SendFromModuleToAccount(ctx, ModuleName, msg.Signer, totalCoins), IsNil)
 		balBefore := mgr.Keeper().GetRuneBalanceOfModule(ctx, tc.moduleName)

@@ -54,6 +54,8 @@ type Keeper interface {
 	GetTHORNameRegisterFee(ctx cosmos.Context) cosmos.Uint
 	GetTHORNamePerBlockFee(ctx cosmos.Context) cosmos.Uint
 
+	DeductNativeTxFeeFromAccount(ctx cosmos.Context, acctAddr cosmos.AccAddress) error
+
 	// Keeper Interfaces
 	KeeperConfig
 	KeeperPool
@@ -163,6 +165,7 @@ type KeeperNodeAccount interface {
 	ReleaseNodeAccountFromJail(ctx cosmos.Context, addr cosmos.AccAddress) error
 	SetBondProviders(ctx cosmos.Context, _ BondProviders) error
 	GetBondProviders(ctx cosmos.Context, add cosmos.AccAddress) (BondProviders, error)
+	DeductNativeTxFeeFromBond(ctx cosmos.Context, nodeAddr cosmos.AccAddress) error
 }
 
 type KeeperObserver interface {

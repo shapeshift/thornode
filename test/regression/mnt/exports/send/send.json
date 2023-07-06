@@ -89,7 +89,7 @@
             "@type": "/cosmos.crypto.secp256k1.PubKey",
             "key": "Aw/2MBvAhnLEifCInxlpTjCXxV0I/nE8pI5jNI+Zblx6"
           },
-          "sequence": "1"
+          "sequence": "2"
         },
         {
           "@type": "/cosmos.auth.v1beta1.BaseAccount",
@@ -166,7 +166,7 @@
           "address": "tthor1f6z8lvkkj4u0f4g0cz6akzhydn6d9yv64t7ss7",
           "coins": [
             {
-              "amount": "2499998000000",
+              "amount": "2499996000000",
               "denom": "rune"
             }
           ]
@@ -175,7 +175,7 @@
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "35000002000000",
+              "amount": "35000004000000",
               "denom": "rune"
             }
           ]
@@ -376,5 +376,5 @@
     },
     "version": {}
   },
-  "initial_height": "4"
+  "initial_height": "5"
 }

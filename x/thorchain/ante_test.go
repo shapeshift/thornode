@@ -8,6 +8,7 @@ import (
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 
+	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -52,9 +53,23 @@ func (s *AnteTestSuite) TestAnteHandleMessage(c *C) {
 		keeper: k,
 	}
 
-	// TODO this will need to be updated when SendAnteHandler is implemented
-	goodMsg := types.MsgSend{}
-	err := ad.anteHandleMessage(ctx, version, &goodMsg)
+	fromAddr := GetRandomBech32Addr()
+	toAddr := GetRandomBech32Addr()
+
+	// fund an addr so it can pass the fee deduction ante
+	funds, err := common.NewCoin(common.RuneNative, cosmos.NewUint(200*common.One)).Native()
+	c.Assert(err, IsNil)
+	err = k.AddCoins(ctx, fromAddr, cosmos.NewCoins(funds))
+	c.Assert(err, IsNil)
+	coin, err := common.NewCoin(common.RuneNative, cosmos.NewUint(1*common.One)).Native()
+	c.Assert(err, IsNil)
+
+	goodMsg := types.MsgSend{
+		FromAddress: fromAddr,
+		ToAddress:   toAddr,
+		Amount:      cosmos.NewCoins(coin),
+	}
+	err = ad.anteHandleMessage(ctx, version, &goodMsg)
 	c.Assert(err, IsNil)
 
 	// non-thorchain msgs should be rejected

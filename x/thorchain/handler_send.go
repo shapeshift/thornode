@@ -21,6 +21,7 @@ func NewSendHandler(mgr Manager) BaseHandler[*MsgSend] {
 			Register("1.87.0", MsgSendValidateV87).
 			Register("0.1.0", MsgSendValidateV1),
 		handlers: NewHandlers[*MsgSend]().
+			Register("1.115.0", MsgSendHandleV115).
 			Register("1.112.0", MsgSendHandleV112).
 			Register("1.108.0", MsgSendHandleV108).
 			Register("0.1.0", MsgSendHandleV1),
@@ -47,32 +48,14 @@ func MsgSendLogger(ctx cosmos.Context, msg *MsgSend) {
 	ctx.Logger().Info("receive MsgSend", "from", msg.FromAddress, "to", msg.ToAddress, "coins", msg.Amount)
 }
 
-func MsgSendHandleV112(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
+func MsgSendHandleV115(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
 	if mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
 		return nil, fmt.Errorf("unable to use MsgSend while THORChain is halted")
 	}
 
-	nativeTxFee := mgr.Keeper().GetNativeTxFee(ctx)
-	gas := common.NewCoin(common.RuneNative, nativeTxFee)
-	gasFee, err := gas.Native()
+	err := mgr.Keeper().SendCoins(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {
-		return nil, ErrInternal(err, "fail to get gas fee")
-	}
-
-	totalCoins := cosmos.NewCoins(gasFee).Add(msg.Amount...)
-	if !mgr.Keeper().HasCoins(ctx, msg.FromAddress, totalCoins) {
-		return nil, cosmos.ErrInsufficientCoins(err, "insufficient funds")
-	}
-
-	// send gas to reserve
-	sdkErr := mgr.Keeper().SendFromAccountToModule(ctx, msg.FromAddress, ReserveName, common.NewCoins(gas))
-	if sdkErr != nil {
-		return nil, fmt.Errorf("unable to send gas to reserve: %w", sdkErr)
-	}
-
-	sdkErr = mgr.Keeper().SendCoins(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
-	if sdkErr != nil {
-		return nil, sdkErr
+		return nil, err
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -89,15 +72,20 @@ func MsgSendHandleV112(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.R
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func SendAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgSend) error {
-	nativeTxFee := k.GetNativeTxFee(ctx)
-	gas := common.NewCoin(common.RuneNative, nativeTxFee)
-	gasFee, err := gas.Native()
-	if err != nil {
-		return fmt.Errorf("fail to get gas fee: %w", err)
+	// TODO remove on hard fork
+	if v.LT(semver.MustParse("1.115.0")) {
+		nativeTxFee := k.GetNativeTxFee(ctx)
+		gas := common.NewCoin(common.RuneNative, nativeTxFee)
+		gasFee, err := gas.Native()
+		if err != nil {
+			return fmt.Errorf("fail to get gas fee: %w", err)
+		}
+		totalCoins := cosmos.NewCoins(gasFee)
+		if !k.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
+			return cosmos.ErrInsufficientCoins(err, "insufficient funds")
+		}
+		return nil
 	}
-	totalCoins := cosmos.NewCoins(gasFee)
-	if !k.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
-		return cosmos.ErrInsufficientCoins(err, "insufficient funds")
-	}
-	return nil
+
+	return k.DeductNativeTxFeeFromAccount(ctx, msg.GetSigners()[0])
 }

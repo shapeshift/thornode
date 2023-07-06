@@ -529,3 +529,12 @@ func (k KVStore) usdFeesEnabled(ctx cosmos.Context) bool {
 	usdFees, _ := k.GetMimir(ctx, constants.EnableUSDFees.String())
 	return usdFees > 0
 }
+
+func (k KVStore) DeductNativeTxFeeFromAccount(ctx cosmos.Context, acctAddr cosmos.AccAddress) error {
+	fee := k.GetNativeTxFee(ctx)
+	if fee.IsZero() {
+		return nil // no fee
+	}
+	coins := common.NewCoins(common.NewCoin(common.RuneNative, fee))
+	return k.SendFromAccountToModule(ctx, acctAddr, ReserveName, coins)
+}

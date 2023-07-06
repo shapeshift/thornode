@@ -92,7 +92,7 @@
             "@type": "/cosmos.crypto.secp256k1.PubKey",
             "key": "A79mmwQR0zNaJgvyBZyo1g3eKxUQTlINRlNJTUFCRxUj"
           },
-          "sequence": "2"
+          "sequence": "3"
         },
         {
           "@type": "/cosmos.auth.v1beta1.ModuleAccount",
@@ -162,7 +162,7 @@
           "address": "tthor1dheycdevq39qlkxs2a6wuuzyn4aqxhve3hhmlw",
           "coins": [
             {
-              "amount": "35000006000000",
+              "amount": "35000008000000",
               "denom": "rune"
             }
           ]
@@ -189,7 +189,7 @@
           "address": "tthor17gw75axcnr8747pkanye45pnrwk7p9c3uhzgff",
           "coins": [
             {
-              "amount": "5009998000001",
+              "amount": "5009996000001",
               "denom": "rune"
             }
           ]
@@ -320,10 +320,10 @@
           "node_address": "tthor13wrmhnh2qe98rjse30pl7u6jxszjjwl4f6yycr",
           "pub_key_set": {},
           "status": "Whitelisted",
-          "status_since": "5"
+          "status_since": "6"
         },
         {
-          "bond": "9998000000",
+          "bond": "9996000000",
           "bond_address": "tthor1uuds8pd92qnnq0udw0rpg0szpgcslc9p8lluej",
           "node_address": "tthor1uuds8pd92qnnq0udw0rpg0szpgcslc9p8lluej",
           "pub_key_set": {
@@ -331,7 +331,7 @@
             "secp256k1": "tthorpub1addwnpepqwlkdxcyz8fnxk3xp0eqt89g6cxau2c4zp89yr2x2dy56s2zgu2jx3pmacu"
           },
           "status": "Standby",
-          "status_since": "3",
+          "status_since": "4",
           "validator_cons_pub_key": "tthorcpub1zcjduepq2rna6xpm3x9aklcvruxx4d3hd2j287m7hr92l8w0ag5g3606sgsqn3wsvj"
         },
         {
@@ -412,5 +412,5 @@
     },
     "version": {}
   },
-  "initial_height": "6"
+  "initial_height": "7"
 }

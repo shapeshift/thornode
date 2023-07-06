@@ -278,6 +278,10 @@ func (k KVStoreDummy) GetBondProviders(ctx cosmos.Context, _ cosmos.AccAddress) 
 	return BondProviders{}, kaboom
 }
 
+func (k KVStoreDummy) DeductNativeTxFeeFromBond(ctx cosmos.Context, nodeAddr cosmos.AccAddress) error {
+	return kaboom
+}
+
 func (k KVStoreDummy) GetObservingAddresses(_ cosmos.Context) ([]cosmos.AccAddress, error) {
 	return nil, kaboom
 }
@@ -609,6 +613,10 @@ func (k KVStoreDummy) GetTHORNameRegisterFee(ctx cosmos.Context) cosmos.Uint {
 
 func (k KVStoreDummy) GetTHORNamePerBlockFee(ctx cosmos.Context) cosmos.Uint {
 	return cosmos.ZeroUint()
+}
+
+func (k KVStoreDummy) DeductNativeTxFeeFromAccount(ctx cosmos.Context, acctAddr cosmos.AccAddress) error {
+	return kaboom
 }
 
 // a mock cosmos.Iterator implementation for testing purposes

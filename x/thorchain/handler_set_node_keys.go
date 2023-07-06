@@ -5,7 +5,6 @@ import (
 
 	"github.com/blang/semver"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
@@ -70,6 +69,8 @@ func (h SetNodeKeysHandler) handle(ctx cosmos.Context, msg MsgSetNodeKeys) (*cos
 	ctx.Logger().Info("handleMsgSetNodeKeys request")
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.115.0")):
+		return h.handleV115(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
 		return h.handleV112(ctx, msg)
 	case version.GTE(semver.MustParse("0.57.0")):
@@ -78,41 +79,18 @@ func (h SetNodeKeysHandler) handle(ctx cosmos.Context, msg MsgSetNodeKeys) (*cos
 	return nil, errBadVersion
 }
 
-func (h SetNodeKeysHandler) handleV112(ctx cosmos.Context, msg MsgSetNodeKeys) (*cosmos.Result, error) {
+func (h SetNodeKeysHandler) handleV115(ctx cosmos.Context, msg MsgSetNodeKeys) (*cosmos.Result, error) {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", msg.Signer.String())
 		return nil, cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", msg.Signer))
 	}
 
-	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
-	if cost.GT(nodeAccount.Bond) {
-		cost = nodeAccount.Bond
-	}
-	// Here make sure THORNode don't change the node account's bond
 	nodeAccount.UpdateStatus(NodeStandby, ctx.BlockHeight())
 	nodeAccount.PubKeySet = msg.PubKeySetSet
-	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 	nodeAccount.ValidatorConsPubKey = msg.ValidatorConsPubKey
 	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 		return nil, fmt.Errorf("fail to save node account: %w", err)
-	}
-
-	// add 10 bond to reserve
-	coin := common.NewCoin(common.RuneNative, cost)
-	if !cost.IsZero() {
-		if err := h.mgr.Keeper().SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
-			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-			return nil, err
-		}
-	}
-
-	tx := common.Tx{}
-	tx.ID = common.BlankTxID
-	tx.FromAddress = nodeAccount.BondAddress
-	bondEvent := NewEventBond(cost, BondCost, tx)
-	if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
-		return nil, fmt.Errorf("fail to emit bond event: %w", err)
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -126,17 +104,24 @@ func (h SetNodeKeysHandler) handleV112(ctx cosmos.Context, msg MsgSetNodeKeys) (
 }
 
 func validateNodeKeysAuth(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccAddress) error {
+	version, _ := k.GetVersionWithCtx(ctx)
+	switch {
+	case version.GTE(semver.MustParse("1.115.0")):
+		return validateNodeKeysAuthV115(ctx, k, signer)
+	case version.GTE(semver.MustParse("1.114.0")):
+		return validateNodeKeysAuthV114(ctx, k, signer)
+	default:
+		return errBadVersion
+	}
+}
+
+func validateNodeKeysAuthV115(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccAddress) error {
 	nodeAccount, err := k.GetNodeAccount(ctx, signer)
 	if err != nil {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("fail to get node account(%s):%s", signer.String(), err)) // notAuthorized
 	}
 	if nodeAccount.IsEmpty() {
 		return cosmos.ErrUnauthorized(fmt.Sprintf("unauthorized account(%s)", signer))
-	}
-
-	cost := k.GetNativeTxFee(ctx)
-	if nodeAccount.Bond.LT(cost) {
-		return cosmos.ErrUnauthorized("not enough bond")
 	}
 
 	// You should not able to update node address when the node is active
@@ -159,5 +144,12 @@ func validateNodeKeysAuth(ctx cosmos.Context, k keeper.Keeper, signer cosmos.Acc
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func SetNodeKeysAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgSetNodeKeys) error {
-	return validateNodeKeysAuth(ctx, k, msg.Signer)
+	if err := validateNodeKeysAuth(ctx, k, msg.Signer); err != nil {
+		return err
+	}
+	// TODO on hard fork remove version check
+	if v.GTE(semver.MustParse("1.115.0")) {
+		return k.DeductNativeTxFeeFromBond(ctx, msg.Signer)
+	}
+	return nil
 }

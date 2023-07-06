@@ -5,7 +5,6 @@ import (
 
 	"github.com/blang/semver"
 
-	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
@@ -76,6 +75,8 @@ func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion) error {
 	ctx.Logger().Info("handleMsgSetVersion request", "Version:", msg.Version)
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.115.0")):
+		return h.handleV115(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
 		return h.handleV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.110.0")):
@@ -87,7 +88,7 @@ func (h VersionHandler) handle(ctx cosmos.Context, msg MsgSetVersion) error {
 	}
 }
 
-func (h VersionHandler) handleV112(ctx cosmos.Context, msg MsgSetVersion) error {
+func (h VersionHandler) handleV115(ctx cosmos.Context, msg MsgSetVersion) error {
 	nodeAccount, err := h.mgr.Keeper().GetNodeAccount(ctx, msg.Signer)
 	if err != nil {
 		return cosmos.ErrUnauthorized(fmt.Errorf("unable to find account(%s):%w", msg.Signer, err).Error())
@@ -102,32 +103,8 @@ func (h VersionHandler) handleV112(ctx cosmos.Context, msg MsgSetVersion) error 
 		nodeAccount.Version = version.String()
 	}
 
-	cost := h.mgr.Keeper().GetNativeTxFee(ctx)
-	if cost.GT(nodeAccount.Bond) {
-		cost = nodeAccount.Bond
-	}
-
-	nodeAccount.Bond = common.SafeSub(nodeAccount.Bond, cost)
 	if err := h.mgr.Keeper().SetNodeAccount(ctx, nodeAccount); err != nil {
 		return fmt.Errorf("fail to save node account: %w", err)
-	}
-
-	// add bond to reserve
-	coin := common.NewCoin(common.RuneNative, cost)
-	if !cost.IsZero() {
-		// cost has been deducted from node account's bond , thus just send the cost from bond to reserve
-		if err := h.mgr.Keeper().SendFromModuleToModule(ctx, BondName, ReserveName, common.NewCoins(coin)); err != nil {
-			ctx.Logger().Error("fail to transfer funds from bond to reserve", "error", err)
-			return err
-		}
-	}
-
-	tx := common.Tx{}
-	tx.ID = common.BlankTxID
-	tx.FromAddress = nodeAccount.BondAddress
-	bondEvent := NewEventBond(cost, BondCost, tx)
-	if err := h.mgr.EventMgr().EmitEvent(ctx, bondEvent); err != nil {
-		ctx.Logger().Error("fail to emit bond event", "error", err)
 	}
 
 	ctx.EventManager().EmitEvent(
@@ -144,6 +121,18 @@ func (h VersionHandler) handleV112(ctx cosmos.Context, msg MsgSetVersion) error 
 }
 
 func validateVersionAuth(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccAddress) error {
+	version, _ := k.GetVersionWithCtx(ctx)
+	switch {
+	case version.GTE(semver.MustParse("1.115.0")):
+		return validateVersionAuthV115(ctx, k, signer)
+	case version.GTE(semver.MustParse("1.114.0")):
+		return validateVersionAuthV114(ctx, k, signer)
+	default:
+		return errBadVersion
+	}
+}
+
+func validateVersionAuthV115(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccAddress) error {
 	nodeAccount, err := k.GetNodeAccount(ctx, signer)
 	if err != nil {
 		ctx.Logger().Error("fail to get node account", "error", err, "address", signer.String())
@@ -157,10 +146,6 @@ func validateVersionAuth(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccA
 		ctx.Logger().Error("unauthorized account, node account must be a validator", "address", signer.String(), "type", nodeAccount.Type)
 		return cosmos.ErrUnauthorized(fmt.Sprintf("%s is not authorized", signer))
 	}
-	cost := k.GetNativeTxFee(ctx)
-	if nodeAccount.Bond.LT(cost) {
-		return cosmos.ErrUnauthorized("not enough bond")
-	}
 	return nil
 }
 
@@ -168,5 +153,12 @@ func validateVersionAuth(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccA
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func VersionAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgSetVersion) error {
-	return validateVersionAuth(ctx, k, msg.Signer)
+	if err := validateVersionAuth(ctx, k, msg.Signer); err != nil {
+		return err
+	}
+	// TODO on hard fork remove version check
+	if v.GTE(semver.MustParse("1.115.0")) {
+		return k.DeductNativeTxFeeFromBond(ctx, msg.Signer)
+	}
+	return nil
 }

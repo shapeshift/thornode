@@ -60,6 +60,8 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	ctx.Logger().Info("receive MsgDeposit", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.115.0")):
+		return h.handleV115(ctx, msg)
 	case version.GTE(semver.MustParse("1.113.0")):
 		return h.handleV113(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
@@ -78,16 +80,9 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	return nil, errInvalidVersion
 }
 
-func (h DepositHandler) handleV113(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+func (h DepositHandler) handleV115(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	if h.mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
 		return nil, fmt.Errorf("unable to use MsgDeposit while THORChain is halted")
-	}
-
-	nativeTxFee := h.mgr.Keeper().GetNativeTxFee(ctx)
-	gas := common.NewCoin(common.RuneNative, nativeTxFee)
-	gasFee, err := gas.Native()
-	if err != nil {
-		return nil, fmt.Errorf("fail to get gas fee: %w", err)
 	}
 
 	coins, err := msg.Coins.Native()
@@ -95,15 +90,8 @@ func (h DepositHandler) handleV113(ctx cosmos.Context, msg MsgDeposit) (*cosmos.
 		return nil, ErrInternal(err, "coins are native to THORChain")
 	}
 
-	totalCoins := cosmos.NewCoins(gasFee).Add(coins...)
-	if !h.mgr.Keeper().HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
+	if !h.mgr.Keeper().HasCoins(ctx, msg.GetSigners()[0], coins) {
 		return nil, cosmos.ErrInsufficientCoins(err, "insufficient funds")
-	}
-
-	// send gas to reserve
-	sdkErr := h.mgr.Keeper().SendFromAccountToModule(ctx, msg.GetSigners()[0], ReserveName, common.NewCoins(gas))
-	if sdkErr != nil {
-		return nil, fmt.Errorf("unable to send gas to reserve: %w", sdkErr)
 	}
 
 	hash := tmtypes.Tx(ctx.TxBytes()).Hash()
@@ -142,9 +130,9 @@ func (h DepositHandler) handleV113(ctx cosmos.Context, msg MsgDeposit) (*cosmos.
 	coinsInMsg := msg.Coins
 	if !coinsInMsg.IsEmpty() {
 		// send funds to target module
-		sdkErr = h.mgr.Keeper().SendFromAccountToModule(ctx, msg.GetSigners()[0], targetModule, msg.Coins)
-		if sdkErr != nil {
-			return nil, sdkErr
+		err := h.mgr.Keeper().SendFromAccountToModule(ctx, msg.GetSigners()[0], targetModule, msg.Coins)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -153,7 +141,7 @@ func (h DepositHandler) handleV113(ctx cosmos.Context, msg MsgDeposit) (*cosmos.
 		return nil, fmt.Errorf("fail to get to address: %w", err)
 	}
 
-	tx := common.NewTx(txID, from, to, coinsInMsg, common.Gas{gas}, msg.Memo)
+	tx := common.NewTx(txID, from, to, coinsInMsg, common.Gas{}, msg.Memo)
 	tx.Chain = common.THORChain
 
 	// construct msg from memo
@@ -262,15 +250,20 @@ func (h DepositHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
 // and also during deliver. Store changes will persist if this function
 // succeeds, regardless of the success of the transaction.
 func DepositAnteHandler(ctx cosmos.Context, v semver.Version, k keeper.Keeper, msg MsgDeposit) error {
-	nativeTxFee := k.GetNativeTxFee(ctx)
-	gas := common.NewCoin(common.RuneNative, nativeTxFee)
-	gasFee, err := gas.Native()
-	if err != nil {
-		return fmt.Errorf("fail to get gas fee: %w", err)
+	// TODO remove on hard fork
+	if v.LT(semver.MustParse("1.115.0")) {
+		nativeTxFee := k.GetNativeTxFee(ctx)
+		gas := common.NewCoin(common.RuneNative, nativeTxFee)
+		gasFee, err := gas.Native()
+		if err != nil {
+			return fmt.Errorf("fail to get gas fee: %w", err)
+		}
+		totalCoins := cosmos.NewCoins(gasFee)
+		if !k.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
+			return cosmos.ErrInsufficientCoins(err, "insufficient funds")
+		}
+		return nil
 	}
-	totalCoins := cosmos.NewCoins(gasFee)
-	if !k.HasCoins(ctx, msg.GetSigners()[0], totalCoins) {
-		return cosmos.ErrInsufficientCoins(err, "insufficient funds")
-	}
-	return nil
+
+	return k.DeductNativeTxFeeFromAccount(ctx, msg.GetSigners()[0])
 }

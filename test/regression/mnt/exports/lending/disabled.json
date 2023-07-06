@@ -484,12 +484,7 @@
                 }
               ],
               "from_address": "tthor13wrmhnh2qe98rjse30pl7u6jxszjjwl4f6yycr",
-              "gas": [
-                {
-                  "amount": "2000000",
-                  "asset": "THOR.RUNE"
-                }
-              ],
+              "gas": null,
               "id": "848F83319F867F962ED4FF82F6F88F0EC54C1DC6B8022B5618D07547387B7CB2",
               "memo": "LOAN-:BTC.BTC:bcrt1q3wrmhnh2qe98rjse30pl7u6jxszjjwl44ls6uw",
               "to_address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2"
@@ -511,12 +506,7 @@
                   }
                 ],
                 "from_address": "tthor13wrmhnh2qe98rjse30pl7u6jxszjjwl4f6yycr",
-                "gas": [
-                  {
-                    "amount": "2000000",
-                    "asset": "THOR.RUNE"
-                  }
-                ],
+                "gas": null,
                 "id": "848F83319F867F962ED4FF82F6F88F0EC54C1DC6B8022B5618D07547387B7CB2",
                 "memo": "LOAN-:BTC.BTC:bcrt1q3wrmhnh2qe98rjse30pl7u6jxszjjwl44ls6uw",
                 "to_address": "tthor1g98cy3n9mmjrpn0sxmn63lztelera37nrytwp2"
