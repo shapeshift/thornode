@@ -267,12 +267,6 @@ func (s *Signer) processTransactions() {
 					checkpoint, obs, err := runWithContext(ctx, func() ([]byte, *types.TxInItem, error) {
 						return s.signAndBroadcast(item)
 					})
-
-					// if enabled and the observation is non-nil, add to this batch's observations
-					if s.cfg.AutoObserve && obs != nil {
-						observations = append(observations, *obs)
-					}
-
 					if err != nil {
 						// mark the txout on round 7 failure to block other txs for the chain / pubkey
 						ksErr := tss.KeysignError{}
@@ -299,6 +293,11 @@ func (s *Signer) processTransactions() {
 						// Otherwise, out-of-sync lists would cycle one timeout at a time, maybe never resynchronising.
 					}
 					cancel()
+
+					// if enabled and the observation is non-nil, add to this batch's observations
+					if s.cfg.AutoObserve && obs != nil {
+						observations = append(observations, *obs)
+					}
 
 					// We have a successful broadcast! Remove the item from our store
 					if err := s.storage.Remove(item); err != nil {
