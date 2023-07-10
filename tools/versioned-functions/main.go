@@ -32,7 +32,11 @@ func init() {
 // Helpers
 // -------------------------------------------------------------------------------------
 
-var reVersionedName = regexp.MustCompile(`.*V([0-9]+)$`)
+var (
+	reCurrentVersionName   = regexp.MustCompile(`.*VCUR$`)
+	reVersionedName        = regexp.MustCompile(`.*V([0-9]+)$`)
+	currentManagerVersions = map[string]string{}
+)
 
 func isVersionedFunction(node ast.Node, fset *token.FileSet) (bool, int) {
 	n, ok := node.(*ast.FuncDecl)
@@ -41,15 +45,43 @@ func isVersionedFunction(node ast.Node, fset *token.FileSet) (bool, int) {
 	switch {
 	case !ok:
 		return false, 0
-	case !reVersionedName.MatchString(n.Name.Name):
+
+	case reVersionedName.MatchString(n.Name.Name):
+		// extract the version from the function name
+		version = reVersionedName.FindStringSubmatch(n.Name.Name)[1]
+
+	case reCurrentVersionName.MatchString(n.Name.Name):
+		// if this is a current version get the mapping from managers.go
+		manager := n.Name.Name
+		if strings.HasPrefix(manager, "new") {
+			manager = strings.TrimPrefix(n.Name.Name, "new")
+		}
+		version, ok = currentManagerVersions[manager]
+		if !ok {
+			fmt.Println("Error: could not find current version for", n.Name.Name)
+			os.Exit(1)
+		}
+
+	case !reVersionedName.MatchString(n.Name.Name) && !reCurrentVersionName.MatchString(n.Name.Name):
 		// search receiever for a versioned struct name
 		if n.Recv != nil {
 			for _, r := range n.Recv.List {
 				buf := new(bytes.Buffer)
 				printer.Fprint(buf, fset, r.Type)
+
+				// extract the version from the struct type
 				if reVersionedName.MatchString(buf.String()) {
-					// extract the version from the struct type
 					version = reVersionedName.FindStringSubmatch(buf.String())[1]
+					break
+				}
+
+				// if this is a current version get the mapping from managers.go
+				if reCurrentVersionName.MatchString(buf.String()) {
+					version, ok = currentManagerVersions[strings.TrimPrefix(buf.String(), "*")]
+					if !ok {
+						fmt.Println("Error: could not find current version for", buf.String())
+						os.Exit(1)
+					}
 					break
 				}
 			}
@@ -59,10 +91,6 @@ func isVersionedFunction(node ast.Node, fset *token.FileSet) (bool, int) {
 		if version == "" {
 			return false, 0
 		}
-
-	default:
-		// extract the version from the function name
-		version = reVersionedName.FindStringSubmatch(n.Name.Name)[1]
 	}
 
 	fnVersion, _ := strconv.Atoi(version)
@@ -105,6 +133,91 @@ func main() {
 	if err != nil {
 		fmt.Println("Error parsing files:", err)
 		os.Exit(1)
+	}
+
+	// extract current version for VCUR managers from managers.go
+	for _, pkg := range pkgs {
+		file, ok := pkg.Files["x/thorchain/managers.go"]
+		if !ok {
+			continue
+		}
+
+		ast.Inspect(file, func(node ast.Node) bool {
+			n, ok := node.(*ast.CaseClause)
+			if !ok {
+				return true
+			}
+
+			// iterate switch cases
+			for _, e := range n.List {
+				version := ""
+
+				ast.Inspect(e, func(n ast.Node) bool {
+					if n == nil || version != "" {
+						return false
+					}
+					if c, ok := n.(*ast.CallExpr); ok {
+						// extract the version from semver.MustParse argument
+						if s, ok := c.Fun.(*ast.SelectorExpr); ok {
+							if x, ok := s.X.(*ast.Ident); ok {
+								if x.Name == "semver" && s.Sel.Name == "MustParse" {
+									if l, ok := c.Args[0].(*ast.BasicLit); ok {
+										version = l.Value
+										return false
+									}
+								}
+							}
+						}
+					}
+
+					return true
+				})
+				if version == "" {
+					continue
+				}
+
+				// extract the minor version
+				minor := strings.Split(version, ".")[1]
+
+				// extract versioned functions called in the case body
+				for _, s := range n.Body {
+					ast.Inspect(s, func(n ast.Node) bool {
+						if n == nil {
+							return false
+						}
+						if c, ok := n.(*ast.CallExpr); ok {
+							// extract function names from the body
+							vFn := ""
+							switch ft := c.Fun.(type) {
+							case *ast.Ident:
+								vFn = ft.Name
+							case *ast.SelectorExpr:
+								vFn = ft.Sel.Name
+							default:
+								return true
+							}
+
+							// manager constructors start with "new"
+							if !strings.HasPrefix(vFn, "new") {
+								return true
+							}
+							manager := strings.TrimPrefix(vFn, "new")
+
+							// store the manager version and type mapping
+							if v, ok := currentManagerVersions[manager]; ok {
+								if v != minor {
+									fmt.Printf("Error: function version mismatch (%s): %s != %s\n", manager, v, minor)
+								}
+							}
+							currentManagerVersions[manager] = minor
+						}
+						return true
+					})
+				}
+			}
+
+			return true
+		})
 	}
 
 	// walk the ast and record all versioned functions
@@ -179,9 +292,7 @@ func main() {
 	for _, fns := range fnsDedupe {
 		if len(fns) > 1 {
 			fmt.Fprintf(os.Stderr, "Error: duplicate versioned functions: %s\n", strings.Join(fns, ", "))
-
-			// TODO: abort here after duplicate functions are removed from develop
-			// os.Exit(1)
+			os.Exit(1)
 		}
 	}
 
@@ -192,7 +303,7 @@ func main() {
 	}
 
 	// sort by function name in case filestructure changes
-	sort.Slice(fns, func(i, j int) bool {
+	sort.SliceStable(fns, func(i, j int) bool {
 		fi, ok := fns[i].(*ast.FuncDecl)
 		if !ok {
 			panic("unreachable")
@@ -220,17 +331,35 @@ func main() {
 		jj.WriteString(fj.Name.Name)
 		printer.Fprint(jj, fset, fj.Type)
 
-		return strings.ToLower(ii.String()) < strings.ToLower(jj.String())
+		// replace VCUR functions with version extracted from managers.go
+		iis := ii.String()
+		jjs := jj.String()
+		for k, v := range currentManagerVersions {
+			iis = strings.ReplaceAll(iis, k, strings.ReplaceAll(k, "CUR", v))
+			jjs = strings.ReplaceAll(jjs, k, strings.ReplaceAll(k, "CUR", v))
+		}
+
+		return strings.ToLower(iis) < strings.ToLower(jjs)
 	})
 
 	// print package so gofumpt can format
 	fmt.Println("package main")
 
-	// print the versioned functions
+	// print the versioned functions to buffer
+	buf := new(bytes.Buffer)
 	for _, fn := range fns {
 		pos := fset.Position(fn.Pos())
-		fmt.Printf("// %s:%d\n", pos.Filename, pos.Line)
-		printer.Fprint(os.Stdout, fset, fn)
-		fmt.Printf("\n\n")
+		buf.WriteString(fmt.Sprintf("// %s:%d\n", pos.Filename, pos.Line))
+		printer.Fprint(buf, fset, fn)
+		buf.WriteString("\n\n")
 	}
+
+	// replace VCUR functions with version extracted from managers.go
+	out := buf.String()
+	for k, v := range currentManagerVersions {
+		out = strings.ReplaceAll(out, k, strings.ReplaceAll(k, "CUR", v))
+	}
+
+	// print the versioned functions
+	fmt.Print(out)
 }

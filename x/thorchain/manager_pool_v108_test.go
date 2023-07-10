@@ -119,7 +119,7 @@ func (s *PoolMgrV108Suite) TestAbandonPool(c *C) {
 	// add event manager to context to intecept withdraw event
 	em := cosmos.NewEventManager()
 	ctx = ctx.WithEventManager(em)
-	mgr.eventMgr = newEventMgrV1()
+	mgr.eventMgr = newEventMgrVCUR()
 
 	// cycle pools
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 100*common.One, mgr), IsNil)

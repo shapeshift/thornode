@@ -11,12 +11,12 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type SwapQueueV115Suite struct{}
+type SwapQueueVCURSuite struct{}
 
-var _ = Suite(&SwapQueueV115Suite{})
+var _ = Suite(&SwapQueueVCURSuite{})
 
-func (s SwapQueueV115Suite) TestGetTodoNum(c *C) {
-	queue := newSwapQueueV115(keeper.KVStoreDummy{})
+func (s SwapQueueVCURSuite) TestGetTodoNum(c *C) {
+	queue := newSwapQueueVCUR(keeper.KVStoreDummy{})
 
 	c.Check(queue.getTodoNum(50, 10, 100), Equals, int64(25))     // halves it
 	c.Check(queue.getTodoNum(11, 10, 100), Equals, int64(5))      // halves it
@@ -27,7 +27,7 @@ func (s SwapQueueV115Suite) TestGetTodoNum(c *C) {
 	c.Check(queue.getTodoNum(200, 10, 100), Equals, int64(100))   // does max 100
 }
 
-func (s SwapQueueV115Suite) TestScoreMsgs(c *C) {
+func (s SwapQueueVCURSuite) TestScoreMsgs(c *C) {
 	ctx, k := setupKeeperForTest(c)
 
 	pool := NewPool()
@@ -47,7 +47,7 @@ func (s SwapQueueV115Suite) TestScoreMsgs(c *C) {
 	pool.Status = PoolStaged
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	queue := newSwapQueueV115(k)
+	queue := newSwapQueueVCUR(k)
 
 	// check that we sort by liquidity ok
 	msgs := []*MsgSwap{
@@ -264,9 +264,9 @@ func (s SwapQueueV115Suite) TestScoreMsgs(c *C) {
 	c.Check(swaps[10].msg.Tx.Coins[0].Asset.Equals(common.BNBAsset), Equals, true)
 }
 
-func (s SwapQueueV115Suite) TestStreamingSwapSelection(c *C) {
+func (s SwapQueueVCURSuite) TestStreamingSwapSelection(c *C) {
 	ctx, k := setupKeeperForTest(c)
-	queue := newSwapQueueV115(k)
+	queue := newSwapQueueVCUR(k)
 
 	bnbAddr := GetRandomBNBAddress()
 	txID := GetRandomTxHash()
@@ -315,7 +315,7 @@ func (s SwapQueueV115Suite) TestStreamingSwapSelection(c *C) {
 	c.Check(items, HasLen, 1)
 }
 
-func (s SwapQueueV115Suite) TestStreamingSwapOutbounds(c *C) {
+func (s SwapQueueVCURSuite) TestStreamingSwapOutbounds(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	mgr.txOutStore = NewTxStoreDummy()
 
@@ -327,7 +327,7 @@ func (s SwapQueueV115Suite) TestStreamingSwapOutbounds(c *C) {
 	pool.Asset = common.BNBAsset
 	c.Assert(mgr.Keeper().SetPool(ctx, pool), IsNil)
 
-	queue := newSwapQueueV115(mgr.Keeper())
+	queue := newSwapQueueVCUR(mgr.Keeper())
 
 	badHandler := func(mgr Manager) cosmos.Handler {
 		return func(ctx cosmos.Context, msg cosmos.Msg) (*cosmos.Result, error) {

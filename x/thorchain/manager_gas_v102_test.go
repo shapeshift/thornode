@@ -42,7 +42,7 @@ func (GasManagerTestSuiteV102) TestGasManagerV93(c *C) {
 		common.NewCoin(common.ETHAsset, cosmos.NewUint(38500)),
 	}, true)
 	c.Assert(gasMgr.GetGas(), HasLen, 3)
-	eventMgr := newEventMgrV1()
+	eventMgr := newEventMgrVCUR()
 	gasMgr.EndBlock(ctx, k, eventMgr)
 }
 
@@ -127,7 +127,7 @@ func (GasManagerTestSuiteV102) TestDifferentValidations(c *C) {
 	gasMgr := newGasMgrV102(constAccessor, k)
 	gasMgr.BeginBlock(mgr)
 	helper := newGasManagerTestHelper(k)
-	eventMgr := newEventMgrV1()
+	eventMgr := newEventMgrVCUR()
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 
 	helper.failGetNetwork = true

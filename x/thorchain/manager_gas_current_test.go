@@ -8,15 +8,15 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type GasManagerTestSuiteV113 struct{}
+type GasManagerTestSuiteVCUR struct{}
 
-var _ = Suite(&GasManagerTestSuiteV113{})
+var _ = Suite(&GasManagerTestSuiteVCUR{})
 
-func (GasManagerTestSuiteV113) TestGasManagerV113(c *C) {
+func (GasManagerTestSuiteVCUR) TestGasManagerVCUR(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	k := mgr.K
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV113(constAccessor, k)
+	gasMgr := newGasMgrVCUR(constAccessor, k)
 	gasEvent := gasMgr.gasEvent
 	c.Assert(gasMgr, NotNil)
 	gasMgr.BeginBlock(mgr)
@@ -42,15 +42,15 @@ func (GasManagerTestSuiteV113) TestGasManagerV113(c *C) {
 		common.NewCoin(common.ETHAsset, cosmos.NewUint(38500)),
 	}, true)
 	c.Assert(gasMgr.GetGas(), HasLen, 3)
-	eventMgr := newEventMgrV1()
+	eventMgr := newEventMgrVCUR()
 	gasMgr.EndBlock(ctx, k, eventMgr)
 }
 
-func (GasManagerTestSuiteV113) TestGetFee(c *C) {
+func (GasManagerTestSuiteVCUR) TestGetFee(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	k := mgr.Keeper()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV113(constAccessor, k)
+	gasMgr := newGasMgrVCUR(constAccessor, k)
 	gasMgr.BeginBlock(mgr)
 	fee := gasMgr.GetFee(ctx, common.BNBChain, common.RuneAsset())
 	defaultTxFee := uint64(constAccessor.GetInt64Value(constants.OutboundTransactionFee))
@@ -120,14 +120,14 @@ func (GasManagerTestSuiteV113) TestGetFee(c *C) {
 	c.Assert(fee.Uint64(), Equals, uint64(100000000))
 }
 
-func (GasManagerTestSuiteV113) TestDifferentValidations(c *C) {
+func (GasManagerTestSuiteVCUR) TestDifferentValidations(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	k := mgr.Keeper()
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV113(constAccessor, k)
+	gasMgr := newGasMgrVCUR(constAccessor, k)
 	gasMgr.BeginBlock(mgr)
 	helper := newGasManagerTestHelper(k)
-	eventMgr := newEventMgrV1()
+	eventMgr := newEventMgrVCUR()
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 
 	helper.failGetNetwork = true
@@ -155,10 +155,10 @@ func (GasManagerTestSuiteV113) TestDifferentValidations(c *C) {
 	gasMgr.EndBlock(ctx, helper, eventMgr)
 }
 
-func (GasManagerTestSuiteV113) TestGetMaxGas(c *C) {
+func (GasManagerTestSuiteVCUR) TestGetMaxGas(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV113(constAccessor, k)
+	gasMgr := newGasMgrVCUR(constAccessor, k)
 	gasCoin, err := gasMgr.GetMaxGas(ctx, common.BTCChain)
 	c.Assert(err, IsNil)
 	c.Assert(gasCoin.Amount.IsZero(), Equals, true)
@@ -175,10 +175,10 @@ func (GasManagerTestSuiteV113) TestGetMaxGas(c *C) {
 	c.Assert(gasCoin.Amount.Uint64(), Equals, uint64(23400))
 }
 
-func (GasManagerTestSuiteV113) TestOutboundFeeMultiplier(c *C) {
+func (GasManagerTestSuiteVCUR) TestOutboundFeeMultiplier(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	constAccessor := constants.GetConstantValues(GetCurrentVersion())
-	gasMgr := newGasMgrV113(constAccessor, k)
+	gasMgr := newGasMgrVCUR(constAccessor, k)
 
 	targetSurplus := cosmos.NewUint(100_00000000) // 100 $RUNE
 	minMultiplier := cosmos.NewUint(15_000)

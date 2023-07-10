@@ -9,11 +9,11 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type PoolMgrV112Suite struct{}
+type PoolMgrVCURSuite struct{}
 
-var _ = Suite(&PoolMgrV112Suite{})
+var _ = Suite(&PoolMgrVCURSuite{})
 
-func (s *PoolMgrV112Suite) TestEnableNextPool(c *C) {
+func (s *PoolMgrVCURSuite) TestEnableNextPool(c *C) {
 	var err error
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
@@ -60,7 +60,7 @@ func (s *PoolMgrV112Suite) TestEnableNextPool(c *C) {
 	pool.BalanceAsset = cosmos.NewUint(0 * common.One)
 	c.Assert(k.SetPool(ctx, pool), IsNil)
 
-	poolMgr := newPoolMgrV112()
+	poolMgr := newPoolMgrVCUR()
 
 	// should enable BTC
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 0, mgr), IsNil)
@@ -83,7 +83,7 @@ func (s *PoolMgrV112Suite) TestEnableNextPool(c *C) {
 	c.Check(pool.BalanceRune.Uint64(), Equals, uint64(30*common.One))
 }
 
-func (s *PoolMgrV112Suite) TestAbandonPool(c *C) {
+func (s *PoolMgrVCURSuite) TestAbandonPool(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
 	usdAsset, err := common.NewAsset("BNB.TUSDB")
@@ -114,12 +114,12 @@ func (s *PoolMgrV112Suite) TestAbandonPool(c *C) {
 	}
 	k.SetLiquidityProvider(ctx, lp)
 
-	poolMgr := newPoolMgrV112()
+	poolMgr := newPoolMgrVCUR()
 
 	// add event manager to context to intecept withdraw event
 	em := cosmos.NewEventManager()
 	ctx = ctx.WithEventManager(em)
-	mgr.eventMgr = newEventMgrV1()
+	mgr.eventMgr = newEventMgrVCUR()
 
 	// cycle pools
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 100*common.One, mgr), IsNil)
@@ -172,7 +172,7 @@ func (s *PoolMgrV112Suite) TestAbandonPool(c *C) {
 	c.Assert(count, Equals, 0)
 }
 
-func (s *PoolMgrV112Suite) TestDemotePoolWithLowLiquidityFees(c *C) {
+func (s *PoolMgrVCURSuite) TestDemotePoolWithLowLiquidityFees(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
 	usdAsset, err := common.NewAsset("BNB.TUSDB")
@@ -220,7 +220,7 @@ func (s *PoolMgrV112Suite) TestDemotePoolWithLowLiquidityFees(c *C) {
 	k.SetLiquidityProvider(ctx, lp)
 	k.SetMimir(ctx, constants.MinimumPoolLiquidityFee.String(), 100000000)
 
-	poolMgr := newPoolMgrV112()
+	poolMgr := newPoolMgrVCUR()
 
 	// cycle pools
 	c.Assert(poolMgr.cyclePools(ctx, 100, 1, 100*common.One, mgr), IsNil)
@@ -253,10 +253,10 @@ func (s *PoolMgrV112Suite) TestDemotePoolWithLowLiquidityFees(c *C) {
 	c.Assert(afterBNBEth.Status == PoolStaged, Equals, true)
 }
 
-func (s *PoolMgrV112Suite) TestPoolMeetTradingVolumeCriteria(c *C) {
+func (s *PoolMgrVCURSuite) TestPoolMeetTradingVolumeCriteria(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
-	pm := newPoolMgrV112()
+	pm := newPoolMgrVCUR()
 
 	asset := common.BTCAsset
 
@@ -287,10 +287,10 @@ func (s *PoolMgrV112Suite) TestPoolMeetTradingVolumeCriteria(c *C) {
 		Commentf("pool should meet min fee criteria"))
 }
 
-func (s *PoolMgrV112Suite) TestRemoveAssetFromVault(c *C) {
+func (s *PoolMgrVCURSuite) TestRemoveAssetFromVault(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
-	pm := newPoolMgrV112()
+	pm := newPoolMgrVCUR()
 
 	asset := common.BTCAsset
 
@@ -325,10 +325,10 @@ func (s *PoolMgrV112Suite) TestRemoveAssetFromVault(c *C) {
 		Commentf("vault1 should no longer have asset"))
 }
 
-func (s *PoolMgrV112Suite) TestRemoveLiquidityProviders(c *C) {
+func (s *PoolMgrVCURSuite) TestRemoveLiquidityProviders(c *C) {
 	ctx, k := setupKeeperForTest(c)
 	mgr := NewDummyMgrWithKeeper(k)
-	pm := newPoolMgrV112()
+	pm := newPoolMgrVCUR()
 
 	countLiquidityProviders := func(ctx cosmos.Context, k keeper.Keeper, asset common.Asset) int {
 		count := 0

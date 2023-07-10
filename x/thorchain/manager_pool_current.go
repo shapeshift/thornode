@@ -8,14 +8,14 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
-type PoolMgrV112 struct{}
+type PoolMgrVCUR struct{}
 
-func newPoolMgrV112() *PoolMgrV112 {
-	return &PoolMgrV112{}
+func newPoolMgrVCUR() *PoolMgrVCUR {
+	return &PoolMgrVCUR{}
 }
 
 // EndBlock cycle pools if required and if ragnarok is not in progress
-func (pm *PoolMgrV112) EndBlock(ctx cosmos.Context, mgr Manager) error {
+func (pm *PoolMgrVCUR) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	poolCycle, err := mgr.Keeper().GetMimir(ctx, constants.PoolCycle.String())
 	if poolCycle < 0 || err != nil {
 		poolCycle = mgr.GetConstants().GetInt64Value(constants.PoolCycle)
@@ -50,7 +50,7 @@ func (pm *PoolMgrV112) EndBlock(ctx cosmos.Context, mgr Manager) error {
 // The valid Staged pool with the highest rune depth is promoted to Available.
 // If there are more than the maximum available pools, the Available pool with
 // with the lowest rune depth is demoted to Staged
-func (pm *PoolMgrV112) cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
+func (pm *PoolMgrVCUR) cyclePools(ctx cosmos.Context, maxAvailablePools, minRunePoolDepth, stagedPoolCost int64, mgr Manager) error {
 	var availblePoolCount int64
 	onDeck := NewPool()        // currently staged pool that could get promoted
 	choppingBlock := NewPool() // currently available pool that is on the chopping block to being demoted
@@ -207,7 +207,7 @@ func (pm *PoolMgrV112) cyclePools(ctx cosmos.Context, maxAvailablePools, minRune
 }
 
 // poolMeetTradingVolumeCriteria check if pool generated the minimum amount of fees since last cycle
-func (pm *PoolMgrV112) poolMeetTradingVolumeCriteria(ctx cosmos.Context, mgr Manager, pool Pool, minPoolLiquidityFee cosmos.Uint) bool {
+func (pm *PoolMgrVCUR) poolMeetTradingVolumeCriteria(ctx cosmos.Context, mgr Manager, pool Pool, minPoolLiquidityFee cosmos.Uint) bool {
 	if minPoolLiquidityFee.IsZero() {
 		return true
 	}
@@ -222,7 +222,7 @@ func (pm *PoolMgrV112) poolMeetTradingVolumeCriteria(ctx cosmos.Context, mgr Man
 }
 
 // removeAssetFromVault set asset balance to zero for all vaults holding the asset
-func (pm *PoolMgrV112) removeAssetFromVault(ctx cosmos.Context, asset common.Asset, mgr Manager) {
+func (pm *PoolMgrVCUR) removeAssetFromVault(ctx cosmos.Context, asset common.Asset, mgr Manager) {
 	// zero vaults with the pool asset
 	vaultIter := mgr.Keeper().GetVaultIterator(ctx)
 	defer vaultIter.Close()
@@ -247,7 +247,7 @@ func (pm *PoolMgrV112) removeAssetFromVault(ctx cosmos.Context, asset common.Ass
 }
 
 // removeLiquidityProviders remove all lps for the given asset pool
-func (pm *PoolMgrV112) removeLiquidityProviders(ctx cosmos.Context, asset common.Asset, mgr Manager) {
+func (pm *PoolMgrVCUR) removeLiquidityProviders(ctx cosmos.Context, asset common.Asset, mgr Manager) {
 	iterator := mgr.Keeper().GetLiquidityProviderIterator(ctx, asset)
 	defer iterator.Close()
 	for ; iterator.Valid(); iterator.Next() {

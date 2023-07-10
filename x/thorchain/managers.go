@@ -326,7 +326,7 @@ func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, er
 	constAccessor := constants.GetConstantValues(version)
 	switch {
 	case version.GTE(semver.MustParse("1.113.0")):
-		return newGasMgrV113(constAccessor, keeper), nil
+		return newGasMgrVCUR(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.112.0")):
 		return newGasMgrV112(constAccessor, keeper), nil
 	case version.GTE(semver.MustParse("1.109.0")):
@@ -349,10 +349,12 @@ func GetGasManager(version semver.Version, keeper keeper.Keeper) (GasManager, er
 
 // GetEventManager will return an implementation of EventManager
 func GetEventManager(version semver.Version) (EventManager, error) {
-	if version.GTE(semver.MustParse("0.1.0")) {
-		return newEventMgrV1(), nil
+	switch {
+	case version.GTE(semver.MustParse("0.1.0")):
+		return newEventMgrVCUR(), nil
+	default:
+		return nil, errInvalidVersion
 	}
-	return nil, errInvalidVersion
 }
 
 // GetTxOutStore will return an implementation of the txout store that
@@ -360,7 +362,7 @@ func GetTxOutStore(version semver.Version, keeper keeper.Keeper, eventMgr EventM
 	constAccessor := constants.GetConstantValues(version)
 	switch {
 	case version.GTE(semver.MustParse("1.115.0")):
-		return newTxOutStorageV115(keeper, constAccessor, eventMgr, gasManager), nil
+		return newTxOutStorageVCUR(keeper, constAccessor, eventMgr, gasManager), nil
 	case version.GTE(semver.MustParse("1.113.0")):
 		return newTxOutStorageV113(keeper, constAccessor, eventMgr, gasManager), nil
 	case version.GTE(semver.MustParse("1.112.0")):
@@ -402,7 +404,7 @@ func GetTxOutStore(version semver.Version, keeper keeper.Keeper, eventMgr EventM
 func GetNetworkManager(version semver.Version, keeper keeper.Keeper, txOutStore TxOutStore, eventMgr EventManager) (NetworkManager, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.115.0")):
-		return newNetworkMgrV115(keeper, txOutStore, eventMgr), nil
+		return newNetworkMgrVCUR(keeper, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.112.0")):
 		return newNetworkMgrV112(keeper, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.111.0")):
@@ -447,7 +449,7 @@ func GetNetworkManager(version semver.Version, keeper keeper.Keeper, txOutStore 
 func GetValidatorManager(version semver.Version, keeper keeper.Keeper, networkMgr NetworkManager, txOutStore TxOutStore, eventMgr EventManager) (ValidatorManager, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.112.0")):
-		return newValidatorMgrV112(keeper, networkMgr, txOutStore, eventMgr), nil
+		return newValidatorMgrVCUR(keeper, networkMgr, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.110.0")):
 		return newValidatorMgrV110(keeper, networkMgr, txOutStore, eventMgr), nil
 	case version.GTE(semver.MustParse("1.109.0")):
@@ -474,17 +476,19 @@ func GetValidatorManager(version semver.Version, keeper keeper.Keeper, networkMg
 // GetObserverManager return an instance that implements ObserverManager interface
 // when there is no version can match the given semver , it will return nil
 func GetObserverManager(version semver.Version) (ObserverManager, error) {
-	if version.GTE(semver.MustParse("0.1.0")) {
-		return newObserverMgrV1(), nil
+	switch {
+	case version.GTE(semver.MustParse("0.1.0")):
+		return newObserverMgrVCUR(), nil
+	default:
+		return nil, errInvalidVersion
 	}
-	return nil, errInvalidVersion
 }
 
 // GetPoolManager return an implementation of PoolManager
 func GetPoolManager(version semver.Version) (PoolManager, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.112.0")):
-		return newPoolMgrV112(), nil
+		return newPoolMgrVCUR(), nil
 	case version.GTE(semver.MustParse("1.108.0")):
 		return newPoolMgrV108(), nil
 	case version.GTE(semver.MustParse("1.98.0")):
@@ -501,7 +505,7 @@ func GetPoolManager(version semver.Version) (PoolManager, error) {
 func GetSwapQueue(version semver.Version, keeper keeper.Keeper) (SwapQueue, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.115.0")):
-		return newSwapQueueV115(keeper), nil
+		return newSwapQueueVCUR(keeper), nil
 	case version.GTE(semver.MustParse("1.104.0")):
 		return newSwapQueueV104(keeper), nil
 	case version.GTE(semver.MustParse("1.103.0")):
@@ -521,7 +525,7 @@ func GetSwapQueue(version semver.Version, keeper keeper.Keeper) (SwapQueue, erro
 func GetOrderBook(version semver.Version, keeper keeper.Keeper) (OrderBook, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.104.0")):
-		return newOrderBookV104(keeper), nil
+		return newOrderBookVCUR(keeper), nil
 	case version.GTE(semver.MustParse("1.103.0")):
 		return newOrderBookV103(keeper), nil
 	case version.GTE(semver.MustParse("0.1.0")):
@@ -535,7 +539,7 @@ func GetOrderBook(version semver.Version, keeper keeper.Keeper) (OrderBook, erro
 func GetSlasher(version semver.Version, keeper keeper.Keeper, eventMgr EventManager) (Slasher, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.115.0")):
-		return newSlasherV115(keeper, eventMgr), nil
+		return newSlasherVCUR(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.112.0")):
 		return newSlasherV112(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.109.0")):
@@ -563,7 +567,7 @@ func GetSlasher(version semver.Version, keeper keeper.Keeper, eventMgr EventMana
 func GetYggManager(version semver.Version, keeper keeper.Keeper) (YggManager, error) {
 	switch {
 	case version.GTE(semver.MustParse("1.112.0")):
-		return newYggMgrV112(keeper), nil
+		return newYggMgrVCUR(keeper), nil
 	case version.GTE(semver.MustParse("0.79.0")):
 		return newYggMgrV79(keeper), nil
 	}
