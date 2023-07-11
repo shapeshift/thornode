@@ -388,6 +388,38 @@ func (m *ObservedTxVoter) SetDone() {
 	m.setStatus(Status_done)
 }
 
+// Get consensus signers for slash point decrementation
+func (m *ObservedTxVoter) GetConsensusSigners() []cosmos.AccAddress {
+	if m.Tx.IsEmpty() {
+		return nil
+	}
+
+	final := m.Tx.IsFinal()
+	signersMap := make(map[string]bool)
+	var signers []cosmos.AccAddress
+	for _, tx := range m.Txs {
+		// Only include signers for Txs matching the Tx's finality.
+		if tx.IsFinal() != final {
+			continue
+		}
+		if !tx.Tx.EqualsEx(m.Tx.Tx) {
+			continue
+		}
+
+		for _, signer := range tx.GetSigners() {
+			// Use a map to ensure only a single record of each signer.
+			// However, do not iterate over the map to get the signers slice,
+			// as the slice order would vary between nodes.
+			if !signersMap[signer.String()] {
+				signers = append(signers, signer)
+				signersMap[signer.String()] = true
+			}
+		}
+	}
+
+	return signers
+}
+
 // MarshalJSON marshal Status to JSON in string form
 func (x Status) MarshalJSON() ([]byte, error) {
 	return json.Marshal(x.String())
