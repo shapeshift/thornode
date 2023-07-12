@@ -5,5 +5,5 @@ package bsctokens
 
 import _ "embed"
 
-//go:embed bsc_testnet_V111.json
+//go:embed bsc_testnet_latest.json
 var BSCTokenListRawV111 []byte
