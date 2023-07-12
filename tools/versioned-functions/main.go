@@ -35,6 +35,7 @@ func init() {
 var (
 	reCurrentVersionName   = regexp.MustCompile(`.*VCUR$`)
 	reVersionedName        = regexp.MustCompile(`.*V([0-9]+)$`)
+	reNonMainnetBuildFlags = regexp.MustCompile(`([^!](test|mock|stage)net|[^!]regtest)`)
 	currentManagerVersions = map[string]string{}
 )
 
@@ -104,6 +105,17 @@ func hasBuildFlags(file *ast.File) bool {
 		}
 	}
 	return false
+}
+
+func hasMainnetBuildFlags(file *ast.File) bool {
+	for _, comment := range file.Comments {
+		if strings.Contains(comment.Text(), "+build") {
+			if reNonMainnetBuildFlags.MatchString(comment.Text()) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // -------------------------------------------------------------------------------------
@@ -225,7 +237,7 @@ func main() {
 	fnsDedupe := map[uint64][]string{}
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Files {
-			// skip files with build flags (not mainnet)
+
 			if hasBuildFlags(file) {
 				// explicitly disallow build flags on handler files
 				if strings.HasPrefix(file.Name.Name, "handler") {
@@ -233,7 +245,10 @@ func main() {
 					os.Exit(1)
 				}
 
-				continue
+				// skip files with non mainnet build flags
+				if !hasMainnetBuildFlags(file) {
+					continue
+				}
 			}
 
 			// skip test files
@@ -275,8 +290,10 @@ func main() {
 					printer.Fprint(fnHash, fset, fn.Body)
 
 					// dedupe by function receiver and body
-					name = append(name, fn.Name.Name)
-					fnsDedupe[fnHash.Sum64()] = append(fnsDedupe[fnHash.Sum64()], strings.Join(name, "."))
+					if len(fn.Body.List) > 0 {
+						name = append(name, fn.Name.Name)
+						fnsDedupe[fnHash.Sum64()] = append(fnsDedupe[fnHash.Sum64()], strings.Join(name, "."))
+					}
 
 					// record all versioned functions outside current version
 					if version != *flagVersion {
