@@ -70,6 +70,20 @@ asserts:
   - .balances|length == 1
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2499996000000
 ---
+type: check
+description: verify events
+endpoint: http://localhost:1317/txs?tx.height=3
+asserts:
+  - .txs|length == 1
+  - .txs[0]|.logs|length == 1
+  - .txs[0]|.logs[0]|.events|length == 4
+  - .txs[0]|.logs[0]|.events[2].type == "message"
+  - .txs[0]|.logs[0]|.events[2].attributes|length == 2
+  - .txs[0]|.logs[0]|.events[2].attributes[0]|.key == "action"
+  - .txs[0]|.logs[0]|.events[2].attributes[0]|.value == "send"
+  - .txs[0]|.logs[0]|.events[2].attributes[1]|.key == "sender"
+  - .txs[0]|.logs[0]|.events[2].attributes[1]|.value == "{{ addr_thor_fox }}"
+---
 type: tx-send
 description: broke fox tries another send, should not make it on chain
 from_address: {{ addr_thor_fox }}

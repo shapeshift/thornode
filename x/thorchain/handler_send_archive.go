@@ -149,3 +149,23 @@ func MsgSendHandleV112(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.R
 
 	return &cosmos.Result{}, nil
 }
+
+func MsgSendHandleV115(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
+	if mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
+		return nil, fmt.Errorf("unable to use MsgSend while THORChain is halted")
+	}
+
+	err := mgr.Keeper().SendCoins(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.EventManager().EmitEvent(
+		cosmos.NewEvent(
+			cosmos.EventTypeMessage,
+			cosmos.NewAttribute(cosmos.AttributeKeyModule, types.AttributeValueCategory),
+		),
+	)
+
+	return &cosmos.Result{}, nil
+}

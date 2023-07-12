@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/blang/semver"
-	"github.com/cosmos/cosmos-sdk/x/gov/types"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -21,6 +20,7 @@ func NewSendHandler(mgr Manager) BaseHandler[*MsgSend] {
 			Register("1.87.0", MsgSendValidateV87).
 			Register("0.1.0", MsgSendValidateV1),
 		handlers: NewHandlers[*MsgSend]().
+			Register("1.116.0", MsgSendHandleV116).
 			Register("1.115.0", MsgSendHandleV115).
 			Register("1.112.0", MsgSendHandleV112).
 			Register("1.108.0", MsgSendHandleV108).
@@ -48,7 +48,7 @@ func MsgSendLogger(ctx cosmos.Context, msg *MsgSend) {
 	ctx.Logger().Info("receive MsgSend", "from", msg.FromAddress, "to", msg.ToAddress, "coins", msg.Amount)
 }
 
-func MsgSendHandleV115(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
+func MsgSendHandleV116(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.Result, error) {
 	if mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
 		return nil, fmt.Errorf("unable to use MsgSend while THORChain is halted")
 	}
@@ -57,13 +57,6 @@ func MsgSendHandleV115(ctx cosmos.Context, mgr Manager, msg *MsgSend) (*cosmos.R
 	if err != nil {
 		return nil, err
 	}
-
-	ctx.EventManager().EmitEvent(
-		cosmos.NewEvent(
-			cosmos.EventTypeMessage,
-			cosmos.NewAttribute(cosmos.AttributeKeyModule, types.AttributeValueCategory),
-		),
-	)
 
 	return &cosmos.Result{}, nil
 }
