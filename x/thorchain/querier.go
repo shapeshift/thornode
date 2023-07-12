@@ -515,10 +515,10 @@ func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 
 		// TODO: These are temporarily hardcoded to the dollar value fees, for sanity check
 		// before enabling. Switch to the keeper fee methods after USD fees are live.
-		NativeTxFeeRune:    mgr.Keeper().DollarConfigInRune(ctx, constants.NativeTransactionFeeUSD).String(),
-		OutboundTxFeeRune:  mgr.Keeper().DollarConfigInRune(ctx, constants.OutboundTransactionFeeUSD).String(),
-		TnsRegisterFeeRune: mgr.Keeper().DollarConfigInRune(ctx, constants.TNSRegisterFeeUSD).String(),
-		TnsFeePerBlockRune: mgr.Keeper().DollarConfigInRune(ctx, constants.TNSFeePerBlockUSD).String(),
+		NativeTxFeeRune:       mgr.Keeper().DollarConfigInRune(ctx, constants.NativeTransactionFeeUSD).String(),
+		NativeOutboundFeeRune: mgr.Keeper().DollarConfigInRune(ctx, constants.NativeOutboundFeeUSD).String(),
+		TnsRegisterFeeRune:    mgr.Keeper().DollarConfigInRune(ctx, constants.TNSRegisterFeeUSD).String(),
+		TnsFeePerBlockRune:    mgr.Keeper().DollarConfigInRune(ctx, constants.TNSFeePerBlockUSD).String(),
 	}
 
 	return jsonify(ctx, result)

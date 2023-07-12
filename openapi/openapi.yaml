@@ -2407,7 +2407,7 @@ components:
         - vaults_migrating
         - gas_spent_rune
         - gas_withheld_rune
-        - outbound_tx_fee_rune
+        - native_outbound_fee_rune
         - native_tx_fee_rune
         - tns_register_fee_rune
         - tns_fee_per_block_rune
@@ -2452,10 +2452,10 @@ components:
           type: string
           example: "15000"
           description: Current outbound fee multiplier, in basis points
-        outbound_tx_fee_rune:
+        native_outbound_fee_rune:
           type: string
           example: "100000000"
-          description: the outbound transaction fee in rune, converted from the OutboundTransactionFeeUSD mimir
+          description: the outbound transaction fee in rune, converted from the NativeOutboundFeeUSD mimir
         native_tx_fee_rune:
           type: string
           example: "100000000"

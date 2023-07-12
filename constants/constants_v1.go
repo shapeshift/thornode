@@ -9,7 +9,7 @@ func NewConstantValue() *ConstantVals {
 			MaxRuneSupply:                       -1,                 // max supply of rune. Default set to -1 to avoid consensus failure
 			IncentiveCurve:                      100,                // configures incentive pendulum
 			OutboundTransactionFee:              2_000000,           // TODO: remove me on hard fork
-			OutboundTransactionFeeUSD:           2_000000,           // $0.02 fee on all swaps and withdrawals
+			NativeOutboundFeeUSD:                2_000000,           // $0.02 fee on all swaps and withdrawals
 			NativeTransactionFee:                2_000000,           // TODO: remove me on hard fork
 			NativeTransactionFeeUSD:             2_000000,           // $0.02 fee on all on chain txs
 			PoolCycle:                           43200,              // Make a pool available every 3 days
@@ -104,6 +104,7 @@ func NewConstantValue() *ConstantVals {
 			MinOutboundFeeMultiplierBasisPoints: 15_000,             // Minimum multiplier applied to base outbound fee charged to user, in basis points
 			EnableUSDFees:                       0,                  // enable USD fees
 			PreferredAssetOutboundFeeMultiplier: 100,                // multiplier of the current preferred asset outbound fee, if rune balance > multiplier * outbound_fee, a preferred asset swap is triggered
+			FeeUSDRoundSignificantDigits:        2,                  // number of significant digits to round the RUNE value of USD denominated fees
 		},
 		boolValues: map[ConstantName]bool{
 			StrictBondLiquidityRatio: true,

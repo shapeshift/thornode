@@ -39,7 +39,7 @@ Three Goals
 All fees users directly pay should be delineated in USD terms using the internal USD price feed.
 
 - `MinimumL1OutboundFeeUSD :1_0000_0000` -> `MinimumL1OutboundFeeUSD : 2_0000_0000`
-- `OutboundTransactionFee : 200_0000` -> `OutboundTransactionFeeUSD : 2000_0000` (20c)
+- `OutboundTransactionFee : 200_0000` -> `NativeOutboundFeeUSD : 2000_0000` (20c)
 - `NativeTransactionFee : 200_0000` -> `NativeTransactionFeeUSD : 2000_0000` (20c)
 - `TNSRegisterFee: 10_0000_0000`, -> `TNSRegisterFeeUSD: 10_0000_0000`, ($10)
 - `TNSFeePerBlock: 20`, -> `TNSFeePerBlockUSD: 20`, ($10 per year)

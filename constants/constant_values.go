@@ -116,12 +116,13 @@ const (
 	TargetOutboundFeeSurplusRune
 	MaxOutboundFeeMultiplierBasisPoints
 	MinOutboundFeeMultiplierBasisPoints
-	OutboundTransactionFeeUSD
+	NativeOutboundFeeUSD
 	NativeTransactionFeeUSD
 	TNSRegisterFeeUSD
 	TNSFeePerBlockUSD
 	EnableUSDFees
 	PreferredAssetOutboundFeeMultiplier
+	FeeUSDRoundSignificantDigits
 )
 
 var nameToString = map[ConstantName]string{
@@ -130,7 +131,7 @@ var nameToString = map[ConstantName]string{
 	MaxRuneSupply:                       "MaxRuneSupply",
 	BlocksPerYear:                       "BlocksPerYear",
 	OutboundTransactionFee:              "OutboundTransactionFee",
-	OutboundTransactionFeeUSD:           "OutboundTransactionFeeUSD",
+	NativeOutboundFeeUSD:                "NativeOutboundFeeUSD",
 	NativeTransactionFee:                "NativeTransactionFee",
 	NativeTransactionFeeUSD:             "NativeTransactionFeeUSD",
 	PoolCycle:                           "PoolCycle",
@@ -237,6 +238,7 @@ var nameToString = map[ConstantName]string{
 	MinOutboundFeeMultiplierBasisPoints: "MinOutboundFeeMultiplierBasisPoints",
 	EnableUSDFees:                       "EnableUSDFees",
 	PreferredAssetOutboundFeeMultiplier: "PreferredAssetOutboundFeeMultiplier",
+	FeeUSDRoundSignificantDigits:        "FeeUSDRoundSignificantDigits",
 }
 
 // String implement fmt.stringer

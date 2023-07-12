@@ -488,7 +488,7 @@ func (k KVStore) GetNativeTxFee(ctx cosmos.Context) cosmos.Uint {
 
 func (k KVStore) GetOutboundTxFee(ctx cosmos.Context) cosmos.Uint {
 	if k.usdFeesEnabled(ctx) {
-		return k.DollarConfigInRune(ctx, constants.OutboundTransactionFeeUSD)
+		return k.DollarConfigInRune(ctx, constants.NativeOutboundFeeUSD)
 	}
 	fee := k.GetConfigInt64(ctx, constants.OutboundTransactionFee)
 	return cosmos.NewUint(uint64(fee))
@@ -516,7 +516,16 @@ func (k KVStore) DollarConfigInRune(ctx cosmos.Context, value constants.Constant
 	usd := cosmos.SafeUintFromInt64(k.GetConfigInt64(ctx, value))
 	runeUSDPrice := k.DollarsPerRune(ctx)
 	if !runeUSDPrice.IsZero() {
-		return usd.MulUint64(common.One).Quo(runeUSDPrice)
+		runeValue := usd.MulUint64(common.One).Quo(runeUSDPrice)
+
+		// TODO on hard fork remove version check
+		version, hasVersion := k.GetVersionWithCtx(ctx)
+		if !hasVersion || version.LT(semver.MustParse("1.116.0")) {
+			return runeValue
+		}
+
+		// round to the first 2 significant digits of the USD price
+		return cosmos.NewUint(common.RoundSignificantFigures(runeValue.Uint64(), k.GetConfigInt64(ctx, constants.FeeUSDRoundSignificantDigits)))
 	}
 	return usd
 }
