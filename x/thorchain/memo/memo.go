@@ -189,6 +189,8 @@ type MemoBase struct {
 	Asset  common.Asset
 }
 
+var EmptyMemo = MemoBase{TxType: TxUnknown, Asset: common.EmptyAsset}
+
 func (m MemoBase) String() string                   { return "" }
 func (m MemoBase) GetType() TxType                  { return m.TxType }
 func (m MemoBase) IsType(tx TxType) bool            { return m.TxType.Equals(tx) }
@@ -207,35 +209,6 @@ func (m MemoBase) GetDexAggregator() string         { return "" }
 func (m MemoBase) GetDexTargetAddress() string      { return "" }
 func (m MemoBase) GetDexTargetLimit() *cosmos.Uint  { return nil }
 
-func parseBase(version semver.Version, memo string) (MemoBase, []string, error) {
-	if version.GTE(semver.MustParse("1.115.0")) {
-		memo = strings.Split(memo, "|")[0]
-	}
-	parts := strings.Split(memo, ":")
-	mem := MemoBase{TxType: TxUnknown}
-	if len(memo) == 0 {
-		return mem, parts, fmt.Errorf("memo can't be empty")
-	}
-	var err error
-	mem.TxType, err = StringToTxType(parts[0])
-	if err != nil {
-		return mem, parts, err
-	}
-
-	switch mem.TxType {
-	case TxDonate, TxAdd, TxSwap, TxLimitOrder, TxWithdraw, TxLoanOpen, TxLoanRepayment:
-		if len(parts) < 2 {
-			return mem, parts, fmt.Errorf("cannot parse given memo: length %d", len(parts))
-		}
-		mem.Asset, err = common.NewAssetWithShortCodes(version, parts[1])
-		if err != nil {
-			return mem, parts, err
-		}
-	}
-
-	return mem, parts, nil
-}
-
 func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -243,58 +216,12 @@ func ParseMemo(version semver.Version, memo string) (mem Memo, err error) {
 		}
 	}()
 
-	mem, parts, err := parseBase(version, memo)
+	parser, err := newParser(cosmos.Context{}, nil, version, memo)
 	if err != nil {
-		return mem, err
+		return EmptyMemo, err
 	}
 
-	asset := mem.GetAsset()
-
-	switch mem.GetType() {
-	case TxLeave:
-		return ParseLeaveMemo(parts)
-	case TxDonate:
-		return NewDonateMemo(asset), nil
-	case TxAdd:
-		return ParseAddLiquidityMemo(cosmos.Context{}, nil, asset, parts)
-	case TxWithdraw:
-		return ParseWithdrawLiquidityMemo(version, asset, parts)
-	case TxSwap, TxLimitOrder:
-		if mem.GetType() == TxLimitOrder && version.LT(semver.MustParse("1.98.0")) {
-			return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
-		}
-		return ParseSwapMemo(cosmos.Context{}, nil, asset, parts)
-	case TxOutbound:
-		return ParseOutboundMemo(parts)
-	case TxRefund:
-		return ParseRefundMemo(parts)
-	case TxBond:
-		return ParseBondMemo(version, parts)
-	case TxUnbond:
-		return ParseUnbondMemo(version, parts)
-	case TxYggdrasilFund:
-		return ParseYggdrasilFundMemo(parts)
-	case TxYggdrasilReturn:
-		return ParseYggdrasilReturnMemo(parts)
-	case TxReserve:
-		return NewReserveMemo(), nil
-	case TxMigrate:
-		return ParseMigrateMemo(parts)
-	case TxRagnarok:
-		return ParseRagnarokMemo(parts)
-	case TxSwitch:
-		return ParseSwitchMemo(cosmos.Context{}, nil, parts)
-	case TxNoOp:
-		return ParseNoOpMemo(parts)
-	case TxConsolidate:
-		return ParseConsolidateMemo(parts)
-	case TxLoanOpen:
-		return ParseLoanOpenMemo(cosmos.Context{}, version, nil, asset, parts)
-	case TxLoanRepayment:
-		return ParseLoanRepaymentMemo(cosmos.Context{}, version, nil, asset, parts)
-	default:
-		return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
-	}
+	return parser.parse()
 }
 
 func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo string) (mem Memo, err error) {
@@ -304,60 +231,12 @@ func ParseMemoWithTHORNames(ctx cosmos.Context, keeper keeper.Keeper, memo strin
 		}
 	}()
 
-	mem, parts, err := parseBase(keeper.GetVersion(), memo)
+	parser, err := newParser(ctx, keeper, keeper.GetVersion(), memo)
 	if err != nil {
-		return mem, err
+		return EmptyMemo, err
 	}
 
-	asset := mem.GetAsset()
-
-	switch mem.GetType() {
-	case TxLeave:
-		return ParseLeaveMemo(parts)
-	case TxDonate:
-		return NewDonateMemo(asset), nil
-	case TxAdd:
-		return ParseAddLiquidityMemo(ctx, keeper, asset, parts)
-	case TxWithdraw:
-		return ParseWithdrawLiquidityMemo(keeper.GetVersion(), asset, parts)
-	case TxSwap, TxLimitOrder:
-		if mem.GetType() == TxLimitOrder && keeper.GetVersion().LT(semver.MustParse("1.98.0")) {
-			return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
-		}
-		return ParseSwapMemo(ctx, keeper, asset, parts)
-	case TxOutbound:
-		return ParseOutboundMemo(parts)
-	case TxRefund:
-		return ParseRefundMemo(parts)
-	case TxBond:
-		return ParseBondMemo(keeper.GetVersion(), parts)
-	case TxUnbond:
-		return ParseUnbondMemo(keeper.GetVersion(), parts)
-	case TxYggdrasilFund:
-		return ParseYggdrasilFundMemo(parts)
-	case TxYggdrasilReturn:
-		return ParseYggdrasilReturnMemo(parts)
-	case TxReserve:
-		return NewReserveMemo(), nil
-	case TxMigrate:
-		return ParseMigrateMemo(parts)
-	case TxRagnarok:
-		return ParseRagnarokMemo(parts)
-	case TxSwitch:
-		return ParseSwitchMemo(ctx, keeper, parts)
-	case TxNoOp:
-		return ParseNoOpMemo(parts)
-	case TxConsolidate:
-		return ParseConsolidateMemo(parts)
-	case TxTHORName:
-		return ParseManageTHORNameMemo(keeper.GetVersion(), parts)
-	case TxLoanOpen:
-		return ParseLoanOpenMemo(ctx, keeper.GetVersion(), keeper, asset, parts)
-	case TxLoanRepayment:
-		return ParseLoanRepaymentMemo(ctx, keeper.GetVersion(), keeper, asset, parts)
-	default:
-		return mem, fmt.Errorf("TxType not supported: %s", mem.GetType().String())
-	}
+	return parser.parse()
 }
 
 func FetchAddress(ctx cosmos.Context, keeper keeper.Keeper, name string, chain common.Chain) (common.Address, error) {

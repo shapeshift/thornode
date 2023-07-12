@@ -387,7 +387,7 @@ func (HandlerSuite) TestGetMsgSwapFromMemo(c *C) {
 func (HandlerSuite) TestGetMsgWithdrawFromMemo(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, false)
 	tx := GetRandomTx()
-	tx.Memo = "withdraw:10000"
+	tx.Memo = "withdraw:BTC.BTC:10000"
 	if common.RuneAsset().Equals(common.RuneNative) {
 		tx.FromAddress = GetRandomTHORAddress()
 	}

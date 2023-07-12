@@ -1,8 +1,7 @@
 package thorchain
 
 import (
-	"fmt"
-
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
@@ -20,14 +19,16 @@ func NewLeaveMemo(addr cosmos.AccAddress) LeaveMemo {
 	}
 }
 
-func ParseLeaveMemo(parts []string) (LeaveMemo, error) {
-	if len(parts) < 2 {
-		return LeaveMemo{}, fmt.Errorf("not enough parameters")
+func (p *parser) ParseLeaveMemo() (LeaveMemo, error) {
+	switch {
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseLeaveMemoV116()
+	default:
+		return ParseLeaveMemoV1(p.parts)
 	}
-	addr, err := cosmos.AccAddressFromBech32(parts[1])
-	if err != nil {
-		return LeaveMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
-	}
+}
 
-	return NewLeaveMemo(addr), nil
+func (p *parser) ParseLeaveMemoV116() (LeaveMemo, error) {
+	addr := p.getAccAddress(1, true, nil)
+	return NewLeaveMemo(addr), p.Error()
 }

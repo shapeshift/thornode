@@ -1,9 +1,9 @@
 package thorchain
 
 import (
-	"errors"
 	"fmt"
-	"strconv"
+
+	"github.com/blang/semver"
 )
 
 type RagnarokMemo struct {
@@ -26,13 +26,17 @@ func NewRagnarokMemo(blockHeight int64) RagnarokMemo {
 	}
 }
 
-func ParseRagnarokMemo(parts []string) (RagnarokMemo, error) {
-	if len(parts) < 2 {
-		return RagnarokMemo{}, errors.New("not enough parameters")
+func (p *parser) ParseRagnarokMemo() (RagnarokMemo, error) {
+	switch {
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseRagnarokMemoV116()
+	default:
+		return ParseRagnarokMemoV1(p.parts)
 	}
-	blockHeight, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return RagnarokMemo{}, fmt.Errorf("fail to convert (%s) to a valid block height: %w", parts[1], err)
-	}
-	return NewRagnarokMemo(blockHeight), nil
+}
+
+func (p *parser) ParseRagnarokMemoV116() (RagnarokMemo, error) {
+	blockHeight := p.getInt64(1, true, 0)
+	err := p.Error()
+	return NewRagnarokMemo(blockHeight), err
 }

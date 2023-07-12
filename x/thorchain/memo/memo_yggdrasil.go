@@ -1,9 +1,9 @@
 package thorchain
 
 import (
-	"errors"
 	"fmt"
-	"strconv"
+
+	"github.com/blang/semver"
 )
 
 type YggdrasilFundMemo struct {
@@ -46,24 +46,30 @@ func NewYggdrasilReturn(blockHeight int64) YggdrasilReturnMemo {
 	}
 }
 
-func ParseYggdrasilFundMemo(parts []string) (YggdrasilFundMemo, error) {
-	if len(parts) < 2 {
-		return YggdrasilFundMemo{}, errors.New("not enough parameters")
+func (p *parser) ParseYggdrasilFundMemo() (YggdrasilFundMemo, error) {
+	switch {
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseYggdrasilFundMemoV116()
+	default:
+		return ParseYggdrasilFundMemoV1(p.parts)
 	}
-	blockHeight, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return YggdrasilFundMemo{}, fmt.Errorf("fail to convert (%s) to a valid block height: %w", parts[1], err)
-	}
-	return NewYggdrasilFund(blockHeight), nil
 }
 
-func ParseYggdrasilReturnMemo(parts []string) (YggdrasilReturnMemo, error) {
-	if len(parts) < 2 {
-		return YggdrasilReturnMemo{}, errors.New("not enough parameters")
+func (p *parser) ParseYggdrasilReturnMemo() (YggdrasilReturnMemo, error) {
+	switch {
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseYggdrasilReturnMemoV116()
+	default:
+		return ParseYggdrasilReturnMemoV1(p.parts)
 	}
-	blockHeight, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return YggdrasilReturnMemo{}, fmt.Errorf("fail to convert (%s) to a valid block height: %w", parts[1], err)
-	}
-	return NewYggdrasilReturn(blockHeight), nil
+}
+
+func (p *parser) ParseYggdrasilFundMemoV116() (YggdrasilFundMemo, error) {
+	blockHeight := p.getInt64(1, true, 0)
+	return NewYggdrasilFund(blockHeight), p.Error()
+}
+
+func (p *parser) ParseYggdrasilReturnMemoV116() (YggdrasilReturnMemo, error) {
+	blockHeight := p.getInt64(1, true, 0)
+	return NewYggdrasilReturn(blockHeight), p.Error()
 }

@@ -25,6 +25,9 @@ var SWVersion, _ = semver.Make(Version)
 // ThorchainBlockTime Block time of THORChain
 var ThorchainBlockTime = 5 * time.Second
 
+// max basis points
+const MaxBasisPts = uint64(10_000)
+
 // MaxMemoSize Maximum Memo Size
 const MaxMemoSize = 250
 

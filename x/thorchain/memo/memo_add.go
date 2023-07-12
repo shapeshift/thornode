@@ -6,7 +6,7 @@ import (
 	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/constants"
 )
 
 type AddLiquidityMemo struct {
@@ -52,49 +52,24 @@ func NewAddLiquidityMemo(asset common.Asset, addr, affAddr common.Address, affPt
 	}
 }
 
-func ParseAddLiquidityMemo(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (AddLiquidityMemo, error) {
-	if keeper == nil {
-		return ParseAddLiquidityMemoV1(ctx, keeper, asset, parts)
+func (p *parser) ParseAddLiquidityMemo() (AddLiquidityMemo, error) {
+	if p.keeper == nil {
+		return ParseAddLiquidityMemoV1(p.ctx, p.keeper, p.getAsset(1, true, common.EmptyAsset), p.parts)
 	}
 	switch {
-	case keeper.GetVersion().GTE(semver.MustParse("1.104.0")):
-		return ParseAddLiquidityMemoV104(ctx, keeper, asset, parts)
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseAddLiquidityMemoV116()
+	case p.version.GTE(semver.MustParse("1.104.0")):
+		return ParseAddLiquidityMemoV104(p.ctx, p.keeper, p.getAsset(1, true, common.EmptyAsset), p.parts)
 	default:
-		return ParseAddLiquidityMemoV1(ctx, keeper, asset, parts)
+		return ParseAddLiquidityMemoV1(p.ctx, p.keeper, p.getAsset(1, true, common.EmptyAsset), p.parts)
 	}
 }
 
-func ParseAddLiquidityMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (AddLiquidityMemo, error) {
-	var err error
-	addr := common.NoAddress
-	affAddr := common.NoAddress
-	affPts := cosmos.ZeroUint()
-	if addrStr := GetPart(parts, 2); addrStr != "" {
-		if keeper == nil {
-			addr, err = common.NewAddress(addrStr)
-		} else {
-			addr, err = FetchAddress(ctx, keeper, addrStr, asset.Chain)
-		}
-		if err != nil {
-			return AddLiquidityMemo{}, err
-		}
-	}
-
-	affAddrStr := GetPart(parts, 3)
-	affPtsStr := GetPart(parts, 4)
-	if affAddrStr != "" && affPtsStr != "" {
-		if keeper == nil {
-			affAddr, err = common.NewAddress(affAddrStr)
-		} else {
-			affAddr, err = FetchAddress(ctx, keeper, affAddrStr, common.THORChain)
-		}
-		if err != nil {
-			return AddLiquidityMemo{}, err
-		}
-		affPts, err = ParseAffiliateBasisPoints(ctx, keeper, affPtsStr)
-		if err != nil {
-			return AddLiquidityMemo{}, err
-		}
-	}
-	return NewAddLiquidityMemo(asset, addr, affAddr, affPts), nil
+func (p *parser) ParseAddLiquidityMemoV116() (AddLiquidityMemo, error) {
+	asset := p.getAsset(1, true, common.EmptyAsset)
+	addr := p.getAddressWithKeeper(2, false, common.NoAddress, asset.Chain)
+	affAddr := p.getAddressWithKeeper(3, false, common.NoAddress, common.THORChain)
+	affPts := p.getUintWithMaxValue(4, false, 0, constants.MaxBasisPts)
+	return NewAddLiquidityMemo(asset, addr, affAddr, affPts), p.Error()
 }

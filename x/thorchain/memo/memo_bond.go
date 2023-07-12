@@ -2,7 +2,6 @@ package thorchain
 
 import (
 	"fmt"
-	"strconv"
 
 	"gitlab.com/thorchain/thornode/common/cosmos"
 
@@ -27,56 +26,22 @@ func NewBondMemo(addr, additional cosmos.AccAddress, operatorFee int64) BondMemo
 	}
 }
 
-func ParseBondMemo(version semver.Version, parts []string) (BondMemo, error) {
+func (p *parser) ParseBondMemo() (BondMemo, error) {
 	switch {
-	case version.GTE(semver.MustParse("1.88.0")):
-		return ParseBondMemoV88(parts)
-	case version.GTE(semver.MustParse("0.81.0")):
-		return ParseBondMemoV81(parts)
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseBondMemoV116()
+	case p.version.GTE(semver.MustParse("1.88.0")):
+		return ParseBondMemoV88(p.parts)
+	case p.version.GTE(semver.MustParse("0.81.0")):
+		return ParseBondMemoV81(p.parts)
 	default:
-		return BondMemo{}, fmt.Errorf("invalid version(%s)", version.String())
+		return BondMemo{}, fmt.Errorf("invalid version(%s)", p.version.String())
 	}
 }
 
-func ParseBondMemoV88(parts []string) (BondMemo, error) {
-	additional := cosmos.AccAddress{}
-	var operatorFee int64 = -1
-	if len(parts) < 2 {
-		return BondMemo{}, fmt.Errorf("not enough parameters")
-	}
-	addr, err := cosmos.AccAddressFromBech32(parts[1])
-	if err != nil {
-		return BondMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
-	}
-	if len(parts) == 3 || len(parts) == 4 {
-		additional, err = cosmos.AccAddressFromBech32(parts[2])
-		if err != nil {
-			return BondMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[2], err)
-		}
-	}
-	if len(parts) == 4 {
-		operatorFee, err = strconv.ParseInt(parts[3], 10, 64)
-		if err != nil {
-			return BondMemo{}, fmt.Errorf("%s invalid operator fee: %w", parts[3], err)
-		}
-	}
-	return NewBondMemo(addr, additional, operatorFee), nil
-}
-
-func ParseBondMemoV81(parts []string) (BondMemo, error) {
-	additional := cosmos.AccAddress{}
-	if len(parts) < 2 {
-		return BondMemo{}, fmt.Errorf("not enough parameters")
-	}
-	addr, err := cosmos.AccAddressFromBech32(parts[1])
-	if err != nil {
-		return BondMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[1], err)
-	}
-	if len(parts) >= 3 {
-		additional, err = cosmos.AccAddressFromBech32(parts[2])
-		if err != nil {
-			return BondMemo{}, fmt.Errorf("%s is an invalid thorchain address: %w", parts[2], err)
-		}
-	}
-	return NewBondMemo(addr, additional, -1), nil
+func (p *parser) ParseBondMemoV116() (BondMemo, error) {
+	addr := p.getAccAddress(1, true, nil)
+	additional := p.getAccAddress(2, false, nil)
+	operatorFee := p.getInt64(3, false, -1)
+	return NewBondMemo(addr, additional, operatorFee), p.Error()
 }

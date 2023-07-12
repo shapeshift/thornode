@@ -1604,6 +1604,8 @@ class Event(Jsonable):
                     attr[key] = value.upper()
         if self.type == "outbound":
             attrs = [a for a in attrs if list(a.keys())[0] != "id"]
+        if self.type == "refund":
+            attrs = [a for a in attrs if list(a.keys())[0] != "reason"]
         return hash(str(attrs))
 
     def __repr__(self):

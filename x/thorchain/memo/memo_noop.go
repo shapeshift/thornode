@@ -2,6 +2,8 @@ package thorchain
 
 import (
 	"fmt"
+
+	"github.com/blang/semver"
 )
 
 type NoOpMemo struct {
@@ -25,7 +27,16 @@ func NewNoOpMemo(action string) NoOpMemo {
 	}
 }
 
+func (p *parser) ParseNoOpMemo() (NoOpMemo, error) {
+	switch {
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseNoOpMemoV116()
+	default:
+		return ParseNoOpMemoV1(p.parts)
+	}
+}
+
 // ParseNoOpMemo try to parse the memo
-func ParseNoOpMemo(parts []string) (NoOpMemo, error) {
-	return NewNoOpMemo(GetPart(parts, 1)), nil
+func (p *parser) ParseNoOpMemoV116() (NoOpMemo, error) {
+	return NewNoOpMemo(p.get(1)), p.Error()
 }

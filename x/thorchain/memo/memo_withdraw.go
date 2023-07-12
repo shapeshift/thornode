@@ -1,8 +1,6 @@
 package thorchain
 
 import (
-	"fmt"
-
 	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	cosmos "gitlab.com/thorchain/thornode/common/cosmos"
@@ -26,27 +24,18 @@ func NewWithdrawLiquidityMemo(asset common.Asset, amt cosmos.Uint, withdrawalAss
 	}
 }
 
-func ParseWithdrawLiquidityMemo(version semver.Version, asset common.Asset, parts []string) (WithdrawLiquidityMemo, error) {
-	var err error
-	if len(parts) < 2 {
-		return WithdrawLiquidityMemo{}, fmt.Errorf("not enough parameters")
+func (p *parser) ParseWithdrawLiquidityMemo() (WithdrawLiquidityMemo, error) {
+	switch {
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseWithdrawLiquidityMemoV116()
+	default:
+		return ParseWithdrawLiquidityMemoV1(p.getAsset(1, true, common.EmptyAsset), p.parts)
 	}
-	withdrawalBasisPts := cosmos.ZeroUint()
-	withdrawalAsset := common.EmptyAsset
-	if len(parts) > 2 {
-		withdrawalBasisPts, err = cosmos.ParseUint(parts[2])
-		if err != nil {
-			return WithdrawLiquidityMemo{}, err
-		}
-		if withdrawalBasisPts.IsZero() || withdrawalBasisPts.GT(cosmos.NewUint(types.MaxWithdrawBasisPoints)) {
-			return WithdrawLiquidityMemo{}, fmt.Errorf("withdraw amount %s is invalid", parts[2])
-		}
-	}
-	if len(parts) > 3 {
-		withdrawalAsset, err = common.NewAssetWithShortCodes(version, parts[3])
-		if err != nil {
-			return WithdrawLiquidityMemo{}, err
-		}
-	}
-	return NewWithdrawLiquidityMemo(asset, withdrawalBasisPts, withdrawalAsset), nil
+}
+
+func (p *parser) ParseWithdrawLiquidityMemoV116() (WithdrawLiquidityMemo, error) {
+	asset := p.getAsset(1, true, common.EmptyAsset)
+	withdrawalBasisPts := p.getUintWithMaxValue(2, false, types.MaxWithdrawBasisPoints, types.MaxWithdrawBasisPoints)
+	withdrawalAsset := p.getAsset(3, false, common.EmptyAsset)
+	return NewWithdrawLiquidityMemo(asset, withdrawalBasisPts, withdrawalAsset), p.Error()
 }

@@ -1,9 +1,9 @@
 package thorchain
 
 import (
-	"errors"
 	"fmt"
-	"strconv"
+
+	"github.com/blang/semver"
 )
 
 type MigrateMemo struct {
@@ -26,13 +26,16 @@ func NewMigrateMemo(blockHeight int64) MigrateMemo {
 	}
 }
 
-func ParseMigrateMemo(parts []string) (MigrateMemo, error) {
-	if len(parts) < 2 {
-		return MigrateMemo{}, errors.New("not enough parameters")
+func (p *parser) ParseMigrateMemo() (MigrateMemo, error) {
+	switch {
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseMigrateMemoV116()
+	default:
+		return ParseMigrateMemoV1(p.parts)
 	}
-	blockHeight, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return MigrateMemo{}, fmt.Errorf("fail to convert (%s) to a valid block height: %w", parts[1], err)
-	}
-	return NewMigrateMemo(blockHeight), nil
+}
+
+func (p *parser) ParseMigrateMemoV116() (memo MigrateMemo, err error) {
+	blockHeight := p.getInt64(1, true, 0)
+	return NewMigrateMemo(blockHeight), p.Error()
 }

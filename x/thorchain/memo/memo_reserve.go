@@ -4,8 +4,8 @@ type ReserveMemo struct {
 	MemoBase
 }
 
-func NewReserveMemo() ReserveMemo {
+func (p *parser) ParseReserveMemo() (ReserveMemo, error) {
 	return ReserveMemo{
 		MemoBase: MemoBase{TxType: TxReserve},
-	}
+	}, nil
 }

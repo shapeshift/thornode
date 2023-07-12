@@ -3,6 +3,7 @@ package thorchain
 import (
 	"fmt"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 )
 
@@ -23,10 +24,16 @@ func NewOutboundMemo(txID common.TxID) OutboundMemo {
 	}
 }
 
-func ParseOutboundMemo(parts []string) (OutboundMemo, error) {
-	if len(parts) < 2 {
-		return OutboundMemo{}, fmt.Errorf("not enough parameters")
+func (p *parser) ParseOutboundMemo() (OutboundMemo, error) {
+	switch {
+	case p.version.GTE(semver.MustParse("1.116.0")):
+		return p.ParseOutboundMemoV116()
+	default:
+		return ParseOutboundMemoV1(p.parts)
 	}
-	txID, err := common.NewTxID(parts[1])
-	return NewOutboundMemo(txID), err
+}
+
+func (p *parser) ParseOutboundMemoV116() (OutboundMemo, error) {
+	txID := p.getTxID(1, true, common.BlankTxID)
+	return NewOutboundMemo(txID), p.Error()
 }

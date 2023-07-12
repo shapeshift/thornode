@@ -105,7 +105,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.IsOutbound(), Equals, false)
 
 	_, err = ParseMemoWithTHORNames(ctx, k, "add:BTC.BTC:tbnb1yeuljgpkg2c2qvx3nlmgv7gvnyss6ye2u8rasf:xxxx")
-	c.Assert(err, IsNil)
+	c.Assert(err, NotNil)
 
 	memo, err = ParseMemoWithTHORNames(ctx, k, fmt.Sprintf("-:%s:25", common.RuneAsset().String()))
 	c.Assert(err, IsNil)
@@ -188,7 +188,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 
 	memo, err = ParseMemoWithTHORNames(ctx, k, "leave:whatever")
 	c.Assert(err, NotNil)
-	c.Check(memo.IsType(TxUnknown), Equals, true)
+	c.Check(memo.IsType(TxLeave), Equals, true)
 
 	addr := types.GetRandomBech32Addr()
 	memo, err = ParseMemoWithTHORNames(ctx, k, fmt.Sprintf("leave:%s", addr.String()))
@@ -303,7 +303,7 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	_, err = ParseMemoWithTHORNames(ctx, k, "switch")
 	c.Assert(err, NotNil)
 	_, err = ParseMemoWithTHORNames(ctx, k, "switch:")
-	c.Assert(err, NotNil)
+	c.Assert(err, IsNil)
 }
 
 func (s *MemoSuite) TestParse(c *C) {
@@ -366,15 +366,18 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(memo.IsType(TxBond), Equals, true)
 	c.Assert(memo.GetAccAddress().String(), Equals, whiteListAddr.String())
-	mem, err := ParseBondMemo(k.GetVersion(), []string{"BOND", whiteListAddr.String(), bondProvider.String()})
+	parser, _ := newParser(ctx, k, k.GetVersion(), fmt.Sprintf("BOND:%s:%s", whiteListAddr.String(), bondProvider.String()))
+	mem, err := parser.ParseBondMemo()
 	c.Assert(err, IsNil)
 	c.Assert(mem.BondProviderAddress.String(), Equals, bondProvider.String())
 	c.Assert(mem.NodeOperatorFee, Equals, int64(-1))
-	mem, err = ParseBondMemo(k.GetVersion(), []string{"BOND", whiteListAddr.String(), bondProvider.String(), "0"})
+	parser, _ = newParser(ctx, k, k.GetVersion(), fmt.Sprintf("BOND:%s:%s:0", whiteListAddr.String(), bondProvider.String()))
+	mem, err = parser.ParseBondMemo()
 	c.Assert(err, IsNil)
 	c.Assert(mem.BondProviderAddress.String(), Equals, bondProvider.String())
 	c.Assert(mem.NodeOperatorFee, Equals, int64(0))
-	mem, err = ParseBondMemo(k.GetVersion(), []string{"BOND", whiteListAddr.String(), bondProvider.String(), "1000"})
+	parser, _ = newParser(ctx, k, k.GetVersion(), fmt.Sprintf("BOND:%s:%s:1000", whiteListAddr.String(), bondProvider.String()))
+	mem, err = parser.ParseBondMemo()
 	c.Assert(err, IsNil)
 	c.Assert(mem.BondProviderAddress.String(), Equals, bondProvider.String())
 	c.Assert(mem.NodeOperatorFee, Equals, int64(1000))
@@ -388,7 +391,8 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Assert(memo.IsType(TxUnbond), Equals, true)
 	c.Assert(memo.GetAccAddress().String(), Equals, whiteListAddr.String())
 	c.Assert(memo.GetAmount().Equal(cosmos.NewUint(300)), Equals, true)
-	unbondMemo, err := ParseUnbondMemo(k.GetVersion(), []string{"UNBOND", whiteListAddr.String(), "400", bondProvider.String()})
+	parser, _ = newParser(ctx, k, k.GetVersion(), fmt.Sprintf("UNBOND:%s:400:%s", whiteListAddr.String(), bondProvider.String()))
+	unbondMemo, err := parser.ParseUnbondMemo()
 	c.Assert(err, IsNil)
 	c.Assert(unbondMemo.BondProviderAddress.String(), Equals, bondProvider.String())
 
@@ -443,10 +447,8 @@ func (s *MemoSuite) TestParse(c *C) {
 	// swap memo parsing
 
 	// aff fee too high, should be reset to 10_000
-	memo, err = ParseMemoWithTHORNames(ctx, k, "swap:bnb.bnb:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:100:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:20000")
-	c.Assert(err, IsNil)
-	c.Check(memo.IsType(TxSwap), Equals, true)
-	c.Check(memo.String(), Equals, "=:BNB.BNB:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:100:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:10000")
+	_, err = ParseMemoWithTHORNames(ctx, k, "swap:bnb.bnb:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:100:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:20000")
+	c.Assert(err, NotNil)
 
 	// aff fee valid, don't change
 	memo, err = ParseMemoWithTHORNames(ctx, k, "swap:bnb.bnb:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:100:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:5000")
@@ -456,11 +458,8 @@ func (s *MemoSuite) TestParse(c *C) {
 
 	// add memo parsing
 
-	// aff fee too high, should be reset to 10_000
-	memo, err = ParseMemoWithTHORNames(ctx, k, "add:bnb.bnb:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:20000")
-	c.Assert(err, IsNil)
-	c.Check(memo.IsType(TxAdd), Equals, true)
-	c.Check(memo.String(), Equals, "+:BNB.BNB:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:10000")
+	_, err = ParseMemoWithTHORNames(ctx, k, "add:bnb.bnb:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:20000")
+	c.Assert(err, NotNil)
 
 	// aff fee valid, don't change
 	memo, err = ParseMemoWithTHORNames(ctx, k, "add:bnb.bnb:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:thor1z83z5t9vqxys8nhpkxk5zp6zym0lalcp8ywhvj:5000")

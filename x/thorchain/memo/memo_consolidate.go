@@ -17,6 +17,6 @@ func NewConsolidateMemo() ConsolidateMemo {
 }
 
 // ParseConsolidateMemo try to parse the memo
-func ParseConsolidateMemo(parts []string) (ConsolidateMemo, error) {
+func (p *parser) ParseConsolidateMemo() (ConsolidateMemo, error) {
 	return NewConsolidateMemo(), nil
 }
