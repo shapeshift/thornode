@@ -836,6 +836,13 @@ paths:
           type: integer
           format: int64
           example: 10
+      - name: streaming_quantity
+        in: query
+        description: the quantity of swaps within a streaming swap
+        schema:
+          type: integer
+          format: int64
+          example: 10
       - name: from_address
         in: query
         description: the from address, required if the from asset is a synth
@@ -2726,6 +2733,10 @@ components:
           type: integer
           format: int64
           description: the total swap slippage in basis points
+        streaming_slippage_bps:
+          type: integer
+          format: int64
+          description: the total streaming swap slippage in basis points
         router:
           type: string
           description: the EVM chain router contract address
@@ -2756,10 +2767,12 @@ components:
       type: object
       required:
         - expected_amount_out
+        - expected_amount_out_streaming
         - outbound_delay_blocks
         - outbound_delay_seconds
         - fees
         - slippage_bps
+        - streaming_slippage_bps
         - warning
         - notes
         - expiry
@@ -2772,6 +2785,10 @@ components:
         expected_amount_out:
           type: string
           description: the amount of the target asset the user can expect to receive after fees
+          example: "10000"
+        expected_amount_out_streaming:
+          type: string
+          description: the amount of the target asset the user can expect to receive after fees for a streaming swap
           example: "10000"
         max_streaming_quantity:
           type: integer
@@ -2788,11 +2805,6 @@ components:
           format: int64
           description: approx the number of seconds the streaming swap will execute over
           example: 600
-        approx_streaming_savings:
-          type: number
-          format: float
-          description: approx savings in swap fees from streaming swap
-          example: 0.5
         total_swap_seconds:
           type: integer
           format: int64

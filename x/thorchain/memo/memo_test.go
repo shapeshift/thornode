@@ -143,6 +143,14 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(swapMemo.GetStreamInterval(), Equals, uint64(10))
 	c.Check(swapMemo.String(), Equals, "=:THOR.RUNE:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:1200/10/20")
 
+	memo, err = ParseMemoWithTHORNames(ctx, k, "=:"+common.RuneAsset().String()+":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6://")
+	c.Assert(err, IsNil)
+	c.Check(memo.GetSlipLimit().String(), Equals, "0")
+	swapMemo, ok = memo.(SwapMemo)
+	c.Assert(ok, Equals, true)
+	c.Check(swapMemo.GetStreamQuantity(), Equals, uint64(0))
+	c.Check(swapMemo.GetStreamInterval(), Equals, uint64(0))
+
 	// wacky lending tests
 	_, err = ParseMemoWithTHORNames(ctx, k, fmt.Sprintf("=:%s:bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:1200/10/20abc", common.RuneAsset()))
 	c.Assert(err, NotNil)

@@ -242,11 +242,6 @@ func (s *HandlerSwapSuite) TestValidationWithStreamingSwap(c *C) {
 	err = handler.validate(ctx, *msg)
 	c.Assert(err, NotNil)
 	mgr.Keeper().SetMimir(ctx, "StreamingSwapPause", 0)
-
-	// too small of a trade
-	msg.Tx.Coins[0].Amount = cosmos.NewUint(1)
-	err = handler.validate(ctx, *msg)
-	c.Assert(err, NotNil)
 }
 
 func (s *HandlerSwapSuite) TestHandle(c *C) {

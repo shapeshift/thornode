@@ -142,6 +142,11 @@ func (p *parser) ParseSwapMemoV116() (SwapMemo, error) {
 	var streamInterval, streamQuantity uint64
 	if strings.Contains(p.get(3), "/") {
 		parts := strings.SplitN(p.get(3), "/", 3)
+		for i := range parts {
+			if parts[i] == "" {
+				parts[i] = "0"
+			}
+		}
 		if len(parts) < 1 {
 			return SwapMemo{}, fmt.Errorf("invalid streaming swap format: %s", p.get(3))
 		}

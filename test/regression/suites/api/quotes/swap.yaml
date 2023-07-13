@@ -503,10 +503,37 @@ params:
   destination: {{ addr_btc_fox }}
   streaming_interval: 10
 asserts:
-  - .memo == "=:BTC.BTC:{{ addr_btc_fox }}:0/10/19"
+  - .memo == "=:BTC.BTC:{{ addr_btc_fox }}:0/10/0"
   - .max_streaming_quantity == 19
-  - .approx_streaming_savings == 0.94736844
-  - .streaming_swap_blocks == 190
-  - .streaming_swap_seconds == 1140
-  - .total_swap_seconds == 1140
+  - .streaming_swap_blocks == 180
+  - .slippage_bps == 1636
+  - .streaming_slippage_bps == 101
+  - .streaming_swap_seconds == 1080
+  - .total_swap_seconds == 1080
+  - .expected_amount_out == "7006788"
+  - .expected_amount_out_streaming == "9665246"
+---
+########################################################################################
+# quote and swap a streaming swap with specified quantity
+########################################################################################
+type: check
+description: check swap quote
+endpoint: http://localhost:1317/thorchain/quote/swap
+params:
+  from_asset: ETH.ETH
+  to_asset: BTC.BTC
+  amount: 100000000
+  destination: {{ addr_btc_fox }}
+  streaming_interval: 10
+  streaming_quantity: 10
+asserts:
+  - .memo == "=:BTC.BTC:{{ addr_btc_fox }}:0/10/10"
+  - .max_streaming_quantity == 19
+  - .streaming_swap_blocks == 90
+  - .streaming_swap_seconds == 540
+  - .slippage_bps == 1636
+  - .streaming_slippage_bps == 191
+  - .total_swap_seconds == 540
+  - .expected_amount_out == "7006788"
+  - .expected_amount_out_streaming == "9492080"
 ---

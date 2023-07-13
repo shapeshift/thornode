@@ -162,6 +162,18 @@ func refundTxV110(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uin
 }
 
 func getMaxSwapQuantity(ctx cosmos.Context, mgr Manager, sourceAsset, targetAsset common.Asset, swp StreamingSwap) (uint64, error) {
+	version := mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return getMaxSwapQuantityV116(ctx, mgr, sourceAsset, targetAsset, swp)
+	case version.GTE(semver.MustParse("1.115.0")):
+		return getMaxSwapQuantityV115(ctx, mgr, sourceAsset, targetAsset, swp)
+	default:
+		return 0, errBadVersion
+	}
+}
+
+func getMaxSwapQuantityV116(ctx cosmos.Context, mgr Manager, sourceAsset, targetAsset common.Asset, swp StreamingSwap) (uint64, error) {
 	if swp.Interval == 0 {
 		return 0, nil
 	}
@@ -219,11 +231,8 @@ func getMaxSwapQuantity(ctx cosmos.Context, mgr Manager, sourceAsset, targetAsse
 		// recalculated to be the asset side
 		virtualDepth = common.GetUncappedShare(virtualDepth, pools[0].BalanceRune, pools[0].BalanceAsset)
 	}
-	// we divide by 2 because a swap size of 5bps (of the pool) will create a
-	// 10bps swap fee. Since this param is for the swap fee, not swap size, we
-	// divide by 2
-	// we multiply by 100 to ensure we can support decimal points (ie 5bps / 2 / 2 == 1.25)
-	minBP := mgr.Keeper().GetConfigInt64(ctx, constants.StreamingSwapMinBPFee) * constants.StreamingSwapMinBPFeeMulti / 2
+	// we multiply by 100 to ensure we can support decimal points (ie 2.5bps / 2 == 1.25)
+	minBP := mgr.Keeper().GetConfigInt64(ctx, constants.StreamingSwapMinBPFee) * constants.StreamingSwapMinBPFeeMulti
 	minBP /= int64(len(pools)) // since multiple swaps are executed, then minBP should be adjusted
 	if minBP == 0 {
 		return 0, fmt.Errorf("streaming swaps are not allows with a min BP of zero")

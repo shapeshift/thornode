@@ -43,6 +43,7 @@ const (
 	affiliateBpsParam         = "affiliate_bps"
 	minOutParam               = "min_out"
 	intervalParam             = "streaming_interval"
+	quantityParam             = "streaming_quantity"
 
 	quoteWarning    = "Do not cache this response. Do not send funds after the expiry."
 	quoteExpiration = 15 * time.Minute
@@ -392,13 +393,24 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 			return quoteErrorResponse(fmt.Errorf("bad streaming interval amount: %w", err))
 		}
 	}
+	streamingQuantity := uint64(0) // default value
+	if len(params[quantityParam]) > 0 {
+		streamingQuantity, err = strconv.ParseUint(params[quantityParam][0], 10, 64)
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("bad streaming quantity amount: %w", err))
+		}
+	}
 	swp := StreamingSwap{
 		Interval: streamingInterval,
 		Deposit:  amount,
 	}
 	maxSwapQuantity, err := getMaxSwapQuantity(ctx, mgr, fromAsset, toAsset, swp)
 	if err != nil {
-		return quoteErrorResponse(fmt.Errorf("failed to calculate max streaming swap quantity"))
+		return quoteErrorResponse(fmt.Errorf("failed to calculate max streaming swap quantity: %w", err))
+	}
+
+	if streamingQuantity > maxSwapQuantity {
+		return quoteErrorResponse(fmt.Errorf("streaming quantity cannot exceed max stream quantity: %d/%d", streamingQuantity, maxSwapQuantity))
 	}
 
 	// if from asset is a synth, transfer asset to asgard module
@@ -524,7 +536,7 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		AffiliateAddress:     common.Address(affiliateMemo),
 		AffiliateBasisPoints: affiliateBps,
 		StreamInterval:       streamingInterval,
-		StreamQuantity:       maxSwapQuantity,
+		StreamQuantity:       streamingQuantity,
 	}
 
 	// if from asset chain has memo length restrictions use a prefix
@@ -567,24 +579,48 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		return quoteErrorResponse(fmt.Errorf("failed to simulate swap: %w", err))
 	}
 
-	// check invariant
-	if emitAmount.LT(outboundFeeAmount) {
+	// if we're using a streaming swap, calculate emit amount by a sub-swap
+	// amount instead of the full amount, then multiply the result by the swap
+	// count
+	if streamingInterval > 0 && streamingQuantity == 0 {
+		streamingQuantity = maxSwapQuantity
+	}
+	res.StreamingSlippageBps = res.SlippageBps
+	emitAmountStream := emitAmount
+	if streamingInterval > 0 && streamingQuantity > 0 {
+		msg.Tx.Coins[0].Amount = msg.Tx.Coins[0].Amount.QuoUint64(streamingQuantity)
+
+		// simulate the swap
+		streamRes, emit, outboundFeeAmount, err := quoteSimulateSwap(ctx, mgr, amount, msg)
+		if err != nil {
+			return quoteErrorResponse(fmt.Errorf("failed to simulate swap: %w", err))
+		}
+		res.StreamingSlippageBps = streamRes.SlippageBps
+
+		// multiply the amounts by the number of swaps we have in our streaming
+		// swap
+		emitAmountStream = emit.MulUint64(streamingQuantity)
+		// check invariant
+		if emitAmountStream.LT(outboundFeeAmount) {
+			return quoteErrorResponse(fmt.Errorf("invariant broken: emit %s less than outbound fee %s", emitAmount, outboundFeeAmount))
+		}
+	} else if emitAmount.LT(outboundFeeAmount) {
 		return quoteErrorResponse(fmt.Errorf("invariant broken: emit %s less than outbound fee %s", emitAmount, outboundFeeAmount))
 	}
 
 	// the amount out will deduct the outbound fee
 	res.ExpectedAmountOut = emitAmount.Sub(outboundFeeAmount).String()
+	res.ExpectedAmountOutStreaming = emitAmountStream.Sub(outboundFeeAmount).String()
 	res.Fees.Outbound = outboundFeeAmount.String()
 
 	maxQ := int64(maxSwapQuantity)
 	res.MaxStreamingQuantity = &maxQ
-	streamSwapBlocks := int64(streamingInterval) * maxQ
+	var streamSwapBlocks int64
+	if streamingQuantity > 0 {
+		streamSwapBlocks = int64(streamingInterval) * int64(streamingQuantity-1)
+	}
 	res.StreamingSwapBlocks = &streamSwapBlocks
 	res.StreamingSwapSeconds = wrapInt64(streamSwapBlocks * common.THORChain.ApproximateBlockMilliseconds() / 1000)
-	if maxQ > 0 {
-		approxSavings := float32(maxQ-1) / float32(maxQ)
-		res.ApproxStreamingSavings = &approxSavings
-	}
 
 	// estimate the inbound info
 	inboundAddress, routerAddress, inboundConfirmations, err := quoteInboundInfo(ctx, mgr, amount, fromAsset.GetChain())
@@ -605,8 +641,8 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	res.OutboundDelayBlocks = outboundDelay
 	res.OutboundDelaySeconds = outboundDelay * common.THORChain.ApproximateBlockMilliseconds() / 1000
 	totalSeconds := res.OutboundDelaySeconds
-	if res.StreamingSwapSeconds != nil {
-		totalSeconds += *res.StreamingSwapSeconds
+	if res.StreamingSwapSeconds != nil && res.OutboundDelaySeconds < *res.StreamingSwapSeconds {
+		totalSeconds = *res.StreamingSwapSeconds
 	}
 	if inboundConfirmations > 0 {
 		totalSeconds += *res.InboundConfirmationSeconds

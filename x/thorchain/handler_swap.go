@@ -44,6 +44,8 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return h.validateV116(ctx, msg)
 	case version.GTE(semver.MustParse("1.113.0")):
 		return h.validateV113(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
@@ -65,7 +67,7 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	}
 }
 
-func (h SwapHandler) validateV113(ctx cosmos.Context, msg MsgSwap) error {
+func (h SwapHandler) validateV116(ctx cosmos.Context, msg MsgSwap) error {
 	if err := msg.ValidateBasicV63(); err != nil {
 		return err
 	}
@@ -76,8 +78,6 @@ func (h SwapHandler) validateV113(ctx cosmos.Context, msg MsgSwap) error {
 	}
 
 	if msg.IsStreaming() {
-		sourceAsset := msg.Tx.Coins[0].Asset
-		targetAsset := msg.TargetAsset
 		pausedStreaming := fetchConfigInt64(ctx, h.mgr, constants.StreamingSwapPause)
 		if pausedStreaming > 0 {
 			return fmt.Errorf("streaming swaps are paused")
@@ -93,22 +93,7 @@ func (h SwapHandler) validateV113(ctx cosmos.Context, msg MsgSwap) error {
 			}
 		}
 
-		if swp.Count == 0 { // only check these verifications on the first swap of a streaming swap
-			maxLength := fetchConfigInt64(ctx, h.mgr, constants.StreamingSwapMaxLength)
-			if uint64(maxLength) < swp.Interval*swp.Quantity {
-				return fmt.Errorf("streaming swap cannot exceed %d blocks: %d * %d", maxLength, swp.Quantity, swp.Interval)
-			}
-
-			maxSwapQuantity, err := getMaxSwapQuantity(ctx, h.mgr, sourceAsset, targetAsset, swp)
-			if err != nil {
-				return err
-			}
-			if maxSwapQuantity < swp.Quantity {
-				return fmt.Errorf("streaming swap is too small for this quantity of swaps. Reduce the swap quantity: %d>%d", swp.Quantity, maxSwapQuantity)
-			}
-			//////////////////////////////////////////////////////////////////////
-			//////////////////////////////////////////////////////////////////////
-		} else if swp.IsDone() || swp.In.GTE(swp.Deposit) {
+		if (swp.Quantity > 0 && swp.IsDone()) || swp.In.GTE(swp.Deposit) {
 			// check both swap count and swap in vs deposit to cover all basis
 			return fmt.Errorf("streaming swap is completed, cannot continue to swap again")
 		}
@@ -210,6 +195,8 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	ctx.Logger().Info("receive MsgSwap", "request tx hash", msg.Tx.ID, "source asset", msg.Tx.Coins[0].Asset, "target asset", msg.TargetAsset, "signer", msg.Signer.String())
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return h.handleV116(ctx, msg)
 	case version.GTE(semver.MustParse("1.110.0")):
 		return h.handleV110(ctx, msg)
 	case version.GTE(semver.MustParse("1.108.0")):
@@ -233,7 +220,7 @@ func (h SwapHandler) handle(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, er
 	}
 }
 
-func (h SwapHandler) handleV110(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
+func (h SwapHandler) handleV116(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result, error) {
 	// test that the network we are running matches the destination network
 	// Don't change msg.Destination here; this line was introduced to avoid people from swapping mainnet asset,
 	// but using testnet address.
@@ -274,12 +261,22 @@ func (h SwapHandler) handleV110(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 				return nil, err
 			}
 		}
-		if swp.Quantity == 0 {
+		// for first swap only, override interval and quantity (if needed)
+		if swp.Count == 0 {
+			// ensure interval is never larger than max length, override if so
+			maxLength := fetchConfigInt64(ctx, h.mgr, constants.StreamingSwapMaxLength)
+			if uint64(maxLength) < swp.Interval {
+				swp.Interval = uint64(maxLength)
+			}
+
 			sourceAsset := msg.Tx.Coins[0].Asset
 			targetAsset := msg.TargetAsset
-			swp.Quantity, err = getMaxSwapQuantity(ctx, h.mgr, sourceAsset, targetAsset, swp)
+			maxSwapQuantity, err := getMaxSwapQuantity(ctx, h.mgr, sourceAsset, targetAsset, swp)
 			if err != nil {
 				return nil, err
+			}
+			if swp.Quantity == 0 || swp.Quantity > maxSwapQuantity {
+				swp.Quantity = maxSwapQuantity
 			}
 		}
 		h.mgr.Keeper().SetStreamingSwap(ctx, swp)
@@ -287,7 +284,7 @@ func (h SwapHandler) handleV110(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		// NOTE: its okay if the amount is zero. The swap will fail as it
 		// should, which will cause the swap queue manager later to send out
 		// the In/Out amounts accordingly
-		msg.Tx.Coins[0].Amount, msg.TradeTarget = swp.NextSize()
+		msg.Tx.Coins[0].Amount, msg.TradeTarget = swp.NextSize(h.mgr.GetVersion())
 	}
 
 	emit, _, swapErr := swapper.Swap(

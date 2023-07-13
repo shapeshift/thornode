@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 
+	"github.com/blang/semver"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
@@ -34,11 +35,21 @@ func (m *StreamingSwap) Valid() error {
 	return nil
 }
 
-func (m *StreamingSwap) NextSize() (cosmos.Uint, cosmos.Uint) {
+func (m *StreamingSwap) NextSize(version semver.Version) (cosmos.Uint, cosmos.Uint) {
+	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return m.NextSizeV116()
+	default:
+		return m.NextSizeV115()
+	}
+}
+
+func (m *StreamingSwap) NextSizeV116() (cosmos.Uint, cosmos.Uint) {
 	swapSize := m.DefaultSwapSize()
 
 	// sanity check, ensure we never exceed the deposit amount
-	if m.Deposit.LT(m.In.Add(swapSize)) {
+	// Also, if this is the last swap, just do the remainder
+	if m.Deposit.LT(m.In.Add(swapSize)) || m.Count+1 >= m.Quantity {
 		// use remainder of `m.Depost - m.In` instead
 		swapSize = common.SafeSub(m.Deposit, m.In)
 	}

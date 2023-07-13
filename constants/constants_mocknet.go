@@ -23,7 +23,7 @@ func init() {
 		JailTimeKeygen:                      10,
 		JailTimeKeysign:                     10,
 		AsgardSize:                          6,
-		StreamingSwapMinBPFee:               200,
+		StreamingSwapMinBPFee:               100,
 		MinimumNodesForYggdrasil:            4,
 		VirtualMultSynthsBasisPoints:        20_000,
 		MinTxOutVolumeThreshold:             2000000_00000000,
