@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
 // removeTransactions is a method used to remove a tx out item in the queue
@@ -305,4 +306,42 @@ func resetObservationHeights(ctx cosmos.Context, mgr *Mgrs, version int, chain c
 
 	// force set chain height
 	mgr.Keeper().ForceSetLastChainHeight(ctx, chain, height)
+}
+
+// send RuneToTransfer from ModuleName to RuneRecipient
+// burn SynthsToBurn from ModuleName
+type ModuleBalanceAction struct {
+	ModuleName     string
+	RuneRecipient  string
+	RuneToTransfer cosmos.Uint
+	SynthsToBurn   common.Coins
+}
+
+func processModuleBalanceActions(ctx cosmos.Context, k keeper.Keeper, actions []ModuleBalanceAction) {
+	for _, action := range actions {
+		// transfer rune between modules if required
+		if !action.RuneToTransfer.IsZero() {
+			coin := common.NewCoin(common.RuneAsset(), action.RuneToTransfer)
+			coins := common.NewCoins(coin)
+			err := k.SendFromModuleToModule(ctx, action.ModuleName, action.RuneRecipient, coins)
+			if err != nil {
+				ctx.Logger().Error("fail to migrate rune", err)
+			}
+		}
+
+		// burn synths from module if required
+		if len(action.SynthsToBurn) > 0 {
+			err := k.SendFromModuleToModule(ctx, action.ModuleName, ModuleName, action.SynthsToBurn)
+			if err != nil {
+				ctx.Logger().Error("fail to migrate synths", err)
+				continue
+			}
+			for _, coin := range action.SynthsToBurn {
+				err := k.BurnFromModule(ctx, ModuleName, coin)
+				if err != nil {
+					ctx.Logger().Error("fail to burn migrated synths", err)
+				}
+			}
+		}
+	}
 }

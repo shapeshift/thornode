@@ -483,3 +483,106 @@ func migrateStoreV113(ctx cosmos.Context, mgr *Mgrs) {
 }
 
 func migrateStoreV114(ctx cosmos.Context, mgr *Mgrs) {}
+
+func migrateStoreV116(ctx cosmos.Context, mgr *Mgrs) {
+	// query /thorchain/invariant/[bond,asgard,thorchain]
+	bondRuneOver := cosmos.NewUint(6936532592883)
+	asgardRuneUnder := cosmos.NewUint(5082320319988)
+	thorchainRuneOver := cosmos.NewUint(100000000)
+
+	// non-gas synth assets
+	avaxUSDC, _ := common.NewAsset("avax/usdc-0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e")
+	ethFOX, _ := common.NewAsset("eth/fox-0xc770eefad204b5180df6a14ee197d99d808ee52d")
+	ethUSDC, _ := common.NewAsset("eth/usdc-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
+	ethUSDT, _ := common.NewAsset("eth/usdt-0xdac17f958d2ee523a2206206994597c13d831ec7")
+	terraUST, _ := common.NewAsset("terra/ust")
+
+	actions := []ModuleBalanceAction{
+		// send rune from bond oversolvency to fix asgard insolvency
+		{
+			ModuleName:     BondName,
+			RuneRecipient:  AsgardName,
+			RuneToTransfer: asgardRuneUnder,
+			SynthsToBurn:   common.Coins{},
+		},
+
+		// send remaining bond rune oversolvency to reserve
+		{
+			ModuleName:     BondName,
+			RuneRecipient:  ReserveName,
+			RuneToTransfer: common.SafeSub(bondRuneOver, asgardRuneUnder),
+			SynthsToBurn:   common.Coins{},
+		},
+
+		// burn synths from asgard to fix oversolvencies
+		{
+			ModuleName:     AsgardName,
+			RuneRecipient:  AsgardName, // noop
+			RuneToTransfer: cosmos.ZeroUint(),
+			SynthsToBurn: common.Coins{
+				{
+					Asset:  common.AVAXAsset.GetSyntheticAsset(),
+					Amount: cosmos.NewUint(1000001),
+				},
+				{
+					Asset:  avaxUSDC,
+					Amount: cosmos.NewUint(4581),
+				},
+				{
+					Asset:  common.BCHAsset.GetSyntheticAsset(),
+					Amount: cosmos.NewUint(20529),
+				},
+				{
+					Asset:  common.BNBAsset.GetSyntheticAsset(),
+					Amount: cosmos.NewUint(99999),
+				},
+				{
+					Asset:  common.BTCAsset.GetSyntheticAsset(),
+					Amount: cosmos.NewUint(942067),
+				},
+				{
+					Asset:  common.DOGEAsset.GetSyntheticAsset(),
+					Amount: cosmos.NewUint(4400752724),
+				},
+				{
+					Asset:  common.ETHAsset.GetSyntheticAsset(),
+					Amount: cosmos.NewUint(4455527),
+				},
+				{
+					Asset:  ethFOX,
+					Amount: cosmos.NewUint(215666666666),
+				},
+				{
+					Asset:  ethUSDC,
+					Amount: cosmos.NewUint(21884753549),
+				},
+				{
+					Asset:  ethUSDT,
+					Amount: cosmos.NewUint(281542),
+				},
+				{
+					Asset:  common.ATOMAsset.GetSyntheticAsset(),
+					Amount: cosmos.NewUint(1039626),
+				},
+				{
+					Asset:  common.LUNAAsset.GetSyntheticAsset(),
+					Amount: cosmos.NewUint(2527),
+				},
+				{
+					Asset:  terraUST,
+					Amount: cosmos.NewUint(29955102645),
+				},
+			},
+		},
+
+		// transfer rune from thorchain to reserve to clear thorchain balances
+		{
+			ModuleName:     ModuleName,
+			RuneRecipient:  ReserveName,
+			RuneToTransfer: thorchainRuneOver,
+			SynthsToBurn:   common.Coins{},
+		},
+	}
+
+	processModuleBalanceActions(ctx, mgr.Keeper(), actions)
+}

@@ -1,0 +1,106 @@
+{{ template "default-state.yaml" }}
+---
+{{ template "btc-pool-state.yaml" }}
+---
+type: state
+genesis:
+  app_state:
+    thorchain:
+      store_version: "115"
+      node_accounts:
+        - active_block_height: "0"
+          bond: "10000000000000"
+          ip_address: 1.1.1.1
+          node_address: {{ addr_thor_dog }}
+          bond_address: {{ addr_thor_dog }}
+          pub_key_set:
+            secp256k1: "tthorpub1addwnpepqfshsq2y6ejy2ysxmq4gj8n8mzuzyulk9wh4n946jv5w2vpwdn2yuyp6sp4"
+            ed25519: "tthorpub1zcjduepqfan43w2emjhfv45gspf98squqlnl2rcchc3e4dx7z2nxr27edflsy2e8ql"
+          signer_membership: []
+          status: Active
+          validator_cons_pub_key: tthorcpub1zcjduepqq75h7uy6qhesh9d3a9tuk0mzrnc46u8rye44ze6peua3zmpfh23q8z37sz
+          version: "1.115.0"
+      pools:
+        - LP_units: "100000000000"
+          asset: BTC.BTC
+          balance_asset: "100000000"
+          balance_rune: "5082320319989"
+          decimals: "8"
+          pending_inbound_asset: "0"
+          pending_inbound_rune: "0"
+          status: Available
+          synth_units: "0"
+    bank:
+      balances:
+        - address: {{ addr_module_bond }}
+          coins:
+            - amount: "16936522592883"
+              denom: rune
+        - address: {{ addr_module_asgard }}
+          coins:
+            - amount: "1000001"
+              denom: "avax/avax"
+            - amount: "1"
+              denom: rune
+        - address: {{ addr_module_thorchain }}
+          coins:
+            - amount: "100000000"
+              denom: rune
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: the version should currently be 1.115.0
+endpoint: http://localhost:1317/thorchain/version
+asserts:
+  - .|.current == "1.115.0"
+---
+type: check
+description: bond module invariant should be broken
+endpoint: http://localhost:1317/thorchain/invariant/bond
+asserts:
+  - .broken == true
+---
+type: check
+description: asgard module invariant should be broken
+endpoint: http://localhost:1317/thorchain/invariant/asgard
+asserts:
+  - .broken == true
+---
+type: check
+description: thorchain module invariant should be broken
+endpoint: http://localhost:1317/thorchain/invariant/thorchain
+asserts:
+  - .broken == true
+---
+type: tx-version
+version: "1.116.0"
+signer: {{ addr_thor_dog }}
+---
+type: create-blocks
+count: 2  # need to produce two blocks for migration to take place
+---
+type: check
+description: version should be updated
+endpoint: http://localhost:1317/thorchain/version
+asserts:
+  - .|.current == "1.116.0"
+---
+type: check
+description: bond module invariant should be fixed
+endpoint: http://localhost:1317/thorchain/invariant/bond
+asserts:
+  - .broken == false
+---
+type: check
+description: asgard module invariant should be fixed
+endpoint: http://localhost:1317/thorchain/invariant/asgard
+asserts:
+  - .broken == false
+---
+type: check
+description: thorchain module invariant should be fixed
+endpoint: http://localhost:1317/thorchain/invariant/thorchain
+asserts:
+  - .broken == false
