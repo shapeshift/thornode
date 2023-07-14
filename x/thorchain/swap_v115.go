@@ -9,24 +9,23 @@ import (
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
-	"gitlab.com/thorchain/thornode/constants"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type SwapperV116 struct {
+type SwapperV115 struct {
 	coinsToBurn common.Coins
 	coinsToMint common.Coins
 }
 
-func newSwapperV116() *SwapperV116 {
-	return &SwapperV116{
+func newSwapperV115() *SwapperV115 {
+	return &SwapperV115{
 		coinsToBurn: make(common.Coins, 0),
 		coinsToMint: make(common.Coins, 0),
 	}
 }
 
 // validateMessage is trying to validate the legitimacy of the incoming message and decide whether THORNode can handle it
-func (s *SwapperV116) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
+func (s *SwapperV115) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
 	if err := tx.Valid(); err != nil {
 		return err
 	}
@@ -40,7 +39,7 @@ func (s *SwapperV116) validateMessage(tx common.Tx, target common.Asset, destina
 	return nil
 }
 
-func (s *SwapperV116) Swap(ctx cosmos.Context,
+func (s *SwapperV115) Swap(ctx cosmos.Context,
 	keeper keeper.Keeper,
 	tx common.Tx,
 	target common.Asset,
@@ -60,13 +59,13 @@ func (s *SwapperV116) Swap(ctx cosmos.Context,
 	source := tx.Coins[0].Asset
 
 	if source.IsSyntheticAsset() {
-		burnHeight := mgr.Keeper().GetConfigInt64(ctx, constants.BurnSynths)
+		burnHeight, _ := keeper.GetMimir(ctx, "BurnSynths")
 		if burnHeight > 0 && ctx.BlockHeight() > burnHeight {
 			return cosmos.ZeroUint(), swapEvents, fmt.Errorf("burning synthetics has been disabled")
 		}
 	}
 	if target.IsSyntheticAsset() {
-		mintHeight := mgr.Keeper().GetConfigInt64(ctx, constants.MintSynths)
+		mintHeight, _ := keeper.GetMimir(ctx, "MintSynths")
 		if mintHeight > 0 && ctx.BlockHeight() > mintHeight {
 			return cosmos.ZeroUint(), swapEvents, fmt.Errorf("minting synthetics has been disabled")
 		}
@@ -200,7 +199,7 @@ func (s *SwapperV116) Swap(ctx cosmos.Context,
 	return assetAmount, swapEvents, nil
 }
 
-func (s *SwapperV116) burnCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
+func (s *SwapperV115) burnCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
 	err := mgr.Keeper().SendFromModuleToModule(ctx, AsgardName, ModuleName, coins)
 	if err != nil {
 		ctx.Logger().Error("fail to move coins during swap", "error", err)
@@ -219,7 +218,7 @@ func (s *SwapperV116) burnCoins(ctx cosmos.Context, mgr Manager, coins common.Co
 	return nil
 }
 
-func (s *SwapperV116) mintCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
+func (s *SwapperV115) mintCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
 	if len(coins) == 0 {
 		return nil
 	}
@@ -241,7 +240,7 @@ func (s *SwapperV116) mintCoins(ctx cosmos.Context, mgr Manager, coins common.Co
 	return nil
 }
 
-func (s *SwapperV116) swapOne(ctx cosmos.Context,
+func (s *SwapperV115) swapOne(ctx cosmos.Context,
 	mgr Manager, tx common.Tx,
 	target common.Asset,
 	destination common.Address,
@@ -393,7 +392,7 @@ func (s *SwapperV116) swapOne(ctx cosmos.Context,
 
 // calculate the number of assets sent to the address (includes liquidity fee)
 // nolint
-func (s *SwapperV116) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV115) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x * X * Y ) / ( x + X )^2
 	numerator := x.Mul(X).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -405,7 +404,7 @@ func (s *SwapperV116) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 
 // CalculateLiquidityFee the fee of the swap
 // nolint
-func (s *SwapperV116) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV115) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x^2 *  Y ) / ( x + X )^2
 	numerator := x.Mul(x).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -417,7 +416,7 @@ func (s *SwapperV116) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 
 // CalcSwapSlip - calculate the swap slip, expressed in basis points (10000)
 // nolint
-func (s *SwapperV116) CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
+func (s *SwapperV115) CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// Cast to DECs
 	xD := cosmos.NewDecFromBigInt(xi.BigInt())
 	XD := cosmos.NewDecFromBigInt(Xi.BigInt())

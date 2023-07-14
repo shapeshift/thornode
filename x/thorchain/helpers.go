@@ -716,34 +716,6 @@ func emitPoolBalanceChangedEvent(ctx cosmos.Context, poolMod PoolMod, reason str
 	}
 }
 
-// isSynthMintPaused fails validation if synth supply is already too high, relative to pool depth
-func isSynthMintPaused(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
-	version := mgr.GetVersion()
-	switch {
-	case version.GTE(semver.MustParse("1.103.0")):
-		return isSynthMintPausedV103(ctx, mgr, targetAsset, outputAmt)
-	case version.GTE(semver.MustParse("1.102.0")):
-		return isSynthMintPausedV102(ctx, mgr, targetAsset, outputAmt)
-	case version.GTE(semver.MustParse("1.99.0")):
-		return isSynthMintPausedV99(ctx, mgr, targetAsset, outputAmt)
-	default:
-		return nil
-	}
-}
-
-func isSynthMintPausedV102(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
-	remaining, err := getSynthSupplyRemainingV102(ctx, mgr, targetAsset)
-	if err != nil {
-		return err
-	}
-
-	if remaining.LT(outputAmt) {
-		return fmt.Errorf("insufficient synth capacity: want=%d have=%d", outputAmt.Uint64(), remaining.Uint64())
-	}
-
-	return nil
-}
-
 func getSynthSupplyRemainingV102(ctx cosmos.Context, mgr Manager, asset common.Asset) (cosmos.Uint, error) {
 	maxSynths, err := mgr.Keeper().GetMimir(ctx, constants.MaxSynthPerPoolDepth.String())
 	if maxSynths < 0 || err != nil {
@@ -768,9 +740,26 @@ func getSynthSupplyRemainingV102(ctx cosmos.Context, mgr Manager, asset common.A
 	return maxSynthSupply.Sub(synthSupply), nil
 }
 
-func isSynthMintPausedV103(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
-	mintHeight, err := mgr.Keeper().GetMimir(ctx, "MintSynths")
-	if (mintHeight > 0 && ctx.BlockHeight() > mintHeight) || err != nil {
+// isSynthMintPaused fails validation if synth supply is already too high, relative to pool depth
+func isSynthMintPaused(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
+	version := mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return isSynthMintPausedV116(ctx, mgr, targetAsset, outputAmt)
+	case version.GTE(semver.MustParse("1.103.0")):
+		return isSynthMintPausedV103(ctx, mgr, targetAsset, outputAmt)
+	case version.GTE(semver.MustParse("1.102.0")):
+		return isSynthMintPausedV102(ctx, mgr, targetAsset, outputAmt)
+	case version.GTE(semver.MustParse("1.99.0")):
+		return isSynthMintPausedV99(ctx, mgr, targetAsset, outputAmt)
+	default:
+		return nil
+	}
+}
+
+func isSynthMintPausedV116(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
+	mintHeight := mgr.Keeper().GetConfigInt64(ctx, constants.MintSynths)
+	if mintHeight > 0 && ctx.BlockHeight() > mintHeight {
 		return fmt.Errorf("minting synthetics has been disabled")
 	}
 

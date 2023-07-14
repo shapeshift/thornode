@@ -30,6 +30,8 @@ type Swapper interface {
 // GetSwapper return an implementation of Swapper
 func GetSwapper(version semver.Version) (Swapper, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return newSwapperV116(), nil
 	case version.GTE(semver.MustParse("1.115.0")):
 		return newSwapperV115(), nil
 	case version.GTE(semver.MustParse("1.110.0")):

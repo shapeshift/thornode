@@ -12,8 +12,6 @@ fi
 
 NODES="${NODES:=1}"
 SEED="${SEED:=thornode}" # the hostname of the master node
-ETH_HOST="${ETH_HOST:=http://ethereum:8545}"
-AVAX_HOST="${AVAX_HOST:=http://avalanche:9650}"
 THOR_BLOCK_TIME="${THOR_BLOCK_TIME:=5s}"
 CHAIN_ID=${CHAIN_ID:=thorchain}
 
@@ -67,6 +65,11 @@ if [ "$SEED" = "$(hostname)" ]; then
       # deploy evm contracts
       deploy_evm_contracts
 
+    elif [ "$NET" = "stagenet" ]; then
+      if [ -z ${FAUCET+x} ]; then
+        echo "env variable 'FAUCET' is not defined: should be a sthor address"
+      fi
+      add_account "$FAUCET" 50000000000000000 rune
     else
       echo "ETH Contract Address: $CONTRACT"
       set_eth_contract "$CONTRACT"

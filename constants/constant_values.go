@@ -54,6 +54,7 @@ const (
 	LiquidityLockUpBlocks
 	ObserveSlashPoints
 	ObservationDelayFlexibility
+	StopFundYggdrasil
 	YggFundLimit
 	YggFundRetry
 	JailTimeKeygen
@@ -63,6 +64,8 @@ const (
 	MinSwapsPerBlock
 	MaxSwapsPerBlock
 	EnableOrderBooks
+	MintSynths
+	BurnSynths
 	MaxSynthPerAssetDepth // TODO: remove me on hard fork
 	MaxSynthPerPoolDepth
 	MaxSynthsForSaversYield
@@ -168,6 +171,7 @@ var nameToString = map[ConstantName]string{
 	LiquidityLockUpBlocks:               "LiquidityLockUpBlocks",
 	ObserveSlashPoints:                  "ObserveSlashPoints",
 	ObservationDelayFlexibility:         "ObservationDelayFlexibility",
+	StopFundYggdrasil:                   "StopFundYggdrasil",
 	YggFundLimit:                        "YggFundLimit",
 	YggFundRetry:                        "YggFundRetry",
 	JailTimeKeygen:                      "JailTimeKeygen",
@@ -177,6 +181,8 @@ var nameToString = map[ConstantName]string{
 	MinSwapsPerBlock:                    "MinSwapsPerBlock",
 	MaxSwapsPerBlock:                    "MaxSwapsPerBlock",
 	EnableOrderBooks:                    "EnableOrderBooks",
+	MintSynths:                          "MintSynths",
+	BurnSynths:                          "BurnSynths",
 	VirtualMultSynths:                   "VirtualMultSynths",
 	VirtualMultSynthsBasisPoints:        "VirtualMultSynthsBasisPoints",
 	MaxSynthPerAssetDepth:               "MaxSynthPerAssetDepth", // TODO: remove me on hard fork

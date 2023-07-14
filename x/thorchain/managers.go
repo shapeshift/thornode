@@ -542,8 +542,10 @@ func GetOrderBook(version semver.Version, keeper keeper.Keeper) (OrderBook, erro
 // GetSlasher return an implementation of Slasher
 func GetSlasher(version semver.Version, keeper keeper.Keeper, eventMgr EventManager) (Slasher, error) {
 	switch {
-	case version.GTE(semver.MustParse("1.115.0")):
+	case version.GTE(semver.MustParse("1.116.0")):
 		return newSlasherVCUR(keeper, eventMgr), nil
+	case version.GTE(semver.MustParse("1.115.0")):
+		return newSlasherV115(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.112.0")):
 		return newSlasherV112(keeper, eventMgr), nil
 	case version.GTE(semver.MustParse("1.109.0")):
@@ -570,8 +572,10 @@ func GetSlasher(version semver.Version, keeper keeper.Keeper, eventMgr EventMana
 // GetYggManager return an implementation of YggManager
 func GetYggManager(version semver.Version, keeper keeper.Keeper) (YggManager, error) {
 	switch {
-	case version.GTE(semver.MustParse("1.112.0")):
+	case version.GTE(semver.MustParse("1.116.0")):
 		return newYggMgrVCUR(keeper), nil
+	case version.GTE(semver.MustParse("1.112.0")):
+		return newYggMgrV112(keeper), nil
 	case version.GTE(semver.MustParse("0.79.0")):
 		return newYggMgrV79(keeper), nil
 	}

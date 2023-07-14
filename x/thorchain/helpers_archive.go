@@ -997,6 +997,28 @@ func isChainHaltedV65(ctx cosmos.Context, mgr Manager, chain common.Chain) bool 
 	return false
 }
 
+func isSynthMintPausedV103(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
+	mintHeight, err := mgr.Keeper().GetMimir(ctx, "MintSynths")
+	if (mintHeight > 0 && ctx.BlockHeight() > mintHeight) || err != nil {
+		return fmt.Errorf("minting synthetics has been disabled")
+	}
+
+	return isSynthMintPausedV102(ctx, mgr, targetAsset, outputAmt)
+}
+
+func isSynthMintPausedV102(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
+	remaining, err := getSynthSupplyRemainingV102(ctx, mgr, targetAsset)
+	if err != nil {
+		return err
+	}
+
+	if remaining.LT(outputAmt) {
+		return fmt.Errorf("insufficient synth capacity: want=%d have=%d", outputAmt.Uint64(), remaining.Uint64())
+	}
+
+	return nil
+}
+
 func isSynthMintPausedV99(ctx cosmos.Context, mgr Manager, targetAsset common.Asset, outputAmt cosmos.Uint) error {
 	maxSynths, err := mgr.Keeper().GetMimir(ctx, constants.MaxSynthPerPoolDepth.String())
 	if maxSynths < 0 || err != nil {
