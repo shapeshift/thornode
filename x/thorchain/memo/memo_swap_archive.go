@@ -101,7 +101,7 @@ func ParseSwapMemoV115(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 		}
 	}
 
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, streamQuantity, streamInterval), nil
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, streamQuantity, streamInterval, types.NewTHORName("", 0, nil)), nil
 }
 
 func ParseSwapMemoV112(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
@@ -168,7 +168,7 @@ func ParseSwapMemoV112(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 		}
 	}
 
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, 0, 0), nil
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, 0, 0, types.NewTHORName("", 0, nil)), nil
 }
 
 func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
@@ -236,7 +236,7 @@ func ParseSwapMemoV104(ctx cosmos.Context, keeper keeper.Keeper, asset common.As
 		}
 	}
 
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, 0, 0), nil
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, 0, 0, types.NewTHORName("", 0, nil)), nil
 }
 
 func ParseSwapMemoV1(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
@@ -287,7 +287,7 @@ func ParseSwapMemoV1(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asse
 		affPts = cosmos.NewUint(pts)
 	}
 
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts, "", "", cosmos.ZeroUint(), order, 0, 0), nil
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, "", "", cosmos.ZeroUint(), order, 0, 0, types.NewTHORName("", 0, nil)), nil
 }
 
 func ParseSwapMemoV92(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
@@ -357,7 +357,7 @@ func ParseSwapMemoV92(ctx cosmos.Context, keeper keeper.Keeper, asset common.Ass
 		}
 	}
 
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, 0, 0), nil
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, 0, 0, types.NewTHORName("", 0, nil)), nil
 }
 
 func ParseSwapMemoV98(ctx cosmos.Context, keeper keeper.Keeper, asset common.Asset, parts []string) (SwapMemo, error) {
@@ -430,5 +430,5 @@ func ParseSwapMemoV98(ctx cosmos.Context, keeper keeper.Keeper, asset common.Ass
 		}
 	}
 
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, 0, 0), nil
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, 0, 0, types.NewTHORName("", 0, nil)), nil
 }

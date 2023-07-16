@@ -90,6 +90,76 @@ func (h ManageTHORNameHandler) validateV110(ctx cosmos.Context, msg MsgManageTHO
 	return nil
 }
 
+// handle process MsgManageTHORName
+func (h ManageTHORNameHandler) handleV112(ctx cosmos.Context, msg MsgManageTHORName) (*cosmos.Result, error) {
+	var err error
+
+	enable, _ := h.mgr.Keeper().GetMimir(ctx, "THORNames")
+	if enable == 0 {
+		return nil, fmt.Errorf("THORNames are currently disabled")
+	}
+
+	tn := THORName{Name: msg.Name, Owner: msg.Signer, PreferredAsset: common.EmptyAsset}
+	exists := h.mgr.Keeper().THORNameExists(ctx, msg.Name)
+	if exists {
+		tn, err = h.mgr.Keeper().GetTHORName(ctx, msg.Name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	registrationFeePaid := cosmos.ZeroUint()
+	fundPaid := cosmos.ZeroUint()
+
+	// check if user is trying to extend expiration
+	if !msg.Coin.Amount.IsZero() {
+		// check that THORName is still valid, can't top up an invalid THORName
+		if err := h.validateNameV1(msg.Name); err != nil {
+			return nil, err
+		}
+		var addBlocks int64
+		// registration fee is for THORChain addresses only
+		if !exists {
+			// minus registration fee
+			registrationFee := h.mgr.Keeper().GetTHORNameRegisterFee(ctx)
+			msg.Coin.Amount = common.SafeSub(msg.Coin.Amount, registrationFee)
+			registrationFeePaid = registrationFee
+			addBlocks = h.mgr.GetConstants().GetInt64Value(constants.BlocksPerYear) // registration comes with 1 free year
+		}
+		feePerBlock := h.mgr.Keeper().GetTHORNamePerBlockFee(ctx)
+		fundPaid = msg.Coin.Amount
+		addBlocks += (int64(msg.Coin.Amount.Uint64()) / int64(feePerBlock.Uint64()))
+		if tn.ExpireBlockHeight < ctx.BlockHeight() {
+			tn.ExpireBlockHeight = ctx.BlockHeight() + addBlocks
+		} else {
+			tn.ExpireBlockHeight += addBlocks
+		}
+	}
+
+	// check if we need to reduce the expire time, upon user request
+	if msg.ExpireBlockHeight > 0 && msg.ExpireBlockHeight < tn.ExpireBlockHeight {
+		tn.ExpireBlockHeight = msg.ExpireBlockHeight
+	}
+
+	// check if we need to update the preferred asset
+	if !tn.PreferredAsset.Equals(msg.PreferredAsset) && !msg.PreferredAsset.IsEmpty() {
+		tn.PreferredAsset = msg.PreferredAsset
+	}
+
+	tn.SetAlias(msg.Chain, msg.Address) // update address
+	if !msg.Owner.Empty() {
+		tn.Owner = msg.Owner // update owner
+	}
+	h.mgr.Keeper().SetTHORName(ctx, tn)
+
+	evt := NewEventTHORName(tn.Name, msg.Chain, msg.Address, registrationFeePaid, fundPaid, tn.ExpireBlockHeight, tn.Owner)
+	if err := h.mgr.EventMgr().EmitEvent(ctx, evt); nil != err {
+		ctx.Logger().Error("fail to emit THORName event", "error", err)
+	}
+
+	return &cosmos.Result{}, nil
+}
+
 func (h ManageTHORNameHandler) handleV1(ctx cosmos.Context, msg MsgManageTHORName) (*cosmos.Result, error) {
 	var err error
 

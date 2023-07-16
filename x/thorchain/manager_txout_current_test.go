@@ -27,7 +27,8 @@ func (s TxOutStoreVCURSuite) TestAddGasFees(c *C) {
 
 func (s TxOutStoreVCURSuite) TestEndBlock(c *C) {
 	w := getHandlerTestWrapper(c, 1, true, true)
-	txOutStore := newTxOutStorageV113(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+	txOutStore := newTxOutStorageVCUR(w.keeper, w.mgr.GetConstants(), w.mgr.EventMgr(), w.mgr.GasMgr())
+
 	item := TxOutItem{
 		Chain:     common.BNBChain,
 		ToAddress: GetRandomBNBAddress(),

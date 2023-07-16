@@ -22,4 +22,9 @@ func (THORNameSuite) TestTHORName(c *C) {
 	c.Check(n2.Valid(), NotNil)
 	n3 := NewTHORName("hello", 0, []THORNameAlias{{Chain: common.THORChain, Address: common.Address("")}})
 	c.Check(n3.Valid(), NotNil)
+
+	// set/get alias
+	eth1 := GetRandomETHAddress()
+	n1.SetAlias(common.ETHChain, eth1)
+	c.Check(n1.GetAlias(common.ETHChain), Equals, eth1)
 }

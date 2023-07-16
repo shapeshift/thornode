@@ -69,4 +69,5 @@ type (
 	ChainContract            = types.ChainContract
 	SolvencyVoter            = types.SolvencyVoter
 	THORName                 = types.THORName
+	AffiliateFeeCollector    = types.AffiliateFeeCollector
 )

@@ -660,3 +660,62 @@ func (s *HandlerSwapSuite) TestSwapOutDexIntegration(c *C) {
 	c.Assert(items[0].AggregatorTargetAsset, Equals, swapM.DexTargetAddress)
 	c.Assert(items[0].AggregatorTargetLimit, IsNil)
 }
+
+func (s *HandlerSwapSuite) TestProcessPreferredAssetSwap(c *C) {
+	ctx, keeper := setupKeeperForTest(c)
+	mgr := NewDummyMgrWithKeeper(keeper)
+	handler := NewSwapHandler(mgr)
+
+	thorAddr := types.GetRandomTHORAddress()
+	thorAccAddr, _ := thorAddr.AccAddress()
+	name := types.NewTHORName("hello", 50, []types.THORNameAlias{{Chain: common.THORChain, Address: thorAddr}})
+	name.Owner = thorAccAddr
+	keeper.SetTHORName(ctx, name)
+
+	txID := GetRandomTxHash()
+	thorAddr2 := types.GetRandomTHORAddress()
+
+	tx := common.NewTx(
+		txID,
+		thorAddr2,
+		thorAddr2,
+		nil,
+		nil,
+		"",
+	)
+
+	// no coins passed in message, should error
+	msg := NewMsgSwap(tx, common.RuneAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, 0, 0, thorAccAddr)
+	err := handler.processPreferredAssetSwap(ctx, *msg)
+	c.Assert(err, NotNil)
+
+	// coins not native rune, should error
+	tx.Coins = common.NewCoins(common.NewCoin(common.ATOMAsset, cosmos.NewUint(100)))
+	msg = NewMsgSwap(tx, common.RuneAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, 0, 0, thorAccAddr)
+	err = handler.processPreferredAssetSwap(ctx, *msg)
+	c.Assert(err, NotNil)
+
+	// no affiliate collector found for the signer
+	tx.Coins = common.NewCoins(common.NewCoin(common.RuneNative, cosmos.NewUint(100)))
+	msg = NewMsgSwap(tx, common.RuneAsset(), GetRandomTHORAddress(), cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, 0, 0, thorAccAddr)
+	err = handler.processPreferredAssetSwap(ctx, *msg)
+	c.Assert(err, NotNil)
+
+	// add affiliate collector
+	affcol, err := keeper.GetAffiliateCollector(ctx, name.Owner)
+	c.Assert(err, IsNil)
+	affcol.RuneAmount = cosmos.NewUint(100)
+	keeper.SetAffiliateCollector(ctx, affcol)
+
+	// FundModule
+	FundModule(c, ctx, keeper, AffiliateCollectorName, 100)
+
+	// processPreferredAssetSwap successfully
+	err = handler.processPreferredAssetSwap(ctx, *msg)
+	c.Assert(err, IsNil)
+
+	// affcol should be empty
+	affcol, err = keeper.GetAffiliateCollector(ctx, name.Owner)
+	c.Assert(err, IsNil)
+	c.Assert(affcol.RuneAmount.IsZero(), Equals, true)
+}

@@ -318,6 +318,12 @@ func (s *MemoSuite) TestParse(c *C) {
 	ctx := s.ctx
 	k := s.k
 
+	thorAddr := types.GetRandomTHORAddress()
+	thorAccAddr, _ := thorAddr.AccAddress()
+	name := types.NewTHORName("hello", 50, []types.THORNameAlias{{Chain: common.THORChain, Address: thorAddr}})
+	name.Owner = thorAccAddr
+	k.SetTHORName(ctx, name)
+
 	// happy paths
 	memo, err := ParseMemoWithTHORNames(ctx, k, "d:"+common.RuneAsset().String())
 	c.Assert(err, IsNil)
@@ -347,12 +353,14 @@ func (s *MemoSuite) TestParse(c *C) {
 	c.Check(memo.IsType(TxWithdraw), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetAmount().Equal(cosmos.NewUint(25)), Equals, true, Commentf("%d", memo.GetAmount().Uint64()))
 
-	memo, err = ParseMemoWithTHORNames(ctx, k, "SWAP:"+common.RuneAsset().String()+":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:870000000")
+	memo, err = ParseMemoWithTHORNames(ctx, k, "SWAP:"+common.RuneAsset().String()+":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6:870000000:hello:0")
 	c.Assert(err, IsNil)
 	c.Check(memo.GetAsset().String(), Equals, common.RuneAsset().String())
 	c.Check(memo.IsType(TxSwap), Equals, true, Commentf("MEMO: %+v", memo))
 	c.Check(memo.GetDestination().String(), Equals, "bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Check(memo.GetSlipLimit().Equal(cosmos.NewUint(870000000)), Equals, true)
+	c.Check(memo.GetAffiliateTHORName(), NotNil)
+	c.Check(memo.GetAffiliateTHORName().Owner.Equals(thorAccAddr), Equals, true)
 
 	memo, err = ParseMemoWithTHORNames(ctx, k, "SWAP:"+common.RuneAsset().String()+":bnb1lejrrtta9cgr49fuh7ktu3sddhe0ff7wenlpn6")
 	c.Assert(err, IsNil)

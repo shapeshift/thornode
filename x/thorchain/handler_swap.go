@@ -3,6 +3,7 @@ package thorchain
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/blang/semver"
 
@@ -305,6 +306,32 @@ func (h SwapHandler) handleV116(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		return nil, swapErr
 	}
 
+	// Check if swap is to AffiliateCollector Module, if so, add the accrued RUNE for the affiliate
+	affColAddress, err := h.mgr.Keeper().GetModuleAddress(AffiliateCollectorName)
+	if err != nil {
+		ctx.Logger().Error("failed to retrieve AffiliateCollector module address", "error", err)
+	}
+
+	var affThorname *THORName
+	var affCol AffiliateFeeCollector
+
+	mem, parseMemoErr := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Tx.Memo)
+	if parseMemoErr == nil {
+		affThorname = mem.GetAffiliateTHORName()
+	}
+
+	if affThorname != nil && msg.Destination.Equals(affColAddress) && !msg.AffiliateAddress.IsEmpty() && msg.TargetAsset.IsNativeRune() {
+		// Add accrued RUNE for this affiliate
+		affCol, err = h.mgr.Keeper().GetAffiliateCollector(ctx, affThorname.Owner)
+		if err != nil {
+			ctx.Logger().Error("failed to retrieve AffiliateCollector for thorname owner", "address", affThorname.Owner.String(), "error", err)
+		} else {
+			addRuneAmt := common.SafeSub(emit, transactionFee)
+			affCol.RuneAmount = affCol.RuneAmount.Add(addRuneAmt)
+			h.mgr.Keeper().SetAffiliateCollector(ctx, affCol)
+		}
+	}
+
 	// Check if swap to a synth would cause synth supply to exceed MaxSynthPerPoolDepth cap
 	if msg.TargetAsset.IsSyntheticAsset() {
 		err = isSynthMintPaused(ctx, h.mgr, msg.TargetAsset, emit)
@@ -325,8 +352,20 @@ func (h SwapHandler) handleV116(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		emit = swp.Out
 	}
 
-	mem, err := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Tx.Memo)
-	if err != nil {
+	// This is a preferred asset swap, so subtract the affiliate's RUNE from the
+	// AffiliateCollector module, and send RUNE from the module to Asgard. Then return
+	// early since there is no need to call any downstream handlers.
+	if strings.HasPrefix(msg.Tx.Memo, "THOR-PREFERRED-ASSET") && msg.Tx.FromAddress.Equals(affColAddress) {
+		err = h.processPreferredAssetSwap(ctx, msg)
+		// Failed to update the AffiliateCollector / return err to revert preferred asset swap
+		if err != nil {
+			ctx.Logger().Error("failed to update affiliate collector", "error", err)
+			return &cosmos.Result{}, err
+		}
+		return &cosmos.Result{}, nil
+	}
+
+	if parseMemoErr != nil {
 		ctx.Logger().Error("swap handler failed to parse memo", "memo", msg.Tx.Memo, "error", err)
 		return nil, err
 	}
@@ -394,6 +433,38 @@ func (h SwapHandler) handleV116(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		}
 	}
 	return &cosmos.Result{}, nil
+}
+
+// processPreferredAssetSwap - after a preferred asset swap, deduct the input RUNE
+// amount from AffiliateCollector module accounting and send appropriate amount of RUNE
+// from AffiliateCollector module to Asgard
+func (h SwapHandler) processPreferredAssetSwap(ctx cosmos.Context, msg MsgSwap) error {
+	if msg.Tx.Coins.IsEmpty() || !msg.Tx.Coins[0].Asset.IsNativeRune() {
+		return fmt.Errorf("native RUNE not in coins: %s", msg.Tx.Coins)
+	}
+	// For preferred asset swaps, the signer of the Msg is the THORName owner
+	affCol, err := h.mgr.Keeper().GetAffiliateCollector(ctx, msg.Signer)
+	if err != nil {
+		return err
+	}
+
+	runeCoin := msg.Tx.Coins[0]
+	runeAmt := runeCoin.Amount
+
+	if affCol.RuneAmount.LT(runeAmt) {
+		return fmt.Errorf("not enough affiliate collector balance for preferred asset swap, balance: %s, needed: %s", affCol.RuneAmount.String(), runeAmt.String())
+	}
+
+	// 1. Send RUNE from the AffiliateCollector Module to Asgard for the swap
+	err = h.mgr.Keeper().SendFromModuleToModule(ctx, AffiliateCollectorName, AsgardName, common.NewCoins(runeCoin))
+	if err != nil {
+		return err
+	}
+	// 2. Subtract input RUNE amt from AffiliateCollector accounting
+	affCol.RuneAmount = affCol.RuneAmount.Sub(runeAmt)
+	h.mgr.Keeper().SetAffiliateCollector(ctx, affCol)
+
+	return nil
 }
 
 // get the total bond of the bottom 2/3rds active validators

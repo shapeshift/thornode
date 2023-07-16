@@ -9,14 +9,15 @@ import (
 )
 
 const (
-	ModuleName       = types.ModuleName
-	ReserveName      = types.ReserveName
-	AsgardName       = types.AsgardName
-	BondName         = types.BondName
-	LendingName      = types.LendingName
-	RouterKey        = types.RouterKey
-	StoreKey         = types.StoreKey
-	DefaultCodespace = types.DefaultCodespace
+	ModuleName             = types.ModuleName
+	ReserveName            = types.ReserveName
+	AsgardName             = types.AsgardName
+	BondName               = types.BondName
+	LendingName            = types.LendingName
+	AffiliateCollectorName = types.AffiliateCollectorName
+	RouterKey              = types.RouterKey
+	StoreKey               = types.StoreKey
+	DefaultCodespace       = types.DefaultCodespace
 
 	// pool status
 	PoolAvailable = types.PoolStatus_Available
@@ -344,6 +345,7 @@ type (
 	Node                           = types.Node
 	THORName                       = types.THORName
 	THORNameAlias                  = types.THORNameAlias
+	AffiliateFeeCollector          = types.AffiliateFeeCollector
 	NodeMimir                      = types.NodeMimir
 	NodeMimirs                     = types.NodeMimirs
 

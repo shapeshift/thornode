@@ -230,6 +230,8 @@ func queryTHORName(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 		return nil, ErrInternal(err, "fail to fetch THORName")
 	}
 
+	affRune := cosmos.ZeroUint()
+
 	// convert to openapi types
 	aliases := []openapi.ThornameAlias{}
 	for _, alias := range name.Aliases {
@@ -237,13 +239,21 @@ func queryTHORName(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 			Chain:   wrapString(alias.Chain.String()),
 			Address: wrapString(alias.Address.String()),
 		})
+
+		if alias.Chain.IsTHORChain() {
+			affCol, err := mgr.Keeper().GetAffiliateCollector(ctx, name.Owner)
+			if err == nil {
+				affRune = affCol.RuneAmount
+			}
+		}
 	}
 	resp := openapi.Thorname{
-		Name:              wrapString(name.Name),
-		ExpireBlockHeight: wrapInt64(name.ExpireBlockHeight),
-		Owner:             wrapString(name.Owner.String()),
-		PreferredAsset:    name.PreferredAsset.String(),
-		Aliases:           aliases,
+		Name:                   wrapString(name.Name),
+		ExpireBlockHeight:      wrapInt64(name.ExpireBlockHeight),
+		Owner:                  wrapString(name.Owner.String()),
+		PreferredAsset:         name.PreferredAsset.String(),
+		Aliases:                aliases,
+		AffiliateCollectorRune: wrapString(affRune.String()),
 	}
 
 	return jsonify(ctx, resp)

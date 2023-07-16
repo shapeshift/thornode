@@ -76,6 +76,7 @@ const (
 	prefixChainContract           types.DbPrefix = "chain_contract/"
 	prefixSolvencyVoter           types.DbPrefix = "solvency_voter/"
 	prefixTHORName                types.DbPrefix = "thorname/"
+	prefixAffiliateCollector      types.DbPrefix = "affcol/"
 	prefixRollingPoolLiquidityFee types.DbPrefix = "rolling_pool_liquidity_fee/"
 	prefixVersion                 types.DbPrefix = "version/"
 )

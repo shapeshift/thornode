@@ -85,16 +85,17 @@ var (
 
 	// module account permissions
 	maccPerms = map[string][]string{
-		authtypes.FeeCollectorName:     nil,
-		minttypes.ModuleName:           {authtypes.Minter},
-		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
-		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
-		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
-		thorchain.ModuleName:           {authtypes.Minter, authtypes.Burner},
-		thorchain.AsgardName:           {},
-		thorchain.BondName:             {},
-		thorchain.ReserveName:          {},
-		thorchain.LendingName:          {},
+		authtypes.FeeCollectorName:       nil,
+		minttypes.ModuleName:             {authtypes.Minter},
+		stakingtypes.BondedPoolName:      {authtypes.Burner, authtypes.Staking},
+		stakingtypes.NotBondedPoolName:   {authtypes.Burner, authtypes.Staking},
+		ibctransfertypes.ModuleName:      {authtypes.Minter, authtypes.Burner},
+		thorchain.ModuleName:             {authtypes.Minter, authtypes.Burner},
+		thorchain.AsgardName:             {},
+		thorchain.BondName:               {},
+		thorchain.ReserveName:            {},
+		thorchain.LendingName:            {},
+		thorchain.AffiliateCollectorName: {},
 	}
 
 	// module accounts that are allowed to receive tokens

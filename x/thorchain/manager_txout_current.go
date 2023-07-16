@@ -813,17 +813,25 @@ func (tos *TxOutStorageVCUR) nativeTxOut(ctx cosmos.Context, mgr Manager, toi Tx
 		return err
 	}
 
-	// send funds from module
-	if polAddress.Equals(toi.ToAddress) {
-		sdkErr := tos.keeper.SendFromModuleToModule(ctx, toi.ModuleName, ReserveName, common.NewCoins(toi.Coin))
-		if sdkErr != nil {
-			return errors.New(sdkErr.Error())
-		}
-	} else {
-		sdkErr := tos.keeper.SendFromModuleToAccount(ctx, toi.ModuleName, addr, common.NewCoins(toi.Coin))
-		if sdkErr != nil {
-			return errors.New(sdkErr.Error())
-		}
+	affColAddress, err := tos.keeper.GetModuleAddress(AffiliateCollectorName)
+	if err != nil {
+		ctx.Logger().Error("fail to get from address", "err", err)
+		return err
+	}
+
+	// send funds to/from modules
+	var sdkErr error
+	switch {
+	case polAddress.Equals(toi.ToAddress):
+		sdkErr = tos.keeper.SendFromModuleToModule(ctx, toi.ModuleName, ReserveName, common.NewCoins(toi.Coin))
+	case affColAddress.Equals(toi.ToAddress):
+		sdkErr = tos.keeper.SendFromModuleToModule(ctx, toi.ModuleName, AffiliateCollectorName, common.NewCoins(toi.Coin))
+	default:
+		sdkErr = tos.keeper.SendFromModuleToAccount(ctx, toi.ModuleName, addr, common.NewCoins(toi.Coin))
+	}
+
+	if sdkErr != nil {
+		return errors.New(sdkErr.Error())
 	}
 
 	from, err := tos.keeper.GetModuleAddress(toi.ModuleName)

@@ -13,6 +13,8 @@ const (
 	BondName = "bond"
 	// LendingName
 	LendingName = "lending"
+	// AffiliateCollectorName the name of the account used to store rune for affiliate fee swaps
+	AffiliateCollectorName = "affiliate_collector"
 
 	// StoreKey to be used when creating the KVStore
 	StoreKey = ModuleName

@@ -1,7 +1,6 @@
 package thorchain
 
 import (
-	"sort"
 	"strconv"
 	"strings"
 
@@ -11,97 +10,22 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type swapItem struct {
-	index int
-	msg   MsgSwap
-	fee   cosmos.Uint
-	slip  cosmos.Uint
-}
-type swapItems []swapItem
-
-func (items swapItems) Sort() swapItems {
-	// sort by liquidity fee , descending
-	byFee := items
-	sort.SliceStable(byFee, func(i, j int) bool {
-		return byFee[i].fee.GT(byFee[j].fee)
-	})
-
-	// sort by slip fee , descending
-	bySlip := items
-	sort.SliceStable(bySlip, func(i, j int) bool {
-		return bySlip[i].slip.GT(bySlip[j].slip)
-	})
-
-	type score struct {
-		msg   MsgSwap
-		score int
-		index int
-	}
-
-	// add liquidity fee score
-	scores := make([]score, len(items))
-	for i, item := range byFee {
-		scores[i] = score{
-			msg:   item.msg,
-			score: i,
-			index: item.index,
-		}
-	}
-
-	// add slip score
-	for i, item := range bySlip {
-		for j, score := range scores {
-			if score.msg.Tx.ID.Equals(item.msg.Tx.ID) && score.index == item.index {
-				scores[j].score += i
-				break
-			}
-		}
-	}
-
-	// This sorted appears to sort twice, but actually the first sort informs
-	// the second. If we have multiple swaps with the same score, it will use
-	// the ID sort to deterministically sort within the same score
-
-	// sort by ID, first
-	sort.SliceStable(scores, func(i, j int) bool {
-		return scores[i].msg.Tx.ID.String() < scores[j].msg.Tx.ID.String()
-	})
-
-	// sort by score, second
-	sort.SliceStable(scores, func(i, j int) bool {
-		return scores[i].score < scores[j].score
-	})
-
-	// sort our items by score
-	sorted := make(swapItems, len(items))
-	for i, score := range scores {
-		for _, item := range items {
-			if item.msg.Tx.ID.Equals(score.msg.Tx.ID) && score.index == item.index {
-				sorted[i] = item
-				break
-			}
-		}
-	}
-
-	return sorted
-}
-
-// SwapQueueVCUR is going to manage the swaps queue
-type SwapQueueVCUR struct {
+// SwapQueueV115 is going to manage the swaps queue
+type SwapQueueV115 struct {
 	k       keeper.Keeper
 	handler func(mgr Manager) cosmos.Handler
 }
 
-// newSwapQueueVCUR create a new vault manager
-func newSwapQueueVCUR(k keeper.Keeper) *SwapQueueVCUR {
-	return &SwapQueueVCUR{
+// newSwapQueueV115 create a new vault manager
+func newSwapQueueV115(k keeper.Keeper) *SwapQueueV115 {
+	return &SwapQueueV115{
 		k:       k,
 		handler: NewInternalHandler,
 	}
 }
 
 // FetchQueue - grabs all swap queue items from the kvstore and returns them
-func (vm *SwapQueueVCUR) FetchQueue(ctx cosmos.Context) (swapItems, error) { // nolint
+func (vm *SwapQueueV115) FetchQueue(ctx cosmos.Context) (swapItems, error) { // nolint
 	items := make(swapItems, 0)
 	iterator := vm.k.GetSwapQueueIterator(ctx)
 	defer iterator.Close()
@@ -158,7 +82,7 @@ func (vm *SwapQueueVCUR) FetchQueue(ctx cosmos.Context) (swapItems, error) { // 
 }
 
 // EndBlock trigger the real swap to be processed
-func (vm *SwapQueueVCUR) EndBlock(ctx cosmos.Context, mgr Manager) error {
+func (vm *SwapQueueV115) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	handler := vm.handler(mgr)
 
 	minSwapsPerBlock, err := vm.k.GetMimir(ctx, constants.MinSwapsPerBlock.String())
@@ -218,16 +142,6 @@ func (vm *SwapQueueVCUR) EndBlock(ctx cosmos.Context, mgr Manager) error {
 					pick.msg.Tx.Coins[0].Amount = swp.Deposit
 					vm.k.RemoveStreamingSwap(ctx, pick.msg.Tx.ID)
 					vm.k.RemoveSwapQueueItem(ctx, pick.msg.Tx.ID, pick.index)
-				}
-			} else {
-				// Should not refund a failed preferred asset swap, the RUNE is still in the AffiliateCollector module
-				affColAddress, err := mgr.Keeper().GetModuleAddress(AffiliateCollectorName)
-				if err != nil {
-					ctx.Logger().Error("failed to retrieve AffiliateCollector module address", "error", err)
-				}
-
-				if strings.HasPrefix(pick.msg.Tx.Memo, "THOR-PREFERRED-ASSET") && pick.msg.Tx.FromAddress.Equals(affColAddress) {
-					triggerRefund = false
 				}
 			}
 
@@ -322,7 +236,7 @@ func (vm *SwapQueueVCUR) EndBlock(ctx cosmos.Context, mgr Manager) error {
 }
 
 // getTodoNum - determine how many swaps to do.
-func (vm *SwapQueueVCUR) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock int64) int64 {
+func (vm *SwapQueueV115) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock int64) int64 {
 	// Do half the length of the queue. Unless...
 	//	1. The queue length is greater than maxSwapsPerBlock
 	//  2. The queue legnth is less than minSwapsPerBlock
@@ -338,7 +252,7 @@ func (vm *SwapQueueVCUR) getTodoNum(queueLen, minSwapsPerBlock, maxSwapsPerBlock
 
 // scoreMsgs - this takes a list of MsgSwap, and converts them to a scored
 // swapItem list
-func (vm *SwapQueueVCUR) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualDepthMult int64) (swapItems, error) {
+func (vm *SwapQueueV115) scoreMsgs(ctx cosmos.Context, items swapItems, synthVirtualDepthMult int64) (swapItems, error) {
 	pools := make(map[common.Asset]Pool)
 
 	for i, item := range items {
@@ -402,7 +316,7 @@ func (vm *SwapQueueVCUR) scoreMsgs(ctx cosmos.Context, items swapItems, synthVir
 }
 
 // getLiquidityFeeAndSlip calculate liquidity fee and slip, fee is in RUNE
-func (vm *SwapQueueVCUR) getLiquidityFeeAndSlip(ctx cosmos.Context, pool Pool, sourceCoin common.Coin, item *swapItem, virtualDepthMult int64) {
+func (vm *SwapQueueV115) getLiquidityFeeAndSlip(ctx cosmos.Context, pool Pool, sourceCoin common.Coin, item *swapItem, virtualDepthMult int64) {
 	// Get our X, x, Y values
 	var X, x, Y cosmos.Uint
 	x = sourceCoin.Amount

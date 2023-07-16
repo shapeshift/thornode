@@ -10,6 +10,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 type parser struct {
@@ -267,4 +268,22 @@ func (p *parser) getTxID(idx int, required bool, def common.TxID) common.TxID {
 		return def
 	}
 	return value
+}
+
+func (p *parser) getTHORName(idx int, required bool, def types.THORName) types.THORName {
+	p.incRequired(required)
+	name := p.get(idx)
+	if p.keeper == nil {
+		return def
+	}
+	if p.keeper.THORNameExists(p.ctx, name) {
+		tn, err := p.keeper.GetTHORName(p.ctx, name)
+		if err != nil {
+			if required || p.get(idx) != "" {
+				p.addErr(fmt.Errorf("cannot parse '%s' as a THORName: %w", p.get(idx), err))
+			}
+		}
+		return tn
+	}
+	return def
 }

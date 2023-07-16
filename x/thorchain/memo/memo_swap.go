@@ -25,18 +25,20 @@ type SwapMemo struct {
 	OrderType            types.OrderType
 	StreamInterval       uint64
 	StreamQuantity       uint64
+	AffiliateTHORName    *types.THORName
 }
 
-func (m SwapMemo) GetDestination() common.Address       { return m.Destination }
-func (m SwapMemo) GetSlipLimit() cosmos.Uint            { return m.SlipLimit }
-func (m SwapMemo) GetAffiliateAddress() common.Address  { return m.AffiliateAddress }
-func (m SwapMemo) GetAffiliateBasisPoints() cosmos.Uint { return m.AffiliateBasisPoints }
-func (m SwapMemo) GetDexAggregator() string             { return m.DexAggregator }
-func (m SwapMemo) GetDexTargetAddress() string          { return m.DexTargetAddress }
-func (m SwapMemo) GetDexTargetLimit() *cosmos.Uint      { return m.DexTargetLimit }
-func (m SwapMemo) GetOrderType() types.OrderType        { return m.OrderType }
-func (m SwapMemo) GetStreamQuantity() uint64            { return m.StreamQuantity }
-func (m SwapMemo) GetStreamInterval() uint64            { return m.StreamInterval }
+func (m SwapMemo) GetDestination() common.Address        { return m.Destination }
+func (m SwapMemo) GetSlipLimit() cosmos.Uint             { return m.SlipLimit }
+func (m SwapMemo) GetAffiliateAddress() common.Address   { return m.AffiliateAddress }
+func (m SwapMemo) GetAffiliateBasisPoints() cosmos.Uint  { return m.AffiliateBasisPoints }
+func (m SwapMemo) GetDexAggregator() string              { return m.DexAggregator }
+func (m SwapMemo) GetDexTargetAddress() string           { return m.DexTargetAddress }
+func (m SwapMemo) GetDexTargetLimit() *cosmos.Uint       { return m.DexTargetLimit }
+func (m SwapMemo) GetOrderType() types.OrderType         { return m.OrderType }
+func (m SwapMemo) GetStreamQuantity() uint64             { return m.StreamQuantity }
+func (m SwapMemo) GetStreamInterval() uint64             { return m.StreamInterval }
+func (m SwapMemo) GetAffiliateTHORName() *types.THORName { return m.AffiliateTHORName }
 
 func (m SwapMemo) String() string {
 	slipLimit := m.SlipLimit.String()
@@ -85,7 +87,7 @@ func (m SwapMemo) String() string {
 	return strings.Join(args[:last], ":")
 }
 
-func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, dexAgg, dexTargetAddress string, dexTargetLimit cosmos.Uint, orderType types.OrderType, quan, interval uint64) SwapMemo {
+func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affAddr common.Address, affPts cosmos.Uint, dexAgg, dexTargetAddress string, dexTargetLimit cosmos.Uint, orderType types.OrderType, quan, interval uint64, tn types.THORName) SwapMemo {
 	swapMemo := SwapMemo{
 		MemoBase:             MemoBase{TxType: TxSwap, Asset: asset},
 		Destination:          dest,
@@ -100,6 +102,9 @@ func NewSwapMemo(asset common.Asset, dest common.Address, slip cosmos.Uint, affA
 	}
 	if !dexTargetLimit.IsZero() {
 		swapMemo.DexTargetLimit = &dexTargetLimit
+	}
+	if !tn.Owner.Empty() {
+		swapMemo.AffiliateTHORName = &tn
 	}
 	return swapMemo
 }
@@ -176,5 +181,8 @@ func (p *parser) ParseSwapMemoV116() (SwapMemo, error) {
 	dexAgg := p.get(6)
 	dexTargetAddress := p.get(7)
 	dexTargetLimit := p.getUint(8, false, 0)
-	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, streamQuantity, streamInterval), p.Error()
+
+	tn := p.getTHORName(4, false, types.NewTHORName("", 0, nil))
+
+	return NewSwapMemo(asset, destination, slip, affAddr, affPts, dexAgg, dexTargetAddress, dexTargetLimit, order, streamQuantity, streamInterval, tn), p.Error()
 }

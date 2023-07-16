@@ -15,6 +15,7 @@ func (k KVStore) InvariantRoutes() []crisis.InvarRoute {
 		crisis.NewInvarRoute(ModuleName, "asgard", AsgardInvariant(k)),
 		crisis.NewInvarRoute(ModuleName, "bond", BondInvariant(k)),
 		crisis.NewInvarRoute(ModuleName, "thorchain", THORChainInvariant(k)),
+		crisis.NewInvarRoute(ModuleName, "affiliate_collector", AffilliateCollectorInvariant(k)),
 	}
 }
 
@@ -147,5 +148,42 @@ func THORChainInvariant(k KVStore) sdk.Invariant {
 		}
 
 		return msg, broken
+	}
+}
+
+// AffilliateCollectorInvariant the affiliate_collector module backs accrued affiliate
+// rewards
+func AffilliateCollectorInvariant(k KVStore) sdk.Invariant {
+	return func(ctx sdk.Context) (string, bool) {
+		affColModuleRune := k.GetBalanceOfModule(ctx, AffiliateCollectorName, common.RuneAsset().Native())
+		affCols, err := k.GetAffiliateCollectors(ctx)
+		if err != nil {
+			if affColModuleRune.IsZero() {
+				return "", false
+			}
+			return err.Error(), true
+		}
+
+		totalAffRune := cosmos.ZeroUint()
+		for _, ac := range affCols {
+			totalAffRune = totalAffRune.Add(ac.RuneAmount)
+		}
+
+		if affColModuleRune.Equal(totalAffRune) {
+			return "", false
+		}
+
+		var msg string
+		if totalAffRune.GT(affColModuleRune) {
+			diff := totalAffRune.Sub(affColModuleRune)
+			coin, _ := common.NewCoin(common.RuneAsset(), diff).Native()
+			msg = fmt.Sprintf("insolvent: %s", coin)
+		} else {
+			diff := affColModuleRune.Sub(totalAffRune)
+			coin, _ := common.NewCoin(common.RuneAsset(), diff).Native()
+			msg = fmt.Sprintf("oversolvent: %s", coin)
+		}
+
+		return msg, true
 	}
 }

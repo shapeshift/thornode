@@ -121,6 +121,7 @@ const (
 	TNSRegisterFeeUSD
 	TNSFeePerBlockUSD
 	EnableUSDFees
+	PreferredAssetOutboundFeeMultiplier
 )
 
 var nameToString = map[ConstantName]string{
@@ -235,6 +236,7 @@ var nameToString = map[ConstantName]string{
 	MaxOutboundFeeMultiplierBasisPoints: "MaxOutboundFeeMultiplierBasisPoints",
 	MinOutboundFeeMultiplierBasisPoints: "MinOutboundFeeMultiplierBasisPoints",
 	EnableUSDFees:                       "EnableUSDFees",
+	PreferredAssetOutboundFeeMultiplier: "PreferredAssetOutboundFeeMultiplier",
 }
 
 // String implement fmt.stringer

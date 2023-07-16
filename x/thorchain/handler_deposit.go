@@ -223,6 +223,8 @@ func (h DepositHandler) handleV115(ctx cosmos.Context, msg MsgDeposit) (*cosmos.
 func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		h.addSwapV116(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
 		h.addSwapV98(ctx, msg)
 	default:
@@ -230,7 +232,7 @@ func (h DepositHandler) addSwap(ctx cosmos.Context, msg MsgSwap) {
 	}
 }
 
-func (h DepositHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
+func (h DepositHandler) addSwapV116(ctx cosmos.Context, msg MsgSwap) {
 	if h.mgr.Keeper().OrderBooksEnabled(ctx) {
 		source := msg.Tx.Coins[0]
 		target := common.NewCoin(msg.TargetAsset, msg.TradeTarget)
@@ -242,7 +244,99 @@ func (h DepositHandler) addSwapV98(ctx cosmos.Context, msg MsgSwap) {
 			ctx.Logger().Error("fail to add swap to queue", "error", err)
 		}
 	} else {
+		h.addSwapDirect(ctx, msg)
+	}
+}
+
+// addSwapDirect adds the swap directly to the swap queue (no order book) - segmented
+// out into its own function to allow easier maintenance of original behavior vs order
+// book behavior.
+func (h DepositHandler) addSwapDirect(ctx cosmos.Context, msg MsgSwap) {
+	version := h.mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		h.addSwapDirectV116(ctx, msg)
+	default:
 		h.addSwapV65(ctx, msg)
+	}
+}
+
+func (h DepositHandler) addSwapDirectV116(ctx cosmos.Context, msg MsgSwap) {
+	if msg.Tx.Coins.IsEmpty() {
+		return
+	}
+	amt := cosmos.ZeroUint()
+	swapSourceAsset := msg.Tx.Coins[0].Asset
+
+	// Check if affiliate fee should be paid out
+	if !msg.AffiliateBasisPoints.IsZero() && msg.AffiliateAddress.IsChain(common.THORChain) {
+		amt = common.GetSafeShare(
+			msg.AffiliateBasisPoints,
+			cosmos.NewUint(10000),
+			msg.Tx.Coins[0].Amount,
+		)
+		msg.Tx.Coins[0].Amount = common.SafeSub(msg.Tx.Coins[0].Amount, amt)
+	}
+
+	// Queue the main swap
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, msg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+	}
+
+	// Affiliate fee flow
+	if !amt.IsZero() {
+		toAddress, err := msg.AffiliateAddress.AccAddress()
+		if err != nil {
+			ctx.Logger().Error("fail to convert address into AccAddress", "msg", msg.AffiliateAddress, "error", err)
+			return
+		}
+
+		memo, err := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Tx.Memo)
+		if err != nil {
+			ctx.Logger().Error("fail to parse swap memo", "memo", msg.Tx.Memo, "error", err)
+			return
+		}
+		// since native transaction fee has been charged to inbound from address, thus for affiliated fee , the network doesn't need to charge it again
+		coin := common.NewCoin(swapSourceAsset, amt)
+		affThorname := memo.GetAffiliateTHORName()
+
+		// PreferredAsset set, update the AffiliateCollector module
+		if affThorname != nil && !affThorname.PreferredAsset.IsEmpty() && swapSourceAsset.IsNativeRune() {
+			h.updateAffiliateCollector(ctx, coin, msg, affThorname)
+			return
+		}
+
+		// No PreferredAsset set, normal behavior
+		sdkErr := h.mgr.Keeper().SendFromModuleToAccount(ctx, AsgardName, toAddress, common.NewCoins(coin))
+		if sdkErr != nil {
+			ctx.Logger().Error("fail to send native asset to affiliate", "msg", msg.AffiliateAddress, "error", err, "asset", swapSourceAsset)
+		}
+	}
+}
+
+// updateAffiliateCollector - accrue RUNE in the AffiliateCollector module and check if
+// a PreferredAsset swap should be triggered
+func (h DepositHandler) updateAffiliateCollector(ctx cosmos.Context, coin common.Coin, msg MsgSwap, thorname *THORName) {
+	affcol, err := h.mgr.Keeper().GetAffiliateCollector(ctx, thorname.Owner)
+	if err != nil {
+		ctx.Logger().Error("failed to get affiliate collector", "msg", msg.AffiliateAddress, "error", err)
+	} else {
+		if err := h.mgr.Keeper().SendFromModuleToModule(ctx, AsgardName, AffiliateCollectorName, common.NewCoins(coin)); err != nil {
+			ctx.Logger().Error("failed to send funds to affiliate collector", "error", err)
+		} else {
+			affcol.RuneAmount = affcol.RuneAmount.Add(coin.Amount)
+			h.mgr.Keeper().SetAffiliateCollector(ctx, affcol)
+		}
+	}
+
+	// Check if accrued RUNE is 100x current outbound fee of preferred asset chain, if so
+	// trigger the preferred asset swap
+	ofRune := h.mgr.GasMgr().GetFee(ctx, thorname.PreferredAsset.GetChain(), common.RuneNative)
+	multiplier := h.mgr.Keeper().GetConfigInt64(ctx, constants.PreferredAssetOutboundFeeMultiplier)
+	if affcol.RuneAmount.GT(ofRune.Mul(cosmos.NewUint(uint64(multiplier)))) {
+		if err = triggerPreferredAssetSwap(ctx, h.mgr, msg.AffiliateAddress, msg.Tx.ID, *thorname, affcol, 1); err != nil {
+			ctx.Logger().Error("fail to swap to preferred asset", "thorname", thorname.Name, "err", err)
+		}
 	}
 }
 

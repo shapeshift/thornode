@@ -353,6 +353,10 @@ type KeeperTHORName interface {
 	SetTHORName(ctx cosmos.Context, name THORName)
 	GetTHORNameIterator(ctx cosmos.Context) cosmos.Iterator
 	DeleteTHORName(ctx cosmos.Context, _ string) error
+	SetAffiliateCollector(_ cosmos.Context, _ AffiliateFeeCollector)
+	GetAffiliateCollector(_ cosmos.Context, _ cosmos.AccAddress) (AffiliateFeeCollector, error)
+	GetAffiliateCollectorIterator(_ cosmos.Context) cosmos.Iterator
+	GetAffiliateCollectors(_ cosmos.Context) ([]AffiliateFeeCollector, error)
 }
 
 type KeeperHalt interface {

@@ -117,6 +117,26 @@ func (s *HandlerManageTHORNameSuite) TestHandler(c *C) {
 	c.Assert(err, IsNil)
 	c.Check(name.GetAlias(common.BNBChain).Equals(bnbAddr), Equals, true)
 
+	// update preferred asset
+	msg = NewMsgManageTHORName(tnName, common.BNBChain, bnbAddr, coin, 0, common.BNBAsset, acc, acc)
+	_, err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	name, err = mgr.Keeper().GetTHORName(ctx, tnName)
+	c.Assert(err, IsNil)
+	c.Check(name.GetPreferredAsset(), Equals, common.BNBAsset)
+
+	// transfer thorname to new owner, should reset preferred asset/external aliases
+	addr2 := GetRandomTHORAddress()
+	acc2, _ := addr2.AccAddress()
+	msg = NewMsgManageTHORName(tnName, common.THORChain, addr, coin, 0, common.RuneAsset(), acc2, acc)
+	_, err = handler.handle(ctx, *msg)
+	c.Assert(err, IsNil)
+	name, err = mgr.Keeper().GetTHORName(ctx, tnName)
+	c.Assert(err, IsNil)
+	c.Check(len(name.GetAliases()), Equals, 0)
+	c.Check(name.GetPreferredAsset().IsEmpty(), Equals, true)
+	c.Check(name.GetOwner().Equals(acc2), Equals, true)
+
 	// happy path, release thorname back into the wild
 	msg = NewMsgManageTHORName(tnName, common.THORChain, addr, common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()), 1, common.RuneAsset(), acc, acc)
 	_, err = handler.handle(ctx, *msg)

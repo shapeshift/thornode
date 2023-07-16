@@ -9,7 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
-// NewTHORName create a new instance of network fee
+// NewTHORName create a new instance of THORName
 func NewTHORName(name string, exp int64, aliases []THORNameAlias) THORName {
 	return THORName{
 		Name:              name,

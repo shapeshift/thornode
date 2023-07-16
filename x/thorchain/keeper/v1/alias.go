@@ -6,11 +6,12 @@ import (
 )
 
 const (
-	ModuleName  = types.ModuleName
-	ReserveName = types.ReserveName
-	AsgardName  = types.AsgardName
-	BondName    = types.BondName
-	StoreKey    = types.StoreKey
+	ModuleName             = types.ModuleName
+	ReserveName            = types.ReserveName
+	AsgardName             = types.AsgardName
+	AffiliateCollectorName = types.AffiliateCollectorName
+	BondName               = types.BondName
+	StoreKey               = types.StoreKey
 
 	// Vaults
 	AsgardVault    = types.VaultType_AsgardVault
@@ -121,6 +122,7 @@ type (
 	ChainContract            = types.ChainContract
 	THORName                 = types.THORName
 	THORNameAlias            = types.THORNameAlias
+	AffiliateFeeCollector    = types.AffiliateFeeCollector
 	SolvencyVoter            = types.SolvencyVoter
 	MinJoinLast              = types.MinJoinLast
 	NodeMimir                = types.NodeMimir

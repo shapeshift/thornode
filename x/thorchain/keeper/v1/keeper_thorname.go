@@ -73,3 +73,61 @@ func (k KVStore) DeleteTHORName(ctx cosmos.Context, name string) error {
 	k.del(ctx, k.GetKey(ctx, prefixTHORName, n.Key()))
 	return nil
 }
+
+// AffiliateFeeCollector
+
+func (k KVStore) setAffiliateCollector(ctx cosmos.Context, key string, record AffiliateFeeCollector) {
+	store := ctx.KVStore(k.storeKey)
+	buf := k.cdc.MustMarshal(&record)
+	if buf == nil {
+		store.Delete([]byte(key))
+	} else {
+		store.Set([]byte(key), buf)
+	}
+}
+
+func (k KVStore) getAffilateCollector(ctx cosmos.Context, key string, record *AffiliateFeeCollector) (bool, error) {
+	store := ctx.KVStore(k.storeKey)
+	if !store.Has([]byte(key)) {
+		return false, nil
+	}
+
+	bz := store.Get([]byte(key))
+	if err := k.cdc.Unmarshal(bz, record); err != nil {
+		return true, dbError(ctx, fmt.Sprintf("Unmarshal kvstore: (%T) %s", record, key), err)
+	}
+
+	return true, nil
+}
+
+func (k KVStore) SetAffiliateCollector(ctx cosmos.Context, collector AffiliateFeeCollector) {
+	k.setAffiliateCollector(ctx, k.GetKey(ctx, prefixAffiliateCollector, collector.OwnerAddress.String()), collector)
+}
+
+func (k KVStore) GetAffiliateCollector(ctx cosmos.Context, acc cosmos.AccAddress) (AffiliateFeeCollector, error) {
+	record := AffiliateFeeCollector{
+		OwnerAddress: acc,
+		RuneAmount:   cosmos.ZeroUint(),
+	}
+	_, err := k.getAffilateCollector(ctx, k.GetKey(ctx, prefixAffiliateCollector, record.OwnerAddress.String()), &record)
+	return record, err
+}
+
+func (k KVStore) GetAffiliateCollectorIterator(ctx cosmos.Context) cosmos.Iterator {
+	return k.getIterator(ctx, prefixAffiliateCollector)
+}
+
+func (k KVStore) GetAffiliateCollectors(ctx cosmos.Context) ([]AffiliateFeeCollector, error) {
+	var affCols []AffiliateFeeCollector
+	iterator := k.GetAffiliateCollectorIterator(ctx)
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		var ac AffiliateFeeCollector
+		err := k.Cdc().Unmarshal(iterator.Value(), &ac)
+		if err != nil {
+			return nil, dbError(ctx, "Unmarsahl: ac", err)
+		}
+		affCols = append(affCols, ac)
+	}
+	return affCols, nil
+}

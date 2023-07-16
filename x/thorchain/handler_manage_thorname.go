@@ -1,6 +1,7 @@
 package thorchain
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"regexp"
@@ -10,6 +11,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
+	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
 var IsValidTHORNameV1 = regexp.MustCompile(`^[a-zA-Z0-9+_-]+$`).MatchString
@@ -113,6 +115,8 @@ func (h ManageTHORNameHandler) validateV112(ctx cosmos.Context, msg MsgManageTHO
 func (h ManageTHORNameHandler) handle(ctx cosmos.Context, msg MsgManageTHORName) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return h.handleV116(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
 		return h.handleV112(ctx, msg)
 	case version.GTE(semver.MustParse("0.1.0")):
@@ -122,7 +126,7 @@ func (h ManageTHORNameHandler) handle(ctx cosmos.Context, msg MsgManageTHORName)
 }
 
 // handle process MsgManageTHORName
-func (h ManageTHORNameHandler) handleV112(ctx cosmos.Context, msg MsgManageTHORName) (*cosmos.Result, error) {
+func (h ManageTHORNameHandler) handleV116(ctx cosmos.Context, msg MsgManageTHORName) (*cosmos.Result, error) {
 	var err error
 
 	enable, _ := h.mgr.Keeper().GetMimir(ctx, "THORNames")
@@ -178,8 +182,12 @@ func (h ManageTHORNameHandler) handleV112(ctx cosmos.Context, msg MsgManageTHORN
 	}
 
 	tn.SetAlias(msg.Chain, msg.Address) // update address
-	if !msg.Owner.Empty() {
-		tn.Owner = msg.Owner // update owner
+	// Update owner if it has changed
+	// Also, if owner has changed, null out the PreferredAsset/Aliases so the new owner is forced to reset it.
+	if !msg.Owner.Empty() && !bytes.Equal(msg.Owner, tn.Owner) {
+		tn.Owner = msg.Owner
+		tn.PreferredAsset = common.EmptyAsset
+		tn.Aliases = []types.THORNameAlias{}
 	}
 	h.mgr.Keeper().SetTHORName(ctx, tn)
 

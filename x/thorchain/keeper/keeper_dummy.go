@@ -571,6 +571,19 @@ func (k KVStoreDummy) SetTHORName(ctx cosmos.Context, name THORName)          {}
 func (k KVStoreDummy) GetTHORNameIterator(ctx cosmos.Context) cosmos.Iterator { return nil }
 func (k KVStoreDummy) DeleteTHORName(ctx cosmos.Context, _ string) error      { return kaboom }
 
+func (k KVStoreDummy) SetAffiliateCollector(_ cosmos.Context, _ AffiliateFeeCollector) {}
+func (k KVStoreDummy) GetAffiliateCollector(_ cosmos.Context, _ cosmos.AccAddress) (AffiliateFeeCollector, error) {
+	return AffiliateFeeCollector{}, kaboom
+}
+
+func (k KVStoreDummy) GetAffiliateCollectorIterator(_ cosmos.Context) cosmos.Iterator {
+	return nil
+}
+
+func (k KVStoreDummy) GetAffiliateCollectors(_ cosmos.Context) ([]AffiliateFeeCollector, error) {
+	return nil, kaboom
+}
+
 func (k KVStoreDummy) InvariantRoutes() []crisis.InvarRoute {
 	return nil
 }

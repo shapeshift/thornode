@@ -2069,6 +2069,10 @@ components:
         preferred_asset:
           type: string
           example: "BTC.BTC"
+        affiliate_collector_rune:
+          type: string
+          example: "100"
+          description: Amount of RUNE currently accrued by this thorname in affiliate fees waiting to be swapped to preferred asset.
         aliases:
           type: array
           items:
