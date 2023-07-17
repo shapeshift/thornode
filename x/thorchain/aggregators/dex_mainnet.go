@@ -11,6 +11,8 @@ import (
 
 func DexAggregators(version semver.Version) []Aggregator {
 	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return DexAggregatorsV116()
 	case version.GTE(semver.MustParse("1.114.0")):
 		return DexAggregatorsV114()
 	case version.GTE(semver.MustParse("1.112.0")):

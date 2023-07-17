@@ -7,7 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
-func DexAggregatorsV116() []Aggregator {
+func DexAggregatorsV114() []Aggregator {
 	return []Aggregator{
 		// TSAggregatorVTHOR Ethereum V2
 		{common.ETHChain, `0x0581a9aB98c467dCA614C940104E6dD102BE5C7d`, 400_000},
@@ -87,11 +87,5 @@ func DexAggregatorsV116() []Aggregator {
 		{common.BSCChain, `0x30912B38618D3D37De3191A4FFE982C65a9aEC2E`, 400_000},
 		// TSAggregatorStargate Ethereum gen2
 		{common.ETHChain, `0x1204b5Bf0D6d48E718B1d9753A4166A7258B8432`, 800_000},
-		// LayerZero Executor Ethereum
-		{common.ETHChain, `0xe93685f3bBA03016F02bD1828BaDD6195988D950`, 800_000},
-		// LayerZero Executor Avalanche
-		{common.AVAXChain, `0xe93685f3bBA03016F02bD1828BaDD6195988D950`, 800_000},
-		// LayerZero Executor BinanceSmartChain
-		{common.BSCChain, `0xe93685f3bBA03016F02bD1828BaDD6195988D950`, 800_000},
 	}
 }
