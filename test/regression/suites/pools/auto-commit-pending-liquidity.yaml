@@ -1,0 +1,68 @@
+{{ template "default-state.yaml" }}
+---
+{{ template "btc-pool-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: only btc.btc pool should exist
+endpoint: http://localhost:1317/thorchain/pools
+asserts:
+  - .|length == 1
+  - .[0].asset == "BTC.BTC"
+---
+########################################################################################
+# allow THOR.BTC derived asset pool
+########################################################################################
+type: tx-mimir
+key: PendingLiquidityAgeLimit
+value: 2
+signer: {{ addr_thor_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: tx-deposit
+signer: {{ addr_thor_cat }}
+coins:
+  - amount: "200000000"
+    asset: "rune"
+memo: "+:BTC.BTC:{{ addr_btc_cat }}"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: LP should be created after first deposit
+endpoint: http://localhost:1317/thorchain/pool/BTC.BTC/liquidity_providers
+asserts:
+  - .|length == 1
+  - .[0].pending_rune | tonumber == 200000000
+  - .[0].units | tonumber == 100000000000
+---
+type: check
+description: check pool has pending rune as weel
+endpoint: http://localhost:1317/thorchain/pool/BTC.BTC
+asserts:
+  - .pending_inbound_rune | tonumber == 200000000
+  - .LP_units | tonumber == 100000000000
+---
+type: create-blocks
+count: 3
+---
+type: check
+description: check LP got its pending rune added
+endpoint: http://localhost:1317/thorchain/pool/BTC.BTC/liquidity_providers
+asserts:
+  - .|length == 1
+  - .[0].pending_rune | tonumber == 0
+  - .[0].units | tonumber == 100099894672
+---
+type: check
+description: check pool has lost its pending liquidity
+endpoint: http://localhost:1317/thorchain/pool/BTC.BTC
+asserts:
+  - .pending_inbound_rune | tonumber == 0
+  - .LP_units | tonumber == 100099894672
+---

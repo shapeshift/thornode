@@ -102,6 +102,11 @@ func (m Pool) IsAvailable() bool {
 	return m.Status == PoolStatus_Available
 }
 
+// IsStaged check whether the pool is in Staged status
+func (m Pool) IsStaged() bool {
+	return m.Status == PoolStatus_Staged
+}
+
 // IsEmpty will return true when the asset is empty
 func (m Pool) IsEmpty() bool {
 	return m.Asset.IsEmpty()

@@ -1155,6 +1155,42 @@ func storeContextTxID(ctx cosmos.Context, key interface{}) (cosmos.Context, erro
 	return ctx, nil
 }
 
+// atTVLCap - returns bool on if we've hit the TVL hard cap. Coins passed in
+// are included in the calculation
+func atTVLCap(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
+	// Get total rune in pools
+	pools, err := mgr.Keeper().GetPools(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to get pools to calculate TVL cap", "error", err)
+		return true
+	}
+	totalRune := coins.GetCoin(common.RuneAsset()).Amount
+	for _, p := range pools {
+		if !p.IsAvailable() && !p.IsStaged() {
+			continue
+		}
+		if p.Asset.IsVaultAsset() {
+			continue
+		}
+		if p.Asset.IsDerivedAsset() {
+			continue
+		}
+		coin := coins.GetCoin(p.Asset)
+		totalRune = totalRune.Add(p.AssetValueInRune(coin.Amount))
+		totalRune = totalRune.Add(p.BalanceRune)
+	}
+
+	// get effectiveSecurity
+	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to get validators to calculate TVL cap", "error", err)
+		return true
+	}
+	effectiveSecurity := getEffectiveSecurityBond(nodeAccounts)
+
+	return totalRune.GT(effectiveSecurity)
+}
+
 func isActionsItemDangling(voter ObservedTxVoter, i int) bool {
 	if i < 0 || i > len(voter.Actions)-1 {
 		// No such Actions item exists in the voter.

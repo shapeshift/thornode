@@ -49,6 +49,10 @@ func (tx TxID) IsEmpty() bool {
 	return strings.TrimSpace(tx.String()) == ""
 }
 
+func (tx TxID) IsBlank() bool {
+	return tx.Equals(BlankTxID)
+}
+
 // String implement fmt.Stringer
 func (tx TxID) String() string {
 	return string(tx)

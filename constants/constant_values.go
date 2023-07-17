@@ -22,6 +22,7 @@ const (
 	MinRunePoolDepth
 	MaxAvailablePools
 	StagedPoolCost
+	PendingLiquidityAgeLimit
 	MinimumNodesForYggdrasil
 	MinimumNodesForBFT
 	DesiredValidatorSet
@@ -138,6 +139,7 @@ var nameToString = map[ConstantName]string{
 	MinRunePoolDepth:                    "MinRunePoolDepth",
 	MaxAvailablePools:                   "MaxAvailablePools",
 	StagedPoolCost:                      "StagedPoolCost",
+	PendingLiquidityAgeLimit:            "PendingLiquidityAgeLimit",
 	KillSwitchStart:                     "KillSwitchStart",
 	KillSwitchDuration:                  "KillSwitchDuration",
 	MinimumNodesForYggdrasil:            "MinimumNodesForYggdrasil",

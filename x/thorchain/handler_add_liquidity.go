@@ -52,6 +52,8 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return h.validateV116(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
 		return h.validateV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.110.0")):
@@ -73,10 +75,12 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	}
 }
 
-func (h AddLiquidityHandler) validateV112(ctx cosmos.Context, msg MsgAddLiquidity) error {
-	if err := msg.ValidateBasicV98(); err != nil {
-		ctx.Logger().Error(err.Error())
-		return errAddLiquidityFailValidation
+func (h AddLiquidityHandler) validateV116(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	if !msg.Tx.ID.IsBlank() { // don't validate tx if internal txn
+		if err := msg.ValidateBasicV98(); err != nil {
+			ctx.Logger().Error(err.Error())
+			return errAddLiquidityFailValidation
+		}
 	}
 
 	// TODO on hard fork move network check to ValidateBasic
@@ -220,6 +224,8 @@ func (h AddLiquidityHandler) validateV112(ctx cosmos.Context, msg MsgAddLiquidit
 func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return h.handleV116(ctx, msg)
 	case version.GTE(semver.MustParse("1.107.0")):
 		return h.handleV107(ctx, msg)
 	case version.GTE(semver.MustParse("1.98.0")):
@@ -235,7 +241,7 @@ func (h AddLiquidityHandler) handle(ctx cosmos.Context, msg MsgAddLiquidity) err
 	}
 }
 
-func (h AddLiquidityHandler) handleV107(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
+func (h AddLiquidityHandler) handleV116(ctx cosmos.Context, msg MsgAddLiquidity) (errResult error) {
 	// check if we need to swap before adding asset
 	if h.needsSwap(msg) {
 		return h.swapV93(ctx, msg)
@@ -284,7 +290,7 @@ func (h AddLiquidityHandler) handleV107(ctx cosmos.Context, msg MsgAddLiquidity)
 	// transaction to commit all funds atomically. For pools of native assets
 	// only, stage is always false
 	stage := false
-	if !msg.Asset.IsVaultAsset() {
+	if !msg.Asset.IsVaultAsset() && !msg.Tx.ID.IsBlank() {
 		if !msg.AssetAddress.IsEmpty() && msg.AssetAmount.IsZero() {
 			stage = true
 		}
