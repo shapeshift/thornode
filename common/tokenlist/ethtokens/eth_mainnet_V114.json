@@ -5,28 +5,12 @@
   "keywords": ["1inch", "default", "list"],
   "tokens": [
     {
-      "address": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
-      "chainId": 1,
-      "name": "Pepe",
-      "symbol": "PEPE",
-      "decimals": 18,
-      "logoURI": "https://etherscan.io/token/images/pepe_32.png"
-    },
-    {
-      "address": "0x046EeE2cc3188071C02BfC1745A6b17c656e3f3d",
-      "chainId": 1,
-      "name": "Rollbit",
-      "symbol": "RLB",
-      "decimals": 18,
-      "logoURI": "https://etherscan.io/token/images/rollbitcoin_32.png"
-    },
-    {
       "address": "0x249cA82617eC3DfB2589c4c17ab7EC9765350a18",
       "chainId": 1,
       "name": "Verse",
       "symbol": "VERSE",
       "decimals": 18,
-      "logoURI": "https://etherscan.io/token/images/bitcoin-verse_32.png"
+      "logoURI": "https://assets.coingecko.com/coins/images/13072/small/bAe1G-lD_400x400.png?1654056255"
     },
     {
       "address": "0xd794DD1CAda4cf79C9EebaAb8327a1B0507ef7d4",
