@@ -123,11 +123,10 @@ func (tx Tx) IsEmpty() bool {
 	return tx.ID.IsEmpty()
 }
 
-// Equals compare two Tx to see whether they represent the same Tx
-// Note:
-// 1) this method has a side effect , it is using coins.Equals to compare coins , which potentially will  change the order of coins in tx & tx2
-// 2) for the places that are already using Equals , it can't be changed, continue to use Equals otherwise it will cause consensus failure on CHAOSNET
-// Deprecated
+// Equals compares two Txs to see whether they represent the same Tx. This method has a
+// side effect of sorting the input parameters. Since this is already used, it cannot be
+// changed without causing consensus failure.
+// TODO: Deprecated, remove on hard fork.
 func (tx Tx) Equals(tx2 Tx) bool {
 	if !tx.ID.Equals(tx2.ID) {
 		return false

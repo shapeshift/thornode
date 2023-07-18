@@ -100,7 +100,7 @@ func (vts *ValidatorMgrVCURTestSuite) TestSetupValidatorNodes(c *C) {
 	c.Assert(len(activeNodes1) == 4, Equals, true)
 }
 
-func (vts *ValidatorMgrVCURTestSuite) TestRagnarokForChaosnet(c *C) {
+func (vts *ValidatorMgrVCURTestSuite) TestRagnarokForMainnet(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	networkMgr := newValidatorMgrVCUR(mgr.Keeper(), mgr.NetworkMgr(), mgr.TxOutStore(), mgr.EventMgr())
 	mgr.Keeper().SetMimir(ctx, constants.DesiredValidatorSet.String(), 12)

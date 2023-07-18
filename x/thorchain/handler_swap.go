@@ -114,7 +114,7 @@ func (h SwapHandler) validateV116(ctx cosmos.Context, msg MsgSwap) error {
 		}
 	}
 	if target.IsSyntheticAsset() {
-		// the following  only applicable for chaosnet
+		// the following is only applicable for mainnet
 		totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
 		if err != nil {
 			return ErrInternal(err, "fail to get total liquidity RUNE")

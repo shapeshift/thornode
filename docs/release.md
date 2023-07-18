@@ -41,7 +41,7 @@ Patch version, is backward compatible, usually changes only in bifrost
 
 3. Also identify unexpected log / behaviour, and investigate it.
 
-## Create testnet & chaosnet image
+## Create testnet & mainnet image
 
 ### testnet
 
@@ -59,19 +59,19 @@ Successfully tagged registry.gitlab.com/thorchain/thornode:testnet-0.77.2
 Successfully tagged registry.gitlab.com/thorchain/thornode:8be434a
 ```
 
-### chaosnet
+### mainnet
 
-1. Raise a PR to merge all changes from `develop` branch -> `chaosnet-multichain` branch, once the PR get approved & merged, chaosnet image should be created automatically by pipeline
+1. Raise a PR to merge all changes from `develop` branch -> `mainnet` branch, once the PR get approved & merged, mainnet image should be created automatically by pipeline
    for example: https://gitlab.com/thorchain/thornode/-/pipelines/433627314
-2. Check for any changes in `heimdall` repo that might need to be merged into the `heimdall` `chaosnet-multichain` branch for smoke tests to pass.
+2. Check for any changes in `heimdall` repo that might need to be merged into the `heimdall` `mainnet` branch for smoke tests to pass.
 3. Make sure "build-thornode" pipeline step is successful, when you click the step, inside you should be able to see
 
 ```logs
 Successfully built fdfd001f96ba
-Successfully tagged registry.gitlab.com/thorchain/thornode:chaosnet-multichain
-Successfully tagged registry.gitlab.com/thorchain/thornode:chaosnet-multichain-0
-Successfully tagged registry.gitlab.com/thorchain/thornode:chaosnet-multichain-0.77
-Successfully tagged registry.gitlab.com/thorchain/thornode:chaosnet-multichain-0.77.2
+Successfully tagged registry.gitlab.com/thorchain/thornode:mainnet
+Successfully tagged registry.gitlab.com/thorchain/thornode:mainnet-0
+Successfully tagged registry.gitlab.com/thorchain/thornode:mainnet-0.77
+Successfully tagged registry.gitlab.com/thorchain/thornode:mainnet-0.77.2
 Successfully tagged registry.gitlab.com/thorchain/thornode:d24c9bd
 ```
 
@@ -89,9 +89,9 @@ node-launcher repository: https://gitlab.com/thorchain/devops/node-launcher/
 
 1. Start a new validator on testnet, using the new image tag, let it sync from genesis to the tip, make sure thornode pod doesn't get consensus failure. This will ensure a new node can always join by syncing from genesis.
 
-## Release to chaosnet
+## Release to mainnet
 
-How to release to chaosnet.
+How to release to mainnet.
 
 ### Raise PR in node-launcher
 
@@ -101,7 +101,7 @@ How to release to chaosnet.
 
 ### Sync a full node from genesis
 
-1. Start a new validator on chaosnet, using the new image tag, let it sync from genesis to the tip, make sure thornode pod doesn't get consensus failure.
+1. Start a new validator on mainnet, using the new image tag, let it sync from genesis to the tip, make sure thornode pod doesn't get consensus failure.
 2. Sync takes a few days right now, If for some reason, sync does get into consensus failure, then the image can't be released, need to investigate and find out what cause the issue, and fix it
 
 ## Pre-release check
@@ -115,7 +115,7 @@ How to release to chaosnet.
 
 ## Release
 
-1. Post release announcement in #thornode-chaosnet or #thornode-testnet
-2. For chaosnet release, post the release announcement in telegram #THORNode Announcement as well
+1. Post release announcement in #thornode-mainnet or #thornode-testnet
+2. For mainnet release, post the release announcement in telegram #THORNode Announcement as well
 3. Create a tag from `release-X.Y.Z` branch. for example: https://gitlab.com/thorchain/thornode/-/tags/v0.76.0
 4. Create a gitlab release from that tag: https://gitlab.com/thorchain/thornode/-/releases

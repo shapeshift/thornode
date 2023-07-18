@@ -229,7 +229,7 @@ class Health:
         pub_key = decode_address(vault["pub_key"])[5:]
 
         if self.binance_api.base_url:
-            # TESTNET and CHAOSNET scenarios, check real balance
+            # TESTNET and MAINNET scenarios, check real balance
             if "testnet" in self.binance_api.base_url:
                 prefix = "tbnb"
             else:

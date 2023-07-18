@@ -130,12 +130,10 @@ func (cs Coins) Valid() error {
 	return nil
 }
 
-// Equals Check if two lists of coins are equal to each other. Order does not matter
-// This method has side effect because it uses sort.Slice on the input parameter
-// which will potentially change the order of cs1 & cs2
-// Note: quite a few places already using this method , which can't be changed, otherwise it will cause consensus failure
-// on CHAOSNET
-// Deprecated
+// Equals checks if two lists of coins are equal to each other - order does not matter.
+// This method has a side effect of sorting the input parameters. Since this is already
+// used, it cannot be changed without causing consensus failure.
+// TODO: Deprecated, remove on hard fork.
 func (cs Coins) Equals(cs2 Coins) bool {
 	if len(cs) != len(cs2) {
 		return false

@@ -78,11 +78,8 @@ lint:
   except:
     - schedules
     - testnet
-    - chaosnet
     - mainnet
     - stagenet
-    - testnet-multichain
-    - chaosnet-multichain
   before_script:
     - rm -rf ~/.cache
     - mkdir -p .cache
@@ -99,14 +96,10 @@ build-thornode:
   stage: build
   image: docker:20.10.12
   only:
-    - master # build mocknet image
-    - develop # build mocknet image multichain
+    - develop # build mocknet image
     - testnet
-    - chaosnet
     - mainnet
     - stagenet
-    - testnet-multichain
-    - chaosnet-multichain
   services:
     - docker:20.10.12-dind
   before_script:

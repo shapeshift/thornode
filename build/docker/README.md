@@ -8,7 +8,7 @@ The default image will start a fullnode:
 docker run \
   -e CHAIN_ID=thorchain-mainnet-v1 \
   -e NET=mainnet \
-  registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+  registry.gitlab.com/thorchain/thornode:mainnet
 ```
 
 The above command will result in syncing chain state to ephemeral storage within the container, in order to persist data across restarts simply mount a local volume:
@@ -19,7 +19,7 @@ docker run \
   -v $(pwd)/thornode-data:/root/.thornode \
   -e CHAIN_ID=thorchain-mainnet-v1 \
   -e NET=mainnet \
-  registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+  registry.gitlab.com/thorchain/thornode:mainnet
 ```
 
 Nine Realms provides snapshots taken from a statesync recovery which can be rsync'd without need for a high memory (80G at time of writing) machine to recover the statesync snapshot. Ensure `gsutil` is installed, and pull the latest statesync snapshot via:
@@ -35,18 +35,18 @@ docker run \
   -v $(pwd)/thornode-data:/root/.thornode \
   -e CHAIN_ID=thorchain-mainnet-v1 \
   -e NET=mainnet \
-  registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+  registry.gitlab.com/thorchain/thornode:mainnet
 ```
 
 Since this image tag contains the latest version of THORNode, the node can auto update by simply placing this in a loop to re-pull the image on exit:
 
 ```bash
 while true; do
-  docker pull registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+  docker pull registry.gitlab.com/thorchain/thornode:mainnet
   docker run \
     -v $(pwd)/thornode-data:/root/.thornode \
     -e NET=mainnet \
-    registry.gitlab.com/thorchain/thornode:chaosnet-multichain
+    registry.gitlab.com/thorchain/thornode:mainnet
 do
 ```
 

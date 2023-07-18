@@ -238,7 +238,7 @@ func (r *RouterUpgradeController) upgradeContractV1(ctx cosmos.Context) error {
 	if err != nil {
 		return fmt.Errorf("fail to get existing chain contract,err:%w", err)
 	}
-	// ensure it is upgrading the current router contract used on multichain chaosnet
+	// ensure it is upgrading the current router contract
 	if !strings.EqualFold(cc.Router.String(), ethOldRouter) {
 		return fmt.Errorf("old router is not %s, no need to upgrade", ethOldRouter)
 	}

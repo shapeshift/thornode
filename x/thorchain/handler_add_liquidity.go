@@ -187,7 +187,7 @@ func (h AddLiquidityHandler) validateV116(ctx cosmos.Context, msg MsgAddLiquidit
 		return nil
 	}
 
-	// the following  only applicable for chaosnet
+	// the following is only applicable for mainnet
 	totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
 	if err != nil {
 		return ErrInternal(err, "fail to get total liquidity RUNE")

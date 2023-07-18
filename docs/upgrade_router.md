@@ -31,7 +31,7 @@ Before router upgrade , make sure you already make relevant changes in thornode 
   - [Mocknet](https://gitlab.com/thorchain/thornode/-/blob/develop/x/thorchain/router_upgrade_info_mocknet.go)
   - [Testnet](https://gitlab.com/thorchain/thornode/-/blob/develop/x/thorchain/router_upgrade_info_testnet.go)
   - [Stagenet](https://gitlab.com/thorchain/thornode/-/blob/develop/x/thorchain/router_upgrade_info_stagenet.go)
-  - [Chaosnet](https://gitlab.com/thorchain/thornode/-/blob/develop/x/thorchain/router_upgrade_info.go)
+  - [Mainnet](https://gitlab.com/thorchain/thornode/-/blob/develop/x/thorchain/router_upgrade_info.go)
 
 Before upgrade , make sure the network is healthy , all active nodes / standby nodes are online. If some nodes are not healthy , bifrost are not online it will cause the node's vault in a bad state
 
