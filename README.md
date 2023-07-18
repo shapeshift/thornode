@@ -19,7 +19,7 @@
 
 ======================================
 
-THORChain is a decentralised liquidity network built with [CosmosSDK](cosmos.network).
+THORChain is a decentralised liquidity network built with [CosmosSDK](https://cosmos.network).
 
 ## THORNodes
 
@@ -268,10 +268,10 @@ go build -tags cgo,ledger
 ### How to contribute
 
 - Create an issue or find an existing issue on https://gitlab.com/thorchain/thornode/-/issues
-- About to work on an issue? Start a conversation at #Thornode channel on [discord](https://discord.gg/kvZhpEtHAw)
+- About to work on an issue? Start a conversation at #thornode-dev channel on [discord](https://discord.gg/BpnPh4tW5c)
 - Assign the issue to yourself
 - Create a branch using the issue id, for example if the issue you are working on is 600, then create a branch call `600-issue` , this way , gitlab will link your PR with the issue
-- Raise a PR , Once your PR is ready for review , post a message in #Thornode channel in discord , tag `thornode-team` for review
+- Raise a PR , Once your PR is ready for review , post a message in #thornode-dev channel in discord , tag `@thornode-team` for review
 - Make sure the pipeline is green
 - Once PR get approved, you can merge it
 
@@ -284,7 +284,7 @@ If you find a vulnerability in THORNode, please submit it for a bounty according
 ### the semantic version and release
 
 THORNode manage changelog entry the same way like gitlab, refer to (https://docs.gitlab.com/ee/development/changelog.html) for more detail. Once a merge request get merged into master branch,
-if the merge request upgrade the [version](https://gitlab.com/thorchain/thornode/-/blob/master/version), then a new release will be created automatically, and the repository will be tagged with
+if the merge request upgrades the [version](https://gitlab.com/thorchain/thornode/-/blob/develop/version), then a new release will be created automatically, and the repository will be tagged with
 the new version by the release tool.
 
 ## New Chain Integration
@@ -292,5 +292,5 @@ the new version by the release tool.
 The process to integrate a new chain into THORChain is multifaceted. As it requires changes to multiple repos in multiple languages (`golang`, `python`, and `javascript`).
 
 To learn more about how to add a new chain, follow [this doc](docs/newchain.md)
-To learn more about creating your own private chain as a testing and development environment, follow [this doc](docs/private_mock_chain.d)
-To learn more about creating your own private chain as a testing and development environment, follow [this doc](docs/private_mock_chain.d)
+
+To learn more about creating your own private chain as a testing and development environment, follow [this doc](docs/private_mock_chain.md)
