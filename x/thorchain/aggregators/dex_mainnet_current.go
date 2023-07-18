@@ -9,34 +9,6 @@ import (
 
 func DexAggregatorsV117() []Aggregator {
 	return []Aggregator{
-		// TSAggregatorVTHOR Ethereum V2
-		{common.ETHChain, `0x0581a9aB98c467dCA614C940104E6dD102BE5C7d`, 400_000},
-		// TSAggregatorPancakeSwap Ethereum V2
-		{common.ETHChain, `0x35CF22003c90126528fbe95b21bB3ADB2ca8c53D`, 400_000},
-		// TSAggregatorWoofi Avalanche V2
-		{common.AVAXChain, `0x5505BE604dFA8A1ad402A71f8A357fba47F9bf5a`, 400_000},
-		// TSSwapGeneric Avalanche V2
-		{common.AVAXChain, `0x77b34A3340eDdD56799749be4Be2c322547E2428`, 400_000},
-		// TSAggregatorGeneric Avalanche V2
-		{common.AVAXChain, `0x94a852F0a21E473078846cf88382dd8d15bD1Dfb`, 400_000},
-		// TSAggregatorTraderJoe Avalanche V2
-		{common.AVAXChain, `0xce5d236164D2Bc0B2f65351f23B617c2A7D5Cc28`, 400_000},
-		// TSAggregatorPangolin Avalanche V2
-		{common.AVAXChain, `0x9aC752Ed433f7E038Be4070544858cB3d83cC0d7`, 400_000},
-		// TSSwapGeneric Ethereum V2
-		{common.ETHChain, `0x213255345a740324cbCE0242e32076Ab735906e2`, 400_000},
-		// TSAggregatorGeneric Ethereum V2
-		{common.ETHChain, `0x0ccD5Dd5BcF1Af77dc358d1E2F06eE880EF63C3c`, 400_000},
-		// TSAggregatorUniswapV2 Ethereum V2
-		{common.ETHChain, `0x14D52a5709743C9563a2C36842B3Fe7Db1fCf5bc`, 400_000},
-		// TSAggregatorSushiswap Ethereum V2
-		{common.ETHChain, `0x7334543783a6A87BDD028C902f7c87AFB703cCbC`, 400_000},
-		// TSAggregatorUniswapV3_500 Ethereum V2
-		{common.ETHChain, `0xBcd954803163094590AF749377c082619014acD5`, 400_000},
-		// TSAggregatorUniswapV3_3000 Ethereum V2
-		{common.ETHChain, `0xd785Eb8D8cf2adC99b742C4E7C77d39f1bC604F1`, 400_000},
-		// TSAggregatorUniswapV3_10000 Ethereum V2
-		{common.ETHChain, `0xDE3205dc90336C916CbBAD21383eA95F418a7cbA`, 400_000},
 		// TSAggregatorGeneric
 		{common.ETHChain, `0xd31f7e39afECEc4855fecc51b693F9A0Cec49fd2`, 400_000},
 		// TSAggregator2LegUniswapV2 USDC
@@ -93,5 +65,7 @@ func DexAggregatorsV117() []Aggregator {
 		{common.AVAXChain, `0xe93685f3bBA03016F02bD1828BaDD6195988D950`, 800_000},
 		// LayerZero Executor BinanceSmartChain
 		{common.BSCChain, `0xe93685f3bBA03016F02bD1828BaDD6195988D950`, 800_000},
+		// TSLedgerAdapter
+		{common.ETHChain, `0xaD545d047E34862121695F8E37aeEB71324a9E78`, 500_000},
 	}
 }
