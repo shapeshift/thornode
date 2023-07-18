@@ -231,6 +231,10 @@ func queryTHORName(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 	}
 
 	affRune := cosmos.ZeroUint()
+	affCol, err := mgr.Keeper().GetAffiliateCollector(ctx, name.Owner)
+	if err == nil {
+		affRune = affCol.RuneAmount
+	}
 
 	// convert to openapi types
 	aliases := []openapi.ThornameAlias{}
@@ -239,14 +243,8 @@ func queryTHORName(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 			Chain:   wrapString(alias.Chain.String()),
 			Address: wrapString(alias.Address.String()),
 		})
-
-		if alias.Chain.IsTHORChain() {
-			affCol, err := mgr.Keeper().GetAffiliateCollector(ctx, name.Owner)
-			if err == nil {
-				affRune = affCol.RuneAmount
-			}
-		}
 	}
+
 	resp := openapi.Thorname{
 		Name:                   wrapString(name.Name),
 		ExpireBlockHeight:      wrapInt64(name.ExpireBlockHeight),

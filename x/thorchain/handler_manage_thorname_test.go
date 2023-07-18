@@ -31,6 +31,13 @@ func (s *HandlerManageTHORNameSuite) TestValidator(c *C) {
 	name := NewTHORName("hello", 50, []THORNameAlias{{Chain: common.THORChain, Address: addr}})
 	mgr.Keeper().SetTHORName(ctx, name)
 
+	// set pool for preferred asset
+	pool, err := mgr.Keeper().GetPool(ctx, common.BNBAsset)
+	c.Assert(err, IsNil)
+	pool.Asset = common.BNBAsset
+	err = mgr.Keeper().SetPool(ctx, pool)
+	c.Assert(err, IsNil)
+
 	// happy path
 	msg := NewMsgManageTHORName("I-am_the_99th_walrus+", common.THORChain, addr, coin, 0, common.BNBAsset, acc, acc)
 	c.Assert(handler.validate(ctx, *msg), IsNil)

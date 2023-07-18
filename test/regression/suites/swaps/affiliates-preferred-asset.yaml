@@ -1,4 +1,3 @@
-
 {{ template "default-state.yaml" }}
 ---
 {{ template "btc-eth-pool-state.yaml" }}
@@ -20,8 +19,26 @@ type: create-blocks
 count: 1
 ---
 ########################################################################################
-# Create THORName w/ preferred asset
+# Create THORName w/ preferred asset for non-existent pool
 # memo structure is [~/n/name]:THORName:Chain:AliasAddress:Owner:PreferredAsset:ExpireBlockHeight
+########################################################################################
+type: tx-deposit
+signer: {{ addr_thor_pig }}
+coins:
+  - amount: "5000000000"
+    asset: "rune"
+memo: "~:test:THOR:{{ addr_thor_pig }}:{{ addr_thor_pig }}:ETH.BTC"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: thorname "test" should fail to register with non-existent preferred asset pool
+endpoint: http://localhost:1317/thorchain/thorname/test
+status: 404
+---
+########################################################################################
+# Create THORName w/ preferred asset
 ########################################################################################
 type: tx-deposit
 signer: {{ addr_thor_pig }}
@@ -76,7 +93,7 @@ type: check
 description: check pig balance before swap
 endpoint: http://localhost:1317/bank/balances/{{ addr_thor_pig }}
 asserts:
-  - .result[]|select(.denom == "rune")|.amount == "4996000000" 
+  - .result[]|select(.denom == "rune")|.amount == "4992000000"
 ---
 ########################################################################################
 # swap BTC -> RUNE w/ "test" affiliate
@@ -84,22 +101,22 @@ asserts:
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
 txs:
-- tx:
-    id: '{{ observe_txid 1 }}'
-    chain: BTC
-    from_address: {{ addr_btc_fox }}
-    to_address: {{ addr_btc_dog }}
-    coins:
-      - amount: "5000000"
-        asset: "BTC.BTC"
-        decimals: 8
-    gas:
-      - amount: "10000"
-        asset: "BTC.BTC"
-    memo: "=:THOR.RUNE:{{ addr_thor_fox }}::test:500"
-  block_height: 4
-  finalise_height: 4
-  observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 1 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "5000000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "=:THOR.RUNE:{{ addr_thor_fox }}::test:500"
+    block_height: 4
+    finalise_height: 4
+    observed_pub_key: {{ pubkey_dog }}
 ---
 type: create-blocks
 count: 1
@@ -111,19 +128,19 @@ type: check
 description: rune balance in affiliate module should have increased for "test"
 endpoint: http://localhost:1317/thorchain/thorname/test
 asserts:
-  - .affiliate_collector_rune == "225250633"
+  - .affiliate_collector_rune == "225251844"
 ---
 type: check
 description: total rune balance of affiliate module should match "test" balance in thorname keeper
 endpoint: http://localhost:1317/thorchain/balance/module/affiliate_collector
 asserts:
-  - .coins[]|select(.denom == "rune")|.amount == "225250633" 
+  - .coins[]|select(.denom == "rune")|.amount == "225251844"
 ---
 type: check
 description: check pig balance after btc swap, should be the same
 endpoint: http://localhost:1317/bank/balances/{{ addr_thor_pig }}
 asserts:
-  - .result[]|select(.denom == "rune")|.amount == "4996000000" 
+  - .result[]|select(.denom == "rune")|.amount == "4992000000"
 ---
 type: check
 description: ensure affiliate_collector invariant
@@ -131,7 +148,6 @@ endpoint: http://localhost:1317/thorchain/invariant/affiliate_collector
 asserts:
   - .broken == false
 ---
-
 ########################################################################################
 # Swap RUNE -> BTC w/ affiliate "test"
 ########################################################################################
@@ -152,19 +168,19 @@ type: check
 description: rune balance in thorname keeper should have increased for "test" after rune swap
 endpoint: http://localhost:1317/thorchain/thorname/test
 asserts:
-  - .affiliate_collector_rune == "475250633"
+  - .affiliate_collector_rune == "475251844"
 ---
 type: check
 description: total rune balance of affiliate module should match "test" balance in thorname keeper after rune swap
 endpoint: http://localhost:1317/thorchain/balance/module/affiliate_collector
 asserts:
-  - .coins[]|select(.denom == "rune")|.amount == "475250633" 
+  - .coins[]|select(.denom == "rune")|.amount == "475251844"
 ---
 type: check
 description: check pig balance after rune swap, should be the same
 endpoint: http://localhost:1317/bank/balances/{{ addr_thor_pig }}
 asserts:
-  - .result[]|select(.denom == "rune")|.amount == "4996000000" 
+  - .result[]|select(.denom == "rune")|.amount == "4992000000"
 ---
 type: check
 description: ensure affiliate_collector invariant
@@ -182,7 +198,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_cat }}
       coins:
-        - amount: "4728086"
+        - amount: "4728063"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -231,7 +247,7 @@ type: check
 description: check pig balance after rune swap, should be the same
 endpoint: http://localhost:1317/bank/balances/{{ addr_thor_pig }}
 asserts:
-  - .result[]|select(.denom == "rune")|.amount == "4996000000" 
+  - .result[]|select(.denom == "rune")|.amount == "4992000000"
 ---
 type: check
 description: ensure affiliate_collector invariant
@@ -245,7 +261,7 @@ endpoint: http://localhost:1317/thorchain/blockevents
 asserts:
   - .|[.end[]|select(.type == "scheduled_outbound")]|length == 2
   - .|[.end[]|select(.type == "scheduled_outbound")]|.[1].to_address == "{{ addr_btc_pig }}"
-  - .|[.end[]|select(.type == "scheduled_outbound")]|.[1].coin_amount == "1503989"
+  - .|[.end[]|select(.type == "scheduled_outbound")]|.[1].coin_amount == "1503986"
   - .|[.end[]|select(.type == "scheduled_outbound")]|.[1].coin_asset == "BTC.BTC"
 ---
 type: check
@@ -264,7 +280,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_cat }}
       coins:
-        - amount: "21861988"
+        - amount: "21861953"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -288,7 +304,7 @@ txs:
       from_address: {{ addr_btc_dog }}
       to_address: {{ addr_btc_pig }}
       coins:
-        - amount: "1503989"
+        - amount: "1503986"
           asset: "BTC.BTC"
           decimals: 8
       gas:
@@ -320,22 +336,22 @@ asserts:
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
 txs:
-- tx:
-    id: '{{ observe_txid 5 }}'
-    chain: BTC
-    from_address: {{ addr_btc_fox }}
-    to_address: {{ addr_btc_dog }}
-    coins:
-      - amount: "5000000"
-        asset: "BTC.BTC"
-        decimals: 8
-    gas:
-      - amount: "10000"
-        asset: "BTC.BTC"
-    memo: "=:THOR.RUNE:{{ addr_thor_fox }}::test:500"
-  block_height: 9
-  finalise_height: 9
-  observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 5 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "5000000"
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "=:THOR.RUNE:{{ addr_thor_fox }}::test:500"
+    block_height: 9
+    finalise_height: 9
+    observed_pub_key: {{ pubkey_dog }}
 ---
 type: create-blocks
 count: 1
@@ -344,13 +360,13 @@ type: check
 description: rune balance in affiliate module should have increased for "test"
 endpoint: http://localhost:1317/thorchain/thorname/test
 asserts:
-  - .affiliate_collector_rune == "429941420"
+  - .affiliate_collector_rune == "429942580"
 ---
 type: check
-description: total rune balance of affiliate module should match "test" balance in thorname keeper 
+description: total rune balance of affiliate module should match "test" balance in thorname keeper
 endpoint: http://localhost:1317/thorchain/balance/module/affiliate_collector
 asserts:
-  - .coins[]|select(.denom == "rune")|.amount == "429941420" 
+  - .coins[]|select(.denom == "rune")|.amount == "429942580"
 ---
 type: check
 description: ensure affiliate_collector invariant
@@ -377,22 +393,22 @@ asserts:
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
 txs:
-- tx:
-    id: '{{ observe_txid 6 }}'
-    chain: ETH
-    from_address: {{ addr_eth_fox }}
-    to_address: {{ addr_eth_dog }}
-    coins:
-      - amount: "1000000000"
-        asset: "ETH.ETH"
-        decimals: 8
-    gas:
-      - amount: "10000"
-        asset: "ETH.ETH"
-    memo: "=:THOR.RUNE:{{ addr_thor_fox }}::test:500"
-  block_height: 10
-  finalise_height: 10
-  observed_pub_key: {{ pubkey_dog }}
+  - tx:
+      id: "{{ observe_txid 6 }}"
+      chain: ETH
+      from_address: {{ addr_eth_fox }}
+      to_address: {{ addr_eth_dog }}
+      coins:
+        - amount: "1000000000"
+          asset: "ETH.ETH"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "ETH.ETH"
+      memo: "=:THOR.RUNE:{{ addr_thor_fox }}::test:500"
+    block_height: 10
+    finalise_height: 10
+    observed_pub_key: {{ pubkey_dog }}
 ---
 type: create-blocks
 count: 1
@@ -401,13 +417,13 @@ type: check
 description: rune balance in affiliate module should have increased for "test" after ETH swap
 endpoint: http://localhost:1317/thorchain/thorname/test
 asserts:
-  - .affiliate_collector_rune == "2256539188"
+  - .affiliate_collector_rune == "2256550089"
 ---
 type: check
 description: total rune balance of affiliate module should match "test" balance in thorname keeper after ETH swap
 endpoint: http://localhost:1317/thorchain/balance/module/affiliate_collector
 asserts:
-  - .coins[]|select(.denom == "rune")|.amount == "2256539188" 
+  - .coins[]|select(.denom == "rune")|.amount == "2256550089"
 ---
 type: check
 description: ensure affiliate_collector invariant
@@ -432,13 +448,13 @@ type: check
 description: rune balance in affiliate module should have increased (preferred asset swap should have failed)
 endpoint: http://localhost:1317/thorchain/thorname/test
 asserts:
-  - .affiliate_collector_rune == "4756539188"
+  - .affiliate_collector_rune == "4756550089"
 ---
 type: check
 description: total rune balance of affiliate module should match "test" balance in thorname keeper
 endpoint: http://localhost:1317/thorchain/balance/module/affiliate_collector
 asserts:
-  - .coins[]|select(.denom == "rune")|.amount == "4756539188" 
+  - .coins[]|select(.denom == "rune")|.amount == "4756550089"
 ---
 type: check
 description: should only have the main swap outbound
@@ -459,4 +475,3 @@ description: ensure affiliate_collector invariant
 endpoint: http://localhost:1317/thorchain/invariant/affiliate_collector
 asserts:
   - .broken == false
----

@@ -46,6 +46,8 @@ func (h ManageTHORNameHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Re
 func (h ManageTHORNameHandler) validate(ctx cosmos.Context, msg MsgManageTHORName) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.116.0")):
+		return h.validateV116(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
 		return h.validateV112(ctx, msg)
 	case version.GTE(semver.MustParse("1.110.0")):
@@ -68,7 +70,7 @@ func (h ManageTHORNameHandler) validateNameV1(n string) error {
 	return nil
 }
 
-func (h ManageTHORNameHandler) validateV112(ctx cosmos.Context, msg MsgManageTHORName) error {
+func (h ManageTHORNameHandler) validateV116(ctx cosmos.Context, msg MsgManageTHORName) error {
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -105,6 +107,20 @@ func (h ManageTHORNameHandler) validateV112(ctx cosmos.Context, msg MsgManageTHO
 		// ensure user isn't inflating their expire block height artificaially
 		if name.ExpireBlockHeight < msg.ExpireBlockHeight {
 			return errors.New("cannot artificially inflate expire block height")
+		}
+	}
+
+	// validate preferred asset pool exists and is active
+	if !msg.PreferredAsset.IsEmpty() {
+		if !h.mgr.Keeper().PoolExist(ctx, msg.PreferredAsset) {
+			return fmt.Errorf("pool %s does not exist", msg.PreferredAsset)
+		}
+		pool, err := h.mgr.Keeper().GetPool(ctx, msg.PreferredAsset)
+		if err != nil {
+			return err
+		}
+		if pool.Status != PoolAvailable {
+			return fmt.Errorf("pool %s is not available", msg.PreferredAsset)
 		}
 	}
 
