@@ -2,8 +2,27 @@
 ---
 {{ template "btc-eth-pool-state.yaml" }}
 ---
+#TODO remove when issue #1590 is fixed, need to prevent invariant break
+type: state
+genesis:
+  app_state:
+    bank:
+      balances:
+        - address: {{ addr_module_asgard }}
+          coins:
+            - amount: "200002000000"
+              denom: rune
+---
 type: create-blocks
 count: 1
+---
+type: check
+description: ensure asgard invariant is broken TODO remove after #1590
+endpoint: http://localhost:1317/thorchain/invariant/asgard
+asserts:
+  - .broken == true
+  - .msg|length == 1
+  #- .msg[0] == "insolvent: 2000000rune"
 ---
 ########################################################################################
 # Send RUNE to pig for affiliate thorname setup

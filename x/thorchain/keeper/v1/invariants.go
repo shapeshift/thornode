@@ -3,32 +3,26 @@ package keeperv1
 import (
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	crisis "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
-// InvariantRoutes return the keeper's invariant routes
-func (k KVStore) InvariantRoutes() []crisis.InvarRoute {
-	return []crisis.InvarRoute{
-		crisis.NewInvarRoute(ModuleName, "asgard", AsgardInvariant(k)),
-		crisis.NewInvarRoute(ModuleName, "bond", BondInvariant(k)),
-		crisis.NewInvarRoute(ModuleName, "thorchain", THORChainInvariant(k)),
-		crisis.NewInvarRoute(ModuleName, "affiliate_collector", AffilliateCollectorInvariant(k)),
+func (k KVStore) InvariantRoutes() []common.InvariantRoute {
+	return []common.InvariantRoute{
+		common.NewInvariantRoute("asgard", AsgardInvariant(k)),
+		common.NewInvariantRoute("bond", BondInvariant(k)),
+		common.NewInvariantRoute("thorchain", THORChainInvariant(k)),
+		common.NewInvariantRoute("affiliate_collector", AffilliateCollectorInvariant(k)),
 	}
 }
 
 // AsgardInvariant the asgard module backs pool rune, savers synths, and native
 // coins in queued swaps
-func AsgardInvariant(k KVStore) sdk.Invariant {
-	return func(ctx sdk.Context) (string, bool) {
-		pools, err := k.GetPools(ctx)
-		if err != nil {
-			return err.Error(), true
-		}
-
-		var expCoins common.Coins
+func AsgardInvariant(k KVStore) common.Invariant {
+	return func(ctx cosmos.Context) (msg []string, broken bool) {
+		// sum all rune liquidity on pools, including pending
+		var poolCoins common.Coins
+		pools, _ := k.GetPools(ctx)
 		for _, pool := range pools {
 			switch {
 			case pool.Asset.IsSyntheticAsset():
@@ -36,50 +30,47 @@ func AsgardInvariant(k KVStore) sdk.Invariant {
 					pool.Asset,
 					pool.BalanceAsset,
 				)
-				expCoins = expCoins.Add(coin)
+				poolCoins = poolCoins.Add(coin)
 			case !pool.Asset.IsDerivedAsset():
 				coin := common.NewCoin(
 					common.RuneAsset(),
 					pool.BalanceRune.Add(pool.PendingInboundRune),
 				)
-				expCoins = expCoins.Add(coin)
+				poolCoins = poolCoins.Add(coin)
 			}
 		}
 
+		// sum all rune in pending swaps
+		var swapCoins common.Coins
 		swapIter := k.GetSwapQueueIterator(ctx)
 		defer swapIter.Close()
 		for ; swapIter.Valid(); swapIter.Next() {
 			var msg MsgSwap
-			if err := k.Cdc().Unmarshal(swapIter.Value(), &msg); err != nil {
-				continue
-			}
+			k.Cdc().MustUnmarshal(swapIter.Value(), &msg)
 			for _, coin := range msg.Tx.Coins {
 				if coin.IsNative() {
-					expCoins = expCoins.Add(coin)
+					swapCoins = swapCoins.Add(coin)
 				}
 			}
 		}
 
-		expNative, err := expCoins.Native()
-		if err != nil {
-			return err.Error(), true
-		}
-
+		// get asgard module balance
 		asgardAddr := k.GetModuleAccAddress(AsgardName)
 		asgardCoins := k.GetBalance(ctx, asgardAddr)
 
-		var msg string
-		broken := false
+		// asgard balance is expected to equal sum of pool and swap coins
+		expNative, _ := poolCoins.Adds(swapCoins).Native()
 
+		// note: coins must be sorted for SafeSub
 		diffCoins, _ := asgardCoins.SafeSub(expNative.Sort())
 		if !diffCoins.IsZero() {
 			broken = true
 			for _, coin := range diffCoins {
 				if coin.IsPositive() {
-					msg += fmt.Sprintf("oversolvent: %s\n", coin)
+					msg = append(msg, fmt.Sprintf("oversolvent: %s", coin))
 				} else {
 					coin.Amount = coin.Amount.Neg()
-					msg += fmt.Sprintf("insolvent: %s\n", coin)
+					msg = append(msg, fmt.Sprintf("insolvent: %s", coin))
 				}
 			}
 		}
@@ -89,61 +80,56 @@ func AsgardInvariant(k KVStore) sdk.Invariant {
 }
 
 // BondInvariant the bond module backs node bond and pending reward bond
-func BondInvariant(k KVStore) sdk.Invariant {
-	return func(ctx sdk.Context) (string, bool) {
+func BondInvariant(k KVStore) common.Invariant {
+	return func(ctx cosmos.Context) (msg []string, broken bool) {
+		// sum all rune bonded to nodes
 		bondedRune := cosmos.ZeroUint()
-		naIterator := k.GetNodeAccountIterator(ctx)
-		defer naIterator.Close()
-		for ; naIterator.Valid(); naIterator.Next() {
+		naIter := k.GetNodeAccountIterator(ctx)
+		defer naIter.Close()
+		for ; naIter.Valid(); naIter.Next() {
 			var na NodeAccount
-			if err := k.Cdc().Unmarshal(naIterator.Value(), &na); err != nil {
-				return fmt.Errorf("failed to unmarshal node account: %w", err).Error(), true
-			}
+			k.Cdc().MustUnmarshal(naIter.Value(), &na)
 			bondedRune = bondedRune.Add(na.Bond)
 		}
 
-		network, err := k.GetNetwork(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to get network: %w", err).Error(), true
-		}
+		// get pending bond reward rune
+		network, _ := k.GetNetwork(ctx)
 		bondRewardRune := network.BondRewardRune
 
+		// get rune balance of bond module
 		bondModuleRune := k.GetBalanceOfModule(ctx, BondName, common.RuneAsset().Native())
 
+		// bond module is expected to equal bonded rune and pending rewards
 		expectedRune := bondedRune.Add(bondRewardRune)
-
-		if expectedRune.Equal(bondModuleRune) {
-			return "", false
-		}
-
-		var msg string
 		if expectedRune.GT(bondModuleRune) {
+			broken = true
 			diff := expectedRune.Sub(bondModuleRune)
 			coin, _ := common.NewCoin(common.RuneAsset(), diff).Native()
-			msg = fmt.Sprintf("insolvent: %s", coin)
-		} else {
+			msg = append(msg, fmt.Sprintf("insolvent: %s", coin))
+
+		} else if expectedRune.LT(bondModuleRune) {
+			broken = true
 			diff := bondModuleRune.Sub(expectedRune)
 			coin, _ := common.NewCoin(common.RuneAsset(), diff).Native()
-			msg = fmt.Sprintf("oversolvent: %s", coin)
+			msg = append(msg, fmt.Sprintf("oversolvent: %s", coin))
 		}
 
-		return msg, true
+		return msg, broken
 	}
 }
 
 // THORChainInvariant the thorchain module should never hold a balance
-func THORChainInvariant(k KVStore) sdk.Invariant {
-	return func(ctx sdk.Context) (string, bool) {
+func THORChainInvariant(k KVStore) common.Invariant {
+	return func(ctx cosmos.Context) (msg []string, broken bool) {
+		// module balance of theorchain
 		tcAddr := k.GetModuleAccAddress(ModuleName)
 		tcCoins := k.GetBalance(ctx, tcAddr)
 
-		var msg string
-		broken := false
-
+		// thorchain module should never carry a balance
 		if !tcCoins.Empty() {
 			broken = true
 			for _, coin := range tcCoins {
-				msg += fmt.Sprintf("oversolvent: %s\n", coin)
+				msg = append(msg, fmt.Sprintf("oversolvent: %s", coin))
 			}
 		}
 
@@ -153,15 +139,16 @@ func THORChainInvariant(k KVStore) sdk.Invariant {
 
 // AffilliateCollectorInvariant the affiliate_collector module backs accrued affiliate
 // rewards
-func AffilliateCollectorInvariant(k KVStore) sdk.Invariant {
-	return func(ctx sdk.Context) (string, bool) {
+func AffilliateCollectorInvariant(k KVStore) common.Invariant {
+	return func(ctx cosmos.Context) (msg []string, broken bool) {
 		affColModuleRune := k.GetBalanceOfModule(ctx, AffiliateCollectorName, common.RuneAsset().Native())
 		affCols, err := k.GetAffiliateCollectors(ctx)
 		if err != nil {
 			if affColModuleRune.IsZero() {
-				return "", false
+				return nil, false
 			}
-			return err.Error(), true
+			msg = append(msg, err.Error())
+			return msg, true
 		}
 
 		totalAffRune := cosmos.ZeroUint()
@@ -169,21 +156,18 @@ func AffilliateCollectorInvariant(k KVStore) sdk.Invariant {
 			totalAffRune = totalAffRune.Add(ac.RuneAmount)
 		}
 
-		if affColModuleRune.Equal(totalAffRune) {
-			return "", false
-		}
-
-		var msg string
 		if totalAffRune.GT(affColModuleRune) {
+			broken = true
 			diff := totalAffRune.Sub(affColModuleRune)
 			coin, _ := common.NewCoin(common.RuneAsset(), diff).Native()
-			msg = fmt.Sprintf("insolvent: %s", coin)
-		} else {
+			msg = append(msg, fmt.Sprintf("insolvent: %s", coin))
+		} else if totalAffRune.LT(affColModuleRune) {
+			broken = true
 			diff := affColModuleRune.Sub(totalAffRune)
 			coin, _ := common.NewCoin(common.RuneAsset(), diff).Native()
-			msg = fmt.Sprintf("oversolvent: %s", coin)
+			msg = append(msg, fmt.Sprintf("oversolvent: %s", coin))
 		}
 
-		return msg, true
+		return msg, broken
 	}
 }

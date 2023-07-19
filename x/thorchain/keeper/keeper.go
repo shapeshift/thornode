@@ -5,7 +5,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-	crisis "github.com/cosmos/cosmos-sdk/x/crisis/types"
 
 	"gitlab.com/thorchain/thornode/common"
 	"gitlab.com/thorchain/thornode/common/cosmos"
@@ -43,7 +42,7 @@ type Keeper interface {
 	SendCoins(ctx cosmos.Context, from, to cosmos.AccAddress, coins cosmos.Coins) error
 	AddCoins(ctx cosmos.Context, addr cosmos.AccAddress, coins cosmos.Coins) error
 
-	InvariantRoutes() []crisis.InvarRoute
+	InvariantRoutes() []common.InvariantRoute
 
 	GetConstants() constants.ConstantValues
 	GetConfigInt64(ctx cosmos.Context, key constants.ConstantName) int64

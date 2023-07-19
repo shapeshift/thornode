@@ -1844,8 +1844,8 @@ func queryTssMetric(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 
 func queryInvariants(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	result := openapi.InvariantsResponse{}
-	for _, invarRoute := range mgr.Keeper().InvariantRoutes() {
-		result.Invariants = append(result.Invariants, invarRoute.Route)
+	for _, route := range mgr.Keeper().InvariantRoutes() {
+		result.Invariants = append(result.Invariants, route.Route)
 	}
 	return jsonify(ctx, result)
 }
@@ -1854,11 +1854,11 @@ func queryInvariant(ctx cosmos.Context, path []string, mgr *Mgrs) ([]byte, error
 	if len(path) < 1 {
 		return nil, fmt.Errorf("invalid path: %v", path)
 	}
-	for _, invarRoute := range mgr.Keeper().InvariantRoutes() {
-		if strings.EqualFold(invarRoute.Route, path[0]) {
-			msg, broken := invarRoute.Invar(ctx)
+	for _, route := range mgr.Keeper().InvariantRoutes() {
+		if strings.EqualFold(route.Route, path[0]) {
+			msg, broken := route.Invariant(ctx)
 			result := openapi.InvariantResponse{
-				Invariant: invarRoute.Route,
+				Invariant: route.Route,
 				Broken:    broken,
 				Msg:       msg,
 			}

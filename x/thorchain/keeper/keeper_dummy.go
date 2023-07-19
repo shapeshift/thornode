@@ -9,7 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/simapp"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-	crisis "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	"github.com/tendermint/tendermint/libs/log"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -584,7 +583,7 @@ func (k KVStoreDummy) GetAffiliateCollectors(_ cosmos.Context) ([]AffiliateFeeCo
 	return nil, kaboom
 }
 
-func (k KVStoreDummy) InvariantRoutes() []crisis.InvarRoute {
+func (k KVStoreDummy) InvariantRoutes() []common.InvariantRoute {
 	return nil
 }
 

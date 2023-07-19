@@ -57,7 +57,9 @@ func (s *InvariantsSuite) TestAsgardInvariant(c *C) {
 
 	msg, broken := invariant(ctx)
 	c.Assert(broken, Equals, true)
-	c.Assert(msg, Equals, "insolvent: 666btc/btc\ninsolvent: 3100rune\n")
+	c.Assert(len(msg), Equals, 2)
+	c.Assert(msg[0], Equals, "insolvent: 666btc/btc")
+	c.Assert(msg[1], Equals, "insolvent: 3100rune")
 
 	// send the expected amount to asgard
 	expCoins := common.NewCoins(
@@ -71,7 +73,7 @@ func (s *InvariantsSuite) TestAsgardInvariant(c *C) {
 
 	msg, broken = invariant(ctx)
 	c.Assert(broken, Equals, false)
-	c.Assert(msg, Equals, "")
+	c.Assert(msg, IsNil)
 
 	// send a little more to make asgard oversolvent
 	extraCoins := common.NewCoins(common.NewCoin(common.RuneAsset(), cosmos.NewUint(1)))
@@ -79,7 +81,8 @@ func (s *InvariantsSuite) TestAsgardInvariant(c *C) {
 
 	msg, broken = invariant(ctx)
 	c.Assert(broken, Equals, true)
-	c.Assert(msg, Equals, "oversolvent: 1rune\n")
+	c.Assert(len(msg), Equals, 1)
+	c.Assert(msg[0], Equals, "oversolvent: 1rune")
 }
 
 func (s *InvariantsSuite) TestBondInvariant(c *C) {
@@ -101,7 +104,8 @@ func (s *InvariantsSuite) TestBondInvariant(c *C) {
 
 	msg, broken := invariant(ctx)
 	c.Assert(broken, Equals, true)
-	c.Assert(msg, Equals, "insolvent: 3100rune")
+	c.Assert(len(msg), Equals, 1)
+	c.Assert(msg[0], Equals, "insolvent: 3100rune")
 
 	expRune := common.NewCoin(common.RuneAsset(), cosmos.NewUint(3100))
 	c.Assert(k.MintToModule(ctx, ModuleName, expRune), IsNil)
@@ -109,7 +113,7 @@ func (s *InvariantsSuite) TestBondInvariant(c *C) {
 
 	msg, broken = invariant(ctx)
 	c.Assert(broken, Equals, false)
-	c.Assert(msg, Equals, "")
+	c.Assert(msg, IsNil)
 
 	// send more to make bond oversolvent
 	c.Assert(k.MintToModule(ctx, ModuleName, expRune), IsNil)
@@ -117,7 +121,8 @@ func (s *InvariantsSuite) TestBondInvariant(c *C) {
 
 	msg, broken = invariant(ctx)
 	c.Assert(broken, Equals, true)
-	c.Assert(msg, Equals, "oversolvent: 3100rune")
+	c.Assert(len(msg), Equals, 1)
+	c.Assert(msg[0], Equals, "oversolvent: 3100rune")
 }
 
 func (s *InvariantsSuite) TestTHORChainInvariant(c *C) {
@@ -128,7 +133,7 @@ func (s *InvariantsSuite) TestTHORChainInvariant(c *C) {
 	// should pass since it has no coins
 	msg, broken := invariant(ctx)
 	c.Assert(broken, Equals, false)
-	c.Assert(msg, Equals, "")
+	c.Assert(msg, IsNil)
 
 	// send some coins to make it oversolvent
 	coins := common.NewCoins(common.NewCoin(common.RuneAsset(), cosmos.NewUint(1)))
@@ -136,5 +141,6 @@ func (s *InvariantsSuite) TestTHORChainInvariant(c *C) {
 
 	msg, broken = invariant(ctx)
 	c.Assert(broken, Equals, true)
-	c.Assert(msg, Equals, "oversolvent: 1rune\n")
+	c.Assert(len(msg), Equals, 1)
+	c.Assert(msg[0], Equals, "oversolvent: 1rune")
 }

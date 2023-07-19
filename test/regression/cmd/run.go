@@ -3,10 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -286,6 +288,15 @@ func run(out io.Writer, path string, routine int) error {
 		}
 	}
 
+	if returnErr == nil {
+		localLog.Info().Msgf("Checking invariants")
+		api := fmt.Sprintf("http://localhost:%d", 1317+routine)
+		returnErr = checkInvariants(api)
+		if returnErr != nil {
+			localLog.Error().Err(returnErr).Msg("invariants failed")
+		}
+	}
+
 	// log success
 	if returnErr == nil {
 		localLog.Info().Msg("All operations succeeded")
@@ -336,4 +347,48 @@ func run(out io.Writer, path string, routine int) error {
 	}
 
 	return returnErr
+}
+
+func checkInvariants(api string) error {
+	endpoint := fmt.Sprintf("%s/thorchain/invariants", api)
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return err
+	}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	invs := struct {
+		Invariants []string
+	}{}
+	if err := json.NewDecoder(resp.Body).Decode(&invs); err != nil {
+		return err
+	}
+	for _, inv := range invs.Invariants {
+		endpoint := fmt.Sprintf("%s/thorchain/invariant/%s", api, inv)
+		req, err := http.NewRequest("GET", endpoint, nil)
+		if err != nil {
+			return err
+		}
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+		if err != nil {
+			return err
+		}
+		invRes := struct {
+			Broken    bool
+			Invariant string
+			Msg       []string
+		}{}
+		if err := json.NewDecoder(resp.Body).Decode(&invRes); err != nil {
+			return err
+		}
+		if invRes.Broken {
+			return fmt.Errorf("%s invariant is broken: %v", inv, invRes.Msg)
+		}
+	}
+	return nil
 }

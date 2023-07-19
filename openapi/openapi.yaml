@@ -2680,8 +2680,10 @@ components:
           example: false
           description: Returns true if the invariant is broken.
         msg:
-          type: string
-          example: "insolvent: 200000rune\noversolvent: 1btc/btc"
+          type: array
+          items:
+            type: string
+          example: ["insolvent: 200000rune", "oversolvent: 1btc/btc"]
           description: Informative message about the invariant result.
 
     InvariantsResponse:
