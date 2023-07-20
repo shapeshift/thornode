@@ -63,6 +63,12 @@ endpoint: http://localhost:1317/thorchain/swaps/streaming
 asserts:
   - .|length == 1
 ---
+type: check
+description: ensure streaming swap invariant
+endpoint: http://localhost:1317/thorchain/invariant/streaming_swaps
+asserts:
+  - .broken == false
+---
 type: create-blocks
 count: 9
 ---
@@ -475,3 +481,63 @@ endpoint: http://localhost:1317/thorchain/swaps/streaming
 asserts:
   - .|length == 0
 ---
+########################################################################################
+# streaming swap to ETH/ETH from RUNE.RUNE (100% conversion)
+########################################################################################
+type: tx-deposit
+signer: {{ addr_thor_fox }}
+coins:
+  - amount: "100000000000"
+    asset: "rune"
+memo: "=:ETH/ETH:{{ addr_thor_fox }}:0/1/10"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: first swap has occurred
+endpoint: http://localhost:1317/thorchain/swap/streaming/799A32266A8F0BF5E5EC7F12E0981839DF23C7E138A7C45D6814A7D80CAC7F34
+asserts:
+  - .in == "10000000000"
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: second swap has occurred
+endpoint: http://localhost:1317/thorchain/swap/streaming/799A32266A8F0BF5E5EC7F12E0981839DF23C7E138A7C45D6814A7D80CAC7F34
+asserts:
+  - .in == "20000000000"
+---
+type: check
+description: ensure streaming swap invariant
+endpoint: http://localhost:1317/thorchain/invariant/streaming_swaps
+asserts:
+  - .broken == false
+---
+type: check
+description: ensure asgard invariant
+endpoint: http://localhost:1317/thorchain/invariant/asgard
+asserts:
+  - .broken == false
+---
+type: create-blocks
+count: 8
+---
+type: check
+description: swap is done, ss record should be removed/empty
+endpoint: http://localhost:1317/thorchain/swap/streaming/799A32266A8F0BF5E5EC7F12E0981839DF23C7E138A7C45D6814A7D80CAC7F34
+asserts:
+  - .in == "0"
+---
+type: check
+description: ensure asgard invariant
+endpoint: http://localhost:1317/thorchain/invariant/asgard
+asserts:
+  - .broken == false
+---
+type: check
+description: ensure streaming swap invariant
+endpoint: http://localhost:1317/thorchain/invariant/streaming_swaps
+asserts:
+  - .broken == false

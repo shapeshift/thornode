@@ -7,6 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 )
 
+// InvariantRoutes return the keeper's invariant routes
 func (k KVStore) InvariantRoutes() []common.InvariantRoute {
 	return []common.InvariantRoute{
 		common.NewInvariantRoute("asgard", AsgardInvariant(k)),
@@ -14,6 +15,7 @@ func (k KVStore) InvariantRoutes() []common.InvariantRoute {
 		common.NewInvariantRoute("thorchain", THORChainInvariant(k)),
 		common.NewInvariantRoute("affiliate_collector", AffilliateCollectorInvariant(k)),
 		common.NewInvariantRoute("pools", PoolsInvariant(k)),
+		common.NewInvariantRoute("streaming_swaps", StreamingSwapsInvariant(k)),
 	}
 }
 
@@ -46,13 +48,33 @@ func AsgardInvariant(k KVStore) common.Invariant {
 		swapIter := k.GetSwapQueueIterator(ctx)
 		defer swapIter.Close()
 		for ; swapIter.Valid(); swapIter.Next() {
-			var msg MsgSwap
-			k.Cdc().MustUnmarshal(swapIter.Value(), &msg)
-			for _, coin := range msg.Tx.Coins {
-				if coin.IsNative() {
-					swapCoins = swapCoins.Add(coin)
-				}
+			var swap MsgSwap
+			k.Cdc().MustUnmarshal(swapIter.Value(), &swap)
+
+			if len(swap.Tx.Coins) != 1 {
+				broken = true
+				msg = append(msg, fmt.Sprintf("wrong number of coins for swap: %d, %s", len(swap.Tx.Coins), swap.Tx.ID))
+				continue
 			}
+
+			coin := swap.Tx.Coins[0]
+			if !coin.IsNative() {
+				continue // only verifying native coins in this invariant
+			}
+
+			// adjust for streaming swaps
+			ss, err := k.GetStreamingSwap(ctx, swap.Tx.ID)
+			if err != nil {
+				ctx.Logger().Error("error getting streaming swap", "error", err)
+				continue // should never happen
+			}
+			if !ss.In.IsZero() {
+				// adjust for stream swap amount, the amount In has been added
+				// to the pool but not deducted from the tx or module, so deduct
+				// that In amount from the tx coin
+				coin.Amount = coin.Amount.Sub(ss.In)
+			}
+			swapCoins = swapCoins.Add(coin)
 		}
 
 		// get asgard module balance
@@ -212,6 +234,84 @@ func PoolsInvariant(k KVStore) common.Invariant {
 			check(pool.LPUnits, lpUnits, "units")
 			check(pool.PendingInboundRune, lpPendingRune, "pending rune")
 			check(pool.PendingInboundAsset, lpPendingAsset, "pending asset")
+		}
+
+		return msg, broken
+	}
+}
+
+// StreamingSwapsInvariant every streaming swap should have a corresponding
+// queued swap, stream deposit should equal the queued swap's source coin,
+// and the stream should be internally consistent
+func StreamingSwapsInvariant(k KVStore) common.Invariant {
+	return func(ctx cosmos.Context) (msg []string, broken bool) {
+		// fetch all streaming swaps from the swap queue
+		var swaps []MsgSwap
+		swapIter := k.GetSwapQueueIterator(ctx)
+		defer swapIter.Close()
+		for ; swapIter.Valid(); swapIter.Next() {
+			var swap MsgSwap
+			k.Cdc().MustUnmarshal(swapIter.Value(), &swap)
+			if swap.IsStreaming() {
+				swaps = append(swaps, swap)
+			}
+		}
+
+		// fetch all stream swap records
+		var streams []StreamingSwap
+		ssIter := k.GetStreamingSwapIterator(ctx)
+		defer ssIter.Close()
+		for ; ssIter.Valid(); ssIter.Next() {
+			var stream StreamingSwap
+			k.Cdc().MustUnmarshal(ssIter.Value(), &stream)
+			streams = append(streams, stream)
+		}
+
+		// should be a 1:1 correlation
+		if len(swaps) != len(streams) {
+			broken = true
+			msg = append(msg, fmt.Sprintf(
+				"swap count %d not equal to stream count %d",
+				len(swaps),
+				len(streams)))
+		}
+
+		for _, swap := range swaps {
+			found := false
+			for _, stream := range streams {
+				if !swap.Tx.ID.Equals(stream.TxID) {
+					continue
+				}
+				found = true
+				if !swap.Tx.Coins[0].Amount.Equal(stream.Deposit) {
+					broken = true
+					msg = append(msg, fmt.Sprintf(
+						"%s: swap.coin %s != stream.deposit %s",
+						stream.TxID.String(),
+						swap.Tx.Coins[0].Amount,
+						stream.Deposit.String()))
+				}
+				if stream.Count > stream.Quantity {
+					broken = true
+					msg = append(msg, fmt.Sprintf(
+						"%s: stream.count %d > stream.quantity %d",
+						stream.TxID.String(),
+						stream.Count,
+						stream.Quantity))
+				}
+				if stream.In.GT(stream.Deposit) {
+					broken = true
+					msg = append(msg, fmt.Sprintf(
+						"%s: stream.in %s > stream.deposit %s",
+						stream.TxID.String(),
+						stream.In.String(),
+						stream.Deposit.String()))
+				}
+			}
+			if !found {
+				broken = true
+				msg = append(msg, fmt.Sprintf("stream not found for swap: %s", swap.Tx.ID.String()))
+			}
 		}
 
 		return msg, broken
