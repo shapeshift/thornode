@@ -13,6 +13,7 @@ func (k KVStore) InvariantRoutes() []common.InvariantRoute {
 		common.NewInvariantRoute("bond", BondInvariant(k)),
 		common.NewInvariantRoute("thorchain", THORChainInvariant(k)),
 		common.NewInvariantRoute("affiliate_collector", AffilliateCollectorInvariant(k)),
+		common.NewInvariantRoute("pools", PoolsInvariant(k)),
 	}
 }
 
@@ -166,6 +167,51 @@ func AffilliateCollectorInvariant(k KVStore) common.Invariant {
 			diff := affColModuleRune.Sub(totalAffRune)
 			coin, _ := common.NewCoin(common.RuneAsset(), diff).Native()
 			msg = append(msg, fmt.Sprintf("oversolvent: %s", coin))
+		}
+
+		return msg, broken
+	}
+}
+
+// PoolsInvariant pool units and pending rune/asset should match the sum
+// of units and pending rune/asset for all lps
+func PoolsInvariant(k KVStore) common.Invariant {
+	return func(ctx cosmos.Context) (msg []string, broken bool) {
+		pools, _ := k.GetPools(ctx)
+		for _, pool := range pools {
+			if pool.Asset.IsNative() {
+				continue // only looking at layer-one pools
+			}
+
+			lpUnits := cosmos.ZeroUint()
+			lpPendingRune := cosmos.ZeroUint()
+			lpPendingAsset := cosmos.ZeroUint()
+
+			lpIter := k.GetLiquidityProviderIterator(ctx, pool.Asset)
+			defer lpIter.Close()
+			for ; lpIter.Valid(); lpIter.Next() {
+				var lp LiquidityProvider
+				k.Cdc().MustUnmarshal(lpIter.Value(), &lp)
+				lpUnits = lpUnits.Add(lp.Units)
+				lpPendingRune = lpPendingRune.Add(lp.PendingRune)
+				lpPendingAsset = lpPendingAsset.Add(lp.PendingAsset)
+			}
+
+			check := func(poolValue, lpValue cosmos.Uint, valueType string) {
+				if poolValue.GT(lpValue) {
+					diff := poolValue.Sub(lpValue)
+					msg = append(msg, fmt.Sprintf("%s oversolvent: %s %s", pool.Asset, diff.String(), valueType))
+					broken = true
+				} else if poolValue.LT(lpValue) {
+					diff := lpValue.Sub(poolValue)
+					msg = append(msg, fmt.Sprintf("%s insolvent: %s %s", pool.Asset, diff.String(), valueType))
+					broken = true
+				}
+			}
+
+			check(pool.LPUnits, lpUnits, "units")
+			check(pool.PendingInboundRune, lpPendingRune, "pending rune")
+			check(pool.PendingInboundAsset, lpPendingAsset, "pending asset")
 		}
 
 		return msg, broken
