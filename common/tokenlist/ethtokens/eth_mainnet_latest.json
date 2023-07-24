@@ -13,14 +13,6 @@
       "logoURI": "https://etherscan.io/token/images/pepe_32.png"
     },
     {
-      "address": "0x046EeE2cc3188071C02BfC1745A6b17c656e3f3d",
-      "chainId": 1,
-      "name": "Rollbit",
-      "symbol": "RLB",
-      "decimals": 18,
-      "logoURI": "https://etherscan.io/token/images/rollbitcoin_32.png"
-    },
-    {
       "address": "0x249cA82617eC3DfB2589c4c17ab7EC9765350a18",
       "chainId": 1,
       "name": "Verse",
