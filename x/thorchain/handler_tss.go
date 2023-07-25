@@ -28,6 +28,7 @@ func NewTssHandler(mgr Manager) BaseHandler[*MsgTssPool] {
 			Register("1.114.0", MsgTssPoolValidateV114).
 			Register("0.71.0", MsgTssPoolValidateV71),
 		handlers: NewHandlers[*MsgTssPool]().
+			Register("1.117.0", MsgTssPoolHandleV117).
 			Register("1.93.0", MsgTssPoolHandleV93).
 			Register("1.92.0", MsgTssPoolHandleV92).
 			Register("0.73.0", MsgTssPoolHandleV73),
@@ -99,7 +100,7 @@ func validateTssAuth(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccAddre
 	return nil
 }
 
-func MsgTssPoolHandleV93(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*cosmos.Result, error) {
+func MsgTssPoolHandleV117(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", mgr.GetVersion())
 	if !msg.Blame.IsEmpty() {
 		blames := make([]string, len(msg.Blame.BlameNodes))
@@ -240,6 +241,19 @@ func MsgTssPoolHandleV93(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*cos
 				ctx.Logger().Info("not enough keygen yet", "expecting", len(keygenBlock.Keygens), "current", len(initVaults))
 			}
 		} else {
+			// since the keygen failed, its now safe to reset all nodes in
+			// ready status back to standby status
+			ready, err := mgr.Keeper().ListValidatorsByStatus(ctx, NodeReady)
+			if err != nil {
+				ctx.Logger().Error("fail to get list of ready node accounts", "error", err)
+			}
+			for _, na := range ready {
+				na.UpdateStatus(NodeStandby, ctx.BlockHeight())
+				if err := mgr.Keeper().SetNodeAccount(ctx, na); err != nil {
+					ctx.Logger().Error("fail to set node account", "error", err)
+				}
+			}
+
 			// if a node fail to join the keygen, thus hold off the network
 			// from churning then it will be slashed accordingly
 			slashPoints := mgr.GetConstants().GetInt64Value(constants.FailKeygenSlashPoints)

@@ -1,7 +1,7 @@
 package thorchain
 
 // findCountToRemove - find the number of node accounts to remove
-func findCountToRemove(blockHeight int64, active NodeAccounts) (toRemove int) {
+func findCountToRemove(active NodeAccounts) (toRemove int) {
 	// count number of node accounts that are a candidate to leaving
 	var candidateCount int
 	for _, na := range active {

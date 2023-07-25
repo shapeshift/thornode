@@ -425,7 +425,7 @@ func (vts *ValidatorMgrV103TestSuite) TestSplitNext(c *C) {
 
 func (vts *ValidatorMgrV103TestSuite) TestFindCounToRemove(c *C) {
 	// remove one
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{},
 		NodeAccount{},
@@ -434,7 +434,7 @@ func (vts *ValidatorMgrV103TestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 1)
 
 	// don't remove one
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{},
@@ -442,7 +442,7 @@ func (vts *ValidatorMgrV103TestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 0)
 
 	// remove one because of request to leave
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12, RequestedToLeave: true},
 		NodeAccount{},
 		NodeAccount{},
@@ -450,7 +450,7 @@ func (vts *ValidatorMgrV103TestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 1)
 
 	// remove one because of banned
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12, ForcedToLeave: true},
 		NodeAccount{},
 		NodeAccount{},
@@ -458,7 +458,7 @@ func (vts *ValidatorMgrV103TestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 1)
 
 	// don't remove more than 1/3rd of node accounts
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{LeaveScore: 12},

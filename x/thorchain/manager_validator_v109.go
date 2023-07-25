@@ -1541,7 +1541,7 @@ func (vm *ValidatorMgrV109) nextVaultNodeAccounts(ctx cosmos.Context, targetCoun
 		return active[i].LeaveScore < active[j].LeaveScore
 	})
 
-	toRemove := findCountToRemove(ctx.BlockHeight(), active)
+	toRemove := findCountToRemove(active)
 	if toRemove > 0 {
 		rotation = true
 		active = active[toRemove:]

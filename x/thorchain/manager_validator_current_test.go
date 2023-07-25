@@ -467,7 +467,7 @@ func (vts *ValidatorMgrVCURTestSuite) TestSplitNext(c *C) {
 
 func (vts *ValidatorMgrVCURTestSuite) TestFindCounToRemove(c *C) {
 	// remove one
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{},
 		NodeAccount{},
@@ -476,7 +476,7 @@ func (vts *ValidatorMgrVCURTestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 1)
 
 	// don't remove one
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{},
@@ -484,7 +484,7 @@ func (vts *ValidatorMgrVCURTestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 0)
 
 	// remove one because of request to leave
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12, RequestedToLeave: true},
 		NodeAccount{},
 		NodeAccount{},
@@ -492,7 +492,7 @@ func (vts *ValidatorMgrVCURTestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 1)
 
 	// remove one because of banned
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12, ForcedToLeave: true},
 		NodeAccount{},
 		NodeAccount{},
@@ -500,7 +500,7 @@ func (vts *ValidatorMgrVCURTestSuite) TestFindCounToRemove(c *C) {
 	}), Equals, 1)
 
 	// don't remove more than 1/3rd of node accounts
-	c.Check(findCountToRemove(0, NodeAccounts{
+	c.Check(findCountToRemove(NodeAccounts{
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{LeaveScore: 12},
 		NodeAccount{LeaveScore: 12},
@@ -585,6 +585,33 @@ func (vts *ValidatorMgrVCURTestSuite) TestFindNextVaultNodeAccountsMax(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(rotate, Equals, true)
 	c.Assert(nasAfter, HasLen, 12, Commentf("%d", len(nasAfter)))
+}
+
+func (vts *ValidatorMgrVCURTestSuite) TestFindNextVaultNodeAccountsBFT(c *C) {
+	// ensure that we don't lose BFT when more nodes will churn out that nodes
+	// that can churn in
+	ctx, mgr := setupManagerForTest(c)
+	validatorMgr := newValidatorMgrVCUR(mgr.Keeper(), mgr.NetworkMgr(), mgr.TxOutStore(), mgr.EventMgr())
+	c.Assert(validatorMgr, NotNil)
+	// create active nodes
+	for i := 0; i < 4; i++ {
+		na := GetRandomValidatorNode(NodeActive)
+		if i < 3 {
+			na.LeaveScore = 1024
+		}
+		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
+	}
+	// create standby nodes
+	for i := 0; i < 2; i++ {
+		na := GetRandomValidatorNode(NodeReady)
+		c.Assert(mgr.Keeper().SetNodeAccount(ctx, na), IsNil)
+	}
+	err := validatorMgr.markReadyActors(ctx)
+	c.Assert(err, IsNil)
+	nasAfter, rotate, err := validatorMgr.nextVaultNodeAccounts(ctx, 4)
+	c.Assert(err, IsNil)
+	c.Assert(rotate, Equals, false)
+	c.Assert(nasAfter, HasLen, 4, Commentf("%d", len(nasAfter)))
 }
 
 func (vts *ValidatorMgrVCURTestSuite) TestWeightedBondReward(c *C) {

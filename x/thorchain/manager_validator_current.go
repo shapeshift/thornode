@@ -47,13 +47,20 @@ func (vm *ValidatorMgrVCUR) BeginBlock(ctx cosmos.Context, mgr Manager, existing
 		// ragnarok is in progress, no point to check node rotation
 		return nil
 	}
-	minimumNodesForBFT := vm.k.GetConstants().GetInt64Value(constants.MinimumNodesForBFT)
-	totalActiveNodes, err := vm.k.TotalActiveValidators(ctx)
-	if err != nil {
-		return err
+
+	lastChurnHeight := vm.getLastChurnHeight(ctx)
+	churnInterval := vm.k.GetConfigInt64(ctx, constants.ChurnInterval)
+	churnRetryInterval := vm.k.GetConstants().GetInt64Value(constants.ChurnRetryInterval)
+	onChurnTick := (ctx.BlockHeight()-lastChurnHeight-churnInterval)%churnRetryInterval == 0
+	if !onChurnTick {
+		return nil
 	}
 
-	churnInterval := vm.k.GetConfigInt64(ctx, constants.ChurnInterval)
+	halt, err := vm.k.GetMimir(ctx, "HaltChurning")
+	if halt > 0 && halt <= ctx.BlockHeight() && err == nil {
+		ctx.Logger().Info("churn event skipped due to mimir has halted churning")
+		return nil
+	}
 
 	vaults, err := vm.k.GetAsgardVaultsByStatus(ctx, ActiveVault)
 	if err != nil {
@@ -61,149 +68,108 @@ func (vm *ValidatorMgrVCUR) BeginBlock(ctx cosmos.Context, mgr Manager, existing
 		return err
 	}
 
-	lastChurnHeight := vm.getLastChurnHeight(ctx)
-
-	// get constants
-	desiredValidatorSet := vm.k.GetConfigInt64(ctx, constants.DesiredValidatorSet)
-	churnRetryInterval := vm.k.GetConstants().GetInt64Value(constants.ChurnRetryInterval)
-	asgardSize := vm.k.GetConfigInt64(ctx, constants.AsgardSize)
-
 	// calculate if we need to retry a churn because we are overdue for a
 	// successful one
 	nas, err := vm.k.ListActiveValidators(ctx)
 	if err != nil {
 		return err
 	}
+	asgardSize := vm.k.GetConfigInt64(ctx, constants.AsgardSize)
 	expectedActiveVaults := int64(len(nas)) / asgardSize
 	if int64(len(nas))%asgardSize > 0 {
 		expectedActiveVaults++
 	}
 	incompleteChurnCheck := int64(len(vaults)) != expectedActiveVaults
 	oldVaultCheck := ctx.BlockHeight()-lastChurnHeight > churnInterval
-	onChurnTick := (ctx.BlockHeight()-lastChurnHeight-churnInterval)%churnRetryInterval == 0
 	retryChurn := (oldVaultCheck || incompleteChurnCheck) && onChurnTick
 
 	// skip churn if any active chain is halted
 	shouldChurn := lastChurnHeight+churnInterval == ctx.BlockHeight() || retryChurn
-	if shouldChurn {
-		// collect all chains for active vaults
-		activeChains := make(common.Chains, 0)
-		for _, v := range vaults {
-			activeChains = append(activeChains, v.GetChains()...)
-		}
-		activeChains = activeChains.Distinct()
+	if !shouldChurn {
+		return nil
+	}
 
-		for _, chain := range activeChains {
-			shouldChurn = !mgr.Keeper().IsChainHalted(ctx, chain)
-			if !shouldChurn {
-				ctx.Logger().Info("Skipping node account rotation for halted chain", "chain", chain)
-				break
-			}
+	// collect all chains for active vaults
+	activeChains := make(common.Chains, 0)
+	for _, v := range vaults {
+		activeChains = append(activeChains, v.GetChains()...)
+	}
+	activeChains = activeChains.Distinct()
+
+	for _, chain := range activeChains {
+		if mgr.Keeper().IsChainHalted(ctx, chain) {
+			ctx.Logger().Info("Skipping node account rotation for halted chain", "chain", chain)
+			return nil
 		}
 	}
 
-	if shouldChurn {
-		if retryChurn {
-			ctx.Logger().Info("Checking for node account rotation... (retry)")
-		} else {
-			ctx.Logger().Info("Checking for node account rotation...")
-		}
+	// don't churn if we have retiring asgard vaults that still have funds
+	retiringVaults, err := vm.k.GetAsgardVaultsByStatus(ctx, RetiringVault)
+	if err != nil {
+		return err
+	}
+	if len(retiringVaults) > 0 {
+		ctx.Logger().Info("Skipping rotation due to retiring vaults still have funds.")
+		return nil
+	}
 
-		// don't churn if we have retiring asgard vaults that still have funds
-		retiringVaults, err := vm.k.GetAsgardVaultsByStatus(ctx, RetiringVault)
-		if err != nil {
-			return err
-		}
-		for _, vault := range retiringVaults {
-			if vault.HasFunds() {
-				ctx.Logger().Info("Skipping rotation due to retiring vaults still have funds.")
-				return nil
-			}
-		}
+	if retryChurn {
+		ctx.Logger().Info("Checking for node account rotation... (retry)")
+	} else {
+		ctx.Logger().Info("Checking for node account rotation...")
+	}
+	return vm.churn(ctx)
+}
 
-		// update list of ready actors
-		if err := vm.markReadyActors(ctx); err != nil {
-			return err
-		}
-		ready, err := vm.k.ListValidatorsByStatus(ctx, NodeReady)
-		if err != nil {
-			return err
-		}
+func (vm *ValidatorMgrVCUR) churn(ctx cosmos.Context) error {
+	desiredValidatorSet := vm.k.GetConfigInt64(ctx, constants.DesiredValidatorSet)
+	asgardSize := vm.k.GetConfigInt64(ctx, constants.AsgardSize)
+	redline := vm.k.GetConfigInt64(ctx, constants.BadValidatorRedline)
+	minSlashPointsForBadValidator := vm.k.GetConfigInt64(ctx, constants.MinSlashPointsForBadValidator)
 
-		// Mark bad, old, low bond, and old version validators
-		if minimumNodesForBFT+2 < int64(totalActiveNodes) {
-			// Check by how much the number of Active nodes can increase.
-			newNode, err := vm.k.GetMimir(ctx, constants.NumberOfNewNodesPerChurn.String())
-			if err != nil || newNode <= 0 {
-				newNode = 1
-			}
-			// Limit according to DesiredValidatorSet.
-			if desiredValidatorSet-int64(len(nas)) < newNode {
-				// Allow a negative.
-				newNode = desiredValidatorSet - int64(len(nas))
-			}
-			// Track how many Ready nodes are waiting for places to open up;
-			// when newNode is negative, it represents positions over DesiredValidatorSet
-			// which have to be emptied before Ready nodes can join.
-			readyWaiting := int64(len(ready)) - newNode
+	// update list of ready actors
+	if err := vm.markReadyActors(ctx); err != nil {
+		return err
+	}
 
-			// Validator number can drop if Ready node members cannot complete keygens,
-			// so don't make extra room for Ready nodes unless already at DesiredValidatorSet.
-			fullValidators := (int64(len(nas)) >= desiredValidatorSet)
+	// clear leave scores
+	if err := vm.clearLeaveScores(ctx); err != nil {
+		return err
+	}
 
-			// Only mark badly-performing actors in churn retries (keygens failing),
-			// or when validators are full and at least one Ready node is waiting for a place.
-			if retryChurn || (fullValidators && readyWaiting > 0) {
-				redline := vm.k.GetConfigInt64(ctx, constants.BadValidatorRedline)
-				minSlashPointsForBadValidator := vm.k.GetConfigInt64(ctx, constants.MinSlashPointsForBadValidator)
+	// Mark bad, old, low bond, and old version validators
+	// mark someone to get churned out for bad behavior
+	_, err := vm.markBadActor(ctx, minSlashPointsForBadValidator, redline)
+	if err != nil {
+		return err
+	}
 
-				marked, err := vm.markBadActor(ctx, minSlashPointsForBadValidator, redline)
-				if err != nil {
-					return err
-				}
-				readyWaiting -= marked
-			}
+	// mark someone to get churned out for low bond
+	if err := vm.markLowBondActor(ctx); err != nil {
+		return err
+	}
 
-			// Only mark old/{low bond}/{low version} actors on initial churn.
-			if !retryChurn {
-				// Only mark old/{low bond} actors when validators are full and at least one Ready node is waiting for a place.
-				if fullValidators && readyWaiting > 0 {
-					if err := vm.markOldActor(ctx); err != nil {
-						return err
-					}
-					// Only one actor marked, so decrement directly.
-					readyWaiting--
+	// mark someone to get churned out for low version
+	if err := vm.markLowVersionValidators(ctx); err != nil {
+		return err
+	}
 
-					if readyWaiting > 0 {
-						if err := vm.markLowBondActor(ctx); err != nil {
-							return err
-						}
-						// No further check of readyWaiting, so don't decrement.
-						// readyWaiting--
-					}
-				}
+	// mark someone to get churned out for age
+	if err := vm.markOldActor(ctx); err != nil {
+		return err
+	}
 
-				// Unlike slash point performance, mark low version validators for churn-out
-				// during the first keygen try whether or not there are waiting Ready nodes.
-				if err := vm.markLowVersionValidators(ctx); err != nil {
-					return err
-				}
-			}
-		}
-
-		next, ok, err := vm.nextVaultNodeAccounts(ctx, int(desiredValidatorSet))
-		if err != nil {
-			return err
-		}
-		if ok {
-			for _, nodeAccSet := range vm.splitNext(ctx, next, asgardSize) {
-				if err := vm.networkMgr.TriggerKeygen(ctx, nodeAccSet); err != nil {
-					return err
-				}
+	next, ok, err := vm.nextVaultNodeAccounts(ctx, int(desiredValidatorSet))
+	if err != nil {
+		return err
+	}
+	if ok {
+		for _, nodeAccSet := range vm.splitNext(ctx, next, asgardSize) {
+			if err := vm.networkMgr.TriggerKeygen(ctx, nodeAccSet); err != nil {
+				return err
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -1432,6 +1398,28 @@ func (vm *ValidatorMgrVCUR) findLowVersionValidators(ctx cosmos.Context, maxNode
 	return nodeAccs, nil
 }
 
+// clearLeaveScores - clears all leaves scores of active validators except for
+// ones that requested to leave
+func (vm *ValidatorMgrVCUR) clearLeaveScores(ctx cosmos.Context) error {
+	active, err := vm.k.ListActiveValidators(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, na := range active {
+		if na.RequestedToLeave || na.ForcedToLeave {
+			continue
+		}
+		na.LeaveScore = 0
+
+		if err := vm.k.SetNodeAccount(ctx, na); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // find any actor that are ready to become "ready" status
 func (vm *ValidatorMgrVCUR) markReadyActors(ctx cosmos.Context) error {
 	standby, err := vm.k.ListValidatorsByStatus(ctx, NodeStandby)
@@ -1583,7 +1571,7 @@ func (vm *ValidatorMgrVCUR) nextVaultNodeAccounts(ctx cosmos.Context, targetCoun
 		return active[i].LeaveScore < active[j].LeaveScore
 	})
 
-	toRemove := findCountToRemove(ctx.BlockHeight(), active)
+	toRemove := findCountToRemove(active)
 	if toRemove > 0 {
 		rotation = true
 		active = active[toRemove:]
@@ -1592,12 +1580,14 @@ func (vm *ValidatorMgrVCUR) nextVaultNodeAccounts(ctx cosmos.Context, targetCoun
 	if err != nil || newNode <= 0 {
 		newNode = 1
 	}
+
 	// add ready nodes to become active
 	limit := toRemove + int(newNode) // Max limit of ready nodes to churn in
 	minimumNodesForBFT := vm.k.GetConstants().GetInt64Value(constants.MinimumNodesForBFT)
 	if len(active)+limit < int(minimumNodesForBFT) {
 		limit = int(minimumNodesForBFT) - len(active)
 	}
+
 	for i := 1; targetCount > len(active); i++ {
 		if len(ready) >= i {
 			rotation = true
