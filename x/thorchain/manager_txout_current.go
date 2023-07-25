@@ -390,7 +390,7 @@ func (tos *TxOutStorageVCUR) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem)
 	if err != nil {
 		ctx.Logger().Error("fail to get max gas asset", "error", err)
 	}
-	if toi.Chain.Equals(common.THORChain) {
+	if toi.Chain.IsTHORChain() {
 		outputs = append(outputs, toi)
 	} else {
 		if !toi.VaultPubKey.IsEmpty() {
@@ -572,9 +572,10 @@ func (tos *TxOutStorageVCUR) prepareTxOutItem(ctx cosmos.Context, toi TxOutItem)
 		}
 
 		vault, err := tos.keeper.GetVault(ctx, outputs[i].VaultPubKey)
-		if err != nil {
+		if err != nil && !outputs[i].Chain.IsTHORChain() {
+			// For THORChain outputs (since having an empty VaultPubKey)
+			// GetVault is expected to fail, so do not log the error.
 			ctx.Logger().Error("fail to get vault", "error", err)
-			// ignore err
 		}
 		// when it is ragnarok , the network doesn't charge fee , however if the output asset is gas asset,
 		// then the amount of max gas need to be taken away from the customer , otherwise the vault will be insolvent and doesn't
