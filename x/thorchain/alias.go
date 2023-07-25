@@ -126,8 +126,6 @@ var (
 	NewEventWithdraw               = types.NewEventWithdraw
 	NewEventRefund                 = types.NewEventRefund
 	NewEventBond                   = types.NewEventBond
-	NewEventSwitch                 = types.NewEventSwitch
-	NewEventSwitchV87              = types.NewEventSwitchV87
 	NewEventGas                    = types.NewEventGas
 	NewEventScheduledOutbound      = types.NewEventScheduledOutbound
 	NewEventSecurity               = types.NewEventSecurity
@@ -176,7 +174,6 @@ var (
 	NewMsgUnBond                   = types.NewMsgUnBond
 	NewMsgErrataTx                 = types.NewMsgErrataTx
 	NewMsgBan                      = types.NewMsgBan
-	NewMsgSwitch                   = types.NewMsgSwitch
 	NewMsgLeave                    = types.NewMsgLeave
 	NewMsgSetVersion               = types.NewMsgSetVersion
 	NewMsgSetIPAddress             = types.NewMsgSetIPAddress
@@ -233,7 +230,6 @@ var (
 type (
 	MsgSend                        = types.MsgSend
 	MsgDeposit                     = types.MsgDeposit
-	MsgSwitch                      = types.MsgSwitch
 	MsgBond                        = types.MsgBond
 	MsgUnBond                      = types.MsgUnBond
 	MsgNoOp                        = types.MsgNoOp
@@ -364,7 +360,6 @@ type (
 	YggdrasilFundMemo     = mem.YggdrasilFundMemo
 	YggdrasilReturnMemo   = mem.YggdrasilReturnMemo
 	ReserveMemo           = mem.ReserveMemo
-	SwitchMemo            = mem.SwitchMemo
 	NoOpMemo              = mem.NoOpMemo
 	ConsolidateMemo       = mem.ConsolidateMemo
 	ManageTHORNameMemo    = mem.ManageTHORNameMemo

@@ -38,7 +38,7 @@ func RegisterCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgReserveContributor{}, "thorchain/MsgReserveContributor", nil)
 	cdc.RegisterConcrete(&MsgErrataTx{}, "thorchain/MsgErrataTx", nil)
 	cdc.RegisterConcrete(&MsgBan{}, "thorchain/MsgBan", nil)
-	cdc.RegisterConcrete(&MsgSwitch{}, "thorchain/MsgSwitch", nil)
+	cdc.RegisterConcrete(&MsgSwitch{}, "thorchain/MsgSwitch", nil) // TODO remove on hard fork
 	cdc.RegisterConcrete(&MsgMimir{}, "thorchain/MsgMimir", nil)
 	cdc.RegisterConcrete(&MsgDeposit{}, "thorchain/MsgDeposit", nil)
 	cdc.RegisterConcrete(&MsgNetworkFee{}, "thorchain/MsgNetworkFee", nil)
@@ -73,7 +73,7 @@ func RegisterInterfaces(registry cdctypes.InterfaceRegistry) {
 	registry.RegisterImplementations((*cosmos.Msg)(nil), &MsgReserveContributor{})
 	registry.RegisterImplementations((*cosmos.Msg)(nil), &MsgErrataTx{})
 	registry.RegisterImplementations((*cosmos.Msg)(nil), &MsgBan{})
-	registry.RegisterImplementations((*cosmos.Msg)(nil), &MsgSwitch{})
+	registry.RegisterImplementations((*cosmos.Msg)(nil), &MsgSwitch{}) // TODO remove on hard fork
 	registry.RegisterImplementations((*cosmos.Msg)(nil), &MsgMimir{})
 	registry.RegisterImplementations((*cosmos.Msg)(nil), &MsgDeposit{})
 	registry.RegisterImplementations((*cosmos.Msg)(nil), &MsgNetworkFee{})

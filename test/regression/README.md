@@ -23,7 +23,6 @@ suites/
   lending/
     borrow-repay.yaml
   mimir/
-    killswitch.yaml
     ilp-cutoff.yaml
     max-rune-supply.yaml
   synths/

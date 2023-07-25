@@ -36,7 +36,7 @@ const (
 	TxRefund
 	TxMigrate
 	TxRagnarok
-	TxSwitch
+	TxSwitch // TODO remove on hard fork
 	TxNoOp
 	TxConsolidate
 	TxTHORName
@@ -67,7 +67,7 @@ var stringToTxTypeMap = map[string]TxType{
 	"refund":      TxRefund,
 	"migrate":     TxMigrate,
 	"ragnarok":    TxRagnarok,
-	"switch":      TxSwitch,
+	"switch":      TxSwitch, // TODO remove on hard fork
 	"noop":        TxNoOp,
 	"consolidate": TxConsolidate,
 	"name":        TxTHORName,
@@ -95,7 +95,7 @@ var txToStringMap = map[TxType]string{
 	TxReserve:         "reserve",
 	TxMigrate:         "migrate",
 	TxRagnarok:        "ragnarok",
-	TxSwitch:          "switch",
+	TxSwitch:          "switch", // TODO remove on hard fork
 	TxNoOp:            "noop",
 	TxConsolidate:     "consolidate",
 	TxTHORName:        "thorname",
@@ -115,6 +115,7 @@ func StringToTxType(s string) (TxType, error) {
 }
 
 func (tx TxType) IsInbound() bool {
+	// TODO remove TxSwitch on hard fork
 	switch tx {
 	case TxAdd, TxWithdraw, TxSwap, TxLimitOrder, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch, TxReserve, TxNoOp, TxTHORName, TxLoanOpen, TxLoanRepayment:
 		return true
@@ -144,6 +145,7 @@ func (tx TxType) IsInternal() bool {
 // HasOutbound whether the txtype might trigger outbound tx
 func (tx TxType) HasOutbound() bool {
 	switch tx {
+	// TODO remove TxSwitch on hard fork
 	case TxAdd, TxBond, TxDonate, TxYggdrasilReturn, TxReserve, TxMigrate, TxRagnarok, TxSwitch:
 		return false
 	default:

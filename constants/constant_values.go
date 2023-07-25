@@ -16,8 +16,8 @@ const (
 	BlocksPerYear
 	OutboundTransactionFee
 	NativeTransactionFee
-	KillSwitchStart
-	KillSwitchDuration
+	KillSwitchStart    // TODO remove on hard fork
+	KillSwitchDuration // TODO remove on hard fork
 	PoolCycle
 	MinRunePoolDepth
 	MaxAvailablePools
@@ -140,8 +140,8 @@ var nameToString = map[ConstantName]string{
 	MaxAvailablePools:                   "MaxAvailablePools",
 	StagedPoolCost:                      "StagedPoolCost",
 	PendingLiquidityAgeLimit:            "PendingLiquidityAgeLimit",
-	KillSwitchStart:                     "KillSwitchStart",
-	KillSwitchDuration:                  "KillSwitchDuration",
+	KillSwitchStart:                     "KillSwitchStart",    // TODO remove on hard fork
+	KillSwitchDuration:                  "KillSwitchDuration", // TODO remove on hard fork
 	MinimumNodesForYggdrasil:            "MinimumNodesForYggdrasil",
 	MinimumNodesForBFT:                  "MinimumNodesForBFT",
 	DesiredValidatorSet:                 "DesiredValidatorSet",

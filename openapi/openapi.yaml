@@ -2399,8 +2399,8 @@ components:
         # Since the querier uses an openapi. object, these will be displayed in alphabetical order,
         # so the schema should also be in alphabetical order.
         - bond_reward_rune
-        - burned_bep_2_rune
-        - burned_erc_20_rune
+        - burned_bep_2_rune # TODO remove on hard fork
+        - burned_erc_20_rune # TODO remove on hard fork
         - total_bond_units
         - effective_security_bond
         - total_reserve
@@ -2416,11 +2416,11 @@ components:
           type: string
           example: "857134475040"
           description: total amount of RUNE awarded to node operators
-        burned_bep_2_rune:
+        burned_bep_2_rune: # TODO remove on hard fork
           type: string
           example: "674699077345087"
           description: total of burned BEP2 RUNE
-        burned_erc_20_rune:
+        burned_erc_20_rune: # TODO remove on hard fork
           type: string
           example: "66369401654835"
           description: total of burned ERC20 RUNE

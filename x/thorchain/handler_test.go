@@ -596,30 +596,6 @@ func (s *HandlerSuite) TestReserveContributor(c *C) {
 	c.Assert(isReserve, Equals, true)
 }
 
-func (s *HandlerSuite) TestSwitch(c *C) {
-	w := getHandlerTestWrapper(c, 1, true, false)
-	addr := types.GetRandomBech32Addr()
-	txin := types.NewObservedTx(
-		common.Tx{
-			ID:          GetRandomTxHash(),
-			Chain:       common.BNBChain,
-			Coins:       common.Coins{common.NewCoin(common.RuneAsset(), cosmos.NewUint(1))},
-			Memo:        "switch:" + GetRandomBech32Addr().String(),
-			FromAddress: GetRandomBNBAddress(),
-			ToAddress:   GetRandomBNBAddress(),
-			Gas:         BNBGasFeeSingleton,
-		},
-		1024,
-		GetRandomPubKey(), 1024,
-	)
-
-	msg, err := processOneTxIn(w.ctx, GetCurrentVersion(), w.keeper, txin, addr)
-	c.Assert(err, IsNil)
-	c.Check(msg.ValidateBasic(), IsNil)
-	_, isSwitch := msg.(*MsgSwitch)
-	c.Assert(isSwitch, Equals, true)
-}
-
 func (s *HandlerSuite) TestExternalHandler(c *C) {
 	ctx, mgr := setupManagerForTest(c)
 	handler := NewExternalHandler(mgr)

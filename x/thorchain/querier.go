@@ -501,8 +501,8 @@ func queryNetwork(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 		// Due to using openapi. this will be displayed in alphabetical order,
 		// so its schema (and order here) should also be in alphabetical order.
 		BondRewardRune:        data.BondRewardRune.String(),
-		BurnedBep2Rune:        data.BurnedBep2Rune.String(),
-		BurnedErc20Rune:       data.BurnedErc20Rune.String(),
+		BurnedBep2Rune:        data.BurnedBep2Rune.String(),  // TODO remove on hard fork
+		BurnedErc20Rune:       data.BurnedErc20Rune.String(), // TODO remove on hard fork
 		TotalBondUnits:        data.TotalBondUnits.String(),
 		EffectiveSecurityBond: effectiveSecurityBond.String(),
 		TotalReserve:          mgr.Keeper().GetRuneBalanceOfModule(ctx, ReserveName).String(),

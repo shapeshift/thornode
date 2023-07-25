@@ -798,8 +798,8 @@ func emitEndBlockTelemetry(ctx cosmos.Context, mgr Manager) error {
 
 	telemetry.SetGauge(telem(network.BondRewardRune), "thornode", "network", "bond_reward_rune")
 	telemetry.SetGauge(float32(network.TotalBondUnits.Uint64()), "thornode", "network", "total_bond_units")
-	telemetry.SetGauge(telem(network.BurnedBep2Rune), "thornode", "network", "rune", "burned", "bep2")
-	telemetry.SetGauge(telem(network.BurnedErc20Rune), "thornode", "network", "rune", "burned", "erc20")
+	telemetry.SetGauge(telem(network.BurnedBep2Rune), "thornode", "network", "rune", "burned", "bep2")   // TODO remove on hard fork
+	telemetry.SetGauge(telem(network.BurnedErc20Rune), "thornode", "network", "rune", "burned", "erc20") // TODO remove on hard fork
 
 	// emit protocol owned liquidity data
 	pol, err := mgr.Keeper().GetPOL(ctx)

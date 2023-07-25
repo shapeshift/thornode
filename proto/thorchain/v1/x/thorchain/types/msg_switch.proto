@@ -6,6 +6,7 @@ option go_package = "gitlab.com/thorchain/thornode/x/thorchain/types";
 import "thorchain/v1/common/common.proto";
 import "gogoproto/gogo.proto";
 
+// TODO remove on hard fork
 message MsgSwitch {
   common.Tx tx = 1 [(gogoproto.nullable) = false];
   string destination = 2 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];

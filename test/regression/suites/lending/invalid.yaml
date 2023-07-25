@@ -162,3 +162,32 @@ asserts:
   - '[.tx[]|select(.type == "refund")]|length == 1'
   - .tx[]|select(.type == "refund")|.from == "{{ addr_thor_fox }}"
   - .tx[]|select(.type == "refund")|.reason == "unsupported collateral pool"
+---
+########################################################################################
+# open loan with rune over max supply should fail
+########################################################################################
+type: tx-mimir
+description: set max supply to 50k RUNE
+key: MaxRuneSupply
+value: 50000000000000
+signer: {{ addr_thor_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: tx-deposit
+signer: {{ addr_thor_fox }}
+coins:
+  - amount: "1000000"
+    asset: "THOR.RUNE"
+memo: "LOAN+:BTC.BTC:{{ addr_btc_fox }}"
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/blockevents
+asserts:
+  - '[.tx[]|select(.type == "refund")]|length == 1'
+  - .tx[]|select(.type == "refund")|.from == "{{ addr_thor_fox }}"
+  - .tx[]|select(.type == "refund")|.reason[:50] == "loans are currently paused, due to rune supply cap"

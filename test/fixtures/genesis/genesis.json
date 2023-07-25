@@ -43,8 +43,6 @@
   "msg_swaps": [],
   "network": {
     "bond_reward_rune": "16847841043",
-    "burned_bep2_rune": "1000000000000000",
-    "burned_erc20_rune": "0",
     "total_bond_units": "0"
   },
   "network_fee_voters": [

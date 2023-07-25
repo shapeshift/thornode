@@ -75,7 +75,7 @@ func (s *MemoSuite) SetUpSuite(c *C) {
 }
 
 func (s *MemoSuite) TestTxType(c *C) {
-	for _, trans := range []TxType{TxAdd, TxWithdraw, TxSwap, TxOutbound, TxDonate, TxBond, TxUnbond, TxLeave, TxSwitch} {
+	for _, trans := range []TxType{TxAdd, TxWithdraw, TxSwap, TxOutbound, TxDonate, TxBond, TxUnbond, TxLeave} {
 		tx, err := StringToTxType(trans.String())
 		c.Assert(err, IsNil)
 		c.Check(tx, Equals, trans)
@@ -223,12 +223,6 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Check(memo.IsType(TxRagnarok), Equals, true)
 	c.Check(memo.IsOutbound(), Equals, true)
 
-	mem := fmt.Sprintf("switch:%s", types.GetRandomBech32Addr())
-	memo, err = ParseMemoWithTHORNames(ctx, k, mem)
-	c.Assert(err, IsNil)
-	c.Check(memo.IsType(TxSwitch), Equals, true)
-	c.Check(memo.IsInbound(), Equals, true)
-
 	memo, err = ParseMemoWithTHORNames(ctx, k, "reserve")
 	c.Check(err, IsNil)
 	c.Check(memo.IsType(TxReserve), Equals, true)
@@ -308,10 +302,6 @@ func (s *MemoSuite) TestParseWithAbbreviated(c *C) {
 	c.Assert(err, NotNil)
 	_, err = ParseMemoWithTHORNames(ctx, k, "migrate")
 	c.Assert(err, NotNil)
-	_, err = ParseMemoWithTHORNames(ctx, k, "switch")
-	c.Assert(err, NotNil)
-	_, err = ParseMemoWithTHORNames(ctx, k, "switch:")
-	c.Assert(err, IsNil)
 }
 
 func (s *MemoSuite) TestParse(c *C) {

@@ -96,7 +96,10 @@ func (p *parser) parse() (mem Memo, err error) {
 		return p.ParseMigrateMemo()
 	case TxRagnarok:
 		return p.ParseRagnarokMemo()
-	case TxSwitch:
+	case TxSwitch: // TODO remove TxSwitch on hard fork
+		if p.keeper.GetVersion().GTE(semver.MustParse("1.117.0")) {
+			return EmptyMemo, fmt.Errorf("TxType not supported: %s", p.getType().String())
+		}
 		return p.ParseSwitchMemo()
 	case TxNoOp:
 		return p.ParseNoOpMemo()

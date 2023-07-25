@@ -10,8 +10,8 @@ func NewNetwork() Network {
 	return Network{
 		BondRewardRune:  cosmos.ZeroUint(),
 		TotalBondUnits:  cosmos.ZeroUint(),
-		BurnedBep2Rune:  cosmos.ZeroUint(),
-		BurnedErc20Rune: cosmos.ZeroUint(),
+		BurnedBep2Rune:  cosmos.ZeroUint(), // TODO remove on hard fork
+		BurnedErc20Rune: cosmos.ZeroUint(), // TODO remove on hard fork
 	}
 }
 
