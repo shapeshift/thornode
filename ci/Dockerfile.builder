@@ -6,4 +6,4 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     curl git jq make protobuf-compiler xz-utils sudo python3-pip \
     && rm -rf /var/cache/apt/lists \
-    && go install mvdan.cc/gofumpt@v0.3.0
+    && go install mvdan.cc/gofumpt@v0.5.0

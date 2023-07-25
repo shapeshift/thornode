@@ -6,7 +6,7 @@ set -euo pipefail
 # changes in historical versions that would cause consensus failure.
 
 VERSION=$(awk -F. '{ print $2 }' version)
-CI_MERGE_REQUEST_TITLE=${CI_MERGE_REQUEST_TITLE:-}
+CI_MERGE_REQUEST_TITLE=${CI_MERGE_REQUEST_TITLE-}
 
 git fetch https://gitlab.com/thorchain/thornode.git develop
 

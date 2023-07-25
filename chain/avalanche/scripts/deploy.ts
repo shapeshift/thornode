@@ -18,7 +18,7 @@ async function main() {
   const AvaxAggregator = await ethers.getContractFactory("AvaxAggregator");
   const avaxAggregator = await AvaxAggregator.deploy(
     wavaxAddress,
-    pangolinRouter
+    pangolinRouter,
   );
   await avaxAggregator.deployed();
 

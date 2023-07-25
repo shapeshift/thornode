@@ -22,7 +22,7 @@ describe("AvaxAggregator", function () {
     pangolin = new ethers.Contract(
       pangolinRouter,
       pangolinRouterAbi,
-      accounts[0]
+      accounts[0],
     );
     usdceToken = new ethers.Contract(USDCE_ADDRESS, ERC20.abi, accounts[0]);
   });

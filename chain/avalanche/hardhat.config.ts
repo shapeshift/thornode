@@ -31,7 +31,7 @@ task(
     accounts.forEach((account: SignerWithAddress): void => {
       console.log(account.address);
     });
-  }
+  },
 );
 
 task(
@@ -41,11 +41,11 @@ task(
     const accounts: SignerWithAddress[] = await hre.ethers.getSigners();
     for (const account of accounts) {
       const balance: BigNumber = await hre.ethers.provider.getBalance(
-        account.address
+        account.address,
       );
       console.log(`${account.address} has balance ${balance.toString()}`);
     }
-  }
+  },
 );
 
 export default {
