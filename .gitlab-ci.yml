@@ -47,7 +47,7 @@ generate:
   before_script:
     - apk -U add bash curl findutils git go jq make protoc wget
   script:
-    - PATH="$PATH:/root/go/bin" make protob-docker smoke-protob-docker openapi
+    - PATH="$PATH:/root/go/bin" make go-generate protob-docker smoke-protob-docker openapi
 
 unit-tests:
   stage: test

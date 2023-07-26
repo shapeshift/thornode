@@ -36,7 +36,8 @@ BINARIES=./cmd/thornode ./cmd/bifrost ./tools/generate
 BIFROST_UTXO_CLIENT_PKGS := ./bifrost/pkg/chainclients/dogecoin/... \
 		  ./bifrost/pkg/chainclients/bitcoin/... \
 		  ./bifrost/pkg/chainclients/bitcoincash/... \
-		  ./bifrost/pkg/chainclients/litecoin/...
+		  ./bifrost/pkg/chainclients/litecoin/... \
+		  ./bifrost/pkg/chainclients/utxo/...
 
 # docker tty args are disabled in CI
 ifndef CI
@@ -59,6 +60,9 @@ BUILDTAG?=$(shell git rev-parse --abbrev-ref HEAD)
 ########################################################################################
 
 # ------------------------------ Generate ------------------------------
+
+go-generate:
+	@go generate ./...
 
 SMOKE_PROTO_DIR=test/smoke/thornode_proto
 

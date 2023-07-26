@@ -9,6 +9,7 @@ import (
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/dogecoin"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/evm"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/gaia"
+	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/utxo"
 
 	"gitlab.com/thorchain/thornode/bifrost/metrics"
 	"gitlab.com/thorchain/thornode/bifrost/pkg/chainclients/binance"
@@ -58,7 +59,11 @@ func LoadChains(thorKeys *thorclient.Keys,
 		case common.LTCChain:
 			return litecoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
 		case common.DOGEChain:
-			return dogecoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
+			if chain.UTXO.ClientV2 {
+				return utxo.NewClient(thorKeys, chain, server, thorchainBridge, m)
+			} else {
+				return dogecoin.NewClient(thorKeys, chain, server, thorchainBridge, m)
+			}
 		default:
 			log.Fatal().Msgf("chain %s is not supported", chain.ChainID)
 			return nil, nil
@@ -72,33 +77,28 @@ func LoadChains(thorKeys *thorclient.Keys,
 		}
 
 		client, err := loadChain(chain)
-
-		// trunk-ignore-all(golangci-lint/forcetypeassert)
-		switch chain.ChainID {
-		case common.BTCChain:
-			if err == nil {
-				pubKeyValidator.RegisterCallback(client.(*bitcoin.Client).RegisterPublicKey)
-			}
-		case common.BCHChain:
-			if err == nil {
-				pubKeyValidator.RegisterCallback(client.(*bitcoincash.Client).RegisterPublicKey)
-			}
-		case common.LTCChain:
-			if err == nil {
-				pubKeyValidator.RegisterCallback(client.(*litecoin.Client).RegisterPublicKey)
-			}
-		case common.DOGEChain:
-			if err == nil {
-				pubKeyValidator.RegisterCallback(client.(*dogecoin.Client).RegisterPublicKey)
-			}
-		}
-
 		if err != nil {
 			logger.Error().Err(err).Stringer("chain", chain.ChainID).Msg("failed to load chain")
 			failedChains = append(failedChains, chain.ChainID)
-		} else {
-			chains[chain.ChainID] = client
+			continue
 		}
+
+		// trunk-ignore-all(golangci-lint/forcetypeassert)
+		if chain.UTXO.ClientV2 {
+			pubKeyValidator.RegisterCallback(client.(*utxo.Client).RegisterPublicKey)
+		} else {
+			switch chain.ChainID {
+			case common.BTCChain:
+				pubKeyValidator.RegisterCallback(client.(*bitcoin.Client).RegisterPublicKey)
+			case common.BCHChain:
+				pubKeyValidator.RegisterCallback(client.(*bitcoincash.Client).RegisterPublicKey)
+			case common.LTCChain:
+				pubKeyValidator.RegisterCallback(client.(*litecoin.Client).RegisterPublicKey)
+			case common.DOGEChain:
+				pubKeyValidator.RegisterCallback(client.(*dogecoin.Client).RegisterPublicKey)
+			}
+		}
+		chains[chain.ChainID] = client
 	}
 
 	// watch failed chains and restart bifrost if any succeed init

@@ -80,21 +80,18 @@ bifrost:
         compaction_table_size_multiplier: 10
         write_buffer: 20971520 # 20mb
         block_cache_capacity: 536870912 # 512mb
-
-      # the following defaults must be defined to override with environment
-      chain_host: ""
-      chain_network: ""
-      rpc_host: ""
-      cosmos_grpc_host: ""
-      cosmos_grpc_tls: ""
-      opt_to_retire: false
-      solvency_blocks: 0
-      back_off:
-        initial_interval: 0
-        randomization_factor: 0
-        multiplier: 0
-        max_interval: 0
-        max_elapsed_time: 0
+      utxo: &utxo
+        block_cache_count: 144
+        version: 25
+        transaction_batch_size: 500
+        max_mempool_batches: 10
+        client_v2: false
+        estimated_average_tx_size: 1000
+        default_min_relay_fee_sats: 1000
+        default_sats_per_vbyte: 25
+        max_sats_per_vbyte: 9765 # backwards compatible with 1e8/10/1024
+        min_utxo_confirmations: 1
+        max_utxos_to_spend: 10
 
       block_scanner: &default-block-scanner
         chain_id: BTC
@@ -120,6 +117,22 @@ bifrost:
         max_gas_fee: 0
         gas_price_resolution: 0
         max_contract_gas: 0
+
+      # the following defaults must be defined to override with environment
+      chain_host: ""
+      chain_network: ""
+      rpc_host: ""
+      cosmos_grpc_host: ""
+      cosmos_grpc_tls: ""
+      opt_to_retire: false
+      solvency_blocks: 0
+      back_off:
+        initial_interval: 0
+        randomization_factor: 0
+        multiplier: 0
+        max_interval: 0
+        max_elapsed_time: 0
+
     bnb:
       <<: *default-chain
       chain_id: BNB
@@ -190,6 +203,12 @@ bifrost:
         gas_price_resolution: 500_000 # sats
       mempool_tx_id_cache_size: 0
       scanner_leveldb: *default-leveldb
+      utxo:
+        <<: *utxo
+        block_cache_count: 1440
+        version: 14
+        default_sats_per_vbyte: 25
+        max_sats_per_vbyte: 976562 # backwards compatible with 1e8*10/1024
     gaia:
       <<: *default-chain
       chain_id: GAIA

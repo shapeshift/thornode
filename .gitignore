@@ -12,6 +12,7 @@ vendor
 observe
 *balances.json
 *.pb.go
+*_gen.go
 openapi/openapi.json
 openapi/gen/
 node_modules

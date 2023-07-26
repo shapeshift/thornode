@@ -571,12 +571,12 @@ type BifrostChainConfiguration struct {
 	CosmosGRPCTLS       bool                             `mapstructure:"cosmos_grpc_tls"`
 	HTTPostMode         bool                             `mapstructure:"http_post_mode"` // Bitcoin core only supports HTTP POST mode
 	DisableTLS          bool                             `mapstructure:"disable_tls"`    // Bitcoin core does not provide TLS by default
-	BlockScanner        BifrostBlockScannerConfiguration `mapstructure:"block_scanner"`
-	BackOff             BifrostBackOff                   `mapstructure:"back_off"`
-	OptToRetire         bool                             `mapstructure:"opt_to_retire"` // don't emit support for this chain during keygen process
+	OptToRetire         bool                             `mapstructure:"opt_to_retire"`  // don't emit support for this chain during keygen process
 	ParallelMempoolScan int                              `mapstructure:"parallel_mempool_scan"`
 	Disabled            bool                             `mapstructure:"disabled"`
 	SolvencyBlocks      int64                            `mapstructure:"solvency_blocks"`
+	BlockScanner        BifrostBlockScannerConfiguration `mapstructure:"block_scanner"`
+	BackOff             BifrostBackOff                   `mapstructure:"back_off"`
 
 	// MemPoolTxIDCacheSize is the number of transaction ids to cache in memory. This
 	// prevents read on LevelDB which may hit disk for every transaction in the mempool in
@@ -585,6 +585,55 @@ type BifrostChainConfiguration struct {
 
 	// ScannerLevelDB is the LevelDB configuration for the block scanner.
 	ScannerLevelDB LevelDBOptions `mapstructure:"scanner_leveldb"`
+
+	// UTXO contains UTXO chain specific configuration.
+	UTXO struct {
+		// BlockCacheCount is the number of blocks to cache in storage.
+		BlockCacheCount uint64 `mapstructure:"block_cache_count"`
+
+		// Version is the API version for the UTXO chain.
+		Version int `mapstructure:"version"`
+
+		// TransactionBatchSize is the number of transactions to batch in a single request.
+		// This is used as the limit for one iteration of the mempool check, and for fanout
+		// in fetching block transactions for chains that do not yet support verbosity level
+		// 2 on getblock (dogecoin).
+		TransactionBatchSize int `mapstructure:"transaction_batch_size"`
+
+		// MaxMempoolBatches is the maximum number of batches to fetch from the mempool in
+		// a single scanning pass.
+		MaxMempoolBatches int `mapstructure:"max_mempool_batches"`
+
+		// ClientV2 flags on the usage of the replacement generic utxo client.
+		// TODO: Remove after full adoption on all UTXO chains.
+		ClientV2 bool `mapstructure:"client_v2"`
+
+		// NOTE: The following fields must be consistent across all validators. Otherwise,
+		// nodes can fail to sign outbounds from asgard since they may build different
+		// transactions. They may also be slashed for reporting different fee and solvency.
+
+		// EstimatedAverageTxSize is the estimated average transaction size in bytes.
+		EstimatedAverageTxSize uint64 `mapstructure:"estimated_average_tx_size"`
+
+		// DefaultMinRelayFee is the default minimum relay fee in sats.
+		DefaultMinRelayFeeSats uint64 `mapstructure:"default_min_relay_fee_sats"`
+
+		// DefaultSatsPerVByte is the default fee rate in sats per vbyte. It is only used as
+		// a fallback when local fee information is unavailable.
+		DefaultSatsPerVByte int64 `mapstructure:"default_sats_per_vbyte"`
+
+		// MaxSatsPerVByte is the maximum fee rate in sats per vbyte. It is used to cap the
+		// fee rate, since overpaid fees may be rejected by the chain daemon.
+		MaxSatsPerVByte int64 `mapstructure:"max_sats_per_vbyte"`
+
+		// MinUTXOConfirmations is the minimum number of confirmations required for a UTXO to
+		// be considered for spending from an asgard vault.
+		MinUTXOConfirmations int64 `mapstructure:"min_utxo_confirmations"`
+
+		// MaxUTXOsToSpend is the maximum number of UTXOs to spend in a single transaction.
+		// This is overridden at runtime by the `MaxUTXOsToSpend` mimir value.
+		MaxUTXOsToSpend int64 `mapstructure:"max_utxos_to_spend"`
+	} `mapstructure:"utxo"`
 }
 
 func (b *BifrostChainConfiguration) Validate() {
