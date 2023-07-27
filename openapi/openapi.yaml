@@ -1581,6 +1581,17 @@ components:
           type: string
           example: "100"
           description: the amount of output tokens that have been swapped so far
+        failed_swaps:
+          type: array
+          description: the list of swap indexes that failed
+          items:
+            type: integer
+            format: uint64
+        failed_swap_reasons:
+          type: array
+          description: the list of reasons that sub-swaps have failed
+          items:
+            type: string
 
     Tx:
       type: object
