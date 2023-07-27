@@ -67,6 +67,16 @@ func (m Vault) IsYggdrasil() bool {
 	return m.IsType(VaultType_YggdrasilVault)
 }
 
+// IsActive return true when the vault is in active status
+func (m Vault) IsActive() bool {
+	return m.Status == VaultStatus_ActiveVault
+}
+
+// IsRetiring return true when the vault is in retiring status
+func (m Vault) IsRetiring() bool {
+	return m.Status == VaultStatus_RetiringVault
+}
+
 // IsEmpty returns true when the vault pubkey is empty
 func (m Vault) IsEmpty() bool {
 	return m.PubKey.IsEmpty()

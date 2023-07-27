@@ -1157,26 +1157,53 @@ func storeContextTxID(ctx cosmos.Context, key interface{}) (cosmos.Context, erro
 // atTVLCap - returns bool on if we've hit the TVL hard cap. Coins passed in
 // are included in the calculation
 func atTVLCap(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
-	// Get total rune in pools
-	pools, err := mgr.Keeper().GetPools(ctx)
+	version := mgr.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.117.0")):
+		return atTVLCapV117(ctx, coins, mgr)
+	case version.GTE(semver.MustParse("1.116.0")):
+		return atTVLCapV116(ctx, coins, mgr)
+	default:
+		return false
+	}
+}
+
+func atTVLCapV117(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
+	vaults, err := mgr.Keeper().GetAsgardVaults(ctx)
 	if err != nil {
-		ctx.Logger().Error("fail to get pools to calculate TVL cap", "error", err)
+		ctx.Logger().Error("fail to get vaults for atTVLCap", "error", err)
 		return true
 	}
-	totalRune := coins.GetCoin(common.RuneAsset()).Amount
-	for _, p := range pools {
-		if !p.IsAvailable() && !p.IsStaged() {
+	for _, vault := range vaults {
+		if vault.IsAsgard() && (vault.IsActive() || vault.IsRetiring()) {
+			coins = coins.Adds(vault.Coins)
+		}
+	}
+
+	runeCoin := coins.GetCoin(common.RuneAsset())
+	totalRuneValue := runeCoin.Amount
+	for _, coin := range coins {
+		if coin.IsEmpty() {
 			continue
 		}
-		if p.Asset.IsVaultAsset() {
+		asset := coin.Asset
+		// while asgard vaults don't contain native assets, the `coins`
+		// parameter might
+		if asset.IsSyntheticAsset() {
+			asset = asset.GetLayer1Asset()
+		}
+		pool, err := mgr.Keeper().GetPool(ctx, asset)
+		if err != nil {
+			ctx.Logger().Error("fail to get pool for atTVLCap", "asset", coin.Asset, "error", err)
 			continue
 		}
-		if p.Asset.IsDerivedAsset() {
+		if !pool.IsAvailable() && !pool.IsStaged() {
 			continue
 		}
-		coin := coins.GetCoin(p.Asset)
-		totalRune = totalRune.Add(p.AssetValueInRune(coin.Amount))
-		totalRune = totalRune.Add(p.BalanceRune)
+		if pool.BalanceRune.IsZero() || pool.BalanceAsset.IsZero() {
+			continue
+		}
+		totalRuneValue = totalRuneValue.Add(pool.AssetValueInRune(coin.Amount))
 	}
 
 	// get effectiveSecurity
@@ -1187,7 +1214,11 @@ func atTVLCap(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
 	}
 	effectiveSecurity := getEffectiveSecurityBond(nodeAccounts)
 
-	return totalRune.GT(effectiveSecurity)
+	if totalRuneValue.GT(effectiveSecurity) {
+		ctx.Logger().Debug("reached TVL cap", "total rune value", totalRuneValue.String(), "effective security", effectiveSecurity.String())
+		return true
+	}
+	return false
 }
 
 func isActionsItemDangling(voter ObservedTxVoter, i int) bool {

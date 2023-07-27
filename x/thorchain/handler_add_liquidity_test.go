@@ -87,6 +87,18 @@ func (m *MockAddLiquidityKeeper) AddOwnership(ctx cosmos.Context, coin common.Co
 	return nil
 }
 
+func (m *MockAddLiquidityKeeper) GetAsgardVaults(_ cosmos.Context) (Vaults, error) {
+	return Vaults{
+		{
+			Status: ActiveVault,
+			Type:   AsgardVault,
+			Coins: common.NewCoins(
+				common.NewCoin(m.currentPool.Asset, m.currentPool.BalanceAsset),
+			),
+		},
+	}, nil
+}
+
 func (s *HandlerAddLiquiditySuite) SetUpSuite(c *C) {
 	SetupConfigForTest()
 }

@@ -52,6 +52,8 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.117.0")):
+		return h.validateV117(ctx, msg)
 	case version.GTE(semver.MustParse("1.116.0")):
 		return h.validateV116(ctx, msg)
 	case version.GTE(semver.MustParse("1.112.0")):
@@ -75,7 +77,7 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	}
 }
 
-func (h AddLiquidityHandler) validateV116(ctx cosmos.Context, msg MsgAddLiquidity) error {
+func (h AddLiquidityHandler) validateV117(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if !msg.Tx.ID.IsBlank() { // don't validate tx if internal txn
 		if err := msg.ValidateBasicV98(); err != nil {
 			ctx.Logger().Error(err.Error())
@@ -196,25 +198,18 @@ func (h AddLiquidityHandler) validateV116(ctx cosmos.Context, msg MsgAddLiquidit
 	// total liquidity RUNE after current add liquidity
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
 	totalLiquidityRUNE = totalLiquidityRUNE.Add(pool.AssetValueInRune(msg.AssetAmount))
-	maximumLiquidityRune, err := h.mgr.Keeper().GetMimir(ctx, constants.MaximumLiquidityRune.String())
-	if maximumLiquidityRune < 0 || err != nil {
-		maximumLiquidityRune = h.mgr.GetConstants().GetInt64Value(constants.MaximumLiquidityRune)
-	}
+	maximumLiquidityRune := h.mgr.Keeper().GetConfigInt64(ctx, constants.MaximumLiquidityRune)
 	if maximumLiquidityRune > 0 {
 		if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
 			return errAddLiquidityRUNEOverLimit
 		}
 	}
 
-	if !ensureLiquidityNoLargerThanBond {
-		return nil
-	}
-	securityBond, err := h.getEffectiveSecurityBond(ctx)
-	if err != nil {
-		return ErrInternal(err, "fail to get security bond RUNE")
-	}
-	if totalLiquidityRUNE.GT(securityBond) {
-		ctx.Logger().Info("total liquidity RUNE is more than effective security bond", "rune", totalLiquidityRUNE.String(), "bond", securityBond.String())
+	coins := common.NewCoins(
+		common.NewCoin(common.RuneAsset(), msg.RuneAmount),
+		common.NewCoin(msg.Asset, msg.AssetAmount),
+	)
+	if atTVLCap(ctx, coins, h.mgr) {
 		return errAddLiquidityRUNEMoreThanBond
 	}
 
@@ -701,15 +696,6 @@ func (h AddLiquidityHandler) addLiquidityV107(ctx cosmos.Context,
 		)
 	}
 	return nil
-}
-
-// get the total bond of the bottom 2/3rds active validators
-func (h AddLiquidityHandler) getEffectiveSecurityBond(ctx cosmos.Context) (cosmos.Uint, error) {
-	nodeAccounts, err := h.mgr.Keeper().ListActiveValidators(ctx)
-	if err != nil {
-		return cosmos.ZeroUint(), err
-	}
-	return getEffectiveSecurityBond(nodeAccounts), nil
 }
 
 func (h AddLiquidityHandler) getTotalLiquidityRUNE(ctx cosmos.Context) (cosmos.Uint, error) {

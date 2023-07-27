@@ -23,6 +23,40 @@ var WhitelistedArbs = []string{ // treasury addresses
 	"ltc1qaa064vvv4d6stgywnf777j6dl8rd3tt93fp6jx",
 }
 
+func atTVLCapV116(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
+	// Get total rune in pools
+	pools, err := mgr.Keeper().GetPools(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to get pools to calculate TVL cap", "error", err)
+		return true
+	}
+	totalRune := coins.GetCoin(common.RuneAsset()).Amount
+	for _, p := range pools {
+		if !p.IsAvailable() && !p.IsStaged() {
+			continue
+		}
+		if p.Asset.IsVaultAsset() {
+			continue
+		}
+		if p.Asset.IsDerivedAsset() {
+			continue
+		}
+		coin := coins.GetCoin(p.Asset)
+		totalRune = totalRune.Add(p.AssetValueInRune(coin.Amount))
+		totalRune = totalRune.Add(p.BalanceRune)
+	}
+
+	// get effectiveSecurity
+	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
+	if err != nil {
+		ctx.Logger().Error("fail to get validators to calculate TVL cap", "error", err)
+		return true
+	}
+	effectiveSecurity := getEffectiveSecurityBond(nodeAccounts)
+
+	return totalRune.GT(effectiveSecurity)
+}
+
 func DollarInRuneV1(ctx cosmos.Context, mgr Manager) cosmos.Uint {
 	// check for mimir override
 	dollarInRune, err := mgr.Keeper().GetMimir(ctx, "DollarInRune")
