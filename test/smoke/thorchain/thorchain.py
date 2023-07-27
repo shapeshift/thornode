@@ -567,17 +567,17 @@ class ThorchainState:
                                     {"pool_deduct": rune_fee},
                                 ],
                             ))
-                            if coin.asset.is_synth and coin.asset == in_tx.coins[0].asset and asset_fee > 0:
+                            if coin.asset.is_thor() and coin.asset == in_tx.coins[0].asset and asset_fee > 0:
                                 self.events.append(Event(
                                     "mint_burn",
                                     [
                                         {"supply": "burn"},
                                         {"denom": f"{tx.coins[0].asset.upper()}"},
                                         {"amount": f"{asset_fee}"},
-                                        {"reason": "burn_synth_fee"},
+                                        {"reason": "burn_native_fee"},
                                     ],
                                 ))
-                            if coin.asset.is_synth and in_tx.coins[0].asset != coin.asset and coin.amount > 0:
+                            if coin.asset.is_thor() and in_tx.coins[0].asset != coin.asset and coin.amount > 0:
                                 self.events.append(Event(
                                     "mint_burn",
                                     [

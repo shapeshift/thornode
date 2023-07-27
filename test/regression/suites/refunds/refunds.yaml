@@ -326,3 +326,16 @@ description: outbound should have been observed
 endpoint: http://localhost:1317/thorchain/queue/outbound
 asserts:
   - .|length == 0
+---
+########################################################################################
+type: tx-deposit
+description: invalid memo for thorname doesn't cause asgard invariant break
+signer: {{ addr_thor_fox }}
+coins:
+  - amount: "5000000000"
+    asset: "rune"
+memo: "~:"  
+---
+type: create-blocks
+count: 1
+# Invariant checks are implicit in the regression test.

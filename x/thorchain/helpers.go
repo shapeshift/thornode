@@ -23,6 +23,8 @@ import (
 func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uint32, refundReason, sourceModuleName string) error {
 	version := mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.117.0")):
+		return refundTxV117(ctx, tx, mgr, refundCode, refundReason, sourceModuleName)
 	case version.GTE(semver.MustParse("1.110.0")):
 		return refundTxV110(ctx, tx, mgr, refundCode, refundReason, sourceModuleName)
 	case version.GTE(semver.MustParse("1.108.0")):
@@ -34,7 +36,7 @@ func refundTx(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uint32,
 	}
 }
 
-func refundTxV110(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uint32, refundReason, sourceModuleName string) error {
+func refundTxV117(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uint32, refundReason, sourceModuleName string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
 
@@ -66,10 +68,7 @@ func refundTxV110(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uin
 				// concatenate the refund failure to refundReason
 				refundReason = fmt.Sprintf("%s; fail to refund (%s): %s", refundReason, toi.Coin.String(), err)
 
-				// sourceModuleName is frequently "", assumed to be AsgardName by default.
-				if sourceModuleName == "" {
-					sourceModuleName = AsgardName
-				}
+				sourceModuleName = toi.GetModuleName() // Ensure that non-"".
 
 				// Select course of action according to coin type:
 				// External coin, native coin which isn't RUNE, or native RUNE (not from the Reserve).

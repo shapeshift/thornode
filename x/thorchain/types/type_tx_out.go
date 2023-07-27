@@ -90,6 +90,14 @@ func (m TxOutItem) String() string {
 	return sb.String()
 }
 
+func (toi TxOutItem) GetModuleName() string {
+	// toi.ModuleName is frequently "", assumed to be AsgardName by default.
+	if toi.ModuleName == "" {
+		return AsgardName
+	}
+	return toi.ModuleName
+}
+
 // NewTxOut create a new item ot TxOut
 func NewTxOut(height int64) *TxOut {
 	return &TxOut{

@@ -270,6 +270,133 @@ func subsidizePoolWithSlashBondV88(ctx cosmos.Context, ygg Vault, yggTotalStolen
 	return nil
 }
 
+func refundTxV110(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uint32, refundReason, sourceModuleName string) error {
+	// If THORNode recognize one of the coins, and therefore able to refund
+	// withholding fees, refund all coins.
+
+	refundCoins := make(common.Coins, 0)
+	for _, coin := range tx.Tx.Coins {
+		if coin.Asset.IsRune() && coin.Asset.GetChain().Equals(common.ETHChain) {
+			continue
+		}
+		pool, err := mgr.Keeper().GetPool(ctx, coin.Asset.GetLayer1Asset())
+		if err != nil {
+			return fmt.Errorf("fail to get pool: %w", err)
+		}
+
+		// Only attempt an outbound if a fee can be taken from the coin.
+		if coin.Asset.IsNativeRune() || !pool.BalanceRune.IsZero() {
+			toi := TxOutItem{
+				Chain:       coin.Asset.GetChain(),
+				InHash:      tx.Tx.ID,
+				ToAddress:   tx.Tx.FromAddress,
+				VaultPubKey: tx.ObservedPubKey,
+				Coin:        coin,
+				Memo:        NewRefundMemo(tx.Tx.ID).String(),
+				ModuleName:  sourceModuleName,
+			}
+
+			success, err := mgr.TxOutStore().TryAddTxOutItem(ctx, mgr, toi, cosmos.ZeroUint())
+			if err != nil {
+				ctx.Logger().Error("fail to prepare outbound tx", "error", err)
+				// concatenate the refund failure to refundReason
+				refundReason = fmt.Sprintf("%s; fail to refund (%s): %s", refundReason, toi.Coin.String(), err)
+
+				// sourceModuleName is frequently "", assumed to be AsgardName by default.
+				if sourceModuleName == "" {
+					sourceModuleName = AsgardName
+				}
+
+				// Select course of action according to coin type:
+				// External coin, native coin which isn't RUNE, or native RUNE (not from the Reserve).
+				switch {
+				case !coin.Asset.IsNative():
+					// If unable to refund external-chain coins, add them to their pools
+					// (so they aren't left in the vaults with no reflection in the pools).
+					// Failed-refund external coins have earlier been established to have existing pools with non-zero BalanceRune.
+					pool.BalanceAsset = pool.BalanceAsset.Add(coin.Amount)
+					err := mgr.Keeper().SetPool(ctx, pool)
+					if err != nil {
+						ctx.Logger().Error("fail to save pool", "asset", pool.Asset, "error", err)
+					}
+
+					if err == nil {
+						donateEvt := NewEventDonate(coin.Asset, tx.Tx)
+						if err := mgr.EventMgr().EmitEvent(ctx, donateEvt); err != nil {
+							ctx.Logger().Error("fail to emit donate event", "error", err)
+						}
+					}
+				case !coin.Asset.IsNativeRune():
+					// If unable to refund native coins other than RUNE, burn them.
+
+					// For code clarity, start with a nil error (the default) and check it at every step.
+					var err error
+
+					if sourceModuleName != ModuleName {
+						err = mgr.Keeper().SendFromModuleToModule(ctx, sourceModuleName, ModuleName, common.NewCoins(coin))
+						if err != nil {
+							ctx.Logger().Error("fail to move coin during failed refund burn", "error", err)
+						}
+					}
+
+					if err == nil {
+						err = mgr.Keeper().BurnFromModule(ctx, ModuleName, coin)
+						if err != nil {
+							ctx.Logger().Error("fail to burn coin during failed refund burn", "error", err)
+						}
+					}
+
+					if err == nil {
+						burnEvt := NewEventMintBurn(BurnSupplyType, coin.Asset.Native(), coin.Amount, "failed_refund")
+						if err := mgr.EventMgr().EmitEvent(ctx, burnEvt); err != nil {
+							ctx.Logger().Error("fail to emit burn event", "error", err)
+						}
+					}
+				case sourceModuleName != ReserveName:
+					// If unable to refund THOR.RUNE, send it to the Reserve.
+					err := mgr.Keeper().SendFromModuleToModule(ctx, sourceModuleName, ReserveName, common.NewCoins(coin))
+					if err != nil {
+						ctx.Logger().Error("fail to send RUNE to Reserve after failed refund", "error", err)
+					}
+
+					if err == nil {
+						reserveContributor := NewReserveContributor(tx.Tx.FromAddress, coin.Amount)
+						reserveEvent := NewEventReserve(reserveContributor, tx.Tx)
+						if err := mgr.EventMgr().EmitEvent(ctx, reserveEvent); err != nil {
+							ctx.Logger().Error("fail to emit reserve event", "error", err)
+						}
+					}
+				default:
+					// If not satisfying the other conditions this coin should be native RUNE in the Reserve,
+					// so leave it there.
+				}
+			}
+			if success {
+				refundCoins = append(refundCoins, toi.Coin)
+			}
+		}
+		// Zombie coins are just dropped.
+	}
+
+	// For refund events, emit the event after the txout attempt in order to include the 'fail to refund' reason if unsuccessful.
+	eventRefund := NewEventRefund(refundCode, refundReason, tx.Tx, common.NewFee(common.Coins{}, cosmos.ZeroUint()))
+	if len(refundCoins) > 0 {
+		// create a new TX based on the coins thorchain refund , some of the coins thorchain doesn't refund
+		// coin thorchain doesn't have pool with , likely airdrop
+		newTx := common.NewTx(tx.Tx.ID, tx.Tx.FromAddress, tx.Tx.ToAddress, tx.Tx.Coins, tx.Tx.Gas, tx.Tx.Memo)
+
+		// all the coins in tx.Tx should belongs to the same chain
+		transactionFee := mgr.GasMgr().GetFee(ctx, tx.Tx.Chain, common.RuneAsset())
+		fee := getFee(tx.Tx.Coins, refundCoins, transactionFee)
+		eventRefund = NewEventRefund(refundCode, refundReason, newTx, fee)
+	}
+	if err := mgr.EventMgr().EmitEvent(ctx, eventRefund); err != nil {
+		return fmt.Errorf("fail to emit refund event: %w", err)
+	}
+
+	return nil
+}
+
 func refundTxV108(ctx cosmos.Context, tx ObservedTx, mgr Manager, refundCode uint32, refundReason, sourceModuleName string) error {
 	// If THORNode recognize one of the coins, and therefore able to refund
 	// withholding fees, refund all coins.
