@@ -24,12 +24,9 @@ func (m *MsgUnBond) Route() string { return RouterKey }
 func (m MsgUnBond) Type() string { return "unbond" }
 
 // ValidateBasic runs stateless checks on the message
-func (m *MsgUnBond) ValidateBasic() error {
+func (m *MsgUnBond) ValidateBasicV117() error {
 	if m.NodeAddress.Empty() {
 		return cosmos.ErrInvalidAddress("node address cannot be empty")
-	}
-	if m.Amount.IsZero() {
-		return cosmos.ErrUnknownRequest("unbond amount cannot be zero")
 	}
 	if m.BondAddress.IsEmpty() {
 		return cosmos.ErrInvalidAddress("bond address cannot be empty")

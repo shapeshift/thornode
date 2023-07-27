@@ -48,6 +48,8 @@ func (h UnBondHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, er
 func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.117.0")):
+		return h.validateV117(ctx, msg)
 	case version.GTE(semver.MustParse("1.88.0")):
 		return h.validateV88(ctx, msg)
 	case version.GTE(semver.MustParse("0.81.0")):
@@ -57,8 +59,8 @@ func (h UnBondHandler) validate(ctx cosmos.Context, msg MsgUnBond) error {
 	}
 }
 
-func (h UnBondHandler) validateV88(ctx cosmos.Context, msg MsgUnBond) error {
-	if err := msg.ValidateBasic(); err != nil {
+func (h UnBondHandler) validateV117(ctx cosmos.Context, msg MsgUnBond) error {
+	if err := msg.ValidateBasicV117(); err != nil {
 		return err
 	}
 
@@ -71,10 +73,8 @@ func (h UnBondHandler) validateV88(ctx cosmos.Context, msg MsgUnBond) error {
 		return cosmos.ErrUnknownRequest("cannot unbond while node is in active or ready status")
 	}
 
-	if h.mgr.GetVersion().GTE(semver.MustParse("1.88.1")) {
-		if h.mgr.Keeper().GetConfigInt64(ctx, constants.PauseUnbond) > 0 {
-			return ErrInternal(err, "unbonding has been paused")
-		}
+	if h.mgr.Keeper().GetConfigInt64(ctx, constants.PauseUnbond) > 0 {
+		return ErrInternal(err, "unbonding has been paused")
 	}
 
 	if h.mgr.Keeper().VaultExists(ctx, na.PubKeySet.Secp256k1) {
