@@ -13,20 +13,20 @@ import (
 	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 )
 
-type SwapperV117 struct {
+type SwapperV116 struct {
 	coinsToBurn common.Coins
 	coinsToMint common.Coins
 }
 
-func newSwapperV117() *SwapperV117 {
-	return &SwapperV117{
+func newSwapperV116() *SwapperV116 {
+	return &SwapperV116{
 		coinsToBurn: make(common.Coins, 0),
 		coinsToMint: make(common.Coins, 0),
 	}
 }
 
 // validateMessage is trying to validate the legitimacy of the incoming message and decide whether THORNode can handle it
-func (s *SwapperV117) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
+func (s *SwapperV116) validateMessage(tx common.Tx, target common.Asset, destination common.Address) error {
 	if err := tx.Valid(); err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (s *SwapperV117) validateMessage(tx common.Tx, target common.Asset, destina
 	return nil
 }
 
-func (s *SwapperV117) Swap(ctx cosmos.Context,
+func (s *SwapperV116) Swap(ctx cosmos.Context,
 	keeper keeper.Keeper,
 	tx common.Tx,
 	target common.Asset,
@@ -124,13 +124,6 @@ func (s *SwapperV117) Swap(ctx cosmos.Context,
 	// Thanks to CacheContext, the swap event can be emitted before handling outbounds,
 	// since if there's a later error the event emission will not take place.
 	for _, evt := range swapEvents {
-		if swp.Quantity > evt.StreamingSwapQuantity {
-			evt.StreamingSwapQuantity = swp.Quantity
-			evt.StreamingSwapCount = swp.Count + 1 // first swap count is "zero"
-		} else {
-			evt.StreamingSwapQuantity = 1
-			evt.StreamingSwapCount = 1
-		}
 		if err := mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
 			ctx.Logger().Error("fail to emit swap event", "error", err)
 		}
@@ -207,7 +200,7 @@ func (s *SwapperV117) Swap(ctx cosmos.Context,
 	return assetAmount, swapEvents, nil
 }
 
-func (s *SwapperV117) burnCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
+func (s *SwapperV116) burnCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
 	err := mgr.Keeper().SendFromModuleToModule(ctx, AsgardName, ModuleName, coins)
 	if err != nil {
 		ctx.Logger().Error("fail to move coins during swap", "error", err)
@@ -226,7 +219,7 @@ func (s *SwapperV117) burnCoins(ctx cosmos.Context, mgr Manager, coins common.Co
 	return nil
 }
 
-func (s *SwapperV117) mintCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
+func (s *SwapperV116) mintCoins(ctx cosmos.Context, mgr Manager, coins common.Coins) error {
 	if len(coins) == 0 {
 		return nil
 	}
@@ -248,7 +241,7 @@ func (s *SwapperV117) mintCoins(ctx cosmos.Context, mgr Manager, coins common.Co
 	return nil
 }
 
-func (s *SwapperV117) swapOne(ctx cosmos.Context,
+func (s *SwapperV116) swapOne(ctx cosmos.Context,
 	mgr Manager, tx common.Tx,
 	target common.Asset,
 	destination common.Address,
@@ -400,7 +393,7 @@ func (s *SwapperV117) swapOne(ctx cosmos.Context,
 
 // calculate the number of assets sent to the address (includes liquidity fee)
 // nolint
-func (s *SwapperV117) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV116) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x * X * Y ) / ( x + X )^2
 	numerator := x.Mul(X).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -412,7 +405,7 @@ func (s *SwapperV117) CalcAssetEmission(X, x, Y cosmos.Uint) cosmos.Uint {
 
 // CalculateLiquidityFee the fee of the swap
 // nolint
-func (s *SwapperV117) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
+func (s *SwapperV116) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 	// ( x^2 *  Y ) / ( x + X )^2
 	numerator := x.Mul(x).Mul(Y)
 	denominator := x.Add(X).Mul(x.Add(X))
@@ -424,7 +417,7 @@ func (s *SwapperV117) CalcLiquidityFee(X, x, Y cosmos.Uint) cosmos.Uint {
 
 // CalcSwapSlip - calculate the swap slip, expressed in basis points (10000)
 // nolint
-func (s *SwapperV117) CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
+func (s *SwapperV116) CalcSwapSlip(Xi, xi cosmos.Uint) cosmos.Uint {
 	// Cast to DECs
 	xD := cosmos.NewDecFromBigInt(xi.BigInt())
 	XD := cosmos.NewDecFromBigInt(Xi.BigInt())

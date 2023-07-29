@@ -1363,6 +1363,8 @@ class ThorchainState:
                     {"liquidity_fee": liquidity_fee},
                     {"liquidity_fee_in_rune": liquidity_fee_in_rune},
                     {"emit_asset": f"{emit.amount} {emit.asset}"},
+                    {"streaming_swap_quantity": "1"},
+                    {"streaming_swap_count": "1"},
                     *in_tx.get_attributes(),
                 ],
             )
@@ -1459,6 +1461,8 @@ class ThorchainState:
                 {"liquidity_fee": liquidity_fee},
                 {"liquidity_fee_in_rune": liquidity_fee_in_rune},
                 {"emit_asset": f"{emit.amount} {emit.asset}"},
+                {"streaming_swap_quantity": "1"},
+                {"streaming_swap_count": "1"},
                 *in_tx.get_attributes(),
             ],
         )

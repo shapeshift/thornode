@@ -33,6 +33,8 @@ message EventSwap {
   common.Tx out_txs = 7 [(gogoproto.nullable) = false];
   common.Coin emit_asset = 8 [(gogoproto.nullable) = false];
   string synth_units = 9 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  uint64 streaming_swap_quantity = 10;
+  uint64 streaming_swap_count = 11;
 }
 
 message EventAddLiquidity {

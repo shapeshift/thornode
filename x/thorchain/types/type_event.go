@@ -85,14 +85,16 @@ func (m *EventLimitOrder) Events() (cosmos.Events, error) {
 // NewEventSwap create a new swap event
 func NewEventSwap(pool common.Asset, swapTarget, fee, swapSlip, liquidityFeeInRune cosmos.Uint, inTx common.Tx, emitAsset common.Coin, synthUnits cosmos.Uint) *EventSwap {
 	return &EventSwap{
-		Pool:               pool,
-		SwapTarget:         swapTarget,
-		SwapSlip:           swapSlip,
-		LiquidityFee:       fee,
-		LiquidityFeeInRune: liquidityFeeInRune,
-		InTx:               inTx,
-		EmitAsset:          emitAsset,
-		SynthUnits:         synthUnits,
+		Pool:                  pool,
+		SwapTarget:            swapTarget,
+		SwapSlip:              swapSlip,
+		LiquidityFee:          fee,
+		LiquidityFeeInRune:    liquidityFeeInRune,
+		InTx:                  inTx,
+		EmitAsset:             emitAsset,
+		SynthUnits:            synthUnits,
+		StreamingSwapQuantity: 0,
+		StreamingSwapCount:    0,
 	}
 }
 
@@ -110,6 +112,8 @@ func (m *EventSwap) Events() (cosmos.Events, error) {
 		cosmos.NewAttribute("liquidity_fee", m.LiquidityFee.String()),
 		cosmos.NewAttribute("liquidity_fee_in_rune", m.LiquidityFeeInRune.String()),
 		cosmos.NewAttribute("emit_asset", m.EmitAsset.String()),
+		cosmos.NewAttribute("streaming_swap_quantity", strconv.FormatUint(m.StreamingSwapQuantity, 10)),
+		cosmos.NewAttribute("streaming_swap_count", strconv.FormatUint(m.StreamingSwapCount, 10)),
 	)
 	if !m.SynthUnits.IsZero() {
 		evt = evt.AppendAttributes(cosmos.NewAttribute("synth_units", m.SynthUnits.String()))
