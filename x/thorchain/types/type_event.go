@@ -32,6 +32,7 @@ const (
 	SetNodeMimirEventType      = "set_node_mimir"
 	SlashEventType             = "slash"
 	SlashPointEventType        = "slash_points"
+	StreamingSwapEventType     = "streaming_swap"
 	SwapEventType              = "swap"
 	LimitOrderEventType        = "limit_order"
 	MintBurnType               = "mint_burn"
@@ -119,6 +120,49 @@ func (m *EventSwap) Events() (cosmos.Events, error) {
 		evt = evt.AppendAttributes(cosmos.NewAttribute("synth_units", m.SynthUnits.String()))
 	}
 	evt = evt.AppendAttributes(m.InTx.ToAttributes()...)
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventStreamingSwap create a new streaming swap event
+func NewEventStreamingSwap(inAsset, outAsset common.Asset, swp StreamingSwap) *EventStreamingSwap {
+	return &EventStreamingSwap{
+		TxID:              swp.TxID,
+		Interval:          swp.Interval,
+		Quantity:          swp.Quantity,
+		Count:             swp.Count,
+		LastHeight:        swp.LastHeight,
+		Deposit:           common.NewCoin(inAsset, swp.Deposit),
+		In:                common.NewCoin(inAsset, swp.In),
+		Out:               common.NewCoin(outAsset, swp.Out),
+		FailedSwaps:       swp.FailedSwaps,
+		FailedSwapReasons: swp.FailedSwapReasons,
+	}
+}
+
+// Type return a string that represent the type, it should not duplicated with other event
+func (m *EventStreamingSwap) Type() string {
+	return StreamingSwapEventType
+}
+
+// Events convert EventSwap to key value pairs used in cosmos
+func (m *EventStreamingSwap) Events() (cosmos.Events, error) {
+	failedSwaps := make([]string, len(m.FailedSwaps))
+	for i, num := range m.FailedSwaps {
+		failedSwaps[i] = strconv.FormatUint(num, 10)
+	}
+
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("tx_id", m.TxID.String()),
+		cosmos.NewAttribute("interval", strconv.FormatUint(m.Interval, 10)),
+		cosmos.NewAttribute("quantity", strconv.FormatUint(m.Quantity, 10)),
+		cosmos.NewAttribute("count", strconv.FormatUint(m.Count, 10)),
+		cosmos.NewAttribute("last_height", strconv.FormatInt(m.LastHeight, 10)),
+		cosmos.NewAttribute("deposit", m.Deposit.String()),
+		cosmos.NewAttribute("in", m.In.String()),
+		cosmos.NewAttribute("out", m.Out.String()),
+		cosmos.NewAttribute("failed_swaps", strings.Join(failedSwaps, ", ")),
+		cosmos.NewAttribute("failed_swap_reasons", strings.Join(m.FailedSwapReasons, "\n ")),
+	)
 	return cosmos.Events{evt}, nil
 }
 

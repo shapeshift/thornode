@@ -121,6 +121,7 @@ var (
 	NewEventPool                   = types.NewEventPool
 	NewEventDonate                 = types.NewEventDonate
 	NewEventSwap                   = types.NewEventSwap
+	NewEventStreamingSwap          = types.NewEventStreamingSwap
 	NewEventLimitOrder             = types.NewEventLimitOrder
 	NewEventAddLiquidity           = types.NewEventAddLiquidity
 	NewEventWithdraw               = types.NewEventWithdraw

@@ -317,6 +317,10 @@ func (vm *SwapQueueVCUR) EndBlock(ctx cosmos.Context, mgr Manager) error {
 						return errFailAddOutboundTx
 					}
 				}
+				evt := NewEventStreamingSwap(pick.msg.Tx.Coins[0].Asset, pick.msg.TargetAsset, swp)
+				if err := mgr.EventMgr().EmitEvent(ctx, evt); err != nil {
+					ctx.Logger().Error("fail to emit streaming swap event", "error", err)
+				}
 			}
 		} else {
 			vm.k.RemoveSwapQueueItem(ctx, pick.msg.Tx.ID, pick.index)
