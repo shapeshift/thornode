@@ -586,3 +586,44 @@ func migrateStoreV116(ctx cosmos.Context, mgr *Mgrs) {
 
 	processModuleBalanceActions(ctx, mgr.Keeper(), actions)
 }
+
+func migrateStoreV117(ctx cosmos.Context, mgr *Mgrs) {
+	defer func() {
+		if err := recover(); err != nil {
+			ctx.Logger().Error("fail to migrate store to v117", "error", err)
+		}
+	}()
+
+	subBalance := func(ctx cosmos.Context, mgr *Mgrs, amountUint64 uint64, assetString, pkString string) {
+		amount := cosmos.NewUint(amountUint64)
+
+		asset, err := common.NewAsset(assetString)
+		if err != nil {
+			ctx.Logger().Error("fail to make asset", "error", err)
+			return
+		}
+
+		pubkey, err := common.NewPubKey(pkString)
+		if err != nil {
+			ctx.Logger().Error("fail to make pubkey", "error", err)
+			return
+		}
+
+		vault, err := mgr.Keeper().GetVault(ctx, pubkey)
+		if err != nil {
+			ctx.Logger().Error("fail to get vault", "error", err)
+			return
+		}
+
+		coins := common.NewCoins(common.NewCoin(asset, amount))
+		vault.SubFunds(coins)
+
+		if err := mgr.Keeper().SetVault(ctx, vault); err != nil {
+			ctx.Logger().Error("fail to set vault", "error", err)
+			return
+		}
+	}
+
+	subBalance(ctx, mgr, 636462, "ETH.ETH", "thorpub1addwnpepqf654umpm7vzgmegae0k4yq0xe69kpvvp3w437hvy7rpyk3svxgtszw2tu9")
+	subBalance(ctx, mgr, 8640, "ETH.ETH", "thorpub1addwnpepqfx4cxtsthazf8609lhfcxxlu60er2t90utta66u2xz2xtdhpts9slmkc93")
+}

@@ -77,3 +77,5 @@ func migrateStoreV116(ctx cosmos.Context, mgr *Mgrs) {
 
 	processModuleBalanceActions(ctx, mgr.Keeper(), actions)
 }
+
+func migrateStoreV117(ctx cosmos.Context, mgr *Mgrs) {}
