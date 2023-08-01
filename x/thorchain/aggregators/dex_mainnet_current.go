@@ -67,5 +67,7 @@ func DexAggregatorsV117() []Aggregator {
 		{common.BSCChain, `0xe93685f3bBA03016F02bD1828BaDD6195988D950`, 800_000},
 		// TSLedgerAdapter
 		{common.ETHChain, `0xaD545d047E34862121695F8E37aeEB71324a9E78`, 500_000},
+		// SquidRouter MultiCall Ethereum
+		{common.ETHChain, `0x4fd39C9E151e50580779bd04B1f7eCc310079fd3`, 800_000},
 	}
 }
