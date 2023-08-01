@@ -9,6 +9,14 @@ import (
 
 func DexAggregatorsV117() []Aggregator {
 	return []Aggregator{
+		// TSAggregatorPancakeSwap Ethereum V2
+		{common.ETHChain, `0x35CF22003c90126528fbe95b21bB3ADB2ca8c53D`, 400_000},
+		// TSAggregatorWoofi Avalanche V2
+		{common.AVAXChain, `0x5505BE604dFA8A1ad402A71f8A357fba47F9bf5a`, 400_000},
+		// TSSwapGeneric Avalanche V2
+		{common.AVAXChain, `0x77b34A3340eDdD56799749be4Be2c322547E2428`, 400_000},
+		// TSSwapGeneric Ethereum V2
+		{common.ETHChain, `0x213255345a740324cbCE0242e32076Ab735906e2`, 400_000},
 		// TSAggregatorGeneric
 		{common.ETHChain, `0xd31f7e39afECEc4855fecc51b693F9A0Cec49fd2`, 400_000},
 		// TSAggregator2LegUniswapV2 USDC
