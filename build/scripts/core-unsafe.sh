@@ -38,6 +38,21 @@ deploy_evm_contracts() {
   done
 }
 
+set_eth_contract() {
+  jq --arg CONTRACT "$1" '.app_state.thorchain.chain_contracts = [{"chain": "ETH", "address": $CONTRACT}]' ~/.thord/config/genesis.json >/tmp/genesis.json
+  mv /tmp/genesis.json ~/.thord/config/genesis.json
+}
+
+set_avax_contract() {
+  jq --arg CONTRACT "$1" '.app_state.thorchain.chain_contracts = [{"chain": "AVAX", "address": $CONTRACT}]' ~/.thord/config/genesis.json >/tmp/genesis.json
+  mv /tmp/genesis.json ~/.thord/config/genesis.json
+}
+
+set_bsc_contract() {
+  jq --arg CONTRACT "$1" '.app_state.thorchain.chain_contracts = [{"chain": "BSC", "address": $CONTRACT}]' ~/.thord/config/genesis.json >/tmp/genesis.json
+  mv /tmp/genesis.json ~/.thord/config/genesis.json
+}
+
 gen_bnb_address() {
   if [ ! -f ~/.bond/private_key.txt ]; then
     echo "Generating BNB address"

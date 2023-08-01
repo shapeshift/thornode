@@ -64,16 +64,19 @@ if [ "$SEED" = "$(hostname)" ]; then
 
       # deploy evm contracts
       deploy_evm_contracts
-
-    elif [ "$NET" = "stagenet" ]; then
-      if [ -z ${FAUCET+x} ]; then
-        echo "env variable 'FAUCET' is not defined: should be a sthor address"
-      fi
-      add_account "$FAUCET" 50000000000000000 rune
     else
-      echo "ETH Contract Address: $CONTRACT"
-      set_eth_contract "$CONTRACT"
-
+      if [ -n "${ETH_CONTRACT+x}" ]; then
+        echo "ETH Contract Address: $ETH_CONTRACT"
+        set_eth_contract "$ETH_CONTRACT"
+      fi
+      if [ -n "${AVAX_CONTRACT+x}" ]; then
+        echo "AVAX Contract Address: $AVAX_CONTRACT"
+        set_avax_contract "$AVAX_CONTRACT"
+      fi
+      if [ -n "${BSC_CONTRACT+x}" ]; then
+        echo "BSC Contract Address: $BSC_CONTRACT"
+        set_bsc_contract "$BSC_CONTRACT"
+      fi
     fi
 
     if [ "$NET" = "testnet" ]; then
@@ -82,6 +85,12 @@ if [ "$SEED" = "$(hostname)" ]; then
 
       # add testnet account and balances
       testnet_add_accounts
+    elif [ "$NET" = "stagenet" ]; then
+      if [ -z ${FAUCET+x} ]; then
+        echo "env variable 'FAUCET' is not defined: should be a sthor address"
+        exit 1
+      fi
+      add_account "$FAUCET" 50000000000000000 rune
     fi
 
     echo "Genesis content"
