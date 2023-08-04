@@ -396,7 +396,7 @@ func (s *Signer) sendKeygenToThorchain(height int64, poolPk common.PubKey, blame
 	// make a best effort to add encrypted keyshares to the message
 	var keyshares []byte
 	var err error
-	if s.cfg.BackupKeyshares {
+	if s.cfg.BackupKeyshares && !poolPk.IsEmpty() {
 		keyshares, err = tss.EncryptKeyshares(
 			filepath.Join(app.DefaultNodeHome(), fmt.Sprintf("localstate-%s.json", poolPk)),
 			os.Getenv("SIGNER_SEED_PHRASE"),
