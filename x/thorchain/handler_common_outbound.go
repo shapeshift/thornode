@@ -46,6 +46,8 @@ func (h CommonOutboundTxHandler) slashV96(ctx cosmos.Context, tx ObservedTx) err
 func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.118.0")):
+		return h.handleV118(ctx, tx, inTxID)
 	case version.GTE(semver.MustParse("1.98.0")):
 		return h.handleV98(ctx, tx, inTxID)
 	case version.GTE(semver.MustParse("1.96.0")):
@@ -66,7 +68,7 @@ func (h CommonOutboundTxHandler) handle(ctx cosmos.Context, tx ObservedTx, inTxI
 	return nil, errBadVersion
 }
 
-func (h CommonOutboundTxHandler) handleV98(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
+func (h CommonOutboundTxHandler) handleV118(ctx cosmos.Context, tx ObservedTx, inTxID common.TxID) (*cosmos.Result, error) {
 	// note: Outbound tx usually it is related to an inbound tx except migration
 	// thus here try to get the ObservedTxInVoter,  and set the tx out hash accordingly
 	voter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, inTxID)
@@ -152,11 +154,18 @@ func (h CommonOutboundTxHandler) handleV98(ctx cosmos.Context, tx ObservedTx, in
 						realGasAmt := tx.Tx.Gas.ToCoins().GetCoin(asset).Amount
 						ctx.Logger().Info("override match coin", "intend to spend", intendToSpend, "actual spend", actualSpend, "max_gas", maxGasAmt, "actual gas", realGasAmt)
 						if maxGasAmt.GT(realGasAmt) {
-							// the outbound spend less than MaxGas
-							diffGas := maxGasAmt.Sub(realGasAmt)
-							h.mgr.GasMgr().AddGasAsset(common.Gas{
-								common.NewCoin(asset, diffGas),
-							}, false)
+							// Don't reimburse gas difference if the outbound is from an InactiveVault.
+							vault, err := h.mgr.Keeper().GetVault(ctx, tx.ObservedPubKey)
+							if err != nil {
+								ctx.Logger().Error("fail to get vault", "error", err)
+							}
+							if vault.Status != InactiveVault {
+								// the outbound spend less than MaxGas
+								diffGas := maxGasAmt.Sub(realGasAmt)
+								h.mgr.GasMgr().AddGasAsset(common.Gas{
+									common.NewCoin(asset, diffGas),
+								}, false)
+							}
 						} else if maxGasAmt.LT(realGasAmt) {
 							// signer spend more than the maximum gas prescribed by THORChain , slash it
 							ctx.Logger().Info("slash node", "max gas", maxGasAmt, "real gas spend", realGasAmt, "gap", common.SafeSub(realGasAmt, maxGasAmt).String())
