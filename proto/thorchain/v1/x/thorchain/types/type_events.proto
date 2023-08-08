@@ -226,18 +226,18 @@ message EventMintBurn {
 }
 
 message EventLoanOpen {
-  string collateral_up = 1 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  string collateral_deposited = 1 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   common.Asset collateral_asset = 2 [(gogoproto.nullable) = false];
   string collateralization_ratio = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
-  string debt_up = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  string debt_issued = 4 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   string owner = 5 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
   common.Asset target_asset = 6 [(gogoproto.nullable) = false];
 }
 
 message EventLoanRepayment {
-  string collateral_down = 1 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  string collateral_withdrawn = 1 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   common.Asset collateral_asset = 2 [(gogoproto.nullable) = false];
-  string debt_down = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
+  string debt_repaid = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Uint", (gogoproto.nullable) = false];
   string owner = 4 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.Address"];
 }
 

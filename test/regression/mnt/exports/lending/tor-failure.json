@@ -420,38 +420,38 @@
       "loans": [
         {
           "asset": "BTC.BTC",
-          "collateral_down": "0",
-          "collateral_up": "495049",
-          "debt_down": "0",
-          "debt_up": "490140000",
+          "collateral_deposited": "495049",
+          "collateral_withdrawn": "0",
+          "debt_issued": "490140000",
+          "debt_repaid": "0",
           "last_open_height": "6",
           "owner": "bcrt1q3wrmhnh2qe98rjse30pl7u6jxszjjwl44ls6uw"
         },
         {
           "asset": "BTC.BTC",
-          "collateral_down": "0",
-          "collateral_up": "495122",
-          "debt_down": "0",
-          "debt_up": "475950000",
+          "collateral_deposited": "495122",
+          "collateral_withdrawn": "0",
+          "debt_issued": "475950000",
+          "debt_repaid": "0",
           "last_open_height": "16",
           "owner": "bcrt1qp3pm60jxtqvr6zvlw97l2ef5rm6cn8nflwl5fa"
         },
         {
           "asset": "BTC.BTC",
-          "collateral_down": "494905",
-          "collateral_up": "494905",
-          "debt_down": "395008384",
-          "debt_up": "185400000",
+          "collateral_deposited": "494905",
+          "collateral_withdrawn": "494905",
+          "debt_issued": "185400000",
+          "debt_repaid": "395008384",
           "last_open_height": "9",
           "last_repay_height": "17",
           "owner": "bcrt1qqk8c8sfrmfm0tkncs0zxeutc8v5mx3pjw22g33"
         },
         {
           "asset": "BTC.BTC",
-          "collateral_down": "0",
-          "collateral_up": "495098",
-          "debt_down": "0",
-          "debt_up": "183660000",
+          "collateral_deposited": "495098",
+          "collateral_withdrawn": "0",
+          "debt_issued": "183660000",
+          "debt_repaid": "0",
           "last_open_height": "13",
           "owner": "bcrt1qyqz8q00jlvn4r4hycvkg555ak7lxtxx6wtflyl"
         }

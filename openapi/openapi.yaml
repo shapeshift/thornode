@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Thornode API
-  version: 1.117.0
+  version: 1.118.0
   contact:
     email: devs@thorchain.org
   description: Thornode REST API.
@@ -1184,6 +1184,7 @@ components:
         - synth_mint_paused
         - synth_supply_remaining
         - loan_collateral
+        - loan_cr
       properties:
         asset:
           type: string
@@ -1243,6 +1244,10 @@ components:
           type: string
           example: "123456"
           description: the amount of collateral collects for loans
+        loan_cr:
+          type: string
+          example: "123456"
+          description: the current loan collateralization ratio
 
     LiquidityProviderSummary:
       type: object
@@ -1398,10 +1403,12 @@ components:
       required:
         - owner
         - asset
-        - debt_up
-        - debt_down
-        - collateral_up
-        - collateral_down
+        - debt_issued
+        - debt_repaid
+        - debt_current
+        - collateral_deposited
+        - collateral_withdrawn
+        - collateral_current
         - last_open_height
         - last_repay_height
       properties:
@@ -1411,16 +1418,22 @@ components:
         asset:
           type: string
           example: "BNB.BNB"
-        debt_up:
+        debt_issued:
           type: string
           example: "123456"
-        debt_down:
+        debt_repaid:
           type: string
           example: "123456"
-        collateral_up:
+        debt_current:
           type: string
           example: "123456"
-        collateral_down:
+        collateral_deposited:
+          type: string
+          example: "123456"
+        collateral_withdrawn:
+          type: string
+          example: "123456"
+        collateral_current:
           type: string
           example: "123456"
         last_open_height:
@@ -2888,8 +2901,8 @@ components:
       required:
         - expected_amount_out
         - expected_collateralization_ratio
-        - expected_collateral_up
-        - expected_debt_up
+        - expected_collateral_deposited
+        - expected_debt_issued
         - outbound_delay_blocks
         - outbound_delay_seconds
         - fees
@@ -2910,11 +2923,11 @@ components:
           type: string
           description: the expected collateralization ratio in basis points
           example: "30000"
-        expected_collateral_up:
+        expected_collateral_deposited:
           type: string
           description: the expected amount of collateral increase on the loan
           example: "1000000"
-        expected_debt_up:
+        expected_debt_issued:
           type: string
           description: the expected amount of TOR debt increase on the loan
           example: "1000000"
@@ -2923,8 +2936,8 @@ components:
       type: object
       required:
         - expected_amount_out
-        - expected_collateral_down
-        - expected_debt_down
+        - expected_collateral_withdrawn
+        - expected_debt_repaid
         - memo
         - outbound_delay_blocks
         - outbound_delay_seconds
@@ -2942,11 +2955,11 @@ components:
           type: string
           description: the amount of collateral asset the user can expect to receive after fees in 1e8 decimals
           example: "10000"
-        expected_collateral_down:
+        expected_collateral_withdrawn:
           type: string
           description: the expected amount of collateral decrease on the loan
           example: "1000000"
-        expected_debt_down:
+        expected_debt_repaid:
           type: string
           description: the expected amount of TOR debt decrease on the loan
           example: "1000000"

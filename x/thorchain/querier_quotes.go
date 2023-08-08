@@ -29,8 +29,6 @@ import (
 const (
 	fromAssetParam            = "from_asset"
 	toAssetParam              = "to_asset"
-	targetAssetParam          = "target_asset"
-	loanAssetParam            = "loan_asset"
 	assetParam                = "asset"
 	fromAddressParam          = "from_address"
 	addressParam              = "address"
@@ -967,7 +965,7 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 	}
 
 	// validate required parameters
-	for _, p := range []string{assetParam, amountParam, targetAssetParam} {
+	for _, p := range []string{fromAssetParam, amountParam, toAssetParam} {
 		if len(params[p]) == 0 {
 			return quoteErrorResponse(fmt.Errorf("missing required parameter %s", p))
 		}
@@ -975,10 +973,10 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 
 	// invalidate unexpected parameters
 	allowed := map[string]bool{
-		assetParam:        true,
+		fromAssetParam:    true,
 		amountParam:       true,
 		minOutParam:       true,
-		targetAssetParam:  true,
+		toAssetParam:      true,
 		destinationParam:  true,
 		affiliateParam:    true,
 		affiliateBpsParam: true,
@@ -990,7 +988,7 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 	}
 
 	// parse asset
-	asset, err := common.NewAsset(params[assetParam][0])
+	asset, err := common.NewAsset(params[fromAssetParam][0])
 	if err != nil {
 		return quoteErrorResponse(fmt.Errorf("bad asset: %w", err))
 	}
@@ -1022,7 +1020,7 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 	}
 
 	// parse target asset
-	targetAsset, err := common.NewAsset(params[targetAssetParam][0])
+	targetAsset, err := common.NewAsset(params[toAssetParam][0])
 	if err != nil {
 		return quoteErrorResponse(fmt.Errorf("bad target asset: %w", err))
 	}
@@ -1193,10 +1191,10 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 				switch string(attr.Key) {
 				case "collateralization_ratio":
 					res.ExpectedCollateralizationRatio = string(attr.Value)
-				case "collateral_up":
-					res.ExpectedCollateralUp = string(attr.Value)
-				case "debt_up":
-					res.ExpectedDebtUp = string(attr.Value)
+				case "collateral_deposited":
+					res.ExpectedCollateralDeposited = string(attr.Value)
+				case "debt_issued":
+					res.ExpectedDebtIssued = string(attr.Value)
 				}
 			}
 
@@ -1283,7 +1281,7 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 	}
 
 	// validate required parameters
-	for _, p := range []string{assetParam, amountParam, loanAssetParam, loanOwnerParam} {
+	for _, p := range []string{fromAssetParam, amountParam, toAssetParam, loanOwnerParam} {
 		if len(params[p]) == 0 {
 			return quoteErrorResponse(fmt.Errorf("missing required parameter %s", p))
 		}
@@ -1291,9 +1289,9 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 
 	// invalidate unexpected parameters
 	allowed := map[string]bool{
-		assetParam:     true,
+		fromAssetParam: true,
 		amountParam:    true,
-		loanAssetParam: true,
+		toAssetParam:   true,
 		loanOwnerParam: true,
 		minOutParam:    true,
 	}
@@ -1304,7 +1302,7 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 	}
 
 	// parse asset
-	asset, err := common.NewAsset(params[assetParam][0])
+	asset, err := common.NewAsset(params[fromAssetParam][0])
 	if err != nil {
 		return quoteErrorResponse(fmt.Errorf("bad asset: %w", err))
 	}
@@ -1325,7 +1323,7 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 	}
 
 	// parse loan asset
-	loanAsset, err := common.NewAsset(params[loanAssetParam][0])
+	loanAsset, err := common.NewAsset(params[toAssetParam][0])
 	if err != nil {
 		return quoteErrorResponse(fmt.Errorf("bad loan asset: %w", err))
 	}
@@ -1462,10 +1460,10 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 		case "loan_repayment":
 			for _, attr := range e.Attributes {
 				switch string(attr.Key) {
-				case "collateral_down":
-					res.ExpectedCollateralDown = string(attr.Value)
-				case "debt_down":
-					res.ExpectedDebtDown = string(attr.Value)
+				case "collateral_withdrawn":
+					res.ExpectedCollateralWithdrawn = string(attr.Value)
+				case "debt_repaid":
+					res.ExpectedDebtRepaid = string(attr.Value)
 				}
 			}
 

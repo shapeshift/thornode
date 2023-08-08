@@ -189,7 +189,7 @@ func (h LoanRepaymentHandler) repayV113(ctx cosmos.Context, msg MsgLoanRepayment
 	}
 
 	// update Loan record
-	loan.DebtDown = loan.DebtDown.Add(msg.Coin.Amount)
+	loan.DebtRepaid = loan.DebtRepaid.Add(msg.Coin.Amount)
 	loan.LastRepayHeight = ctx.BlockHeight()
 
 	// burn TOR coins
@@ -227,7 +227,7 @@ func (h LoanRepaymentHandler) repayV113(ctx cosmos.Context, msg MsgLoanRepayment
 		return nil
 	}
 
-	loan.CollateralDown = loan.CollateralDown.Add(redeem)
+	loan.CollateralWithdrawn = loan.CollateralWithdrawn.Add(redeem)
 
 	txID, ok := ctx.Value(constants.CtxLoanTxID).(common.TxID)
 	if !ok {

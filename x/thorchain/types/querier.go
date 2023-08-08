@@ -280,6 +280,7 @@ type QueryPool struct {
 	SynthMintPaused      bool   `json:"synth_mint_paused"`
 	SynthSupplyRemaining string `json:"synth_supply_remaining"`
 	LoanCollateral       string `json:"loan_collateral"`
+	LoanCR               string `json:"loan_cr"`
 }
 
 // NewQueryPool creates a new QueryPool based on the given pool parameters

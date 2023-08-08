@@ -125,8 +125,8 @@ func (s *HandlerLoanSuite) TestLoanOpenHandleToBTC(c *C) {
 
 	loan, err := mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
 	c.Assert(err, IsNil)
-	c.Check(loan.DebtUp.Uint64(), Equals, uint64(1654721160000), Commentf("%d", loan.DebtUp.Uint64()))
-	c.Check(loan.CollateralUp.Uint64(), Equals, uint64(99761992), Commentf("%d", loan.CollateralUp.Uint64()))
+	c.Check(loan.DebtIssued.Uint64(), Equals, uint64(1654721160000), Commentf("%d", loan.DebtIssued.Uint64()))
+	c.Check(loan.CollateralDeposited.Uint64(), Equals, uint64(99761992), Commentf("%d", loan.CollateralDeposited.Uint64()))
 	c.Check(loan.LastOpenHeight, Equals, int64(128), Commentf("%d", loan.LastOpenHeight))
 
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
@@ -196,8 +196,8 @@ func (s *HandlerLoanSuite) TestLoanOpenHandleToTOR(c *C) {
 
 	loan, err := mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
 	c.Assert(err, IsNil)
-	c.Check(loan.DebtUp.Uint64(), Equals, uint64(1654721160000), Commentf("%d", loan.DebtUp.Uint64()))
-	c.Check(loan.CollateralUp.Uint64(), Equals, uint64(99761992), Commentf("%d", loan.CollateralUp.Uint64()))
+	c.Check(loan.DebtIssued.Uint64(), Equals, uint64(1654721160000), Commentf("%d", loan.DebtIssued.Uint64()))
+	c.Check(loan.CollateralDeposited.Uint64(), Equals, uint64(99761992), Commentf("%d", loan.CollateralDeposited.Uint64()))
 	c.Check(loan.LastOpenHeight, Equals, int64(128), Commentf("%d", loan.LastOpenHeight))
 
 	outs, err := mgr.txOutStore.GetOutboundItems(ctx)
@@ -262,8 +262,8 @@ func (s *HandlerLoanSuite) TestLoanSwapFails(c *C) {
 
 	loan, err := mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
 	c.Assert(err, IsNil)
-	c.Check(loan.DebtUp.Uint64(), Equals, uint64(0), Commentf("%d", loan.DebtUp.Uint64()))
-	c.Check(loan.CollateralUp.Uint64(), Equals, uint64(0), Commentf("%d", loan.CollateralUp.Uint64()))
+	c.Check(loan.DebtIssued.Uint64(), Equals, uint64(0), Commentf("%d", loan.DebtIssued.Uint64()))
+	c.Check(loan.CollateralDeposited.Uint64(), Equals, uint64(0), Commentf("%d", loan.CollateralDeposited.Uint64()))
 
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)

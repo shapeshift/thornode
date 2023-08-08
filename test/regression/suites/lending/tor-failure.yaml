@@ -76,13 +76,13 @@ type: check
 description: quote before manipulation to compare expected
 endpoint: http://localhost:1317/thorchain/quote/loan/open
 params:
-  asset: BTC.BTC
+  from_asset: BTC.BTC
   amount: 500000
-  target_asset: RUNE
+  to_asset: RUNE
   destination: {{ addr_thor_fox }}
 asserts:
   - .expected_amount_out|tonumber == 486545262
-  - .expected_debt_up|tonumber == 490140000
+  - .expected_debt_issued|tonumber == 490140000
 ---
 type: tx-deposit
 signer: {{ addr_thor_fox }}
@@ -98,13 +98,13 @@ type: check
 description: quote after manipulation to compare expected
 endpoint: http://localhost:1317/thorchain/quote/loan/open
 params:
-  asset: BTC.BTC
+  from_asset: BTC.BTC
   amount: 500000
-  target_asset: RUNE
+  to_asset: RUNE
   destination: {{ addr_thor_fox }}
 asserts:
   - .expected_amount_out|tonumber == 486934519 # some change (TODO below)
-  - .expected_debt_up|tonumber == 490140000 # no change, since no median price change
+  - .expected_debt_issued|tonumber == 490140000 # no change, since no median price change
 ---
 type: check
 endpoint: http://localhost:1317/thorchain/queue/outbound
@@ -175,10 +175,10 @@ type: check
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0]|.collateral_up == "495049"
-  - .[0]|.debt_up == "490140000"
-  - .[0]|.collateral_down == "0"
-  - .[0]|.debt_down == "0"
+  - .[0]|.collateral_deposited == "495049"
+  - .[0]|.debt_issued == "490140000"
+  - .[0]|.collateral_withdrawn == "0"
+  - .[0]|.debt_repaid == "0"
   - .[0]|.owner == "{{ addr_btc_fox }}"
 ---
 ########################################################################################
@@ -188,13 +188,13 @@ type: check
 description: quote before manipulation to compare expected
 endpoint: http://localhost:1317/thorchain/quote/loan/open
 params:
-  asset: BTC.BTC
+  from_asset: BTC.BTC
   amount: 5000000
-  target_asset: RUNE
+  to_asset: RUNE
   destination: {{ addr_thor_fox }}
 asserts:
   - .expected_amount_out|tonumber == 4010697933
-  - .expected_debt_up|tonumber == 4095920000
+  - .expected_debt_issued|tonumber == 4095920000
 ---
 type: tx-deposit
 signer: {{ addr_thor_fox }}
@@ -210,16 +210,16 @@ type: check
 description: quote after manipulation to compare expected
 endpoint: http://localhost:1317/thorchain/quote/loan/open
 params:
-  asset: BTC.BTC
+  from_asset: BTC.BTC
   amount: 5000000
-  target_asset: RUNE
+  to_asset: RUNE
   destination: {{ addr_thor_fox }}
 asserts:
   # TODO: Price manipulation of pools up to and including the median, even with virtual
   # depth, can result in the debt on the loan being manipulated by more than the penalty
   # on the outbound debt.
   - .expected_amount_out|tonumber == 4001309682
-  - .expected_debt_up|tonumber == 1555150000
+  - .expected_debt_issued|tonumber == 1555150000
 ---
 type: check
 endpoint: http://localhost:1317/thorchain/queue/outbound
@@ -288,10 +288,10 @@ type: check
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 2
-  - .[1]|.collateral_up == "494905"
-  - .[1]|.debt_up == "185400000" # almost 3x less debt than no manipulation
-  - .[1]|.collateral_down == "0"
-  - .[1]|.debt_down == "0"
+  - .[1]|.collateral_deposited == "494905"
+  - .[1]|.debt_issued == "185400000" # almost 3x less debt than no manipulation
+  - .[1]|.collateral_withdrawn == "0"
+  - .[1]|.debt_repaid == "0"
   - .[1]|.owner == "{{ addr_btc_pig }}"
 ---
 type: check
@@ -319,13 +319,13 @@ type: check
 description: quote before manipulation to compare expected
 endpoint: http://localhost:1317/thorchain/quote/loan/open
 params:
-  asset: BTC.BTC
+  from_asset: BTC.BTC
   amount: 5000000
-  target_asset: RUNE
+  to_asset: RUNE
   destination: {{ addr_thor_fox }}
 asserts:
   - .expected_amount_out|tonumber == 1219164077
-  - .expected_debt_up|tonumber == 1546380000
+  - .expected_debt_issued|tonumber == 1546380000
 ---
 type: create-blocks
 count: 3
@@ -334,15 +334,15 @@ type: check
 description: quote after manipulation to compare expected
 endpoint: http://localhost:1317/thorchain/quote/loan/open
 params:
-  asset: BTC.BTC
+  from_asset: BTC.BTC
   amount: 5000000
-  target_asset: RUNE
+  to_asset: RUNE
   destination: {{ addr_thor_fox }}
 asserts:
   # anchor blocks must be set sufficiently high, otherwise debt can be manipulated with
   # no penalty on the debt outbound from the contracted virtual pool
   - .expected_amount_out|tonumber == 3991253558
-  - .expected_debt_up|tonumber == 1551170000
+  - .expected_debt_issued|tonumber == 1551170000
 ---
 type: check
 endpoint: http://localhost:1317/thorchain/pool/thor.tor
@@ -377,10 +377,10 @@ type: check
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 3
-  - .[2]|.collateral_up == "495098"
-  - .[2]|.debt_up == "183660000" # almost 3x less debt than no manipulation
-  - .[2]|.collateral_down == "0"
-  - .[2]|.debt_down == "0"
+  - .[2]|.collateral_deposited == "495098"
+  - .[2]|.debt_issued == "183660000" # almost 3x less debt than no manipulation
+  - .[2]|.collateral_withdrawn == "0"
+  - .[2]|.debt_repaid == "0"
   - .[2]|.owner == "{{ addr_btc_bird }}"
 ---
 ########################################################################################
@@ -440,10 +440,10 @@ type: check
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 4
-  - .[1]|.collateral_up == "495122"
-  - .[1]|.debt_up == "475950000"
-  - .[1]|.collateral_down == "0"
-  - .[1]|.debt_down == "0"
+  - .[1]|.collateral_deposited == "495122"
+  - .[1]|.debt_issued == "475950000"
+  - .[1]|.collateral_withdrawn == "0"
+  - .[1]|.debt_repaid == "0"
   - .[1]|.owner == "{{ addr_btc_deer }}"
 ---
 ########################################################################################
@@ -468,10 +468,10 @@ type: check
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 4
-  - .[2]|.collateral_up   == "494905"
-  - .[2]|.collateral_down == "494905"
-  - .[2]|.debt_up   == "185400000"
-  - .[2]|.debt_down == "395008384" # over 2x overpaid after original debt repaid
+  - .[2]|.collateral_deposited   == "494905"
+  - .[2]|.collateral_withdrawn == "494905"
+  - .[2]|.debt_issued   == "185400000"
+  - .[2]|.debt_repaid == "395008384" # over 2x overpaid after original debt repaid
   - .[2]|.owner == "{{ addr_btc_pig }}"
 ---
 type: check

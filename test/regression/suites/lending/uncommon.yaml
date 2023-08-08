@@ -95,10 +95,10 @@ type: check
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0]|.collateral_up == "990122"
-  - .[0]|.debt_up == "975480000"
-  - .[0]|.collateral_down == "0"
-  - .[0]|.debt_down == "0"
+  - .[0]|.collateral_deposited == "990122"
+  - .[0]|.debt_issued == "975480000"
+  - .[0]|.collateral_withdrawn == "0"
+  - .[0]|.debt_repaid == "0"
   - .[0]|.owner == "{{ addr_btc_fox }}"
 ---
 type: check
@@ -205,10 +205,10 @@ type: check
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 2
-  - .[1]|.collateral_up == "989528"
-  - .[1]|.debt_up == "955880000"
-  - .[1]|.collateral_down == "0"
-  - .[1]|.debt_down == "0"
+  - .[1]|.collateral_deposited == "989528"
+  - .[1]|.debt_issued == "955880000"
+  - .[1]|.collateral_withdrawn == "0"
+  - .[1]|.debt_repaid == "0"
   - .[1]|.owner == "{{ addr_btc_pig }}"
 ---
 type: check

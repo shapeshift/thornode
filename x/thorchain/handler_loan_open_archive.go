@@ -259,7 +259,7 @@ func (h LoanOpenHandler) openLoanV112(ctx cosmos.Context, msg MsgLoanOpen) error
 	if totalCollateral.Add(msg.CollateralAmount).GT(totalAvailableAssetForPool) {
 		return fmt.Errorf("no availability (%d/%d), lending unavailable", totalCollateral.Add(msg.CollateralAmount).Uint64(), totalAvailableAssetForPool.Uint64())
 	}
-	cr := h.getCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
+	cr := h.calcCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
 
 	price := h.mgr.Keeper().DollarInRune(ctx).QuoUint64(constants.DollarMulti)
 	if price.IsZero() {
@@ -278,13 +278,13 @@ func (h LoanOpenHandler) openLoanV112(ctx cosmos.Context, msg MsgLoanOpen) error
 
 	// if the user has over-repayed the loan, credit the difference on the next open
 	cumulativeDebt := debt
-	if loan.DebtDown.GT(loan.DebtUp) {
-		cumulativeDebt = cumulativeDebt.Add(loan.DebtDown.Sub(loan.DebtUp))
+	if loan.DebtRepaid.GT(loan.DebtIssued) {
+		cumulativeDebt = cumulativeDebt.Add(loan.DebtRepaid.Sub(loan.DebtIssued))
 	}
 
 	// update Loan record
-	loan.DebtUp = loan.DebtUp.Add(cumulativeDebt)
-	loan.CollateralUp = loan.CollateralUp.Add(msg.CollateralAmount)
+	loan.DebtIssued = loan.DebtIssued.Add(cumulativeDebt)
+	loan.CollateralDeposited = loan.CollateralDeposited.Add(msg.CollateralAmount)
 	loan.LastOpenHeight = ctx.BlockHeight()
 
 	if msg.TargetAsset.Equals(common.TOR) && enableDerived > 0 {
@@ -406,7 +406,7 @@ func (h LoanOpenHandler) openLoanV108(ctx cosmos.Context, msg MsgLoanOpen) error
 	if totalCollateral.Add(msg.CollateralAmount).GT(totalAvailableAssetForPool) {
 		return fmt.Errorf("no availability (%d/%d), lending unavailable", totalCollateral.Add(msg.CollateralAmount).Uint64(), totalAvailableAssetForPool.Uint64())
 	}
-	cr := h.getCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
+	cr := h.calcCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
 
 	price := DollarInRune(ctx, h.mgr).QuoUint64(constants.DollarMulti)
 	if price.IsZero() {
@@ -425,13 +425,13 @@ func (h LoanOpenHandler) openLoanV108(ctx cosmos.Context, msg MsgLoanOpen) error
 
 	// if the user has over-repayed the loan, credit the difference on the next open
 	cumulativeDebt := debt
-	if loan.DebtDown.GT(loan.DebtUp) {
-		cumulativeDebt = cumulativeDebt.Add(loan.DebtDown.Sub(loan.DebtUp))
+	if loan.DebtRepaid.GT(loan.DebtIssued) {
+		cumulativeDebt = cumulativeDebt.Add(loan.DebtRepaid.Sub(loan.DebtIssued))
 	}
 
 	// update Loan record
-	loan.DebtUp = loan.DebtUp.Add(cumulativeDebt)
-	loan.CollateralUp = loan.CollateralUp.Add(msg.CollateralAmount)
+	loan.DebtIssued = loan.DebtIssued.Add(cumulativeDebt)
+	loan.CollateralDeposited = loan.CollateralDeposited.Add(msg.CollateralAmount)
 	loan.LastOpenHeight = ctx.BlockHeight()
 
 	if msg.TargetAsset.Equals(common.TOR) && enableDerived > 0 {
@@ -548,7 +548,7 @@ func (h LoanOpenHandler) openLoanV107(ctx cosmos.Context, msg MsgLoanOpen) error
 	if totalCollateral.Add(msg.CollateralAmount).GT(totalAvailableAssetForPool) {
 		return fmt.Errorf("no availability (%d/%d), lending unavailable", totalCollateral.Add(msg.CollateralAmount).Uint64(), totalAvailableAssetForPool.Uint64())
 	}
-	cr := h.getCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
+	cr := h.calcCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
 
 	price := DollarInRune(ctx, h.mgr).QuoUint64(constants.DollarMulti)
 	if price.IsZero() {
@@ -567,13 +567,13 @@ func (h LoanOpenHandler) openLoanV107(ctx cosmos.Context, msg MsgLoanOpen) error
 
 	// if the user has over-repayed the loan, credit the difference on the next open
 	cumulativeDebt := debt
-	if loan.DebtDown.GT(loan.DebtUp) {
-		cumulativeDebt = cumulativeDebt.Add(loan.DebtDown.Sub(loan.DebtUp))
+	if loan.DebtRepaid.GT(loan.DebtIssued) {
+		cumulativeDebt = cumulativeDebt.Add(loan.DebtRepaid.Sub(loan.DebtIssued))
 	}
 
 	// update Loan record
-	loan.DebtUp = loan.DebtUp.Add(cumulativeDebt)
-	loan.CollateralUp = loan.CollateralUp.Add(msg.CollateralAmount)
+	loan.DebtIssued = loan.DebtIssued.Add(cumulativeDebt)
+	loan.CollateralDeposited = loan.CollateralDeposited.Add(msg.CollateralAmount)
 	loan.LastOpenHeight = ctx.BlockHeight()
 
 	if msg.TargetAsset.Equals(common.TOR) && enableDerived > 0 {
@@ -790,7 +790,7 @@ func (h LoanOpenHandler) openLoanV111(ctx cosmos.Context, msg MsgLoanOpen) error
 	if totalCollateral.Add(msg.CollateralAmount).GT(totalAvailableAssetForPool) {
 		return fmt.Errorf("no availability (%d/%d), lending unavailable", totalCollateral.Add(msg.CollateralAmount).Uint64(), totalAvailableAssetForPool.Uint64())
 	}
-	cr := h.getCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
+	cr := h.calcCR(totalCollateral.Add(msg.CollateralAmount), totalAvailableAssetForPool, minCR, maxCR)
 
 	price := DollarInRune(ctx, h.mgr).QuoUint64(constants.DollarMulti)
 	if price.IsZero() {
@@ -809,13 +809,13 @@ func (h LoanOpenHandler) openLoanV111(ctx cosmos.Context, msg MsgLoanOpen) error
 
 	// if the user has over-repayed the loan, credit the difference on the next open
 	cumulativeDebt := debt
-	if loan.DebtDown.GT(loan.DebtUp) {
-		cumulativeDebt = cumulativeDebt.Add(loan.DebtDown.Sub(loan.DebtUp))
+	if loan.DebtRepaid.GT(loan.DebtIssued) {
+		cumulativeDebt = cumulativeDebt.Add(loan.DebtRepaid.Sub(loan.DebtIssued))
 	}
 
 	// update Loan record
-	loan.DebtUp = loan.DebtUp.Add(cumulativeDebt)
-	loan.CollateralUp = loan.CollateralUp.Add(msg.CollateralAmount)
+	loan.DebtIssued = loan.DebtIssued.Add(cumulativeDebt)
+	loan.CollateralDeposited = loan.CollateralDeposited.Add(msg.CollateralAmount)
 	loan.LastOpenHeight = ctx.BlockHeight()
 
 	if msg.TargetAsset.Equals(common.TOR) && enableDerived > 0 {

@@ -26,8 +26,8 @@ func (s *HandlerLoanRepaymentSuite) TestLoanValidate(c *C) {
 	signer := GetRandomBech32Addr()
 
 	loan := NewLoan(owner, common.BNBAsset, 0)
-	loan.DebtUp = cosmos.NewUint(10 * common.One)
-	loan.CollateralUp = cosmos.NewUint(10 * common.One)
+	loan.DebtIssued = cosmos.NewUint(10 * common.One)
+	loan.CollateralDeposited = cosmos.NewUint(10 * common.One)
 	mgr.Keeper().SetLoan(ctx, loan)
 
 	handler := NewLoanRepaymentHandler(mgr)
@@ -42,13 +42,13 @@ func (s *HandlerLoanRepaymentSuite) TestLoanValidate(c *C) {
 	c.Check(handler.validate(ctx, *msg), NotNil)
 
 	// unhappy path: no debt/collateral
-	loan.CollateralUp = cosmos.ZeroUint()
+	loan.CollateralDeposited = cosmos.ZeroUint()
 	loan.LastOpenHeight = 0
 	mgr.Keeper().SetLoan(ctx, loan)
 	c.Check(handler.validate(ctx, *msg), NotNil)
 
 	// unhappy path: loan paused
-	loan.DebtUp = cosmos.NewUint(10 * common.One)
+	loan.DebtIssued = cosmos.NewUint(10 * common.One)
 	mgr.Keeper().SetLoan(ctx, loan)
 	mgr.Keeper().SetMimir(ctx, "PauseLoans", 1)
 	c.Check(handler.validate(ctx.WithBlockHeight(14400000), *msg), NotNil)
@@ -89,10 +89,10 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithTOR(c *C) {
 	c.Assert(err, IsNil)
 
 	loan := NewLoan(owner, common.BTCAsset, 0)
-	loan.CollateralUp = cosmos.NewUint(1e8)
-	loan.DebtUp = cosmos.NewUint(10 * common.One)
+	loan.CollateralDeposited = cosmos.NewUint(1e8)
+	loan.DebtIssued = cosmos.NewUint(10 * common.One)
 	mgr.Keeper().SetLoan(ctx, loan)
-	mgr.Keeper().SetTotalCollateral(ctx, common.BTCAsset, loan.CollateralUp)
+	mgr.Keeper().SetTotalCollateral(ctx, common.BTCAsset, loan.CollateralDeposited)
 
 	handler := NewLoanRepaymentHandler(mgr)
 
@@ -103,12 +103,12 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithTOR(c *C) {
 
 	loan, err = mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
 	c.Assert(err, IsNil)
-	c.Check(loan.DebtDown.Uint64(), Equals, uint64(10*common.One), Commentf("%d", loan.DebtDown.Uint64()))
-	c.Check(loan.CollateralDown.Uint64(), Equals, uint64(1e8), Commentf("%d", loan.CollateralDown.Uint64()))
+	c.Check(loan.DebtRepaid.Uint64(), Equals, uint64(10*common.One), Commentf("%d", loan.DebtRepaid.Uint64()))
+	c.Check(loan.CollateralWithdrawn.Uint64(), Equals, uint64(1e8), Commentf("%d", loan.CollateralWithdrawn.Uint64()))
 
 	totalCollateral, err := mgr.Keeper().GetTotalCollateral(ctx, common.BTCAsset)
 	c.Assert(err, IsNil)
-	c.Check(totalCollateral.Uint64(), Equals, common.SafeSub(loan.CollateralUp, loan.CollateralDown).Uint64())
+	c.Check(totalCollateral.Uint64(), Equals, common.SafeSub(loan.CollateralDeposited, loan.CollateralWithdrawn).Uint64())
 }
 
 func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithSwap(c *C) {
@@ -148,8 +148,8 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithSwap(c *C) {
 	signer := GetRandomBech32Addr()
 
 	loan := NewLoan(owner, common.BTCAsset, ctx.BlockHeight())
-	loan.CollateralUp = cosmos.NewUint(1e8)
-	loan.DebtUp = cosmos.NewUint(10_000 * common.One)
+	loan.CollateralDeposited = cosmos.NewUint(1e8)
+	loan.DebtIssued = cosmos.NewUint(10_000 * common.One)
 	mgr.Keeper().SetLoan(ctx, loan)
 
 	handler := NewLoanRepaymentHandler(mgr)
@@ -166,8 +166,8 @@ func (s *HandlerLoanRepaymentSuite) TestLoanRepaymentHandleWithSwap(c *C) {
 	loan, err = mgr.Keeper().GetLoan(ctx, common.BTCAsset, owner)
 	c.Assert(err, IsNil)
 	// debt down is a little high due to overpaying the loan
-	c.Check(loan.DebtDown.Uint64(), Equals, uint64(1007299944507), Commentf("%d", loan.DebtDown.Uint64()))
-	c.Check(loan.CollateralDown.Uint64(), Equals, uint64(100000000), Commentf("%d", loan.CollateralDown.Uint64()))
+	c.Check(loan.DebtRepaid.Uint64(), Equals, uint64(1007299944507), Commentf("%d", loan.DebtRepaid.Uint64()))
+	c.Check(loan.CollateralWithdrawn.Uint64(), Equals, uint64(100000000), Commentf("%d", loan.CollateralWithdrawn.Uint64()))
 
 	items, err := mgr.TxOutStore().GetOutboundItems(ctx)
 	c.Assert(err, IsNil)

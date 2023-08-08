@@ -343,10 +343,10 @@
       "loans": [
         {
           "asset": "BTC.BTC",
-          "collateral_down": "495050",
-          "collateral_up": "495050",
-          "debt_down": "494989518",
-          "debt_up": "489900000",
+          "collateral_deposited": "495050",
+          "collateral_withdrawn": "495050",
+          "debt_issued": "489900000",
+          "debt_repaid": "494989518",
           "last_open_height": "25",
           "last_repay_height": "30",
           "owner": "bcrt1q3wrmhnh2qe98rjse30pl7u6jxszjjwl44ls6uw"

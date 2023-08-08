@@ -920,13 +920,31 @@ func queryBorrowers(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	for ; iterator.Valid(); iterator.Next() {
 		var loan Loan
 		mgr.Keeper().Cdc().MustUnmarshal(iterator.Value(), &loan)
-		if loan.CollateralUp.Equal(loan.CollateralDown) && loan.DebtUp.Equal(loan.DebtDown) {
+		if loan.CollateralDeposited.Equal(loan.CollateralWithdrawn) && loan.DebtIssued.Equal(loan.DebtRepaid) {
 			continue
 		}
 		loans = append(loans, loan)
 	}
+
+	borrowers := make([]openapi.Borrower, len(loans))
+	for i, loan := range loans {
+		borrower := openapi.NewBorrower(
+			loan.Owner.String(),
+			loan.Asset.String(),
+			loan.DebtIssued.String(),
+			loan.DebtRepaid.String(),
+			loan.Debt().String(),
+			loan.CollateralDeposited.String(),
+			loan.CollateralWithdrawn.String(),
+			loan.Collateral().String(),
+			loan.LastOpenHeight,
+			loan.LastRepayHeight,
+		)
+		borrowers[i] = *borrower
+	}
+
 	var res []byte
-	res, err = json.MarshalIndent(loans, "", "	")
+	res, err = json.MarshalIndent(borrowers, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal borrowers to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal borrowers to json: %w", err)
@@ -957,8 +975,21 @@ func queryBorrower(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 		return nil, fmt.Errorf("fail to borrower: %w", err)
 	}
 
+	borrower := openapi.NewBorrower(
+		loan.Owner.String(),
+		loan.Asset.String(),
+		loan.DebtIssued.String(),
+		loan.DebtRepaid.String(),
+		loan.Debt().String(),
+		loan.CollateralDeposited.String(),
+		loan.CollateralWithdrawn.String(),
+		loan.Collateral().String(),
+		loan.LastOpenHeight,
+		loan.LastRepayHeight,
+	)
+
 	var res []byte
-	res, err = json.MarshalIndent(loan, "", "	")
+	res, err = json.MarshalIndent(borrower, "", "	")
 	if err != nil {
 		ctx.Logger().Error("fail to marshal borrower to json", "error", err)
 		return nil, fmt.Errorf("fail to marshal borrower to json: %w", err)
@@ -1156,6 +1187,10 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	p.SynthSupplyRemaining = synthSupplyRemaining.String()
 	p.LoanCollateral = totalCollateral.String()
 
+	handler := NewLoanOpenHandler(mgr)
+	cr, _ := handler.getPoolCR(ctx, pool, cosmos.OneUint())
+	p.LoanCR = cr.String()
+
 	return jsonify(ctx, p)
 }
 
@@ -1205,6 +1240,10 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		p.SynthMintPaused = (synthMintPausedErr != nil)
 		p.SynthSupplyRemaining = synthSupplyRemaining.String()
 		p.LoanCollateral = totalCollateral.String()
+
+		handler := NewLoanOpenHandler(mgr)
+		cr, _ := handler.getPoolCR(ctx, pool, cosmos.OneUint())
+		p.LoanCR = cr.String()
 
 		pools = append(pools, p)
 	}

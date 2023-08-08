@@ -635,8 +635,8 @@ description: loan should not be repaid
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0].debt_down|tonumber == 0
-  - .[0].collateral_down|tonumber == 0
+  - .[0].debt_repaid|tonumber == 0
+  - .[0].collateral_withdrawn|tonumber == 0
 ---
 type: check
 description: fox account should only lose gas
@@ -685,5 +685,5 @@ description: loan should not be repaid
 endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
-  - .[0].debt_down|tonumber == 494989518
-  - .[0].collateral_down|tonumber == 495050
+  - .[0].debt_repaid|tonumber == 494989518
+  - .[0].collateral_withdrawn|tonumber == 495050

@@ -16,13 +16,13 @@ type Loans []Loan
 
 func NewLoan(owner common.Address, asset common.Asset, lastOpenHeight int64) Loan {
 	return Loan{
-		Owner:          owner,
-		Asset:          asset,
-		DebtUp:         cosmos.ZeroUint(),
-		DebtDown:       cosmos.ZeroUint(),
-		LastOpenHeight: lastOpenHeight,
-		CollateralUp:   cosmos.ZeroUint(),
-		CollateralDown: cosmos.ZeroUint(),
+		Owner:               owner,
+		Asset:               asset,
+		DebtIssued:          cosmos.ZeroUint(),
+		DebtRepaid:          cosmos.ZeroUint(),
+		LastOpenHeight:      lastOpenHeight,
+		CollateralDeposited: cosmos.ZeroUint(),
+		CollateralWithdrawn: cosmos.ZeroUint(),
 	}
 }
 
@@ -41,11 +41,11 @@ func (m *Loan) Valid() error {
 }
 
 func (m *Loan) Debt() cosmos.Uint {
-	return common.SafeSub(m.DebtUp, m.DebtDown)
+	return common.SafeSub(m.DebtIssued, m.DebtRepaid)
 }
 
 func (m *Loan) Collateral() cosmos.Uint {
-	return common.SafeSub(m.CollateralUp, m.CollateralDown)
+	return common.SafeSub(m.CollateralDeposited, m.CollateralWithdrawn)
 }
 
 // Key return a string which can be used to identify loan

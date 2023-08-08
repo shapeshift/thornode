@@ -758,8 +758,8 @@ func (m *EventTHORName) Events() (cosmos.Events, error) {
 // NewEventLoanOpen create a new instance of EventLoanOpen
 func NewEventLoanOpen(amt, cr, debt cosmos.Uint, ca, ta common.Asset, owner common.Address) *EventLoanOpen {
 	return &EventLoanOpen{
-		CollateralUp:           amt,
-		DebtUp:                 debt,
+		CollateralDeposited:    amt,
+		DebtIssued:             debt,
 		CollateralizationRatio: cr,
 		CollateralAsset:        ca,
 		TargetAsset:            ta,
@@ -775,8 +775,8 @@ func (m *EventLoanOpen) Type() string {
 // Events return cosmos sdk events
 func (m *EventLoanOpen) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(m.Type(),
-		cosmos.NewAttribute("collateral_up", m.CollateralUp.String()),
-		cosmos.NewAttribute("debt_up", m.DebtUp.String()),
+		cosmos.NewAttribute("collateral_deposited", m.CollateralDeposited.String()),
+		cosmos.NewAttribute("debt_issued", m.DebtIssued.String()),
 		cosmos.NewAttribute("collateralization_ratio", m.CollateralizationRatio.String()),
 		cosmos.NewAttribute("collateral_asset", m.CollateralAsset.String()),
 		cosmos.NewAttribute("target_asset", m.TargetAsset.String()),
@@ -787,10 +787,10 @@ func (m *EventLoanOpen) Events() (cosmos.Events, error) {
 // NewEventLoanRepayment create a new instance of NewEventLoanRepayment
 func NewEventLoanRepayment(amt, debt cosmos.Uint, ca common.Asset, owner common.Address) *EventLoanRepayment {
 	return &EventLoanRepayment{
-		CollateralDown:  amt,
-		DebtDown:        debt,
-		CollateralAsset: ca,
-		Owner:           owner,
+		CollateralWithdrawn: amt,
+		DebtRepaid:          debt,
+		CollateralAsset:     ca,
+		Owner:               owner,
 	}
 }
 
@@ -802,8 +802,8 @@ func (m *EventLoanRepayment) Type() string {
 // Events return cosmos sdk events
 func (m *EventLoanRepayment) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(m.Type(),
-		cosmos.NewAttribute("collateral_down", m.CollateralDown.String()),
-		cosmos.NewAttribute("debt_down", m.DebtDown.String()),
+		cosmos.NewAttribute("collateral_withdrawn", m.CollateralWithdrawn.String()),
+		cosmos.NewAttribute("debt_repaid", m.DebtRepaid.String()),
 		cosmos.NewAttribute("collateral_asset", m.CollateralAsset.String()),
 		cosmos.NewAttribute("owner", m.Owner.String()))
 	return cosmos.Events{evt}, nil
