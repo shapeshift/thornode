@@ -1159,6 +1159,8 @@ func storeContextTxID(ctx cosmos.Context, key interface{}) (cosmos.Context, erro
 func atTVLCap(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
 	version := mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.118.0")):
+		return atTVLCapV118(ctx, coins, mgr)
 	case version.GTE(semver.MustParse("1.117.0")):
 		return atTVLCapV117(ctx, coins, mgr)
 	case version.GTE(semver.MustParse("1.116.0")):
@@ -1168,12 +1170,15 @@ func atTVLCap(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
 	}
 }
 
-func atTVLCapV117(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
+func atTVLCapV118(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
 	vaults, err := mgr.Keeper().GetAsgardVaults(ctx)
 	if err != nil {
 		ctx.Logger().Error("fail to get vaults for atTVLCap", "error", err)
 		return true
 	}
+
+	// coins must be copied to a new variable to avoid modifying the original
+	coins = coins.Copy()
 	for _, vault := range vaults {
 		if vault.IsAsgard() && (vault.IsActive() || vault.IsRetiring()) {
 			coins = coins.Adds(vault.Coins)

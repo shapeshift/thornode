@@ -21,6 +21,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// trunk-ignore-all(golangci-lint/forcetypeassert)
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // Run
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -146,6 +148,13 @@ func run(out io.Writer, path string, routine int) error {
 		// warn empty operations
 		if len(op) == 0 {
 			localLog.Warn().Msg("empty operation, line numbers may be wrong")
+			continue
+		}
+
+		// env operations are special
+		if op["type"] == "env" {
+			o := NewOperation(op)
+			env = append(env, fmt.Sprintf("%s=%s", o.(*OpEnv).Key, o.(*OpEnv).Value))
 			continue
 		}
 

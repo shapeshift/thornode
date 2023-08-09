@@ -6,8 +6,16 @@ package constants
 
 import (
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 )
+
+func camelToSnakeUpper(s string) string {
+	re := regexp.MustCompile(`([a-z])([A-Z])`)
+	snake := re.ReplaceAllString(s, `${1}_${2}`)
+	return strings.ToUpper(snake)
+}
 
 func init() {
 	int64Overrides = map[ConstantName]int64{
@@ -45,11 +53,23 @@ func init() {
 		DefaultPoolStatus: "Available",
 	}
 
-	if os.Getenv("CHURN_MIGRATION_ROUNDS") != "" {
-		int64Overrides[ChurnMigrateRounds], _ = strconv.ParseInt(os.Getenv("CHURN_MIGRATION_ROUNDS"), 10, 64)
+	// allow overrides from environment variables in mocknet
+	for k := range int64Overrides {
+		env := camelToSnakeUpper(k.String())
+		if os.Getenv(env) != "" {
+			int64Overrides[k], _ = strconv.ParseInt(os.Getenv(env), 10, 64)
+		}
 	}
-
-	if os.Getenv("FUND_MIGRATION_INTERVAL") != "" {
-		int64Overrides[FundMigrationInterval], _ = strconv.ParseInt(os.Getenv("FUND_MIGRATION_INTERVAL"), 10, 64)
+	for k := range boolOverrides {
+		env := camelToSnakeUpper(k.String())
+		if os.Getenv(env) != "" {
+			boolOverrides[k], _ = strconv.ParseBool(os.Getenv(env))
+		}
+	}
+	for k := range stringOverrides {
+		env := camelToSnakeUpper(k.String())
+		if os.Getenv(env) != "" {
+			stringOverrides[k] = os.Getenv(env)
+		}
 	}
 }

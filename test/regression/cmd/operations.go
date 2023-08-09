@@ -51,6 +51,8 @@ func NewOperation(opMap map[string]any) Operation {
 	// create the operation for the type
 	var op Operation
 	switch t {
+	case "env":
+		op = &OpEnv{}
 	case "state":
 		op = &OpState{}
 	case "check":
@@ -145,6 +147,20 @@ func NewOperation(opMap map[string]any) Operation {
 	}
 
 	return op
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// OpEnv
+////////////////////////////////////////////////////////////////////////////////////////
+
+type OpEnv struct {
+	OpBase `yaml:",inline"`
+	Key    string `json:"key"`
+	Value  string `json:"value"`
+}
+
+func (op *OpEnv) Execute(_ io.Writer, routine int, _ *os.Process, _ chan string) error {
+	return nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

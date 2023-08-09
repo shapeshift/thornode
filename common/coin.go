@@ -314,3 +314,10 @@ func (cs Coins) NoneEmpty() Coins {
 	}
 	return newCoins
 }
+
+// Copy returns a new copy of Coins.
+func (cs Coins) Copy() Coins {
+	newCoins := make(Coins, len(cs))
+	copy(newCoins, cs)
+	return newCoins
+}
