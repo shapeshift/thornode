@@ -169,7 +169,7 @@ func (c *Client) reConfirmTx() ([]int64, error) {
 
 func (c *Client) confirmTx(txid string) bool {
 	// since daemons are run with the tx index enabled, this covers block and mempool
-	_, err := c.rpc.GetRawTransaction(txid, false)
+	_, err := c.rpc.GetRawTransaction(txid)
 	if err != nil {
 		c.log.Err(err).Str("txid", txid).Msg("fail to get tx")
 	}
@@ -340,7 +340,7 @@ func (c *Client) getBlockWithoutVerbose(height int64) (*btcjson.GetBlockVerboseT
 	// process batch requests one at a time to avoid overloading the node
 	retries := 0
 	for i := 0; i < len(batches); i++ {
-		results, errs, err := c.rpc.BatchGetRawTransaction(batches[i], true)
+		results, errs, err := c.rpc.BatchGetRawTransactionVerbose(batches[i])
 
 		// if there was no rpc error, check for any tx errors
 		txErrCount := 0
@@ -593,7 +593,7 @@ func (c *Client) getSender(tx *btcjson.TxRawResult) (string, error) {
 	if len(tx.Vin) == 0 {
 		return "", fmt.Errorf("no vin available in tx")
 	}
-	vinTx, err := c.rpc.GetRawTransaction(tx.Vin[0].Txid, true)
+	vinTx, err := c.rpc.GetRawTransactionVerbose(tx.Vin[0].Txid)
 	if err != nil {
 		return "", fmt.Errorf("fail to query raw tx")
 	}
@@ -647,7 +647,7 @@ func (c *Client) getMemo(tx *btcjson.TxRawResult) (string, error) {
 func (c *Client) getGas(tx *btcjson.TxRawResult) (common.Gas, error) {
 	var sumVin uint64 = 0
 	for _, vin := range tx.Vin {
-		vinTx, err := c.rpc.GetRawTransaction(vin.Txid, true)
+		vinTx, err := c.rpc.GetRawTransactionVerbose(vin.Txid)
 		if err != nil {
 			return common.Gas{}, fmt.Errorf("fail to query raw tx from node")
 		}

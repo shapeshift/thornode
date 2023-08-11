@@ -502,7 +502,7 @@ func (c *Client) FetchMemPool(height int64) (types.TxIn, error) {
 	errCount := 0
 	for i, batch := range batches {
 		// fetch the batch of results
-		results, errs, err := c.rpc.BatchGetRawTransaction(batch, true)
+		results, errs, err := c.rpc.BatchGetRawTransactionVerbose(batch)
 		if err != nil { // clear mempool cache for unprocessed batches and return error
 			clearMemPoolCache(i)
 			returnErr = fmt.Errorf("fail to get raw transactions from mempool: %w", err)

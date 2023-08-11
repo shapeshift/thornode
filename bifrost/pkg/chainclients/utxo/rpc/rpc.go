@@ -172,27 +172,26 @@ func (c *Client) GetRawMempool() ([]string, error) {
 	return txids, extractBTCError(err)
 }
 
-// GetRawTransaction returns raw transaction representation for given transaction id.
-func (c *Client) GetRawTransaction(txid string, verbose bool) (*btcjson.TxRawResult, error) {
+// GetRawTransactionVerbose returns a raw transaction for the transaction id.
+func (c *Client) GetRawTransactionVerbose(txid string) (*btcjson.TxRawResult, error) {
 	var tx btcjson.TxRawResult
-	args := []interface{}{txid}
-	if verbose {
-		args = append(args, 1)
-	}
-	err := c.c.Call(&tx, "getrawtransaction", args...)
+	err := c.c.Call(&tx, "getrawtransaction", txid, true)
 	return &tx, extractBTCError(err)
 }
 
-// BatchGetRawTransaction returns raw transaction representation for given transaction ids.
-func (c *Client) BatchGetRawTransaction(txids []string, verbose bool) ([]*btcjson.TxRawResult, []error, error) {
+// GetRawTransaction returns a raw transaction string for the transaction id.
+func (c *Client) GetRawTransaction(txid string) (string, error) {
+	var tx string
+	err := c.c.Call(&tx, "getrawtransaction", txid, false)
+	return tx, extractBTCError(err)
+}
+
+// BatchGetRawTransactionVerbose returns a raw transaction for given transaction ids.
+func (c *Client) BatchGetRawTransactionVerbose(txids []string) ([]*btcjson.TxRawResult, []error, error) {
 	// create batch request
 	batch := make([]rpc.BatchElem, 0, len(txids))
 	for _, txid := range txids {
-		args := []interface{}{txid}
-		if verbose {
-			args = append(args, 1)
-		}
-
+		args := []interface{}{txid, true}
 		batch = append(batch, rpc.BatchElem{
 			Method: "getrawtransaction",
 			Args:   args,
