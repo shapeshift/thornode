@@ -52,6 +52,8 @@ func (h AddLiquidityHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Resu
 func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.119.0")):
+		return h.validateV119(ctx, msg)
 	case version.GTE(semver.MustParse("1.117.0")):
 		return h.validateV117(ctx, msg)
 	case version.GTE(semver.MustParse("1.116.0")):
@@ -77,7 +79,7 @@ func (h AddLiquidityHandler) validate(ctx cosmos.Context, msg MsgAddLiquidity) e
 	}
 }
 
-func (h AddLiquidityHandler) validateV117(ctx cosmos.Context, msg MsgAddLiquidity) error {
+func (h AddLiquidityHandler) validateV119(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if !msg.Tx.ID.IsBlank() { // don't validate tx if internal txn
 		if err := msg.ValidateBasicV98(); err != nil {
 			ctx.Logger().Error(err.Error())
@@ -126,13 +128,28 @@ func (h AddLiquidityHandler) validateV117(ctx cosmos.Context, msg MsgAddLiquidit
 		return fmt.Errorf("asset cannot be a derived asset")
 	}
 
+	// Check if user is trying to deposit into savers
+	// At present, savers are authorized for:
+	// * layer 1 assets  (BTC, ETH, BNB, etc.)
+	// * stable pools (as determined by TOR anchor pool settings)
 	if msg.Asset.IsVaultAsset() {
-		if !msg.Asset.GetLayer1Asset().IsGasAsset() {
-			return fmt.Errorf("asset must be a gas asset for the layer1 protocol")
+		// Check if the asset is in the anchor pools
+		isAnchorAsset := false
+		for _, asset := range h.mgr.Keeper().GetAnchors(ctx, common.TOR) {
+			if msg.Asset.GetLayer1Asset().Equals(asset) {
+				isAnchorAsset = true
+				break
+			}
 		}
+		// Saver asset must be either L1 gas asset or isAnchorAsset
+		if !msg.Asset.GetLayer1Asset().IsGasAsset() && !isAnchorAsset {
+			return fmt.Errorf("asset must be a gas asset or TOR anchor pool")
+		}
+		// Ensure that the message is being sent from an address on a chain that matches the L1 asset chain
 		if !msg.AssetAddress.IsChain(msg.Asset.GetLayer1Asset().GetChain()) {
 			return fmt.Errorf("asset address must be layer1 chain")
 		}
+		// Savers vaults are not currently enabled for RUNE
 		if !msg.RuneAmount.IsZero() {
 			return fmt.Errorf("cannot deposit rune into a vault")
 		}

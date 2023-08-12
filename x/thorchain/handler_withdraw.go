@@ -300,6 +300,8 @@ func (h WithdrawLiquidityHandler) handleV107(ctx cosmos.Context, msg MsgWithdraw
 func (h WithdrawLiquidityHandler) swap(ctx cosmos.Context, msg MsgWithdrawLiquidity, coin common.Coin, addr common.Address) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.119.0")):
+		return h.swapV119(ctx, msg, coin, addr)
 	case version.GTE(semver.MustParse("1.100.0")):
 		return h.swapV100(ctx, msg, coin, addr)
 	case version.GTE(semver.MustParse("1.93.0")):
@@ -309,7 +311,7 @@ func (h WithdrawLiquidityHandler) swap(ctx cosmos.Context, msg MsgWithdrawLiquid
 	}
 }
 
-func (h WithdrawLiquidityHandler) swapV100(ctx cosmos.Context, msg MsgWithdrawLiquidity, coin common.Coin, addr common.Address) error {
+func (h WithdrawLiquidityHandler) swapV119(ctx cosmos.Context, msg MsgWithdrawLiquidity, coin common.Coin, addr common.Address) error {
 	// ensure TxID does NOT have a collision with another swap, this could
 	// happen if the user submits two identical loan requests in the same
 	// block
@@ -317,7 +319,9 @@ func (h WithdrawLiquidityHandler) swapV100(ctx cosmos.Context, msg MsgWithdrawLi
 		return fmt.Errorf("txn hash conflict")
 	}
 
-	targetAsset := msg.Asset.GetLayer1Asset().GetChain().GetGasAsset()
+	// Use layer 1 asset in case msg.Asset is synthetic (i.e. savers withdraw)
+	targetAsset := msg.Asset.GetLayer1Asset()
+
 	memo := fmt.Sprintf("=:%s:%s", targetAsset, addr)
 	msg.Tx.Memo = memo
 	msg.Tx.Coins = common.NewCoins(coin)

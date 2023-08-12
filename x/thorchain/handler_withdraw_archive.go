@@ -1043,6 +1043,34 @@ func (h WithdrawLiquidityHandler) handleV75(ctx cosmos.Context, msg MsgWithdrawL
 	return &cosmos.Result{}, nil
 }
 
+func (h WithdrawLiquidityHandler) swapV100(ctx cosmos.Context, msg MsgWithdrawLiquidity, coin common.Coin, addr common.Address) error {
+	// ensure TxID does NOT have a collision with another swap, this could
+	// happen if the user submits two identical loan requests in the same
+	// block
+	if ok := h.mgr.Keeper().HasSwapQueueItem(ctx, msg.Tx.ID, 0); ok {
+		return fmt.Errorf("txn hash conflict")
+	}
+
+	targetAsset := msg.Asset.GetLayer1Asset().GetChain().GetGasAsset()
+	memo := fmt.Sprintf("=:%s:%s", targetAsset, addr)
+	msg.Tx.Memo = memo
+	msg.Tx.Coins = common.NewCoins(coin)
+	swapMsg := NewMsgSwap(msg.Tx, targetAsset, addr, cosmos.ZeroUint(), common.NoAddress, cosmos.ZeroUint(), "", "", nil, MarketOrder, 0, 0, msg.Signer)
+
+	// sanity check swap msg
+	handler := NewSwapHandler(h.mgr)
+	if err := handler.validate(ctx, *swapMsg); err != nil {
+		return err
+	}
+
+	if err := h.mgr.Keeper().SetSwapQueueItem(ctx, *swapMsg, 0); err != nil {
+		ctx.Logger().Error("fail to add swap to queue", "error", err)
+		return err
+	}
+
+	return nil
+}
+
 func (h WithdrawLiquidityHandler) swapV93(ctx cosmos.Context, msg MsgWithdrawLiquidity, coin common.Coin, addr common.Address) error {
 	// ensure TxID does NOT have a collision with another swap, this could
 	// happen if the user submits two identical loan requests in the same

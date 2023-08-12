@@ -11,6 +11,145 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
+func (h AddLiquidityHandler) validateV117(ctx cosmos.Context, msg MsgAddLiquidity) error {
+	if !msg.Tx.ID.IsBlank() { // don't validate tx if internal txn
+		if err := msg.ValidateBasicV98(); err != nil {
+			ctx.Logger().Error(err.Error())
+			return errAddLiquidityFailValidation
+		}
+	}
+
+	// TODO on hard fork move network check to ValidateBasic
+	if !msg.AssetAddress.IsEmpty() {
+		if !common.CurrentChainNetwork.SoftEquals(msg.AssetAddress.GetNetwork(h.mgr.GetVersion(), msg.AssetAddress.GetChain())) {
+			return fmt.Errorf("address(%s) is not same network", msg.AssetAddress)
+		}
+	}
+
+	// The Ragnarok key for the TERRA.LUNA pool would be RAGNAROK-TERRA-LUNA .
+	k := "RAGNAROK-" + msg.Asset.MimirString()
+	v, err := h.mgr.Keeper().GetMimir(ctx, k)
+	if err != nil {
+		ctx.Logger().Error("fail to get mimir value", "mimir", k, "error", err)
+	}
+	if v >= 1 {
+		return fmt.Errorf("cannot add liquidity to Ragnaroked pool (%s)", msg.Asset.String())
+	}
+
+	// Note that GetChain() without GetLayer1Asset() would indicate THORChain for synthetic assets.
+	gasAsset := msg.Asset.GetLayer1Asset().GetChain().GetGasAsset()
+	// Even if a destination gas asset pool is empty, the first add liquidity has to be symmetrical,
+	// and so there is no need to check at this stage for whether the addition is of RUNE or Asset or with needsSwap.
+	if !msg.Asset.Equals(gasAsset) {
+		gasPool, err := h.mgr.Keeper().GetPool(ctx, gasAsset)
+		// Note that for a synthetic asset msg.Asset.Chain (unlike msg.Asset.GetChain())
+		// is intentionally used to be the external chain rather than THOR.
+		// Any destination asset starting with THOR should be rejected for no THOR.RUNE
+		// gas asset pool existing.
+		if err != nil {
+			return ErrInternal(err, "fail to get gas pool")
+		}
+		// Note that NewPool from GetPool would return a pool with status;
+		// use IsEmpty to check for prior existence.
+		if gasPool.IsEmpty() {
+			return fmt.Errorf("asset (%s)'s gas asset pool (%s) does not exist yet", msg.Asset.String(), gasAsset.String())
+		}
+	}
+
+	if msg.Asset.IsDerivedAsset() {
+		return fmt.Errorf("asset cannot be a derived asset")
+	}
+
+	if msg.Asset.IsVaultAsset() {
+		if !msg.Asset.GetLayer1Asset().IsGasAsset() {
+			return fmt.Errorf("asset must be a gas asset for the layer1 protocol")
+		}
+		if !msg.AssetAddress.IsChain(msg.Asset.GetLayer1Asset().GetChain()) {
+			return fmt.Errorf("asset address must be layer1 chain")
+		}
+		if !msg.RuneAmount.IsZero() {
+			return fmt.Errorf("cannot deposit rune into a vault")
+		}
+	}
+
+	if !msg.RuneAddress.IsEmpty() && !msg.RuneAddress.IsChain(common.THORChain) {
+		ctx.Logger().Error("rune address must be THORChain")
+		return errAddLiquidityFailValidation
+	}
+
+	if !msg.AssetAddress.IsEmpty() {
+		// If the needsSwap check disallows a cross-chain AssetAddress,
+		// a position with pending RUNE cannot be completed with Asset,
+		// so fail validation here if the AssetAddress chain is different from the Asset's.
+		if !msg.AssetAddress.IsChain(msg.Asset.GetLayer1Asset().GetChain()) {
+			return errAddLiquidityMismatchAddr
+		}
+
+		polAddress, err := h.mgr.Keeper().GetModuleAddress(ReserveName)
+		if err != nil {
+			return err
+		}
+		if msg.RuneAddress.Equals(polAddress) {
+			return fmt.Errorf("pol lp cannot have asset address")
+		}
+	}
+
+	// check if swap meets standards
+	if h.needsSwap(msg) {
+		if !msg.Asset.IsVaultAsset() {
+			return fmt.Errorf("swap & add liquidity is only available for synthetic pools")
+		}
+		if !msg.Asset.GetLayer1Asset().Equals(msg.Tx.Coins[0].Asset) {
+			return fmt.Errorf("deposit asset must be the layer1 equivalent for the synthetic asset")
+		}
+	}
+
+	pool, err := h.mgr.Keeper().GetPool(ctx, msg.Asset)
+	if err != nil {
+		return ErrInternal(err, "fail to get pool")
+	}
+	if err := pool.EnsureValidPoolStatus(&msg); err != nil {
+		ctx.Logger().Error("fail to check pool status", "error", err)
+		return errInvalidPoolStatus
+	}
+
+	if h.mgr.Keeper().IsChainHalted(ctx, msg.Asset.Chain) || h.mgr.Keeper().IsLPPaused(ctx, msg.Asset.Chain) {
+		return fmt.Errorf("unable to add liquidity while chain has paused LP actions")
+	}
+
+	ensureLiquidityNoLargerThanBond := h.mgr.GetConstants().GetBoolValue(constants.StrictBondLiquidityRatio)
+	// if the pool is THORChain no need to check economic security
+	if msg.Asset.IsVaultAsset() || !ensureLiquidityNoLargerThanBond {
+		return nil
+	}
+
+	// the following is only applicable for mainnet
+	totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
+	if err != nil {
+		return ErrInternal(err, "fail to get total liquidity RUNE")
+	}
+
+	// total liquidity RUNE after current add liquidity
+	totalLiquidityRUNE = totalLiquidityRUNE.Add(msg.RuneAmount)
+	totalLiquidityRUNE = totalLiquidityRUNE.Add(pool.AssetValueInRune(msg.AssetAmount))
+	maximumLiquidityRune := h.mgr.Keeper().GetConfigInt64(ctx, constants.MaximumLiquidityRune)
+	if maximumLiquidityRune > 0 {
+		if totalLiquidityRUNE.GT(cosmos.NewUint(uint64(maximumLiquidityRune))) {
+			return errAddLiquidityRUNEOverLimit
+		}
+	}
+
+	coins := common.NewCoins(
+		common.NewCoin(common.RuneAsset(), msg.RuneAmount),
+		common.NewCoin(msg.Asset, msg.AssetAmount),
+	)
+	if atTVLCap(ctx, coins, h.mgr) {
+		return errAddLiquidityRUNEMoreThanBond
+	}
+
+	return nil
+}
+
 func (h AddLiquidityHandler) validateV116(ctx cosmos.Context, msg MsgAddLiquidity) error {
 	if !msg.Tx.ID.IsBlank() { // don't validate tx if internal txn
 		if err := msg.ValidateBasicV98(); err != nil {
