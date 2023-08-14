@@ -3,6 +3,7 @@ package thorchain
 import (
 	"strconv"
 
+	"github.com/cosmos/cosmos-sdk/types"
 	. "gopkg.in/check.v1"
 
 	"gitlab.com/thorchain/thornode/common"
@@ -463,6 +464,173 @@ func (vts *ValidatorMgrVCURTestSuite) TestSplitNext(c *C) {
 	sets = networkMgr.splitNext(ctx, nas, 30)
 	c.Assert(sets, HasLen, 1)
 	c.Assert(sets[0], HasLen, 3)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_EmptyNodeAccounts(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	groups := vm.splitNext(ctx, NodeAccounts{}, 2)
+
+	c.Assert(len(groups), Equals, 0)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_SingleNodeAccount(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	nodeAcc := NodeAccount{NodeAddress: types.AccAddress("addr1"), Bond: types.NewUint(50), BondAddress: common.Address("bondAddr1")}
+
+	groups := vm.splitNext(ctx, NodeAccounts{nodeAcc}, 1)
+
+	// no asgard should have a length of 1
+	c.Assert(len(groups), Equals, 0)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_AllSameBondAddress(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	nodeAcc1 := NodeAccount{NodeAddress: types.AccAddress("addr1"), Bond: types.NewUint(50), BondAddress: common.Address("bondAddr1")}
+	nodeAcc2 := NodeAccount{NodeAddress: types.AccAddress("addr2"), Bond: types.NewUint(60), BondAddress: common.Address("bondAddr1")}
+	nodeAcc3 := NodeAccount{NodeAddress: types.AccAddress("addr3"), Bond: types.NewUint(70), BondAddress: common.Address("bondAddr1")}
+	nodeAcc4 := NodeAccount{NodeAddress: types.AccAddress("addr4"), Bond: types.NewUint(80), BondAddress: common.Address("bondAddr1")}
+
+	groups := vm.splitNext(ctx, NodeAccounts{nodeAcc1, nodeAcc2, nodeAcc3, nodeAcc4}, 2)
+
+	c.Assert(len(groups), Equals, 2)
+	c.Assert(len(groups[0]), Equals, 2)
+	c.Assert(len(groups[1]), Equals, 2)
+
+	expectedGroup1 := NodeAccounts{nodeAcc4, nodeAcc2}
+	expectedGroup2 := NodeAccounts{nodeAcc3, nodeAcc1}
+
+	c.Assert(groups[0], DeepEquals, expectedGroup1)
+	c.Assert(groups[1], DeepEquals, expectedGroup2)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_DifferentBondAddresses(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	nodeAcc1 := NodeAccount{NodeAddress: types.AccAddress("addr1"), Bond: types.NewUint(50), BondAddress: common.Address("bondAddr1")}
+	nodeAcc2 := NodeAccount{NodeAddress: types.AccAddress("addr2"), Bond: types.NewUint(60), BondAddress: common.Address("bondAddr2")}
+	nodeAcc3 := NodeAccount{NodeAddress: types.AccAddress("addr3"), Bond: types.NewUint(70), BondAddress: common.Address("bondAddr3")}
+	nodeAcc4 := NodeAccount{NodeAddress: types.AccAddress("addr4"), Bond: types.NewUint(80), BondAddress: common.Address("bondAddr4")}
+
+	groups := vm.splitNext(ctx, NodeAccounts{nodeAcc1, nodeAcc2, nodeAcc3, nodeAcc4}, 2)
+
+	c.Assert(len(groups), Equals, 2)
+	c.Assert(len(groups[0]), Equals, 2)
+	c.Assert(len(groups[1]), Equals, 2)
+
+	expectedGroup1 := NodeAccounts{nodeAcc1, nodeAcc3}
+	expectedGroup2 := NodeAccounts{nodeAcc2, nodeAcc4}
+
+	c.Assert(groups[0], DeepEquals, expectedGroup1)
+	c.Assert(groups[1], DeepEquals, expectedGroup2)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_SameBondSameAddress(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	nodeAcc1 := NodeAccount{NodeAddress: types.AccAddress("addr1"), Bond: types.NewUint(50), BondAddress: common.Address("bondAddr1")}
+	nodeAcc2 := NodeAccount{NodeAddress: types.AccAddress("addr2"), Bond: types.NewUint(50), BondAddress: common.Address("bondAddr1")}
+
+	groups := vm.splitNext(ctx, NodeAccounts{nodeAcc1, nodeAcc2}, 2)
+
+	c.Assert(len(groups), Equals, 1)
+	c.Assert(len(groups[0]), Equals, 2)
+
+	expectedGroup1 := NodeAccounts{nodeAcc1, nodeAcc2}
+
+	c.Assert(groups[0], DeepEquals, expectedGroup1)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_ZeroAsgardSize(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	nodeAcc := NodeAccount{NodeAddress: types.AccAddress("addr1"), Bond: types.NewUint(50), BondAddress: common.Address("bondAddr1")}
+
+	groups := vm.splitNext(ctx, NodeAccounts{nodeAcc}, 0)
+
+	c.Assert(len(groups), Equals, 0)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_NegativeAsgardSize(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	nodeAcc := NodeAccount{NodeAddress: types.AccAddress("addr1"), Bond: types.NewUint(50), BondAddress: common.Address("bondAddr1")}
+
+	groups := vm.splitNext(ctx, NodeAccounts{nodeAcc}, -1)
+
+	c.Assert(len(groups), Equals, 0)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_AsgardSizeLargerThanLen(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	nodeAcc1 := NodeAccount{NodeAddress: types.AccAddress("addr1"), Bond: types.NewUint(50), BondAddress: common.Address("bondAddr1")}
+	nodeAcc2 := NodeAccount{NodeAddress: types.AccAddress("addr2"), Bond: types.NewUint(60), BondAddress: common.Address("bondAddr1")}
+
+	groups := vm.splitNext(ctx, NodeAccounts{nodeAcc1, nodeAcc2}, 3)
+
+	c.Assert(len(groups), Equals, 1)
+
+	expectedGroup1 := NodeAccounts{nodeAcc2, nodeAcc1}
+
+	c.Assert(groups[0], DeepEquals, expectedGroup1)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_MultipleDuplicates(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	nodeAcc1 := NodeAccount{NodeAddress: types.AccAddress("addr1"), Bond: types.NewUint(50), BondAddress: common.Address("bondAddr1")}
+	nodeAcc2 := NodeAccount{NodeAddress: types.AccAddress("addr2"), Bond: types.NewUint(60), BondAddress: common.Address("bondAddr1")}
+	nodeAcc3 := NodeAccount{NodeAddress: types.AccAddress("addr3"), Bond: types.NewUint(70), BondAddress: common.Address("bondAddr2")}
+	nodeAcc4 := NodeAccount{NodeAddress: types.AccAddress("addr4"), Bond: types.NewUint(80), BondAddress: common.Address("bondAddr2")}
+
+	groups := vm.splitNext(ctx, NodeAccounts{nodeAcc1, nodeAcc2, nodeAcc3, nodeAcc4}, 2)
+
+	c.Assert(len(groups), Equals, 2)
+	c.Assert(len(groups[0]), Equals, 2)
+	c.Assert(len(groups[1]), Equals, 2)
+
+	expectedGroup1 := NodeAccounts{nodeAcc2, nodeAcc4}
+	expectedGroup2 := NodeAccounts{nodeAcc1, nodeAcc3}
+
+	c.Assert(groups[0], DeepEquals, expectedGroup1)
+	c.Assert(groups[1], DeepEquals, expectedGroup2)
+}
+
+func (s *ValidatorMgrVCURTestSuite) TestSplitNext_MultipleDuplicatesOfDiffSizes(c *C) {
+	var vm ValidatorMgrVCUR
+	ctx, _ := setupKeeperForTest(c)
+
+	nodeAcc1 := NodeAccount{NodeAddress: types.AccAddress("addr1"), Bond: types.NewUint(200), BondAddress: common.Address("bondAddr0")}
+	nodeAcc2 := NodeAccount{NodeAddress: types.AccAddress("addr2"), Bond: types.NewUint(60), BondAddress: common.Address("bondAddr1")}
+	nodeAcc3 := NodeAccount{NodeAddress: types.AccAddress("addr3"), Bond: types.NewUint(70), BondAddress: common.Address("bondAddr2")}
+	nodeAcc4 := NodeAccount{NodeAddress: types.AccAddress("addr4"), Bond: types.NewUint(80), BondAddress: common.Address("bondAddr2")}
+	nodeAcc5 := NodeAccount{NodeAddress: types.AccAddress("addr5"), Bond: types.NewUint(85), BondAddress: common.Address("bondAddr3")}
+	nodeAcc6 := NodeAccount{NodeAddress: types.AccAddress("addr6"), Bond: types.NewUint(100), BondAddress: common.Address("bondAddr3")}
+	nodeAcc7 := NodeAccount{NodeAddress: types.AccAddress("addr7"), Bond: types.NewUint(90), BondAddress: common.Address("bondAddr3")}
+
+	groups := vm.splitNext(ctx, NodeAccounts{nodeAcc7, nodeAcc3, nodeAcc2, nodeAcc4, nodeAcc5, nodeAcc6, nodeAcc1}, 4)
+
+	c.Assert(len(groups), Equals, 2)
+	c.Assert(len(groups[0]), Equals, 4)
+	c.Assert(len(groups[1]), Equals, 3)
+
+	expectedGroup1 := NodeAccounts{nodeAcc6, nodeAcc5, nodeAcc3, nodeAcc1}
+	expectedGroup2 := NodeAccounts{nodeAcc7, nodeAcc4, nodeAcc2}
+
+	c.Assert(groups[0], DeepEquals, expectedGroup1)
+	c.Assert(groups[1], DeepEquals, expectedGroup2)
 }
 
 func (vts *ValidatorMgrVCURTestSuite) TestFindCounToRemove(c *C) {

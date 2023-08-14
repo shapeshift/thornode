@@ -176,22 +176,68 @@ func (vm *ValidatorMgrVCUR) churn(ctx cosmos.Context) error {
 // splits given list of node accounts into separate list of nas, for separate
 // asgard vaults
 func (vm *ValidatorMgrVCUR) splitNext(ctx cosmos.Context, nas NodeAccounts, asgardSize int64) []NodeAccounts {
+	if asgardSize <= 0 { // sanity check
+		return nil
+	}
 	// calculate the number of asgard vaults we'll need to support the given
 	// list of node accounts
 	groupNum := int64(len(nas)) / asgardSize
 	if int64(len(nas))%asgardSize > 0 {
 		groupNum++
 	}
+	if groupNum <= 0 { // sanity check
+		return nil
+	}
 
-	// sort by bond size, descending. This should help ensure that bond
-	// distribution between asgard vaults is somewhat close to each other,
-	// while still maintain that each asgard has the same number of members
-	sort.SliceStable(nas, func(i, j int) bool {
-		return nas[i].Bond.GT(nas[j].Bond)
+	// we want to ensure that a single node operator (designated by bond
+	// address) doesn't get too many tss shares for a single Asgard vault. So we
+	// first break out our node accounts into two groups. First, duplicate bond
+	// addresses (multi-node operators), and second non-duplicate (single node
+	// operators). Then we sort the duplicate group by bond address, then by
+	// bond size (large to small). Then we sort the non-duplicate group by bond size (large
+	// to small). Then iterate over the first group into asgard vaults first,
+	// then the second group. In the end multi-node operators are spread out
+	// against as many asgard vaults as possible. This also makes it more
+	// difficult for a malicious actor to acquire enough spots in a single
+	// asgard to steal as enough are taken by "good actors" that they can't
+	// acquire enough tss shares.
+
+	// Check for duplicates
+	bondAddrMap := make(map[string]int)
+	for _, na := range nas {
+		bondAddrMap[na.BondAddress.String()]++
+	}
+	var duplicateNas, nonDuplicateNas NodeAccounts
+	for _, na := range nas {
+		if bondAddrMap[na.BondAddress.String()] > 1 {
+			duplicateNas = append(duplicateNas, na)
+		} else {
+			nonDuplicateNas = append(nonDuplicateNas, na)
+		}
+	}
+
+	sort.SliceStable(duplicateNas, func(i, j int) bool {
+		// Check if the bond address counts are the same
+		if bondAddrMap[duplicateNas[i].BondAddress.String()] == bondAddrMap[duplicateNas[j].BondAddress.String()] {
+			// Check if bond addresses are the same
+			if duplicateNas[i].BondAddress.String() == duplicateNas[j].BondAddress.String() {
+				// Sort by bond size
+				return duplicateNas[i].Bond.GT(duplicateNas[j].Bond)
+			}
+			// Sort by bond address
+			return duplicateNas[i].BondAddress.String() < duplicateNas[j].BondAddress.String()
+		}
+		// Sort by bond address count
+		return bondAddrMap[duplicateNas[i].BondAddress.String()] > bondAddrMap[duplicateNas[j].BondAddress.String()]
+	})
+
+	// sort by bond size for non-duplicates
+	sort.SliceStable(nonDuplicateNas, func(i, j int) bool {
+		return nonDuplicateNas[i].Bond.LT(nonDuplicateNas[j].Bond)
 	})
 
 	groups := make([]NodeAccounts, groupNum)
-	for i, na := range nas {
+	for i, na := range append(duplicateNas, nonDuplicateNas...) {
 		groups[i%len(groups)] = append(groups[i%len(groups)], na)
 	}
 
