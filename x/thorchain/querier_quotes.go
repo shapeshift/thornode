@@ -27,6 +27,7 @@ import (
 // -------------------------------------------------------------------------------------
 
 const (
+	heightParam               = "height"
 	fromAssetParam            = "from_asset"
 	toAssetParam              = "to_asset"
 	assetParam                = "asset"
@@ -973,6 +974,7 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 
 	// invalidate unexpected parameters
 	allowed := map[string]bool{
+		heightParam:       true,
 		fromAssetParam:    true,
 		amountParam:       true,
 		minOutParam:       true,
@@ -1289,6 +1291,7 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 
 	// invalidate unexpected parameters
 	allowed := map[string]bool{
+		heightParam:    true,
 		fromAssetParam: true,
 		amountParam:    true,
 		toAssetParam:   true,

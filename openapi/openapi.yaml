@@ -949,7 +949,7 @@ paths:
   /thorchain/quote/loan/open:
     parameters:
       - $ref: "#/components/parameters/queryHeight"
-      - name: asset
+      - name: from_asset
         in: query
         description: the collateral asset
         schema:
@@ -962,7 +962,7 @@ paths:
           type: integer
           format: int64
           example: 1000000
-      - name: target_asset
+      - name: to_asset
         in: query
         description: the target asset to receive (loan denominated in TOR regardless)
         schema:
@@ -1009,7 +1009,7 @@ paths:
   /thorchain/quote/loan/close:
     parameters:
       - $ref: "#/components/parameters/queryHeight"
-      - name: asset
+      - name: from_asset
         in: query
         description: the asset used to repay the loan
         schema:
@@ -1022,7 +1022,7 @@ paths:
           type: integer
           format: int64
           example: 1000000
-      - name: loan_asset
+      - name: to_asset
         in: query
         description: the collateral asset of the loan
         schema:
