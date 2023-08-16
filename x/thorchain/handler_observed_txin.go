@@ -89,6 +89,8 @@ func (h ObservedTxInHandler) handle(ctx cosmos.Context, msg MsgObservedTxIn) (*c
 func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress) (ObservedTxVoter, bool) {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.119.0")):
+		return h.preflightV119(ctx, voter, nas, tx, signer)
 	case version.GTE(semver.MustParse("1.116.0")):
 		return h.preflightV116(ctx, voter, nas, tx, signer)
 	default:
@@ -96,7 +98,7 @@ func (h ObservedTxInHandler) preflight(ctx cosmos.Context, voter ObservedTxVoter
 	}
 }
 
-func (h ObservedTxInHandler) preflightV116(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress) (ObservedTxVoter, bool) {
+func (h ObservedTxInHandler) preflightV119(ctx cosmos.Context, voter ObservedTxVoter, nas NodeAccounts, tx ObservedTx, signer cosmos.AccAddress) (ObservedTxVoter, bool) {
 	observeSlashPoints := h.mgr.GetConstants().GetInt64Value(constants.ObserveSlashPoints)
 	observeFlex := h.mgr.GetConstants().GetInt64Value(constants.ObservationDelayFlexibility)
 
@@ -116,6 +118,7 @@ func (h ObservedTxInHandler) preflightV116(ctx cosmos.Context, voter ObservedTxV
 	if voter.HasFinalised(nas) {
 		if voter.FinalisedHeight == 0 {
 			ok = true
+			voter.Height = ctx.BlockHeight() // Always record the consensus height of the finalised Tx
 			voter.FinalisedHeight = ctx.BlockHeight()
 			voter.Tx = voter.GetTx(nas)
 			// tx has consensus now, so decrease the slashing points for all the signers whom had voted for it

@@ -448,6 +448,7 @@
             }
           ],
           "finalised_height": "30",
+          "height": "30",
           "out_txs": [
             {
               "chain": "THOR",

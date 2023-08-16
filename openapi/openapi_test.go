@@ -45,11 +45,10 @@ func (Test) TestJSONSpec(c *C) {
 	assertJSONStructTagsMatch(c, types.MsgSwap{}, gen.MsgSwap{})
 
 	// txs
-	assertJSONStructTagsMatch(c, types.ObservedTxVoter{}, gen.TxSignersResponse{})
 	assertJSONStructTagsMatch(c, types.TxOut{}, gen.KeysignInfo{})
 	assertJSONStructTagsMatch(c, types.QueryObservedTx{}, gen.ObservedTx{})
 	assertJSONStructTagsMatch(c, types.QueryTxOutItem{}, gen.TxOutItem{})
-	assertJSONStructTagsMatch(c, types.QueryTxSigners{}, gen.TxSignersResponse{})
+	assertJSONStructTagsMatch(c, types.QueryTxDetails{}, gen.TxDetailsResponse{})
 	assertJSONStructTagsMatch(c, types.QueryTxStages{}, gen.TxStagesResponse{})
 	assertJSONStructTagsMatch(c, types.QueryTxStatus{}, gen.TxStatusResponse{})
 

@@ -554,26 +554,26 @@ func (m *QueryObservedTx) Valid() error {
 	return nil
 }
 
-type QueryTxSigners struct {
+type QueryTxDetails struct {
 	TxID            common.TxID       `json:"tx_id,omitempty"`
 	Tx              QueryObservedTx   `json:"tx"`
-	Height          int64             `json:"height,omitempty"`
 	Txs             []QueryObservedTx `json:"txs"`
 	Actions         []TxOutItem       `json:"actions"`
 	OutTxs          []common.Tx       `json:"out_txs"`
+	ConsensusHeight int64             `json:"consensus_height,omitempty"`
 	FinalisedHeight int64             `json:"finalised_height,omitempty"`
 	UpdatedVault    bool              `json:"updated_vault,omitempty"`
 	Reverted        bool              `json:"reverted,omitempty"`
 	OutboundHeight  int64             `json:"outbound_height,omitempty"`
 }
 
-// NewQueryTxSigners creates a new QueryTxSigners based on the given ObservedTxVoter parameters
-func NewQueryTxSigners(voter ObservedTxVoter) QueryTxSigners {
-	result := QueryTxSigners{
+// NewQueryTxDetails creates a new QueryTxDetails based on the given ObservedTxVoter parameters
+func NewQueryTxDetails(voter ObservedTxVoter) QueryTxDetails {
+	result := QueryTxDetails{
 		TxID:            voter.TxID,
-		Height:          voter.Height,
 		Actions:         voter.Actions,
 		OutTxs:          voter.OutTxs,
+		ConsensusHeight: voter.Height,
 		FinalisedHeight: voter.FinalisedHeight,
 		UpdatedVault:    voter.UpdatedVault,
 		Reverted:        voter.Reverted,
@@ -589,8 +589,8 @@ func NewQueryTxSigners(voter ObservedTxVoter) QueryTxSigners {
 	return result
 }
 
-// Valid checks whether the QueryTxSigners represents valid information
-func (m *QueryTxSigners) Valid() error {
+// Valid checks whether the QueryTxDetails represents valid information
+func (m *QueryTxDetails) Valid() error {
 	if m.TxID.IsEmpty() {
 		return errors.New("cannot have an empty tx id")
 	}

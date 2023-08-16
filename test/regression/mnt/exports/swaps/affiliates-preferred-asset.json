@@ -453,6 +453,7 @@
             }
           ],
           "finalised_height": "15",
+          "height": "15",
           "out_txs": null,
           "outbound_height": "15",
           "tx": {

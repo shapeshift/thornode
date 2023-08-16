@@ -1283,7 +1283,7 @@ func queryTxVoters(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 		}
 	}
 
-	result := NewQueryTxSigners(voter)
+	result := NewQueryTxDetails(voter)
 
 	return jsonify(ctx, result)
 }
@@ -1345,10 +1345,12 @@ func queryTx(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs
 	}
 	result := struct {
 		QueryObservedTx `json:"observed_tx"`
+		ConsensusHeight int64                  `json:"consensus_height,omitempty"`
 		FinalisedHeight int64                  `json:"finalised_height,omitempty"`
 		OutboundHeight  int64                  `json:"outbound_height,omitempty"`
 		KeysignMetrics  types.TssKeysignMetric `json:"keysign_metric"`
 	}{
+		ConsensusHeight: voter.Height,
 		FinalisedHeight: voter.FinalisedHeight,
 		OutboundHeight:  voter.OutboundHeight,
 		KeysignMetrics:  *keysignMetric,

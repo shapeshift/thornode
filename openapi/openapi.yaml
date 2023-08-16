@@ -2167,6 +2167,11 @@ components:
       properties:
         observed_tx:
           $ref: "#/components/schemas/ObservedTx"
+        consensus_height:
+          type: integer
+          format: int64
+          example: 7581321
+          description: the thorchain height at which the inbound reached consensus
         finalised_height:
           type: integer
           format: int64
@@ -2193,10 +2198,6 @@ components:
           example: "CF524818D42B63D25BBA0CCC4909F127CAA645C0F9CD07324F2824CC151A64C7"
         tx:
           $ref: "#/components/schemas/ObservedTx"
-        height:
-          type: integer
-          format: int64
-          example: 1234
         txs:
           type: array
           items:
@@ -2209,6 +2210,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Tx"
+        consensus_height:
+          type: integer
+          format: int64
+          example: 7581321
+          description: the thorchain height at which the inbound reached consensus
         finalised_height:
           type: integer
           format: int64

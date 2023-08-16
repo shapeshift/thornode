@@ -60,6 +60,8 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	ctx.Logger().Info("receive MsgDeposit", "from", msg.GetSigners()[0], "coins", msg.Coins, "memo", msg.Memo)
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.119.0")):
+		return h.handleV119(ctx, msg)
 	case version.GTE(semver.MustParse("1.115.0")):
 		return h.handleV115(ctx, msg)
 	case version.GTE(semver.MustParse("1.113.0")):
@@ -80,7 +82,7 @@ func (h DepositHandler) handle(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Resu
 	return nil, errInvalidVersion
 }
 
-func (h DepositHandler) handleV115(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+func (h DepositHandler) handleV119(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	if h.mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
 		return nil, fmt.Errorf("unable to use MsgDeposit while THORChain is halted")
 	}
@@ -147,6 +149,7 @@ func (h DepositHandler) handleV115(ctx cosmos.Context, msg MsgDeposit) (*cosmos.
 	// construct msg from memo
 	txIn := ObservedTx{Tx: tx}
 	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
+	txInVoter.Height = ctx.BlockHeight() // While FinalisedHeight may be overwritten, Height records the consensus height
 	txInVoter.FinalisedHeight = ctx.BlockHeight()
 	txInVoter.Tx = txIn
 	h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)

@@ -158,7 +158,7 @@ var (
 	NewQueryPool                   = types.NewQueryPool
 	NewQuerySaver                  = types.NewQuerySaver
 	NewQueryTxOutItem              = types.NewQueryTxOutItem
-	NewQueryTxSigners              = types.NewQueryTxSigners
+	NewQueryTxDetails              = types.NewQueryTxDetails
 	NewQueryTxStages               = types.NewQueryTxStages
 	NewQueryTxStatus               = types.NewQueryTxStatus
 	ModuleCdc                      = types.ModuleCdc
@@ -275,7 +275,7 @@ type (
 	QueryObservedTx                = types.QueryObservedTx
 	QueryPool                      = types.QueryPool
 	QueryTxOutItem                 = types.QueryTxOutItem
-	QueryTxSigners                 = types.QueryTxSigners
+	QueryTxDetails                 = types.QueryTxDetails
 	QueryTxStages                  = types.QueryTxStages
 	QueryTxStatus                  = types.QueryTxStatus
 	QuerySaver                     = types.QuerySaver

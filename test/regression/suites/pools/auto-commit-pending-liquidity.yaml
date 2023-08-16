@@ -65,4 +65,3 @@ endpoint: http://localhost:1317/thorchain/pool/BTC.BTC
 asserts:
   - .pending_inbound_rune | tonumber == 0
   - .LP_units | tonumber == 100099894672
----

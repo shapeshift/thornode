@@ -370,7 +370,7 @@ func (s *QuerierSuite) TestQueryTxInVoter(c *C) {
 	result, err = s.querier(s.ctx, []string{query.QueryTxVoter.Key, tx.ID.String()}, req)
 	c.Assert(err, IsNil)
 	c.Assert(result, NotNil)
-	var voter QueryTxSigners
+	var voter QueryTxDetails
 	c.Assert(json.Unmarshal(result, &voter), IsNil)
 	c.Assert(voter.Valid(), IsNil)
 }

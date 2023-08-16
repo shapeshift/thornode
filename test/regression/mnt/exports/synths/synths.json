@@ -367,6 +367,7 @@
             }
           ],
           "finalised_height": "5",
+          "height": "5",
           "out_txs": null,
           "outbound_height": "5",
           "tx": {

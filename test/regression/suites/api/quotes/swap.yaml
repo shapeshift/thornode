@@ -536,4 +536,3 @@ asserts:
   - .total_swap_seconds == 540
   - .expected_amount_out == "7006788"
   - .expected_amount_out_streaming == "9492080"
----

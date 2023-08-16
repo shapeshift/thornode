@@ -12,6 +12,146 @@ import (
 	"gitlab.com/thorchain/thornode/constants"
 )
 
+func (h DepositHandler) handleV115(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
+	if h.mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
+		return nil, fmt.Errorf("unable to use MsgDeposit while THORChain is halted")
+	}
+
+	coins, err := msg.Coins.Native()
+	if err != nil {
+		return nil, ErrInternal(err, "coins are native to THORChain")
+	}
+
+	if !h.mgr.Keeper().HasCoins(ctx, msg.GetSigners()[0], coins) {
+		return nil, cosmos.ErrInsufficientCoins(err, "insufficient funds")
+	}
+
+	hash := tmtypes.Tx(ctx.TxBytes()).Hash()
+	txID, err := common.NewTxID(fmt.Sprintf("%X", hash))
+	if err != nil {
+		return nil, fmt.Errorf("fail to get tx hash: %w", err)
+	}
+	existingVoter, err := h.mgr.Keeper().GetObservedTxInVoter(ctx, txID)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get existing voter")
+	}
+	if len(existingVoter.Txs) > 0 {
+		return nil, fmt.Errorf("txid: %s already exist", txID.String())
+	}
+	from, err := common.NewAddress(msg.GetSigners()[0].String())
+	if err != nil {
+		return nil, fmt.Errorf("fail to get from address: %w", err)
+	}
+
+	handler := NewInternalHandler(h.mgr)
+
+	memo, _ := ParseMemoWithTHORNames(ctx, h.mgr.Keeper(), msg.Memo) // ignore err
+	if memo.IsOutbound() || memo.IsInternal() {
+		return nil, fmt.Errorf("cannot send inbound an outbound or internal transacion")
+	}
+
+	var targetModule string
+	switch memo.GetType() {
+	case TxBond, TxUnBond, TxLeave:
+		targetModule = BondName
+	case TxReserve, TxTHORName:
+		targetModule = ReserveName
+	default:
+		targetModule = AsgardName
+	}
+	coinsInMsg := msg.Coins
+	if !coinsInMsg.IsEmpty() {
+		// send funds to target module
+		err := h.mgr.Keeper().SendFromAccountToModule(ctx, msg.GetSigners()[0], targetModule, msg.Coins)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	to, err := h.mgr.Keeper().GetModuleAddress(targetModule)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get to address: %w", err)
+	}
+
+	tx := common.NewTx(txID, from, to, coinsInMsg, common.Gas{}, msg.Memo)
+	tx.Chain = common.THORChain
+
+	// construct msg from memo
+	txIn := ObservedTx{Tx: tx}
+	txInVoter := NewObservedTxVoter(txIn.Tx.ID, []ObservedTx{txIn})
+	txInVoter.FinalisedHeight = ctx.BlockHeight()
+	txInVoter.Tx = txIn
+	h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)
+
+	m, txErr := processOneTxIn(ctx, h.mgr.GetVersion(), h.mgr.Keeper(), txIn, msg.Signer)
+	if txErr != nil {
+		ctx.Logger().Error("fail to process native inbound tx", "error", txErr.Error(), "tx hash", tx.ID.String())
+		if txIn.Tx.Coins.IsEmpty() {
+			return &cosmos.Result{}, nil
+		}
+		if newErr := refundTx(ctx, txIn, h.mgr, CodeInvalidMemo, txErr.Error(), targetModule); nil != newErr {
+			return nil, newErr
+		}
+
+		return &cosmos.Result{}, nil
+	}
+
+	// check if we've halted trading
+	_, isSwap := m.(*MsgSwap)
+	_, isAddLiquidity := m.(*MsgAddLiquidity)
+	if isSwap || isAddLiquidity {
+		if h.mgr.Keeper().IsTradingHalt(ctx, m) || h.mgr.Keeper().RagnarokInProgress(ctx) {
+			if txIn.Tx.Coins.IsEmpty() {
+				return &cosmos.Result{}, nil
+			}
+			if newErr := refundTx(ctx, txIn, h.mgr, se.ErrUnauthorized.ABCICode(), "trading halted", targetModule); nil != newErr {
+				return nil, ErrInternal(newErr, "trading is halted, fail to refund")
+			}
+			return &cosmos.Result{}, nil
+		}
+	}
+
+	// if its a swap, send it to our queue for processing later
+	if isSwap {
+		msg, ok := m.(*MsgSwap)
+		if ok {
+			h.addSwap(ctx, *msg)
+		}
+		return &cosmos.Result{}, nil
+	}
+
+	// if it is a loan, inject the TxID and ToAddress into the context
+	_, isLoanOpen := m.(*MsgLoanOpen)
+	_, isLoanRepayment := m.(*MsgLoanRepayment)
+	mCtx := ctx
+	if isLoanOpen || isLoanRepayment {
+		mCtx = ctx.WithValue(constants.CtxLoanTxID, txIn.Tx.ID)
+		mCtx = mCtx.WithValue(constants.CtxLoanToAddress, txIn.Tx.ToAddress)
+	}
+
+	result, err := handler(mCtx, m)
+	if err != nil {
+		code := uint32(1)
+		var e se.Error
+		if errors.As(err, &e) {
+			code = e.ABCICode()
+		}
+		if txIn.Tx.Coins.IsEmpty() {
+			return &cosmos.Result{}, nil
+		}
+		if err := refundTx(ctx, txIn, h.mgr, code, err.Error(), targetModule); err != nil {
+			return nil, fmt.Errorf("fail to refund tx: %w", err)
+		}
+		return &cosmos.Result{}, nil
+	}
+	// for those Memo that will not have outbound at all , set the observedTx to done
+	if !memo.GetType().HasOutbound() {
+		txInVoter.SetDone()
+		h.mgr.Keeper().SetObservedTxInVoter(ctx, txInVoter)
+	}
+	return result, nil
+}
+
 func (h DepositHandler) handleV112(ctx cosmos.Context, msg MsgDeposit) (*cosmos.Result, error) {
 	if h.mgr.Keeper().IsChainHalted(ctx, common.THORChain) {
 		return nil, fmt.Errorf("unable to use MsgDeposit while THORChain is halted")
