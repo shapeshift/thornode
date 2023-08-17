@@ -613,9 +613,6 @@ paths:
         - TSS
       responses: *keysign-response
 
-  # TODO: Deprecate?
-  # /thorchain/keygen/{height}/{pubkey}:
-
   # ------------------------------ tss metrics ------------------------------
 
   /thorchain/metrics:
@@ -2072,26 +2069,38 @@ components:
       type: object
       required:
         - asset
-        - outbound
-        # TODO: require after migrating all quotes to new fee format
-        # - liquidity
+        - liquidity
+        - total
+        - slippage_bps
+        - total_bps
       properties:
         asset:
           type: string
           example: "ETH.ETH"
+          description: the target asset used for all fees
         affiliate:
           type: string
           example: "1234"
+          description: affiliate fee in the target asset
         outbound:
           type: string
           example: "1234"
+          description: outbound fee in the target asset
         liquidity:
           type: string
           example: "1234"
-          description: liquidity fees paid to pools
-        total_bps:
+          description: liquidity fees paid to pools in the target asset
+        total:
           type: string
-          example: "500"
+          example: "9876"
+          description: total fees in the target asset
+        slippage_bps:
+          type: integer
+          format: int64
+          description: the swap slippage in basis points
+        total_bps:
+          type: integer
+          format: int64
           description: total basis points in fees relative to amount out
 
     # ------------------------------ responses ------------------------------
@@ -2772,11 +2781,11 @@ components:
         slippage_bps:
           type: integer
           format: int64
-          description: the total swap slippage in basis points
+          description: Deprecated - migrate to fees object.
         streaming_slippage_bps:
           type: integer
           format: int64
-          description: the total streaming swap slippage in basis points
+          description: Deprecated - migrate to fees object.
         router:
           type: string
           description: the EVM chain router contract address
@@ -2828,7 +2837,7 @@ components:
           example: "10000"
         expected_amount_out_streaming:
           type: string
-          description: the amount of the target asset the user can expect to receive after fees for a streaming swap
+          description: Deprecated - expected_amount_out is streaming amount if interval provided.
           example: "10000"
         max_streaming_quantity:
           type: integer

@@ -204,9 +204,11 @@ asserts:
   - .expected_collateralization_ratio|tonumber == 10000
   - .expected_debt_issued|tonumber == 490110000
   - .recommended_min_amount_in == "56000"
+  - .fees.slippage_bps|tonumber == 149
   - .fees.total_bps|tonumber == 188
   - .fees.outbound|tonumber == 2000000
   - .fees.liquidity|tonumber == 7291237
+  - (.fees.total|tonumber) == (.fees.liquidity|tonumber)+(.fees.outbound|tonumber)
 ---
 type: check
 description: no derived btc should exist
@@ -299,8 +301,10 @@ asserts:
   - .expected_debt_issued|tonumber == 485310000
   - .recommended_min_amount_in == "517152"
   - .fees.total_bps|tonumber == 2831
+  - .fees.slippage_bps|tonumber == 195
   - .fees.outbound|tonumber == 1280000
   - .fees.liquidity|tonumber == 94606
+  - (.fees.total|tonumber) == (.fees.liquidity|tonumber)+(.fees.outbound|tonumber)
 ---
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
@@ -467,7 +471,11 @@ asserts:
   - .memo == "$-:BTC.BTC:{{ addr_btc_fox }}"
   - .expected_collateral_withdrawn|tonumber == 0
   - .expected_debt_repaid|tonumber == 495021900
+  - .fees.total_bps|tonumber == 50
+  - .fees.slippage_bps|tonumber == 50
+  - .fees.outbound|not
   - .fees.liquidity|tonumber == 2525
+  - .fees.total|tonumber == 2525
 ---
 type: tx-deposit
 signer: {{ addr_thor_fox }}
@@ -514,8 +522,10 @@ asserts:
   - .expected_collateral_withdrawn|tonumber == 989774
   - .expected_debt_repaid|tonumber == 4180150193
   - .fees.total_bps|tonumber == 4941
+  - .fees.slippage_bps|tonumber == 1118
   - .fees.outbound|tonumber == 14000
   - .fees.liquidity|tonumber == 448687
+  - (.fees.total|tonumber) == (.fees.liquidity|tonumber)+(.fees.outbound|tonumber)
 ---
 type: tx-observed-in
 signer: {{ addr_thor_dog }}

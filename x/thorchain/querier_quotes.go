@@ -176,7 +176,9 @@ func quoteReverseFuzzyAsset(ctx cosmos.Context, mgr *Mgrs, asset common.Asset) (
 	return asset, nil
 }
 
-func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgSwap) (res *openapi.QuoteSwapResponse, emitAmount, outboundFeeAmount sdk.Uint, err error) {
+func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgSwap) (
+	res *openapi.QuoteSwapResponse, emitAmount, outboundFeeAmount sdk.Uint, err error,
+) {
 	// if the generated memo is too long for the source chain send error
 	maxMemoLength := msg.Tx.Coins[0].Asset.Chain.MaxMemoLength()
 	if maxMemoLength > 0 && len(msg.Tx.Memo) > maxMemoLength {
@@ -243,14 +245,36 @@ func quoteSimulateSwap(ctx cosmos.Context, mgr *Mgrs, amount sdk.Uint, msg *MsgS
 		slippageBps = slippageBps.Add(sdk.NewUintFromString(s["swap_slip"]))
 	}
 
+	// sum the liquidity fees and covert to target asset
+	liquidityFee := sdk.ZeroUint()
+	for _, s := range swaps {
+		liquidityFee = liquidityFee.Add(sdk.NewUintFromString(s["liquidity_fee_in_rune"]))
+	}
+	if !msg.TargetAsset.IsNativeRune() {
+		pool, err := mgr.Keeper().GetPool(ctx, msg.TargetAsset.GetLayer1Asset())
+		if err != nil {
+			return nil, sdk.ZeroUint(), sdk.ZeroUint(), fmt.Errorf("unable to get pool: %w", err)
+		}
+		liquidityFee = pool.RuneValueInAsset(liquidityFee)
+	}
+
+	// build fees
+	totalFees := affiliateFee.Add(liquidityFee).Add(outboundFeeAmount)
+	fees := openapi.QuoteFees{
+		Asset:       msg.TargetAsset.String(),
+		Affiliate:   wrapString(affiliateFee.String()),
+		Liquidity:   liquidityFee.String(),
+		Outbound:    wrapString(outboundFeeAmount.String()),
+		Total:       totalFees.String(),
+		SlippageBps: slippageBps.BigInt().Int64(),
+		TotalBps:    totalFees.MulUint64(10000).Quo(emitAmount.Add(totalFees)).BigInt().Int64(),
+	}
+
 	// build response from simulation result events
 	return &openapi.QuoteSwapResponse{
 		ExpectedAmountOut: emitAmount.String(),
-		Fees: openapi.QuoteFees{
-			Asset:     msg.TargetAsset.String(),
-			Affiliate: wrapString(affiliateFee.String()),
-			Outbound:  "0", // set by the caller if non-zero
-		},
+		Fees:              fees,
+		// TODO: notify clients to migrate to fees object and deprecate
 		SlippageBps: slippageBps.BigInt().Int64(),
 	}, emitAmount, outboundFeeAmount, nil
 }
@@ -585,32 +609,30 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 		streamingQuantity = maxSwapQuantity
 	}
 	res.StreamingSlippageBps = res.SlippageBps
-	emitAmountStream := emitAmount
 	if streamingInterval > 0 && streamingQuantity > 0 {
 		msg.Tx.Coins[0].Amount = msg.Tx.Coins[0].Amount.QuoUint64(streamingQuantity)
 
 		// simulate the swap
-		streamRes, emit, outboundFeeAmount, err := quoteSimulateSwap(ctx, mgr, amount, msg)
+		var streamRes *openapi.QuoteSwapResponse
+		var emit sdk.Uint
+		streamRes, emit, _, err = quoteSimulateSwap(ctx, mgr, amount, msg)
 		if err != nil {
 			return quoteErrorResponse(fmt.Errorf("failed to simulate swap: %w", err))
 		}
 		res.StreamingSlippageBps = streamRes.SlippageBps
+		res.Fees = streamRes.Fees
 
-		// multiply the amounts by the number of swaps we have in our streaming
-		// swap
-		emitAmountStream = emit.MulUint64(streamingQuantity)
-		// check invariant
-		if emitAmountStream.LT(outboundFeeAmount) {
-			return quoteErrorResponse(fmt.Errorf("invariant broken: emit %s less than outbound fee %s", emitAmount, outboundFeeAmount))
-		}
-	} else if emitAmount.LT(outboundFeeAmount) {
+		// multiply the amounts by the number of swaps we have in our streaming swap
+		emitAmount = emit.MulUint64(streamingQuantity)
+	}
+
+	// check invariant
+	if emitAmount.LT(outboundFeeAmount) {
 		return quoteErrorResponse(fmt.Errorf("invariant broken: emit %s less than outbound fee %s", emitAmount, outboundFeeAmount))
 	}
 
 	// the amount out will deduct the outbound fee
 	res.ExpectedAmountOut = emitAmount.Sub(outboundFeeAmount).String()
-	res.ExpectedAmountOutStreaming = emitAmountStream.Sub(outboundFeeAmount).String()
-	res.Fees.Outbound = outboundFeeAmount.String()
 
 	maxQ := int64(maxSwapQuantity)
 	res.MaxStreamingQuantity = &maxQ
@@ -915,7 +937,7 @@ func queryQuoteSaverWithdraw(ctx cosmos.Context, path []string, req abci.Request
 	}
 
 	// the amount out will deduct the outbound fee
-	swapRes.Fees.Outbound = outboundFeeAmount.String()
+	swapRes.Fees.Outbound = wrapString(outboundFeeAmount.String())
 
 	// use the swap result info to generate the withdraw quote
 	res := &openapi.QuoteSaverWithdrawResponse{
@@ -1110,6 +1132,7 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 	// sum liquidity fees in rune from all swap events
 	outboundFee := sdk.ZeroUint()
 	liquidityFee := sdk.ZeroUint()
+	slippageBps := sdk.ZeroUint()
 	affiliateFee := sdk.ZeroUint()
 	expectedAmountOut := sdk.ZeroUint()
 
@@ -1185,6 +1208,9 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 				if string(attr.Key) == "liquidity_fee_in_rune" {
 					liquidityFee = liquidityFee.Add(sdk.NewUintFromString(string(attr.Value)))
 				}
+				if string(attr.Key) == "swap_slip" {
+					slippageBps = slippageBps.Add(sdk.NewUintFromString(string(attr.Value)))
+				}
 			}
 
 		// extract loan data from loan open event
@@ -1216,7 +1242,7 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 					if err != nil {
 						return quoteErrorResponse(fmt.Errorf("failed to parse coin: %w", err))
 					}
-					res.Fees.Outbound = coin.Amount.String() // already in target asset
+					res.Fees.Outbound = wrapString(coin.Amount.String()) // already in target asset
 					res.Fees.Asset = coin.Asset.String()
 					outboundFee = coin.Amount
 
@@ -1239,9 +1265,11 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 	}
 
 	// set fee info
-	res.Fees.Liquidity = wrapString(liquidityFee.String())
+	res.Fees.Liquidity = liquidityFee.String()
 	totalFees := liquidityFee.Add(outboundFee).Add(affiliateFee)
-	res.Fees.TotalBps = wrapString(totalFees.MulUint64(10000).Quo(expectedAmountOut.Add(totalFees)).String())
+	res.Fees.Total = totalFees.String()
+	res.Fees.SlippageBps = slippageBps.BigInt().Int64()
+	res.Fees.TotalBps = totalFees.MulUint64(10000).Quo(expectedAmountOut.Add(totalFees)).BigInt().Int64()
 	if !affiliateFee.IsZero() {
 		res.Fees.Affiliate = wrapString(affiliateFee.String())
 	}
@@ -1390,6 +1418,7 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 	// sum liquidity fees in rune from all swap events
 	outboundFee := sdk.ZeroUint()
 	liquidityFee := sdk.ZeroUint()
+	slippageBps := sdk.ZeroUint()
 	affiliateFee := sdk.ZeroUint()
 	expectedAmountOut := sdk.ZeroUint()
 
@@ -1457,6 +1486,9 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 				if string(attr.Key) == "liquidity_fee_in_rune" {
 					liquidityFee = liquidityFee.Add(sdk.NewUintFromString(string(attr.Value)))
 				}
+				if string(attr.Key) == "swap_slip" {
+					slippageBps = slippageBps.Add(sdk.NewUintFromString(string(attr.Value)))
+				}
 			}
 
 		// extract loan data from loan close event
@@ -1486,7 +1518,7 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 					if err != nil {
 						return quoteErrorResponse(fmt.Errorf("failed to parse coin: %w", err))
 					}
-					res.Fees.Outbound = coin.Amount.String() // already in collateral asset
+					res.Fees.Outbound = wrapString(coin.Amount.String()) // already in collateral asset
 					res.Fees.Asset = coin.Asset.String()
 					outboundFee = coin.Amount
 
@@ -1507,10 +1539,14 @@ func queryQuoteLoanClose(ctx cosmos.Context, path []string, req abci.RequestQuer
 	liquidityFee = loanPool.RuneValueInAsset(liquidityFee)
 
 	// set fee info
-	res.Fees.Liquidity = wrapString(liquidityFee.String())
+	res.Fees.Liquidity = liquidityFee.String()
 	totalFees := liquidityFee.Add(outboundFee).Add(affiliateFee)
+	res.Fees.Total = totalFees.String()
+	res.Fees.SlippageBps = slippageBps.BigInt().Int64()
 	if !expectedAmountOut.IsZero() {
-		res.Fees.TotalBps = wrapString(totalFees.MulUint64(10000).Quo(expectedAmountOut).String())
+		res.Fees.TotalBps = totalFees.MulUint64(10000).Quo(expectedAmountOut).BigInt().Int64()
+	} else {
+		res.Fees.TotalBps = res.Fees.SlippageBps
 	}
 	if !affiliateFee.IsZero() {
 		res.Fees.Affiliate = wrapString(affiliateFee.String())
