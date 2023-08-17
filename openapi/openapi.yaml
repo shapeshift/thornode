@@ -230,40 +230,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/TxDetailsResponse"
 
-  /thorchain/alpha/tx/stages/{hash}:
-    parameters:
-      - $ref: "#/components/parameters/queryHeight"
-      - $ref: "#/components/parameters/hash"
-    get:
-      description: Returns the processing stages of a provided inbound hash.
-      operationId: txStages
-      tags:
-        - Transactions
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TxStagesResponse"
-
-  /thorchain/alpha/tx/status/{hash}:
-    parameters:
-      - $ref: "#/components/parameters/queryHeight"
-      - $ref: "#/components/parameters/hash"
-    get:
-      description: Returns the status of a provided inbound hash.
-      operationId: txStatus
-      tags:
-        - Transactions
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TxStatusResponse"
-
   # ------------------------------ nodes ------------------------------
 
   /thorchain/node/{address}:
@@ -2238,17 +2204,27 @@ components:
       type: object
       required:
         - inbound_observed
-        - inbound_finalised
       properties:
         inbound_observed:
           type: object
           required:
+            - final_observations
             - completed
           properties:
             started:
               type: boolean
               example: false
-              description: returns true if any nodes have observed the transaction
+              description: returns true if any nodes have observed the transaction (to be deprecated in favour of counts)
+            pre_confirmation_count:
+              type: integer
+              format: uint64
+              example: 80
+              description: number of signers for pre-confirmation-counting observations
+            final_count:
+              type: integer
+              format: uint64
+              example: 80
+              description: number of signers for final observations, after any confirmation counting complete
             completed:
               type: boolean
               example: false
@@ -2295,6 +2271,34 @@ components:
               type: boolean
               example: false
               description: returns true if the inbound transaction has been finalised (THORChain agreeing it exists)
+        swap_status:
+          type: object
+          required:
+            - pending
+          properties:
+            pending:
+              type: boolean
+              example: false
+              description: true when awaiting a swap
+            streaming:
+              type: object
+              required:
+                - interval
+                - quantity
+                - count
+              properties:
+                interval:
+                  type: integer
+                  format: uint64
+                  description: how often each swap is made, in blocks
+                quantity:
+                  type: integer
+                  format: uint64
+                  description: the total number of swaps in a streaming swaps
+                count:
+                  type: integer
+                  format: uint64
+                  description: the amount of swap attempts so far
         swap_finalised:
           type: object
           required:
@@ -2303,7 +2307,7 @@ components:
             completed:
               type: boolean
               example: false
-              description: returns true if an inbound transaction's swap (successful or refunded) is no longer pending
+              description: (to be deprecated in favor of swap_status) returns true if an inbound transaction's swap (successful or refunded) is no longer pending
         outbound_delay:
           type: object
           required:

@@ -44,8 +44,6 @@ var (
 	QueryTx                  = Query{Key: "tx", EndpointTemplate: "/%s/tx/{%s}"}
 	QueryTxVoterOld          = Query{Key: "txvoterold", EndpointTemplate: "/%s/tx/{%s}/signers"}
 	QueryTxVoter             = Query{Key: "txvoter", EndpointTemplate: "/%s/tx/details/{%s}"}
-	QueryAlphaTxStages       = Query{Key: "txstages", EndpointTemplate: "/%s/alpha/tx/stages/{%s}"}
-	QueryAlphaTxStatus       = Query{Key: "txstatus", EndpointTemplate: "/%s/alpha/tx/status/{%s}"}
 	QueryTxStages            = Query{Key: "txstages", EndpointTemplate: "/%s/tx/stages/{%s}"}
 	QueryTxStatus            = Query{Key: "txstatus", EndpointTemplate: "/%s/tx/status/{%s}"}
 	QueryKeysignArray        = Query{Key: "keysign", EndpointTemplate: "/%s/keysign/{%s}"}
@@ -105,8 +103,6 @@ var Queries = []Query{
 	QuerySaver,
 	QueryBorrowers,
 	QueryBorrower,
-	QueryAlphaTxStages,
-	QueryAlphaTxStatus,
 	QueryTxStages,
 	QueryTxStatus,
 	QueryTxVoter,

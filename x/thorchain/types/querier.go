@@ -328,9 +328,12 @@ func NewQueryTxOutItem(toi TxOutItem, height int64) QueryTxOutItem {
 	}
 }
 
+// TODO: Deprecate InboundObserved.Started field in favour of the observation counting.
 type InboundObservedStage struct {
-	Started   *bool `json:"started,omitempty"`
-	Completed bool  `json:"completed"`
+	Started              *bool  `json:"started,omitempty"`
+	PreConfirmationCount uint64 `json:"pre_confirmation_count,omitempty"`
+	FinalCount           uint64 `json:"final_count"`
+	Completed            bool   `json:"completed"`
 }
 
 // Querier context contains the query's provided height, but not the full block context,
@@ -348,6 +351,25 @@ type DoneStage struct {
 	Completed bool `json:"completed"`
 }
 
+type StreamingStatus struct {
+	Interval uint64 `json:"interval"`
+	Quantity uint64 `json:"quantity"`
+	Count    uint64 `json:"count"`
+}
+
+func NewStreamingStatus(streamingSwap StreamingSwap) StreamingStatus {
+	return StreamingStatus{
+		Interval: streamingSwap.Interval,
+		Quantity: streamingSwap.Quantity,
+		Count:    streamingSwap.Count,
+	}
+}
+
+type SwapStatus struct {
+	Pending   bool             `json:"pending"`
+	Streaming *StreamingStatus `json:"streaming,omitempty"`
+}
+
 type OutboundDelayStage struct {
 	RemainingDelayBlocks  *int64 `json:"remaining_delay_blocks,omitempty"`
 	RemainingDelaySeconds *int64 `json:"remaining_delay_seconds,omitempty"`
@@ -360,32 +382,61 @@ type OutboundSignedStage struct {
 	Completed               bool   `json:"completed"`
 }
 
+// TODO: Deprecate SwapFinalised field in favour of SwapStatus.
 type QueryTxStages struct {
 	// Pointers so that the omitempty can recognise 'nil'.
 	// Structs used for all stages for easier user looping through 'Completed' fields.
 	InboundObserved            InboundObservedStage             `json:"inbound_observed"`
 	InboundConfirmationCounted *InboundConfirmationCountedStage `json:"inbound_confirmation_counted,omitempty"`
-	InboundFinalised           DoneStage                        `json:"inbound_finalised"`
+	InboundFinalised           *DoneStage                       `json:"inbound_finalised,omitempty"`
+	SwapStatus                 *SwapStatus                      `json:"swap_status,omitempty"`
 	SwapFinalised              *DoneStage                       `json:"swap_finalised,omitempty"`
 	OutboundDelay              *OutboundDelayStage              `json:"outbound_delay,omitempty"`
 	OutboundSigned             *OutboundSignedStage             `json:"outbound_signed,omitempty"`
 }
 
-func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter, isSwap, isPending bool) QueryTxStages {
-	var result QueryTxStages
+// Get the largest number of signers for a not-final (pre-confirmation-counting) and final Txs respectively.
+func countSigners(voter ObservedTxVoter) (notFinalCount, finalCount uint64) {
+	for i, refTx := range voter.Txs {
+		signersMap := make(map[string]bool)
+		final := refTx.IsFinal()
+		for f, tx := range voter.Txs {
+			// Earlier Txs already checked against all, so no need to check.
+			if f <= i {
+				continue
+			}
+			// Count larger number of signers for not-final and final observations separately.
+			if tx.IsFinal() != final {
+				continue
+			}
+			if !refTx.Tx.EqualsEx(tx.Tx) {
+				continue
+			}
 
-	// Set the Completed state first.
-	result.InboundObserved.Completed = !voter.Tx.IsEmpty()
-	// Only fill in other fields if not Completed.
-	if !result.InboundObserved.Completed {
-		var obStart bool
-		result.InboundObserved.Started = &obStart
-		if len(voter.Txs) == 0 {
-			obStart = false
-			// Since observation not started, end directly.
-			return result
+			for _, signer := range tx.GetSigners() {
+				signersMap[signer.String()] = true
+			}
 		}
-		obStart = true
+		if final && uint64(len(signersMap)) > finalCount {
+			finalCount = uint64(len(signersMap))
+		} else if uint64(len(signersMap)) > notFinalCount {
+			notFinalCount = uint64(len(signersMap))
+		}
+	}
+	return
+}
+
+// TODO: Remove isSwap and isPending arguments when SwapFinalised deprecated.
+// TODO: Deprecate InboundObserved.Started field in favour of the observation counting.
+func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter, isSwap, isPending, pending bool, streamingSwap StreamingSwap) (result QueryTxStages) {
+	result.InboundObserved.PreConfirmationCount, result.InboundObserved.FinalCount = countSigners(voter)
+	result.InboundObserved.Completed = !voter.Tx.IsEmpty()
+
+	// If not Completed, fill in Started and do not proceed.
+	if !result.InboundObserved.Completed {
+		obStart := (len(voter.Txs) == 0)
+		result.InboundObserved.Started = &obStart
+		return result
 	}
 
 	// Current block height is relevant in the confirmation counting and outbound stages.
@@ -420,8 +471,18 @@ func NewQueryTxStages(ctx cosmos.Context, voter ObservedTxVoter, isSwap, isPendi
 		result.InboundConfirmationCounted = &confCount
 	}
 
-	// InboundFinalised is always displayed, default Completed state false.
-	result.InboundFinalised.Completed = (voter.FinalisedHeight != 0)
+	var inboundFinalised DoneStage
+	inboundFinalised.Completed = (voter.FinalisedHeight != 0)
+	result.InboundFinalised = &inboundFinalised
+
+	var swapStatus SwapStatus
+	swapStatus.Pending = pending
+	// Only display the SwapStatus stage's Streaming field when there's streaming information available.
+	if streamingSwap.Valid() == nil {
+		streaming := NewStreamingStatus(streamingSwap)
+		swapStatus.Streaming = &streaming
+	}
+	result.SwapStatus = &swapStatus
 
 	// Whether there's an external outbound or not, show the SwapFinalised stage from the start.
 	if isSwap {
@@ -511,7 +572,8 @@ type QueryTxStatus struct {
 	Stages        QueryTxStages       `json:"stages"`
 }
 
-func NewQueryTxStatus(ctx cosmos.Context, voter ObservedTxVoter, isSwap, isPending bool) QueryTxStatus {
+// TODO: Remove isSwap and isPending arguments when SwapFinalised deprecated.
+func NewQueryTxStatus(ctx cosmos.Context, voter ObservedTxVoter, isSwap, isPending, pending bool, streamingSwap StreamingSwap) QueryTxStatus {
 	var result QueryTxStatus
 
 	// If there's a consensus Tx, display that.
@@ -529,7 +591,7 @@ func NewQueryTxStatus(ctx cosmos.Context, voter ObservedTxVoter, isSwap, isPendi
 	// If there are no voter OutTxs yet, result OutTxs will stay empty and not be displayed.
 	result.OutTxs = voter.OutTxs
 
-	result.Stages = NewQueryTxStages(ctx, voter, isSwap, isPending)
+	result.Stages = NewQueryTxStages(ctx, voter, isSwap, isPending, pending, streamingSwap)
 
 	return result
 }

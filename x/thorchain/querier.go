@@ -19,6 +19,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/constants"
 	openapi "gitlab.com/thorchain/thornode/openapi/gen"
+	"gitlab.com/thorchain/thornode/x/thorchain/keeper"
 	q "gitlab.com/thorchain/thornode/x/thorchain/query"
 	"gitlab.com/thorchain/thornode/x/thorchain/types"
 )
@@ -153,14 +154,29 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 	}
 }
 
-func checkPending(ctx cosmos.Context, mgr *Mgrs, voter ObservedTxVoter) (bool, bool) {
-	isSwap := false
-	isPending := false
+// TODO: Remove isSwap and isPending code when SwapFinalised field deprecated.
+func checkPending(ctx cosmos.Context, keeper keeper.Keeper, voter ObservedTxVoter) (isSwap, isPending, pending bool, streamingSwap StreamingSwap) {
+	// If there's no (confirmation-counting-complete) consensus transaction yet, don't spend time checking the swap status.
+	if voter.Tx.IsEmpty() || !voter.Tx.IsFinal() {
+		return
+	}
 
-	memo, err := ParseMemo(mgr.GetVersion(), voter.Tx.Tx.Memo)
+	pending = keeper.HasSwapQueueItem(ctx, voter.TxID, 0) || keeper.HasOrderBookItem(ctx, voter.TxID)
+
+	// Only look for streaming information when a swap is pending.
+	if pending {
+		var err error
+		streamingSwap, err = keeper.GetStreamingSwap(ctx, voter.TxID)
+		if err != nil {
+			// Log the error, but continue without streaming information.
+			ctx.Logger().Error("fail to get streaming swap", "error", err)
+		}
+	}
+
+	memo, err := ParseMemoWithTHORNames(ctx, keeper, voter.Tx.Tx.Memo)
 	if err != nil {
 		// If unable to parse, assume not a (valid) swap or limit order memo.
-		return isSwap, isPending
+		return
 	}
 
 	memoType := memo.GetType()
@@ -173,11 +189,11 @@ func checkPending(ctx cosmos.Context, mgr *Mgrs, voter ObservedTxVoter) (bool, b
 		// such as the output being not enough to cover a fee.
 		if voter.FinalisedHeight != 0 && len(voter.Actions) == 0 {
 			// Use of Swap Queue or Order Book depends on Mimir key EnableOrderBooks rather than memo type, so check both.
-			isPending = mgr.Keeper().HasSwapQueueItem(ctx, voter.TxID, 0) || mgr.Keeper().HasOrderBookItem(ctx, voter.TxID)
+			isPending = pending
 		}
 	}
 
-	return isSwap, isPending
+	return
 }
 
 func getPeerIDFromPubKey(pubkey common.PubKey) string {
@@ -1297,9 +1313,9 @@ func queryTxStages(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 	// when no TxIn voter don't check TxOut voter, as TxOut THORChain observation or not matters little to the user once signed and broadcast
 	// Rather than a "tx: %s doesn't exist" result, allow a response to an existing-but-unobserved hash with Observation.Started 'false'.
 
-	isSwap, isPending := checkPending(ctx, mgr, voter)
+	isSwap, isPending, pending, streamingSwap := checkPending(ctx, mgr.Keeper(), voter)
 
-	result := NewQueryTxStages(ctx, voter, isSwap, isPending)
+	result := NewQueryTxStages(ctx, voter, isSwap, isPending, pending, streamingSwap)
 
 	return jsonify(ctx, result)
 }
@@ -1313,9 +1329,9 @@ func queryTxStatus(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr
 	// when no TxIn voter don't check TxOut voter, as TxOut THORChain observation or not matters little to the user once signed and broadcast
 	// Rather than a "tx: %s doesn't exist" result, allow a response to an existing-but-unobserved hash with Stages.Observation.Started 'false'.
 
-	isSwap, isPending := checkPending(ctx, mgr, voter)
+	isSwap, isPending, pending, streamingSwap := checkPending(ctx, mgr.Keeper(), voter)
 
-	result := NewQueryTxStatus(ctx, voter, isSwap, isPending)
+	result := NewQueryTxStatus(ctx, voter, isSwap, isPending, pending, streamingSwap)
 
 	return jsonify(ctx, result)
 }
