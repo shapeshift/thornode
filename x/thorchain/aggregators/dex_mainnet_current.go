@@ -71,5 +71,9 @@ func DexAggregatorsV120() []Aggregator {
 		{common.ETHChain, `0xaD545d047E34862121695F8E37aeEB71324a9E78`, 500_000},
 		// SquidRouter MultiCall Ethereum
 		{common.ETHChain, `0x4fd39C9E151e50580779bd04B1f7eCc310079fd3`, 800_000},
+		// TSAggregatorStargate Ethereum gen2 V2
+		{common.ETHChain, `0x48f68ff093b3b3A80D2FC97488EaD97E16b86283`, 800_000},
+		// TSAggregatorUniswapV2 Ethereum gen2 V2.5 - tax tokens
+		{common.ETHChain, `0x0fA226e8BCf45ec2f3c3163D2d7ba0d2aAD2eBcF`, 800_000},
 	}
 }
