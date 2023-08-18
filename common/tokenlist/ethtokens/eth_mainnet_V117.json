@@ -5,22 +5,6 @@
   "keywords": ["1inch", "default", "list"],
   "tokens": [
     {
-      "address": "0xf819d9Cb1c2A819Fd991781A822dE3ca8607c3C9",
-      "chainId": 1,
-      "name": "Unibot",
-      "symbol": "UNIBOT",
-      "decimals": 18,
-      "logoURI": "https://etherscan.io/token/images/unibot_32.png"
-    },
-    {
-      "address": "0x6fA5E1c43b5a466CBD1CAe7993B67C982400d481",
-      "chainId": 1,
-      "name": "CoinBot",
-      "symbol": "COINBT",
-      "decimals": 18,
-      "logoURI": "https://pbs.twimg.com/profile_images/1686114809052344321/szVc9Wbh_400x400.jpg"
-    },
-    {
       "address": "0x6982508145454Ce325dDbE47a25d4ec3d2311933",
       "chainId": 1,
       "name": "Pepe",
