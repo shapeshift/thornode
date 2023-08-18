@@ -7,14 +7,20 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
-func DexAggregatorsV120() []Aggregator {
+func DexAggregatorsV117() []Aggregator {
 	return []Aggregator{
 		// TSAggregatorPancakeSwap Ethereum V2
 		{common.ETHChain, `0x35CF22003c90126528fbe95b21bB3ADB2ca8c53D`, 400_000},
 		// TSAggregatorWoofi Avalanche V2
 		{common.AVAXChain, `0x5505BE604dFA8A1ad402A71f8A357fba47F9bf5a`, 400_000},
+		// TSSwapGeneric Avalanche V2
+		{common.AVAXChain, `0x77b34A3340eDdD56799749be4Be2c322547E2428`, 400_000},
+		// TSSwapGeneric Ethereum V2
+		{common.ETHChain, `0x213255345a740324cbCE0242e32076Ab735906e2`, 400_000},
 		// TSAggregatorGeneric
 		{common.ETHChain, `0xd31f7e39afECEc4855fecc51b693F9A0Cec49fd2`, 400_000},
+		// TSAggregator2LegUniswapV2 USDC
+		{common.ETHChain, `0x3660dE6C56cFD31998397652941ECe42118375DA`, 400_000},
 		// RangoThorchainOutputAggUniV2
 		{common.ETHChain, `0x2a7813412b8da8d18Ce56FE763B9eb264D8e28a8`, 400_000},
 		// RangoThorchainOutputAggUniV3
@@ -59,7 +65,7 @@ func DexAggregatorsV120() []Aggregator {
 		{common.BSCChain, `0xB6fA6f1DcD686F4A573Fd243a6FABb4ba36Ba98c`, 400_000},
 		// TSAggregatorPancakeV2 BinanceSmartChain
 		{common.BSCChain, `0x30912B38618D3D37De3191A4FFE982C65a9aEC2E`, 400_000},
-		// TSAggregatorStargate Ethereum gen2 V1
+		// TSAggregatorStargate Ethereum gen2
 		{common.ETHChain, `0x1204b5Bf0D6d48E718B1d9753A4166A7258B8432`, 800_000},
 		// LayerZero Executor Ethereum
 		{common.ETHChain, `0xe93685f3bBA03016F02bD1828BaDD6195988D950`, 800_000},
