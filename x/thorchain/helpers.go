@@ -1260,6 +1260,8 @@ func isActionsItemDangling(voter ObservedTxVoter, i int) bool {
 func triggerPreferredAssetSwap(ctx cosmos.Context, mgr Manager, affiliateAddress common.Address, txID common.TxID, tn THORName, affcol AffiliateFeeCollector, queueIndex int) error {
 	version := mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.120.0")):
+		return triggerPreferredAssetSwapV120(ctx, mgr, affiliateAddress, txID, tn, affcol, queueIndex)
 	case version.GTE(semver.MustParse("1.116.0")):
 		return triggerPreferredAssetSwapV116(ctx, mgr, affiliateAddress, txID, tn, affcol, queueIndex)
 	default:
@@ -1267,18 +1269,7 @@ func triggerPreferredAssetSwap(ctx cosmos.Context, mgr Manager, affiliateAddress
 	}
 }
 
-func triggerPreferredAssetSwapV116(ctx cosmos.Context, mgr Manager, affiliateAddress common.Address, txID common.TxID, tn THORName, affcol AffiliateFeeCollector, queueIndex int) error {
-	affAccAddress, err := affiliateAddress.AccAddress()
-	if err != nil {
-		return fmt.Errorf("can't get affiliate acc address")
-	}
-
-	// Ensure the AffiliateAddress = the THORName Owner because RUNE is associated with
-	// the THOR alias of a THORName in the AffiliateCollector.
-	if !tn.Owner.Equals(affAccAddress) {
-		return fmt.Errorf("AffiliateAddress is not THORName owner, can't trigger preferred asset swap")
-	}
-
+func triggerPreferredAssetSwapV120(ctx cosmos.Context, mgr Manager, affiliateAddress common.Address, txID common.TxID, tn THORName, affcol AffiliateFeeCollector, queueIndex int) error {
 	// Check that the THORName has an address alias for the PreferredAsset, if not skip
 	// the swap
 	alias := tn.GetAlias(tn.PreferredAsset.GetChain())
@@ -1286,10 +1277,16 @@ func triggerPreferredAssetSwapV116(ctx cosmos.Context, mgr Manager, affiliateAdd
 		return fmt.Errorf("no alias for preferred asset, skip preferred asset swap: %s", tn.Name)
 	}
 
-	// Execute the PreferredAsset swap
+	// Sanity check: don't swap 0 amount
 	if affcol.RuneAmount.IsZero() {
 		return fmt.Errorf("can't execute preferred asset swap, accured RUNE amount is zero")
 	}
+	// Sanity check: ensure the swap amount isn't more than the entire AffiliateCollector module
+	acBalance := mgr.Keeper().GetRuneBalanceOfModule(ctx, AffiliateCollectorName)
+	if affcol.RuneAmount.GT(acBalance) {
+		return fmt.Errorf("rune amount greater than module balance: (%s/%s)", affcol.RuneAmount.String(), acBalance.String())
+	}
+
 	affRune := affcol.RuneAmount
 	affCoin := common.NewCoin(common.RuneAsset(), affRune)
 
