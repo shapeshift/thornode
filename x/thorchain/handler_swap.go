@@ -45,6 +45,8 @@ func (h SwapHandler) Run(ctx cosmos.Context, m cosmos.Msg) (*cosmos.Result, erro
 func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	version := h.mgr.GetVersion()
 	switch {
+	case version.GTE(semver.MustParse("1.120.0")):
+		return h.validateV120(ctx, msg)
 	case version.GTE(semver.MustParse("1.117.0")):
 		return h.validateV117(ctx, msg)
 	case version.GTE(semver.MustParse("1.116.0")):
@@ -70,7 +72,7 @@ func (h SwapHandler) validate(ctx cosmos.Context, msg MsgSwap) error {
 	}
 }
 
-func (h SwapHandler) validateV117(ctx cosmos.Context, msg MsgSwap) error {
+func (h SwapHandler) validateV120(ctx cosmos.Context, msg MsgSwap) error {
 	if err := msg.ValidateBasicV63(); err != nil {
 		return err
 	}
@@ -116,6 +118,10 @@ func (h SwapHandler) validateV117(ctx cosmos.Context, msg MsgSwap) error {
 		}
 	}
 	if target.IsSyntheticAsset() {
+		if target.GetLayer1Asset().IsNative() {
+			return errors.New("minting a synthetic of a native coin is not allowed")
+		}
+
 		// the following is only applicable for mainnet
 		totalLiquidityRUNE, err := h.getTotalLiquidityRUNE(ctx)
 		if err != nil {
