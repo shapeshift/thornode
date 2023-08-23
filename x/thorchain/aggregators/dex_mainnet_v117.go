@@ -7,7 +7,7 @@ import (
 	"gitlab.com/thorchain/thornode/common"
 )
 
-func DexAggregatorsV120() []Aggregator {
+func DexAggregatorsV117() []Aggregator {
 	return []Aggregator{
 		// TSAggregatorPancakeSwap Ethereum V2
 		{common.ETHChain, `0x35CF22003c90126528fbe95b21bB3ADB2ca8c53D`, 400_000},
@@ -77,33 +77,5 @@ func DexAggregatorsV120() []Aggregator {
 		{common.ETHChain, `0xaD545d047E34862121695F8E37aeEB71324a9E78`, 500_000},
 		// SquidRouter MultiCall Ethereum
 		{common.ETHChain, `0x4fd39C9E151e50580779bd04B1f7eCc310079fd3`, 800_000},
-		// RangoDiamond Ethereum
-		{common.ETHChain, `0x69460570c93f9DE5E2edbC3052bf10125f0Ca22d`, 400_000},
-		// RangoDiamond BSC
-		{common.BSCChain, `0x69460570c93f9DE5E2edbC3052bf10125f0Ca22d`, 400_000},
-		// RangoDiamond Avax
-		{common.AVAXChain, `0x69460570c93f9DE5E2edbC3052bf10125f0Ca22d`, 400_000},
-		// RangoThorchainOutputAggUniV3_COMPACT_Fee500
-		{common.ETHChain, `0x70F75937546fB26c6FD3956eBBfb285f41526186`, 400_000},
-		// RangoThorchainOutputAggUniV3_COMPACT_Fee3000
-		{common.ETHChain, `0xd1687354CBA0e56facd0c44eD0F69D97F5734Dc1`, 400_000},
-		// RangoThorchainOutputAggUniV3_COMPACT_Fee10000
-		{common.ETHChain, `0xaFa4cBA6db85515f66E3ed7d6784e8cf5b689E2D`, 400_000},
-		// RangoThorchainOutputAggUniV2_COMPACT_SUSHI
-		{common.ETHChain, `0x0964347B0019eb227c901220ce7d66BB01479220`, 400_000},
-		// RangoThorchainOutputAggUniV2_COMPACT_UNI
-		{common.ETHChain, `0x6f281993AB68216F8898c593C4578C8a4a76F063`, 400_000},
-		// RangoThorchainOutputAggUniV2_COMPACT_PANCAKE
-		{common.BSCChain, `0xd0d7A5374ed70D5cB9E9034871F1d89F79De07Dd`, 400_000},
-		// RangoThorchainOutputAggUniV3SwapRouter2_COMPACT_Fee500
-		{common.BSCChain, `0x5bCAC8ac5f65623f8e151d676605EdE52E0Db532`, 400_000},
-		// RangoThorchainOutputAggUniV3SwapRouter2_COMPACT_Fee3000
-		{common.BSCChain, `0x36C29dC30E6728BC5524806EeA8897F6d8b9edE3`, 400_000},
-		// RangoThorchainOutputAggUniV3SwapRouter2_COMPACT_Fee10000
-		{common.BSCChain, `0xd1127EB3bc10a00434FfaD4fBA534212F1ba1165`, 400_000},
-		// RangoThorchainOutputAggUniV2_COMPACT_TRADERJOE
-		{common.AVAXChain, `0x892Fb7C2A23772f4A2FFC3DC82419147dC22021C`, 400_000},
-		// RangoThorchainOutputAggUniV2_COMPACT_PANGOLIN
-		{common.AVAXChain, `0xBd039a45e656221E28594d2761DDed8F6712AE46`, 400_000},
 	}
 }
