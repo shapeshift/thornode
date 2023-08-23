@@ -103,5 +103,9 @@ func DexAggregatorsV120() []Aggregator {
 		{common.AVAXChain, `0x892Fb7C2A23772f4A2FFC3DC82419147dC22021C`, 400_000},
 		// RangoThorchainOutputAggUniV2_COMPACT_PANGOLIN
 		{common.AVAXChain, `0xBd039a45e656221E28594d2761DDed8F6712AE46`, 400_000},
+		// TSAggregatorStargate Ethereum gen2 V2
+		{common.ETHChain, `0x48f68ff093b3b3A80D2FC97488EaD97E16b86283`, 800_000},
+		// TSAggregatorUniswapV2 Ethereum gen2 V2.5 - tax tokens
+		{common.ETHChain, `0x0fA226e8BCf45ec2f3c3163D2d7ba0d2aAD2eBcF`, 800_000},
 	}
 }
