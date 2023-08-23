@@ -23,6 +23,79 @@ var WhitelistedArbs = []string{ // treasury addresses
 	"ltc1qaa064vvv4d6stgywnf777j6dl8rd3tt93fp6jx",
 }
 
+func triggerPreferredAssetSwapV116(ctx cosmos.Context, mgr Manager, affiliateAddress common.Address, txID common.TxID, tn THORName, affcol AffiliateFeeCollector, queueIndex int) error {
+	affAccAddress, err := affiliateAddress.AccAddress()
+	if err != nil {
+		return fmt.Errorf("can't get affiliate acc address")
+	}
+
+	// Ensure the AffiliateAddress = the THORName Owner because RUNE is associated with
+	// the THOR alias of a THORName in the AffiliateCollector.
+	if !tn.Owner.Equals(affAccAddress) {
+		return fmt.Errorf("AffiliateAddress is not THORName owner, can't trigger preferred asset swap")
+	}
+
+	// Check that the THORName has an address alias for the PreferredAsset, if not skip
+	// the swap
+	alias := tn.GetAlias(tn.PreferredAsset.GetChain())
+	if alias.Equals(common.NoAddress) {
+		return fmt.Errorf("no alias for preferred asset, skip preferred asset swap: %s", tn.Name)
+	}
+
+	// Execute the PreferredAsset swap
+	if affcol.RuneAmount.IsZero() {
+		return fmt.Errorf("can't execute preferred asset swap, accured RUNE amount is zero")
+	}
+	affRune := affcol.RuneAmount
+	affCoin := common.NewCoin(common.RuneAsset(), affRune)
+
+	networkMemo := "THOR-PREFERRED-ASSET-" + tn.Name
+	asgardAddress, err := mgr.Keeper().GetModuleAddress(AsgardName)
+	if err != nil {
+		ctx.Logger().Error("failed to retrieve asgard address", "error", err)
+		return err
+	}
+	affColAddress, err := mgr.Keeper().GetModuleAddress(AffiliateCollectorName)
+	if err != nil {
+		ctx.Logger().Error("failed to retrieve affiliate collector module address", "error", err)
+		return err
+	}
+
+	ctx.Logger().Debug("execute preferred asset swap", "thorname", tn.Name, "amt", affRune.String(), "dest", alias)
+
+	// 1. Swap RUNE to Preferred Asset
+	tx := common.NewTx(
+		txID,
+		affColAddress,
+		asgardAddress,
+		common.NewCoins(affCoin),
+		common.Gas{},
+		networkMemo,
+	)
+
+	preferredAssetSwap := NewMsgSwap(
+		tx,
+		tn.PreferredAsset,
+		alias,
+		cosmos.ZeroUint(),
+		common.NoAddress,
+		cosmos.ZeroUint(),
+		"",
+		"", nil,
+		MarketOrder,
+		0, 0,
+		tn.Owner,
+	)
+
+	// Queue the preferred asset swap
+	if err := mgr.Keeper().SetSwapQueueItem(ctx, *preferredAssetSwap, queueIndex); err != nil {
+		ctx.Logger().Error("fail to add preferred asset swap to queue", "error", err)
+		return err
+	}
+
+	return nil
+}
+
 func atTVLCapV117(ctx cosmos.Context, coins common.Coins, mgr Manager) bool {
 	vaults, err := mgr.Keeper().GetAsgardVaults(ctx)
 	if err != nil {
