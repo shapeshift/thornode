@@ -352,6 +352,7 @@ func (vm *NetworkMgrVCUR) EndBlock(ctx cosmos.Context, mgr Manager) error {
 	}
 
 	migrationRounds := mgr.GetConstants().GetInt64Value(constants.ChurnMigrateRounds)
+	signingTransactionPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
 
 	for _, vault := range retiring {
 		if !vault.HasFunds() {
@@ -379,35 +380,51 @@ func (vm *NetworkMgrVCUR) EndBlock(ctx cosmos.Context, mgr Manager) error {
 					continue
 				}
 
-				var target Vault
-				// when migrate assets from retiring vault to a new vault , if
-				// it is gas asset, like (BNB, BTC) , make sure each new vault
-				// will get gas asset, take BNB for an example , it might get a
-				// lot of BEP2 asset into the new vault , but without any BNB,
-				// which will make the vault unavailable , as it doesn't have
-				// BNB to pay for gas. In a real production environment
+				targetVaults := active
+
+				// Only prioritise migration to unreceived ActiveVaults for gas assets.
 				if coin.Asset.IsGasAsset() {
+					var filteredVaults Vaults
 					for _, activeVault := range active {
-						if activeVault.HasAsset(coin.Asset) {
-							continue
+						// Do not use HasAsset function so as to use zero-amount Coins to mark scheduled migrations,
+						// without double-counting outbound item migration amounts.
+						hasAsset := false
+						for _, activeVaultCoin := range activeVault.Coins {
+							if activeVaultCoin.Asset.Equals(coin.Asset) {
+								hasAsset = true
+								break
+							}
 						}
-						target = activeVault
-						break
+						// If there are vaults that has never received (or in this block had a migration scheduled for)
+						// this Asset, prioritise them.
+						if !hasAsset {
+							filteredVaults = append(filteredVaults, activeVault)
+						}
+					}
+					if len(filteredVaults) != 0 {
+						targetVaults = filteredVaults
 					}
 				}
-				if target.IsEmpty() {
-					// determine which active asgard vault to send funds to. Select
-					// based on which has the most security
-					signingTransactionPeriod := mgr.GetConstants().GetInt64Value(constants.SigningTransactionPeriod)
-					target = vm.k.GetMostSecure(ctx, active, signingTransactionPeriod)
-					if target.PubKey.Equals(vault.PubKey) {
-						continue
-					}
-				}
+
+				// GetMostSecure also takes into account migration outbound items.
+				target := vm.k.GetMostSecure(ctx, targetVaults, signingTransactionPeriod)
 				// get address of asgard pubkey
 				addr, err := target.PubKey.GetAddress(coin.Asset.GetChain())
 				if err != nil {
 					return err
+				}
+
+				// get index of target vault in active slice
+				targetVaultIndex := -1
+				for i, activeVault := range active {
+					if target.PubKey.Equals(activeVault.PubKey) {
+						targetVaultIndex = i
+						break
+					}
+				}
+				if targetVaultIndex == -1 {
+					ctx.Logger().Error("fail to identify active vault", "pubkey", target.PubKey)
+					continue
 				}
 
 				// figure the nth time, we've sent migration txs from this vault
@@ -518,6 +535,13 @@ func (vm *NetworkMgrVCUR) EndBlock(ctx cosmos.Context, mgr Manager) error {
 					return err
 				}
 				if ok {
+					// Migration scheduling having been successful, add a zero Amount of this Asset to the target ActiveVault
+					// (which will not be set)
+					// to prioritise target vaults without it for this block's migrations from other RetiringVaults.
+					// There is no need to initially add outbound queue migration Assets,
+					// since new migrations are skipped when there is a pending outbound (including migrations) from any RetiringVault.
+					active[targetVaultIndex].AddFunds(common.NewCoins(common.NewCoin(coin.Asset, cosmos.ZeroUint())))
+
 					vault.AppendPendingTxBlockHeights(ctx.BlockHeight(), mgr.GetConstants())
 					if err := vm.k.SetVault(ctx, vault); err != nil {
 						return fmt.Errorf("fail to save vault: %w", err)

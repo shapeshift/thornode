@@ -1811,6 +1811,9 @@ func queryPendingOutbound(ctx cosmos.Context, mgr *Mgrs) ([]byte, error) {
 	constAccessor := mgr.GetConstants()
 	signingTransactionPeriod := constAccessor.GetInt64Value(constants.SigningTransactionPeriod)
 	startHeight := ctx.BlockHeight() - signingTransactionPeriod
+	if startHeight < 1 {
+		startHeight = 1
+	}
 	var result []TxOutItem
 	for height := startHeight; height <= ctx.BlockHeight(); height++ {
 		txs, err := mgr.Keeper().GetTxOut(ctx, height)
@@ -1973,7 +1976,7 @@ func eventMap(e sdk.Event) map[string]string {
 	return m
 }
 
-func simulate(ctx cosmos.Context, mgr *Mgrs, msg sdk.Msg) (sdk.Events, error) {
+func simulate(ctx cosmos.Context, mgr Manager, msg sdk.Msg) (sdk.Events, error) {
 	// use the first active node account as the signer
 	nodeAccounts, err := mgr.Keeper().ListActiveValidators(ctx)
 	if err != nil {
@@ -2010,23 +2013,7 @@ func simulate(ctx cosmos.Context, mgr *Mgrs, msg sdk.Msg) (sdk.Events, error) {
 	iter := mgr.Keeper().GetSwapQueueIterator(ctx)
 	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
-
-		// unmarshal message
-		var qm MsgSwap
-		err := mgr.cdc.Unmarshal(iter.Value(), &qm)
-		if err != nil {
-			continue
-		}
-
-		// split txid and index
-		ss := strings.Split(string(iter.Key()), "-")
-		i, err := strconv.Atoi(ss[len(ss)-1])
-		if err != nil {
-			continue
-		}
-
-		// remove from queue
-		mgr.Keeper().RemoveSwapQueueItem(ctx, common.TxID(ss[0]), i)
+		mgr.Keeper().DeleteKey(ctx, string(iter.Key()))
 	}
 
 	// simulate the loan open
@@ -2036,7 +2023,7 @@ func simulate(ctx cosmos.Context, mgr *Mgrs, msg sdk.Msg) (sdk.Events, error) {
 	}
 
 	// simulate end block
-	err = mgr.swapQ.EndBlock(ctx, mgr)
+	err = mgr.SwapQ().EndBlock(ctx, mgr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to simulate end block: %w", err)
 	}

@@ -281,7 +281,7 @@ func processOneTxInV107(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx,
 		newMsg, err = getMsgManageTHORNameFromMemo(m, tx, signer)
 	case LoanOpenMemo:
 		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgLoanOpenFromMemo(m, tx, signer)
+		newMsg, err = getMsgLoanOpenFromMemoV1(m, tx, signer)
 	case LoanRepaymentMemo:
 		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
 		from := common.NoAddress
@@ -311,4 +311,8 @@ func processOneTxInV107(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx,
 		return newMsg, m.ValidateBasicV63()
 	}
 	return newMsg, newMsg.ValidateBasic()
+}
+
+func getMsgLoanOpenFromMemoV1(memo LoanOpenMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	return NewMsgLoanOpen(tx.Tx.FromAddress, tx.Tx.Coins[0].Asset, tx.Tx.Coins[0].Amount, memo.TargetAddress, memo.TargetAsset, memo.GetMinOut(), memo.GetAffiliateAddress(), memo.GetAffiliateBasisPoints(), memo.GetDexAggregator(), memo.GetDexTargetAddress(), memo.DexTargetLimit, signer), nil
 }

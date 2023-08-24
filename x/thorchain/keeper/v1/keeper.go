@@ -156,6 +156,10 @@ func (k KVStore) getIterator(ctx cosmos.Context, prefix types.DbPrefix) cosmos.I
 	return cosmos.KVStorePrefixIterator(store, []byte(prefix))
 }
 
+func (k KVStore) DeleteKey(ctx cosmos.Context, key string) {
+	k.del(ctx, key)
+}
+
 // del - delete data from the kvstore
 func (k KVStore) del(ctx cosmos.Context, key string) {
 	store := ctx.KVStore(k.storeKey)

@@ -16,6 +16,7 @@ import (
 
 type Keeper interface {
 	Cdc() codec.BinaryCodec
+	DeleteKey(ctx cosmos.Context, key string)
 	GetVersion() semver.Version
 	GetVersionWithCtx(ctx cosmos.Context) (semver.Version, bool)
 	SetVersionWithCtx(ctx cosmos.Context, v semver.Version)

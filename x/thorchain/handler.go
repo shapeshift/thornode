@@ -228,7 +228,18 @@ func getMsgLeaveFromMemo(memo LeaveMemo, tx ObservedTx, signer cosmos.AccAddress
 	return NewMsgLeave(tx.Tx, memo.GetAccAddress(), signer), nil
 }
 
-func getMsgLoanOpenFromMemo(memo LoanOpenMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+func getMsgLoanOpenFromMemo(ctx cosmos.Context, keeper keeper.Keeper, memo LoanOpenMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	version := keeper.GetVersion()
+	switch {
+	case version.GTE(semver.MustParse("1.120.0")):
+		return getMsgLoanOpenFromMemoV120(ctx, keeper, memo, tx, signer)
+	default:
+		return getMsgLoanOpenFromMemoV1(memo, tx, signer)
+	}
+}
+
+func getMsgLoanOpenFromMemoV120(ctx cosmos.Context, keeper keeper.Keeper, memo LoanOpenMemo, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+	memo.TargetAsset = fuzzyAssetMatch(ctx, keeper, memo.TargetAsset)
 	return NewMsgLoanOpen(tx.Tx.FromAddress, tx.Tx.Coins[0].Asset, tx.Tx.Coins[0].Amount, memo.TargetAddress, memo.TargetAsset, memo.GetMinOut(), memo.GetAffiliateAddress(), memo.GetAffiliateBasisPoints(), memo.GetDexAggregator(), memo.GetDexTargetAddress(), memo.DexTargetLimit, signer), nil
 }
 
@@ -315,8 +326,7 @@ func processOneTxInV117(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx,
 	case ManageTHORNameMemo:
 		newMsg, err = getMsgManageTHORNameFromMemo(m, tx, signer)
 	case LoanOpenMemo:
-		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
-		newMsg, err = getMsgLoanOpenFromMemo(m, tx, signer)
+		newMsg, err = getMsgLoanOpenFromMemo(ctx, keeper, m, tx, signer)
 	case LoanRepaymentMemo:
 		m.Asset = fuzzyAssetMatch(ctx, keeper, m.Asset)
 		from := common.NoAddress
