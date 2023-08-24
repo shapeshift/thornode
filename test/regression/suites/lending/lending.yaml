@@ -720,3 +720,97 @@ asserts:
     # this time they should receieve a normal amount relative to the deposit since the
     # excess debt down was credited on the previous open
   - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504315351613
+---
+########################################################################################
+# open loan btc -> usdc (with fuzzy)
+########################################################################################
+type: check
+description: check loan open quote
+endpoint: http://localhost:1317/thorchain/quote/loan/open
+params:
+  from_asset: BTC.BTC
+  amount: 500000
+  to_asset: ETH.USDC-0X9999999999999999999999999999999999999999
+  destination: {{ addr_eth_fox }}
+asserts:
+  - .memo == "$+:ETH.USDC-0X9999999999999999999999999999999999999999:{{ addr_eth_fox }}"
+  - .inbound_address == "{{ addr_btc_dog }}"
+  - .expected_amount_out|tonumber == 353290500
+  - .expected_collateral_deposited|tonumber == 493383
+  - .expected_collateralization_ratio|tonumber == 10000
+  - .expected_debt_issued|tonumber == 478480000
+  - .recommended_min_amount_in == "479000"
+  - .fees.total_bps|tonumber == 2632
+  - .fees.outbound|tonumber == 116182700
+  - .fees.liquidity|tonumber == 10083400
+---
+type: tx-observed-in
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 9 }}"
+      chain: BTC
+      from_address: {{ addr_btc_fox }}
+      to_address: {{ addr_btc_dog }}
+      coins:
+        - amount: "500000" # 0.5% of pool
+          asset: "BTC.BTC"
+          decimals: 8
+      gas:
+        - amount: "10000"
+          asset: "BTC.BTC"
+      memo: "LOAN+:ETH.USDC-9999:{{ addr_eth_fox }}:1"
+    block_height: 2
+    finalise_height: 2
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: borrower should be updated
+endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
+asserts:
+  - .|length == 1
+  - .[0]|.collateral_deposited == "2471416"
+  - .[0]|.debt_issued == "6126352093"
+  - .[0]|.collateral_withdrawn == "989774"
+  - .[0]|.debt_repaid == "4675172093"
+  - .[0]|.owner == "{{ addr_btc_fox }}"
+---
+type: check
+description: usdc outbound should be scheduled
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 1
+  - .[0]|.in_hash == "{{ observe_txid 9 }}"
+---
+type: tx-observed-out
+signer: {{ addr_thor_dog }}
+txs:
+  - tx:
+      id: "{{ observe_txid 10 }}"
+      chain: ETH
+      from_address: {{ addr_eth_dog }}
+      to_address: {{ addr_eth_fox }}
+      coins:
+        - amount: "353551000"
+          asset: "ETH.USDC-0X9999999999999999999999999999999999999999"
+          decimals: 8
+      gas:
+        - amount: "960000"
+          asset: "ETH.ETH"
+      memo: "OUT:{{ observe_txid 9 }}"
+    block_height: 3
+    finalise_height: 3
+    observed_pub_key: {{ pubkey_dog }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: usdc outbound should be observed
+endpoint: http://localhost:1317/thorchain/queue/outbound
+asserts:
+  - .|length == 0
+---

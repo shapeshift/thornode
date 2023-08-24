@@ -621,7 +621,7 @@ func (h SwapHandler) handleV110(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		ctx = ctx.WithValue(constants.CtxLoanTxID, msg.Tx.ID)
 
 		obTx := ObservedTx{Tx: msg.Tx}
-		msg, err := getMsgLoanOpenFromMemo(m, obTx, msg.Signer)
+		msg, err := getMsgLoanOpenFromMemo(ctx, h.mgr.Keeper(), m, obTx, msg.Signer)
 		if err != nil {
 			return nil, err
 		}
@@ -750,7 +750,7 @@ func (h SwapHandler) handleV108(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		ctx = ctx.WithValue(constants.CtxLoanTxID, msg.Tx.ID)
 
 		obTx := ObservedTx{Tx: msg.Tx}
-		msg, err := getMsgLoanOpenFromMemo(m, obTx, msg.Signer)
+		msg, err := getMsgLoanOpenFromMemo(ctx, h.mgr.Keeper(), m, obTx, msg.Signer)
 		if err != nil {
 			return nil, err
 		}
@@ -884,7 +884,7 @@ func (h SwapHandler) handleV107(ctx cosmos.Context, msg MsgSwap) (*cosmos.Result
 		ctx = ctx.WithValue(constants.CtxLoanTxID, txid)
 
 		obTx := ObservedTx{Tx: msg.Tx}
-		msg, err := getMsgLoanOpenFromMemo(m, obTx, msg.Signer)
+		msg, err := getMsgLoanOpenFromMemo(ctx, h.mgr.Keeper(), m, obTx, msg.Signer)
 		if err != nil {
 			return nil, err
 		}
