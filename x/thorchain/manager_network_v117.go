@@ -114,7 +114,7 @@ func (vm *NetworkMgrV117) suspendVirtualPool(ctx cosmos.Context, mgr Manager, de
 	}
 }
 
-func (vm *NetworkMgrV117) calcAnchor(ctx cosmos.Context, mgr Manager, asset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+func (vm *NetworkMgrV117) CalcAnchor(ctx cosmos.Context, mgr Manager, asset common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
 	anchors := mgr.Keeper().GetAnchors(ctx, asset)
 
 	maxAnchorBlocks := mgr.Keeper().GetConfigInt64(ctx, constants.MaxAnchorBlocks)
@@ -226,7 +226,7 @@ func (vm *NetworkMgrV117) SpawnDerivedAsset(ctx cosmos.Context, asset common.Ass
 		return
 	}
 
-	totalRuneDepth, price, slippage := vm.calcAnchor(ctx, mgr, layer1Asset)
+	totalRuneDepth, price, slippage := vm.CalcAnchor(ctx, mgr, layer1Asset)
 	if totalRuneDepth.IsZero() {
 		vm.suspendVirtualPool(ctx, mgr, derivedAsset, fmt.Errorf("no anchor pools available"))
 		return

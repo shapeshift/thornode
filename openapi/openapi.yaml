@@ -66,6 +66,41 @@ paths:
               schema:
                 $ref: "#/components/schemas/PoolsResponse"
 
+  # ------------------------------ derived pools ------------------------------
+
+  /thorchain/dpool/{asset}:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - $ref: "#/components/parameters/asset"
+    get:
+      description: Returns the pool information for the provided derived asset.
+      operationId: dpool
+      tags:
+        - Pools
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DerivedPoolResponse"
+
+  /thorchain/dpools:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+    get:
+      description: Returns the pool information for all derived assets.
+      operationId: dpools
+      tags:
+        - Pools
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DerivedPoolsResponse"
+
   # # ------------------------------ liquidity providers ------------------------------
 
   /thorchain/pool/{asset}/liquidity_provider/{address}:
@@ -1148,6 +1183,7 @@ components:
         - synth_supply_remaining
         - loan_collateral
         - loan_cr
+        - derived_depth_bps
       properties:
         asset:
           type: string
@@ -1211,6 +1247,40 @@ components:
           type: string
           example: "123456"
           description: the current loan collateralization ratio
+        derived_depth_bps:
+          type: string
+          example: "123456"
+          description: the depth of the derived virtual pool relative to L1 pool (in basis points)
+
+    DerivedPool:
+      type: object
+      required:
+        - asset
+        - status
+        - balance_asset
+        - balance_rune
+        - derived_depth_bps
+      properties:
+        asset:
+          type: string
+          example: "BTC.BTC"
+        status:
+          type: string
+          example: "Available"
+        decimals:
+          type: integer
+          format: int64
+          example: 6
+        balance_asset:
+          type: string
+          example: "3197744873"
+        balance_rune:
+          type: string
+          example: "13460619152985"
+        derived_depth_bps:
+          type: string
+          example: "123456"
+          description: the depth of the derived virtual pool relative to L1 pool (in basis points)
 
     LiquidityProviderSummary:
       type: object
@@ -2112,6 +2182,14 @@ components:
       type: array
       items:
         $ref: "#/components/schemas/Pool"
+
+    DerivedPoolResponse:
+      $ref: "#/components/schemas/DerivedPool"
+
+    DerivedPoolsResponse:
+      type: array
+      items:
+        $ref: "#/components/schemas/DerivedPool"
 
     LiquidityProvidersResponse:
       type: array

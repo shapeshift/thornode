@@ -281,6 +281,7 @@ type QueryPool struct {
 	SynthSupplyRemaining string `json:"synth_supply_remaining"`
 	LoanCollateral       string `json:"loan_collateral"`
 	LoanCR               string `json:"loan_cr"`
+	DerivedDepthBps      string `json:"derived_depth_bps"`
 }
 
 // NewQueryPool creates a new QueryPool based on the given pool parameters
@@ -296,6 +297,27 @@ func NewQueryPool(pool Pool) QueryPool {
 		PoolUnits:           pool.GetPoolUnits().String(),
 		LPUnits:             pool.LPUnits.String(),
 		SynthUnits:          pool.SynthUnits.String(),
+	}
+}
+
+// QueryDerivedPool holds all the information related to a pool
+type QueryDerivedPool struct {
+	Asset           string `json:"asset"`
+	Status          string `json:"status"`
+	Decimals        int64  `json:"decimals,omitempty"`
+	BalanceAsset    string `json:"balance_asset"`
+	BalanceRune     string `json:"balance_rune"`
+	DerivedDepthBps string `json:"derived_depth_bps"`
+}
+
+// NewQueryDerivedPool creates a new QueryDerivedPool based on the given pool parameters
+func NewQueryDerivedPool(pool Pool) QueryDerivedPool {
+	return QueryDerivedPool{
+		Asset:        pool.Asset.String(),
+		Status:       pool.Status.String(),
+		Decimals:     pool.Decimals,
+		BalanceAsset: pool.BalanceAsset.String(),
+		BalanceRune:  pool.BalanceRune.String(),
 	}
 }
 

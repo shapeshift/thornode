@@ -15,6 +15,10 @@ func NewNetworkMgrDummy() *NetworkMgrDummy {
 	return &NetworkMgrDummy{}
 }
 
+func (vm *NetworkMgrDummy) CalcAnchor(_ cosmos.Context, _ Manager, _ common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+	return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint()
+}
+
 func (vm *NetworkMgrDummy) SpawnDerivedAsset(ctx cosmos.Context, asset common.Asset, mgr Manager) {}
 
 func (vm *NetworkMgrDummy) BeginBlock(ctx cosmos.Context, mgr Manager) error {
