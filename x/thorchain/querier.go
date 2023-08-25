@@ -44,6 +44,10 @@ func NewQuerier(mgr *Mgrs, kbs cosmos.KeybaseStore) cosmos.Querier {
 			return queryPool(ctx, path[1:], req, mgr)
 		case q.QueryPools.Key:
 			return queryPools(ctx, req, mgr)
+		case q.QueryDerivedPool.Key:
+			return queryDerivedPool(ctx, path[1:], req, mgr)
+		case q.QueryDerivedPools.Key:
+			return queryDerivedPools(ctx, req, mgr)
 		case q.QuerySavers.Key:
 			return queryLiquidityProviders(ctx, path[1:], req, mgr, true)
 		case q.QuerySaver.Key:
@@ -1195,6 +1199,13 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 		return nil, fmt.Errorf("fail to fetch total loan collateral: %w", err)
 	}
 
+	runeDepth, _, _ := mgr.NetworkMgr().CalcAnchor(ctx, mgr, asset)
+	dpool, _ := mgr.Keeper().GetPool(ctx, asset.GetDerivedAsset())
+	dbps := common.GetUncappedShare(dpool.BalanceRune, runeDepth, cosmos.NewUint(constants.MaxBasisPts))
+	if dpool.Status != PoolAvailable {
+		dbps = cosmos.ZeroUint()
+	}
+
 	p := NewQueryPool(pool)
 	p.SynthSupply = synthSupply.String()
 	p.SaversDepth = saversDepth.String()
@@ -1202,6 +1213,7 @@ func queryPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mg
 	p.SynthMintPaused = (synthMintPausedErr != nil)
 	p.SynthSupplyRemaining = synthSupplyRemaining.String()
 	p.LoanCollateral = totalCollateral.String()
+	p.DerivedDepthBps = dbps.String()
 
 	handler := NewLoanOpenHandler(mgr)
 	cr, _ := handler.getPoolCR(ctx, pool, cosmos.OneUint())
@@ -1228,6 +1240,11 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 			continue
 		}
 
+		// Ignore derived assets (except TOR)
+		if pool.Asset.IsDerivedAsset() {
+			continue
+		}
+
 		// Get Savers Vault
 		saversAsset := pool.Asset.GetSyntheticAsset()
 		saversPool, err := mgr.Keeper().GetPool(ctx, saversAsset)
@@ -1249,6 +1266,13 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 			return nil, fmt.Errorf("fail to fetch total loan collateral: %w", err)
 		}
 
+		runeDepth, _, _ := mgr.NetworkMgr().CalcAnchor(ctx, mgr, pool.Asset)
+		dpool, _ := mgr.Keeper().GetPool(ctx, pool.Asset.GetDerivedAsset())
+		dbps := common.GetUncappedShare(dpool.BalanceRune, runeDepth, cosmos.NewUint(constants.MaxBasisPts))
+		if dpool.Status != PoolAvailable {
+			dbps = cosmos.ZeroUint()
+		}
+
 		p := NewQueryPool(pool)
 		p.SynthSupply = synthSupply.String()
 		p.SaversDepth = saversDepth.String()
@@ -1256,10 +1280,71 @@ func queryPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, e
 		p.SynthMintPaused = (synthMintPausedErr != nil)
 		p.SynthSupplyRemaining = synthSupplyRemaining.String()
 		p.LoanCollateral = totalCollateral.String()
+		p.DerivedDepthBps = dbps.String()
 
 		handler := NewLoanOpenHandler(mgr)
 		cr, _ := handler.getPoolCR(ctx, pool, cosmos.OneUint())
 		p.LoanCR = cr.String()
+
+		pools = append(pools, p)
+	}
+	return jsonify(ctx, pools)
+}
+
+func queryDerivedPool(ctx cosmos.Context, path []string, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	if len(path) == 0 {
+		return nil, errors.New("asset not provided")
+	}
+	asset, err := common.NewAsset(path[0])
+	if err != nil {
+		ctx.Logger().Error("fail to parse asset", "error", err)
+		return nil, fmt.Errorf("could not parse asset: %w", err)
+	}
+
+	pool, err := mgr.Keeper().GetPool(ctx, asset)
+	if err != nil {
+		ctx.Logger().Error("fail to get pool", "error", err)
+		return nil, fmt.Errorf("could not get pool: %w", err)
+	}
+	if pool.IsEmpty() {
+		return nil, fmt.Errorf("pool: %s doesn't exist", path[0])
+	}
+
+	runeDepth, _, _ := mgr.NetworkMgr().CalcAnchor(ctx, mgr, asset)
+	dpool, _ := mgr.Keeper().GetPool(ctx, asset.GetDerivedAsset())
+	dbps := common.GetUncappedShare(dpool.BalanceRune, runeDepth, cosmos.NewUint(constants.MaxBasisPts))
+	if dpool.Status != PoolAvailable {
+		dbps = cosmos.ZeroUint()
+	}
+
+	p := NewQueryDerivedPool(pool)
+	p.DerivedDepthBps = dbps.String()
+
+	return jsonify(ctx, p)
+}
+
+func queryDerivedPools(ctx cosmos.Context, req abci.RequestQuery, mgr *Mgrs) ([]byte, error) {
+	pools := make([]QueryDerivedPool, 0)
+	iterator := mgr.Keeper().GetPoolIterator(ctx)
+	for ; iterator.Valid(); iterator.Next() {
+		var pool Pool
+		if err := mgr.Keeper().Cdc().Unmarshal(iterator.Value(), &pool); err != nil {
+			return nil, fmt.Errorf("fail to unmarshal pool: %w", err)
+		}
+		// Ignore derived assets (except TOR)
+		if !pool.Asset.IsDerivedAsset() {
+			continue
+		}
+
+		runeDepth, _, _ := mgr.NetworkMgr().CalcAnchor(ctx, mgr, pool.Asset)
+		dpool, _ := mgr.Keeper().GetPool(ctx, pool.Asset.GetDerivedAsset())
+		dbps := common.GetUncappedShare(dpool.BalanceRune, runeDepth, cosmos.NewUint(constants.MaxBasisPts))
+		if dpool.Status != PoolAvailable {
+			dbps = cosmos.ZeroUint()
+		}
+
+		p := NewQueryDerivedPool(pool)
+		p.DerivedDepthBps = dbps.String()
 
 		pools = append(pools, p)
 	}

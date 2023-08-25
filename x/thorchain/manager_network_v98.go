@@ -190,6 +190,10 @@ func (vm *NetworkMgrV98) calcSynthYield(ctx cosmos.Context, mgr Manager, yieldPt
 	return earnings
 }
 
+func (vm *NetworkMgrV98) CalcAnchor(_ cosmos.Context, _ Manager, _ common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+	return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint()
+}
+
 func (vm *NetworkMgrV98) SpawnDerivedAsset(ctx cosmos.Context, asset common.Asset, mgr Manager) {}
 
 func (vm *NetworkMgrV98) BeginBlock(ctx cosmos.Context, mgr Manager) error {

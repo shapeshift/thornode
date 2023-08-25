@@ -156,6 +156,7 @@ var (
 	NewQueryNodeAccount            = types.NewQueryNodeAccount
 	NewQueryObservedTx             = types.NewQueryObservedTx
 	NewQueryPool                   = types.NewQueryPool
+	NewQueryDerivedPool            = types.NewQueryDerivedPool
 	NewQuerySaver                  = types.NewQuerySaver
 	NewQueryTxOutItem              = types.NewQueryTxOutItem
 	NewQueryTxDetails              = types.NewQueryTxDetails
@@ -274,6 +275,7 @@ type (
 	QueryNodeAccount               = types.QueryNodeAccount
 	QueryObservedTx                = types.QueryObservedTx
 	QueryPool                      = types.QueryPool
+	QueryDerivedPool               = types.QueryDerivedPool
 	QueryTxOutItem                 = types.QueryTxOutItem
 	QueryTxDetails                 = types.QueryTxDetails
 	QueryTxStages                  = types.QueryTxStages

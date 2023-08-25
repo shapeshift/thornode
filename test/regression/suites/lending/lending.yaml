@@ -60,20 +60,28 @@ type: create-blocks
 count: 1
 ---
 type: check
-description: zero-unit derived pools (eth and btc only) are not displayed by the /pools endpoint
+description: check that derived depth bps exists
 endpoint: http://localhost:1317/thorchain/pools
+asserts:
+  - .|length == 3
+  - .[0].derived_depth_bps|tonumber == 10000
+  - .[1].derived_depth_bps|tonumber == 10000
+---
+type: check
+description: check that derived pools exists
+endpoint: http://localhost:1317/thorchain/dpools
 asserts:
   - .|length == 3
 ---
 type: check
-description: thor.eth pool should be created
-endpoint: http://localhost:1317/thorchain/pool/THOR.ETH
+description: thor.btc pool should be created
+endpoint: http://localhost:1317/thorchain/dpool/THOR.BTC
 asserts:
   - .status == "Available"
 ---
 type: check
-description: thor.btc pool should be created
-endpoint: http://localhost:1317/thorchain/pool/THOR.BTC
+description: thor.tor pool should be created
+endpoint: http://localhost:1317/thorchain/dpool/THOR.TOR
 asserts:
   - .status == "Available"
 ---

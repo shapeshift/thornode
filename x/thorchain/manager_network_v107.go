@@ -75,6 +75,10 @@ func (vm *NetworkMgrV107) processGenesisSetup(ctx cosmos.Context) error {
 	return nil
 }
 
+func (vm *NetworkMgrV107) CalcAnchor(_ cosmos.Context, _ Manager, _ common.Asset) (cosmos.Uint, cosmos.Uint, cosmos.Uint) {
+	return cosmos.ZeroUint(), cosmos.ZeroUint(), cosmos.ZeroUint()
+}
+
 func (vm *NetworkMgrV107) BeginBlock(ctx cosmos.Context, mgr Manager) error {
 	return vm.spawnDerivedAssets(ctx, mgr)
 }
