@@ -2,17 +2,6 @@
 ---
 {{ template "btc-pool-state.yaml" }}
 ---
-# TODO: remove when issue #1651 is fixed, need to prevent invariant break
-type: state
-genesis:
-  app_state:
-    bank:
-      balances:
-        - address: {{ addr_module_asgard }}
-          coins:
-            - amount: "100000000003"
-              denom: rune
----
 type: create-blocks
 count: 1
 ---

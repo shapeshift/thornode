@@ -866,7 +866,7 @@ func (vm *NetworkMgrVCUR) removePOLLiquidity(
 		basisPts = cosmos.OneUint()
 	}
 
-	coins := common.NewCoins(common.NewCoin(common.RuneAsset(), cosmos.OneUint()))
+	coins := common.NewCoins(common.NewCoin(common.RuneAsset(), cosmos.ZeroUint()))
 	tx := common.NewTx(common.BlankTxID, polAddress, asgardAddress, coins, nil, "THOR-POL-REMOVE")
 	msg := NewMsgWithdrawLiquidity(
 		tx,
