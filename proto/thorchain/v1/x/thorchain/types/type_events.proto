@@ -175,6 +175,20 @@ message EventOutbound {
   common.Tx tx = 2 [(gogoproto.nullable) = false];
 }
 
+message EventTssKeygenSuccess {
+  string pub_key = 1 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.PubKey"];
+  repeated string members = 2;
+  int64 height = 3;
+}
+
+message EventTssKeygenFailure {
+  string fail_reason = 1;
+  bool is_unicast = 2;
+  repeated string blame_nodes = 3;
+  string round = 4;
+  int64 height = 5;
+}
+
 message EventTssKeygenMetric {
   string pub_key = 1 [(gogoproto.casttype) = "gitlab.com/thorchain/thornode/common.PubKey"];
   int64 median_duration_ms = 2;

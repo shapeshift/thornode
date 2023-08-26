@@ -285,6 +285,18 @@ func (pks PubKeys) Strings() []string {
 	return allStrings
 }
 
+func (pks PubKeys) Addresses() ([]cosmos.AccAddress, error) {
+	var err error
+	addrs := make([]cosmos.AccAddress, len(pks))
+	for i, pk := range pks {
+		addrs[i], err = pk.GetThorAddress()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return addrs, nil
+}
+
 // ConvertAndEncode converts from a base64 encoded byte string to hex or base32 encoded byte string and then to bech32
 func ConvertAndEncode(hrp string, data []byte) (string, error) {
 	converted, err := bech32.ConvertBits(data, 8, 5, true)

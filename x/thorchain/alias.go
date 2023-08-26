@@ -138,6 +138,8 @@ var (
 	NewEventOutbound               = types.NewEventOutbound
 	NewEventSetMimir               = types.NewEventSetMimir
 	NewEventSetNodeMimir           = types.NewEventSetNodeMimir
+	NewEventTssKeygenSuccess       = types.NewEventTssKeygenSuccess
+	NewEventTssKeygenFailure       = types.NewEventTssKeygenFailure
 	NewEventTssKeygenMetric        = types.NewEventTssKeygenMetric
 	NewEventTssKeysignMetric       = types.NewEventTssKeysignMetric
 	NewEventPoolBalanceChanged     = types.NewEventPoolBalanceChanged

@@ -28,6 +28,7 @@ func NewTssHandler(mgr Manager) BaseHandler[*MsgTssPool] {
 			Register("1.114.0", MsgTssPoolValidateV114).
 			Register("0.71.0", MsgTssPoolValidateV71),
 		handlers: NewHandlers[*MsgTssPool]().
+			Register("1.120.0", MsgTssPoolHandleV120).
 			Register("1.117.0", MsgTssPoolHandleV117).
 			Register("1.93.0", MsgTssPoolHandleV93).
 			Register("1.92.0", MsgTssPoolHandleV92).
@@ -100,10 +101,10 @@ func validateTssAuth(ctx cosmos.Context, k keeper.Keeper, signer cosmos.AccAddre
 	return nil
 }
 
-func MsgTssPoolHandleV117(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*cosmos.Result, error) {
+func MsgTssPoolHandleV120(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*cosmos.Result, error) {
 	ctx.Logger().Info("handler tss", "current version", mgr.GetVersion())
+	blames := make([]string, 0)
 	if !msg.Blame.IsEmpty() {
-		blames := make([]string, len(msg.Blame.BlameNodes))
 		for i := range msg.Blame.BlameNodes {
 			pk, err := common.NewPubKey(msg.Blame.BlameNodes[i].Pubkey)
 			if err != nil {
@@ -115,7 +116,7 @@ func MsgTssPoolHandleV117(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*co
 				ctx.Logger().Error("fail to get tss keygen thor address", "pubkey", msg.Blame.BlameNodes[i].Pubkey, "error", err)
 				continue
 			}
-			blames[i] = acc.String()
+			blames = append(blames, acc.String())
 		}
 		sort.Strings(blames)
 		ctx.Logger().Info(
@@ -240,6 +241,19 @@ func MsgTssPoolHandleV117(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*co
 			} else {
 				ctx.Logger().Info("not enough keygen yet", "expecting", len(keygenBlock.Keygens), "current", len(initVaults))
 			}
+
+			addrs, err := vault.GetMembership().Addresses()
+			members := make([]string, len(addrs))
+			if err != nil {
+				ctx.Logger().Error("fail to get member addresses", "error", err)
+			} else {
+				for i, addr := range addrs {
+					members[i] = addr.String()
+				}
+				if err := mgr.EventMgr().EmitEvent(ctx, NewEventTssKeygenSuccess(msg.PoolPubKey, msg.Height, members)); err != nil {
+					ctx.Logger().Error("fail to emit keygen success event")
+				}
+			}
 		} else {
 			// since the keygen failed, its now safe to reset all nodes in
 			// ready status back to standby status
@@ -329,6 +343,9 @@ func MsgTssPoolHandleV117(ctx cosmos.Context, mgr Manager, msg *MsgTssPool) (*co
 				}
 			}
 
+			if err := mgr.EventMgr().EmitEvent(ctx, NewEventTssKeygenFailure(msg.Blame.FailReason, msg.Blame.Round, msg.Blame.IsUnicast, msg.Height, blames)); err != nil {
+				ctx.Logger().Error("fail to emit keygen failure event")
+			}
 		}
 		return &cosmos.Result{}, nil
 	}

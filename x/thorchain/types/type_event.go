@@ -39,6 +39,8 @@ const (
 	THORNameEventType          = "thorname"
 	LoanOpenEventType          = "loan_open"
 	LoanRepaymentEventType     = "loan_repayment"
+	TSSKeygenSuccess           = "tss_keygen_success"
+	TSSKeygenFailure           = "tss_keygen_failure"
 	TSSKeygenMetricEventType   = "tss_keygen"
 	TSSKeysignMetricEventType  = "tss_keysign"
 	VersionEventType           = "version"
@@ -582,6 +584,58 @@ func (m *EventOutbound) Events() (cosmos.Events, error) {
 	evt := cosmos.NewEvent(m.Type(),
 		cosmos.NewAttribute("in_tx_id", m.InTxID.String()))
 	evt = evt.AppendAttributes(m.Tx.ToAttributes()...)
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventTssKeygenSuccess create a new EventTssKeygenSuccess
+func NewEventTssKeygenSuccess(pubkey common.PubKey, height int64, members []string) *EventTssKeygenSuccess {
+	return &EventTssKeygenSuccess{
+		PubKey:  pubkey,
+		Height:  height,
+		Members: members,
+	}
+}
+
+// Type  return a string which represent the type of this event
+func (m *EventTssKeygenSuccess) Type() string {
+	return TSSKeygenSuccess
+}
+
+// Events return cosmos sdk events
+func (m *EventTssKeygenSuccess) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("pubkey", m.PubKey.String()),
+		cosmos.NewAttribute("height", strconv.FormatInt(m.Height, 10)),
+		cosmos.NewAttribute("members", strings.Join(m.Members, ", ")),
+	)
+	return cosmos.Events{evt}, nil
+}
+
+// NewEventTssKeygenFailure create a new EventTssKeygenFailure
+func NewEventTssKeygenFailure(reason, round string, unicast bool, height int64, blame []string) *EventTssKeygenFailure {
+	return &EventTssKeygenFailure{
+		FailReason: reason,
+		IsUnicast:  unicast,
+		Round:      round,
+		Height:     height,
+		BlameNodes: blame,
+	}
+}
+
+// Type  return a string which represent the type of this event
+func (m *EventTssKeygenFailure) Type() string {
+	return TSSKeygenFailure
+}
+
+// Events return cosmos sdk events
+func (m *EventTssKeygenFailure) Events() (cosmos.Events, error) {
+	evt := cosmos.NewEvent(m.Type(),
+		cosmos.NewAttribute("reason", m.FailReason),
+		cosmos.NewAttribute("round", m.Round),
+		cosmos.NewAttribute("is_unicast", fmt.Sprintf("%v", m.IsUnicast)),
+		cosmos.NewAttribute("height", strconv.FormatInt(m.Height, 10)),
+		cosmos.NewAttribute("blame", strings.Join(m.BlameNodes, ", ")),
+	)
 	return cosmos.Events{evt}, nil
 }
 
