@@ -1,0 +1,71 @@
+{{ template "default-state.yaml" }}
+---
+{{ template "btc-eth-3usdx-pool-state.yaml" }}
+---
+type: create-blocks
+count: 1
+---
+type: check
+description: eth, btc, and usdx pools should exist
+endpoint: http://localhost:1317/thorchain/pools
+asserts:
+  - .|length == 5
+---
+########################################################################################
+# quote with short codes and fuzzy assets
+########################################################################################
+type: tx-deposit
+signer: {{ addr_thor_fox }}
+coins:
+  - amount: "1000000001"
+    asset: "rune"
+memo: "~:xxxxxxxxxxxxx:THOR:{{ addr_thor_fox }}"
+---
+type: create-blocks
+count: 1
+---
+type: check
+endpoint: http://localhost:1317/thorchain/quote/swap
+params:
+  from_asset: BTC.BTC
+  to_asset: THOR.RUNE
+  amount: 10000000
+  tolerance_bps: 8000
+  destination: {{ addr_thor_fox }}
+  affiliate: xxxxxxxxxxxxx
+  affiliate_bps: 500
+asserts:
+  - .memo == "=:r:{{ addr_thor_fox }}:1900007591:xxxxxxxxxxxxx:500"
+---
+type: check
+endpoint: http://localhost:1317/thorchain/quote/swap
+params:
+  from_asset: BTC.BTC
+  to_asset: ETH.USDX-0X9999999999999999999999999999999999999123
+  amount: 10000000
+  tolerance_bps: 8000
+  destination: {{ addr_eth_fox }}
+asserts:
+  - .memo == "=:ETH.USDX-3:{{ addr_eth_fox }}:1999999999"
+---
+type: check
+endpoint: http://localhost:1317/thorchain/quote/swap
+params:
+  from_asset: BTC.BTC
+  to_asset: ETH.USDX-0X9999999999999999999999999999999999999999
+  amount: 10000000
+  tolerance_bps: 8000
+  destination: {{ addr_eth_fox }}
+asserts:
+  - .memo == "=:ETH.USDX-9999:{{ addr_eth_fox }}:1999999999"
+---
+type: check
+endpoint: http://localhost:1317/thorchain/quote/swap
+params:
+  from_asset: BTC.BTC
+  to_asset: ETH.USDX-0X1239999999999999999999999999999999123999
+  amount: 10000000
+  tolerance_bps: 8000
+  destination: {{ addr_eth_fox }}
+asserts:
+  - .memo == "=:ETH.USDX-3999:{{ addr_eth_fox }}:1999999999"

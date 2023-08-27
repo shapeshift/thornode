@@ -87,16 +87,15 @@ func NewAssetWithShortCodes(version semver.Version, input string) (Asset, error)
 	shorts := make(map[string]string)
 	switch {
 	case version.GTE(semver.MustParse("1.115.0")):
-		shorts["a"] = "AVAX.AVAX"
-		shorts["b"] = "BTC.BTC"
-		shorts["c"] = "BCH.BCH"
-		shorts["n"] = "BNB.BNB"
-		shorts["s"] = "BSC.BNB"
-		shorts["d"] = "DOGE.DOGE"
-		shorts["e"] = "ETH.ETH"
-		shorts["g"] = "GAIA.ATOM"
-		shorts["l"] = "LTC.LTC"
-		shorts["r"] = "THOR.RUNE"
+		shorts[AVAXAsset.ShortCode()] = AVAXAsset.String()
+		shorts[BCHAsset.ShortCode()] = BCHAsset.String()
+		shorts[BNBAsset.ShortCode()] = BNBAsset.String()
+		shorts[BNBBEP20Asset.ShortCode()] = BNBBEP20Asset.String()
+		shorts[BTCAsset.ShortCode()] = BTCAsset.String()
+		shorts[DOGEAsset.ShortCode()] = DOGEAsset.String()
+		shorts[ETHAsset.ShortCode()] = ETHAsset.String()
+		shorts[LTCAsset.ShortCode()] = LTCAsset.String()
+		shorts[RuneNative.ShortCode()] = RuneNative.String()
 	default:
 		// do nothing
 	}
@@ -193,6 +192,34 @@ func (a Asset) String() string {
 		div = "/"
 	}
 	return fmt.Sprintf("%s%s%s", a.Chain.String(), div, a.Symbol.String())
+}
+
+// ShortCode returns the short code for the asset.
+func (a Asset) ShortCode() string {
+	switch a.String() {
+	case "THOR.RUNE":
+		return "r"
+	case "BTC.BTC":
+		return "b"
+	case "ETH.ETH":
+		return "e"
+	case "BNB.BNB":
+		return "n"
+	case "GAIA.ATOM":
+		return "g"
+	case "DOGE.DOGE":
+		return "d"
+	case "LTC.LTC":
+		return "l"
+	case "BCH.BCH":
+		return "c"
+	case "AVAX.AVAX":
+		return "a"
+	case "BSC.BNB":
+		return "s"
+	default:
+		return ""
+	}
 }
 
 // IsGasAsset check whether asset is base asset used to pay for gas

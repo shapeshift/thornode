@@ -1,15 +1,15 @@
 {{ template "default-state.yaml" }}
 ---
-{{ template "btc-eth-usdc-pool-state.yaml" }}
+{{ template "btc-eth-3usdx-pool-state.yaml" }}
 ---
 type: create-blocks
 count: 1
 ---
 type: check
-description: eth, btc, and usdc pools should exist
+description: eth, btc, and usdx pools should exist
 endpoint: http://localhost:1317/thorchain/pools
 asserts:
-  - .|length == 3
+  - .|length == 5
 # /pool/THOR.ETH can't be checked for .status == null
 # because of ERR cmd/run.go:275 > operation failed error="unexpected status code: 404"
 ---
@@ -18,7 +18,7 @@ asserts:
 ########################################################################################
 type: tx-mimir
 signer: {{ addr_thor_dog }}
-key: TorAnchor-ETH-USDC-0X9999999999999999999999999999999999999999
+key: TorAnchor-ETH-USDX-0X9999999999999999999999999999999999999999
 value: 1
 ---
 type: create-blocks
@@ -28,13 +28,13 @@ type: check
 description: tor anchor mimir should be set
 endpoint: http://localhost:1317/thorchain/mimir
 asserts:
-  - ."TORANCHOR-ETH-USDC-0X9999999999999999999999999999999999999999" == 1
+  - ."TORANCHOR-ETH-USDX-0X9999999999999999999999999999999999999999" == 1
 ---
 type: check
 description: derived pools should not be created
 endpoint: http://localhost:1317/thorchain/pools
 asserts:
-  - .|length == 3
+  - .|length == 5
 ---
 type: tx-mimir
 signer: {{ addr_thor_dog }}
@@ -54,7 +54,7 @@ type: check
 description: derived pools should not be created
 endpoint: http://localhost:1317/thorchain/pools
 asserts:
-  - .|length == 3
+  - .|length == 5
 ---
 type: create-blocks
 count: 1
@@ -63,9 +63,12 @@ type: check
 description: check that derived depth bps exists
 endpoint: http://localhost:1317/thorchain/pools
 asserts:
-  - .|length == 3
+  - .|length == 5
   - .[0].derived_depth_bps|tonumber == 10000
   - .[1].derived_depth_bps|tonumber == 10000
+  - .[2].derived_depth_bps|tonumber == 0
+  - .[3].derived_depth_bps|tonumber == 0
+  - .[4].derived_depth_bps|tonumber == 0
 ---
 type: check
 description: check that derived pools exists
@@ -104,14 +107,14 @@ type: check
 description: BTC pool depth (want to confirm pool depths remain unchanged)
 endpoint: http://localhost:1317/thorchain/pool/btc.btc
 asserts:
-  - .balance_rune | tonumber == 100001391004
+  - .balance_rune | tonumber == 100000799088
   - .balance_asset | tonumber == 100000000
 ---
 type: check
 description: ETH pool depth (want to confirm pool depths remain unchanged)
 endpoint: http://localhost:1317/thorchain/pool/eth.eth
 asserts:
-  - .balance_rune | tonumber == 100001391004
+  - .balance_rune | tonumber == 100000799088
   - .balance_asset | tonumber == 1000000000
 ---
 type: tx-observed-in
@@ -183,14 +186,14 @@ type: check
 description: BTC pool depth (want to confirm pool depths remain unchanged, except for gas used to refund btc deposit)
 endpoint: http://localhost:1317/thorchain/pool/btc.btc
 asserts:
-  - .balance_rune | tonumber == 99998585487
+  - .balance_rune | tonumber == 99997697622
   - .balance_asset | tonumber == 100003500
 ---
 type: check
 description: ETH pool depth (want to confirm pool depths remain unchanged, but depth does change from block rewards it seems)
 endpoint: http://localhost:1317/thorchain/pool/eth.eth
 asserts:
-  - .balance_rune | tonumber == 100002086540
+  - .balance_rune | tonumber == 100001198644
   - .balance_asset | tonumber == 1000000000
 ---
 ########################################################################################
@@ -207,7 +210,7 @@ params:
 asserts:
   - .memo == "$+:THOR.RUNE:{{ addr_thor_fox }}"
   - .inbound_address == "{{ addr_btc_dog }}"
-  - .expected_amount_out|tonumber == 483351059
+  - .expected_amount_out|tonumber == 483346750
   - .expected_collateral_deposited|tonumber == 495049
   - .expected_collateralization_ratio|tonumber == 10000
   - .expected_debt_issued|tonumber == 490110000
@@ -215,14 +218,14 @@ asserts:
   - .fees.slippage_bps|tonumber == 149
   - .fees.total_bps|tonumber == 188
   - .fees.outbound|tonumber == 2000000
-  - .fees.liquidity|tonumber == 7291237
+  - .fees.liquidity|tonumber == 7291171
   - (.fees.total|tonumber) == (.fees.liquidity|tonumber)+(.fees.outbound|tonumber)
 ---
 type: check
 description: no derived btc should exist
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-  - .supply[]|select(.denom == "rune")|.amount|tonumber == 50300000000000
+  - .supply[]|select(.denom == "rune")|.amount|tonumber == 50000000000000
 ---
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
@@ -274,14 +277,14 @@ type: check
 description: check rune supply decreases
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/supply
 asserts:
-  - .supply[]|select(.denom == "rune")|.amount|tonumber == 50299990337963
+  - .supply[]|select(.denom == "rune")|.amount|tonumber == 49999990338049
 ---
 type: check
 description: fox account should not receive rune until next block
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500483351059
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2500483346750
 ---
 type: check
 description: should emit 5 mint_burn events
@@ -478,7 +481,7 @@ params:
 asserts:
   - .memo == "$-:BTC.BTC:{{ addr_btc_fox }}"
   - .expected_collateral_withdrawn|tonumber == 0
-  - .expected_debt_repaid|tonumber == 495021900
+  - .expected_debt_repaid|tonumber == 495028435
   - .fees.total_bps|tonumber == 50
   - .fees.slippage_bps|tonumber == 50
   - .fees.outbound|not
@@ -504,7 +507,7 @@ asserts:
   - .[0]|.debt_issued == "975080000"
   - .[0]|.owner == "{{ addr_btc_fox }}"
   - .[0]|.collateral_withdrawn == "0"
-  - .[0]|.debt_repaid == "495021900"
+  - .[0]|.debt_repaid == "495028435"
 ---
 type: check
 description: no outbounds should be scheduled
@@ -528,11 +531,11 @@ asserts:
   - .inbound_address == "{{ addr_eth_dog }}"
   - .expected_amount_out|tonumber == 936255
   - .expected_collateral_withdrawn|tonumber == 989774
-  - .expected_debt_repaid|tonumber == 4180150193
+  - .expected_debt_repaid|tonumber == 4180145903
   - .fees.total_bps|tonumber == 4941
   - .fees.slippage_bps|tonumber == 1118
   - .fees.outbound|tonumber == 14000
-  - .fees.liquidity|tonumber == 448687
+  - .fees.liquidity|tonumber == 448688
   - (.fees.total|tonumber) == (.fees.liquidity|tonumber)+(.fees.outbound|tonumber)
 ---
 type: tx-observed-in
@@ -567,7 +570,7 @@ asserts:
   - .[0]|.debt_issued == "975080000"
   - .[0]|.owner == "{{ addr_btc_fox }}"
   - .[0]|.collateral_withdrawn == "989774" # should now be fully repaid
-  - .[0]|.debt_repaid == "4675172093" # over repaid
+  - .[0]|.debt_repaid == "4675174338" # over repaid
 ---
 type: check
 description: btc outbound should be scheduled
@@ -649,17 +652,17 @@ endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
   - .[0]|.collateral_deposited == "1483871"
-  - .[0]|.debt_issued == "5163892093"
+  - .[0]|.debt_issued == "5163894338"
   - .[0]|.owner == "{{ addr_btc_fox }}"
   - .[0]|.collateral_withdrawn == "989774"
-  - .[0]|.debt_repaid == "4675172093"
+  - .[0]|.debt_repaid == "4675174338"
 ---
 type: check
 description: fox account balance should be unchanged
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503838267325
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503838201897
 ---
 type: create-blocks
 count: 1
@@ -671,7 +674,7 @@ asserts:
   - .balances|length == 1
   # should receieve significantly more than the first open for the same amount since the
   # excess debt down will be credited on the subsequent open
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503838267325
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2503838201897
 ---
 ########################################################################################
 # open loan btc -> rune again should not get extra credit on subsequent open
@@ -705,17 +708,17 @@ endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
   - .[0]|.collateral_deposited == "1977756"
-  - .[0]|.debt_issued == "5647602093"
+  - .[0]|.debt_issued == "5647594338"
   - .[0]|.owner == "{{ addr_btc_fox }}"
   - .[0]|.collateral_withdrawn == "989774"
-  - .[0]|.debt_repaid == "4675172093"
+  - .[0]|.debt_repaid == "4675174338"
 ---
 type: check
 description: fox account balance should be unchanged
 endpoint: http://localhost:1317/cosmos/bank/v1beta1/balances/{{ addr_thor_fox }}
 asserts:
   - .balances|length == 1
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504315351613
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504315267825
 ---
 type: create-blocks
 count: 1
@@ -727,7 +730,7 @@ asserts:
   - .balances|length == 1
     # this time they should receieve a normal amount relative to the deposit since the
     # excess debt down was credited on the previous open
-  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504315351613
+  - .balances[]|select(.denom == "rune")|.amount|tonumber == 2504315267825
 ---
 ########################################################################################
 # open loan btc -> usdc (with fuzzy)
@@ -738,19 +741,19 @@ endpoint: http://localhost:1317/thorchain/quote/loan/open
 params:
   from_asset: BTC.BTC
   amount: 500000
-  to_asset: ETH.USDC-0X9999999999999999999999999999999999999999
+  to_asset: ETH.USDX-0X9999999999999999999999999999999999999999
   destination: {{ addr_eth_fox }}
 asserts:
-  - .memo == "$+:ETH.USDC-0X9999999999999999999999999999999999999999:{{ addr_eth_fox }}"
+  - .memo == "$+:ETH.USDX-9999:{{ addr_eth_fox }}"
   - .inbound_address == "{{ addr_btc_dog }}"
-  - .expected_amount_out|tonumber == 353290500
+  - .expected_amount_out|tonumber == 353301800
   - .expected_collateral_deposited|tonumber == 493383
   - .expected_collateralization_ratio|tonumber == 10000
   - .expected_debt_issued|tonumber == 478480000
-  - .recommended_min_amount_in == "479000"
+  - .recommended_min_amount_in == "478956"
   - .fees.total_bps|tonumber == 2632
-  - .fees.outbound|tonumber == 116182700
-  - .fees.liquidity|tonumber == 10083400
+  - .fees.outbound|tonumber == 116171400
+  - .fees.liquidity|tonumber == 10083300
 ---
 type: tx-observed-in
 signer: {{ addr_thor_dog }}
@@ -767,7 +770,7 @@ txs:
       gas:
         - amount: "10000"
           asset: "BTC.BTC"
-      memo: "LOAN+:ETH.USDC-9999:{{ addr_eth_fox }}:1"
+      memo: "LOAN+:ETH.USDX-9999:{{ addr_eth_fox }}"
     block_height: 2
     finalise_height: 2
     observed_pub_key: {{ pubkey_dog }}
@@ -781,9 +784,9 @@ endpoint: http://localhost:1317/thorchain/pool/btc.btc/borrowers
 asserts:
   - .|length == 1
   - .[0]|.collateral_deposited == "2471416"
-  - .[0]|.debt_issued == "6126352093"
+  - .[0]|.debt_issued == "6126344338"
   - .[0]|.collateral_withdrawn == "989774"
-  - .[0]|.debt_repaid == "4675172093"
+  - .[0]|.debt_repaid == "4675174338"
   - .[0]|.owner == "{{ addr_btc_fox }}"
 ---
 type: check
@@ -802,8 +805,8 @@ txs:
       from_address: {{ addr_eth_dog }}
       to_address: {{ addr_eth_fox }}
       coins:
-        - amount: "353551000"
-          asset: "ETH.USDC-0X9999999999999999999999999999999999999999"
+        - amount: "353562300"
+          asset: "ETH.USDX-0X9999999999999999999999999999999999999999"
           decimals: 8
       gas:
         - amount: "960000"
@@ -821,4 +824,3 @@ description: usdc outbound should be observed
 endpoint: http://localhost:1317/thorchain/queue/outbound
 asserts:
   - .|length == 0
----

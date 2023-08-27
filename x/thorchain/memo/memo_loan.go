@@ -32,9 +32,24 @@ func (m LoanOpenMemo) GetDexAggregator() string             { return m.DexAggreg
 func (m LoanOpenMemo) GetDexTargetAddress() string          { return m.DexTargetAddress }
 
 func (m LoanOpenMemo) String() string {
+	return m.string(false)
+}
+
+func (m LoanOpenMemo) ShortString() string {
+	return m.string(true)
+}
+
+func (m LoanOpenMemo) string(short bool) string {
+	var assetString string
+	if short && len(m.TargetAsset.ShortCode()) > 0 {
+		assetString = m.TargetAsset.ShortCode()
+	} else {
+		assetString = m.TargetAsset.String()
+	}
+
 	args := []string{
 		TxLoanOpen.String(),
-		m.TargetAsset.String(),
+		assetString,
 		m.TargetAddress.String(),
 		m.MinOut.String(),
 		m.AffiliateAddress.String(),

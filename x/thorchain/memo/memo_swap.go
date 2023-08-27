@@ -41,6 +41,14 @@ func (m SwapMemo) GetStreamInterval() uint64             { return m.StreamInterv
 func (m SwapMemo) GetAffiliateTHORName() *types.THORName { return m.AffiliateTHORName }
 
 func (m SwapMemo) String() string {
+	return m.string(false)
+}
+
+func (m SwapMemo) ShortString() string {
+	return m.string(true)
+}
+
+func (m SwapMemo) string(short bool) string {
 	slipLimit := m.SlipLimit.String()
 	if m.SlipLimit.IsZero() {
 		slipLimit = ""
@@ -55,9 +63,16 @@ func (m SwapMemo) String() string {
 		txType = "="
 	}
 
+	var assetString string
+	if short && len(m.Asset.ShortCode()) > 0 {
+		assetString = m.Asset.ShortCode()
+	} else {
+		assetString = m.Asset.String()
+	}
+
 	args := []string{
 		txType,
-		m.Asset.String(),
+		assetString,
 		m.Destination.String(),
 		slipLimit,
 		m.AffiliateAddress.String(),

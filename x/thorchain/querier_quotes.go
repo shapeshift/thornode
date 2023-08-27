@@ -141,9 +141,9 @@ func quoteHandleAffiliate(ctx cosmos.Context, mgr *Mgrs, params url.Values, amou
 	return affiliate, memo, bps, amount, nil
 }
 
-func hasPrefixMatch(prefix string, values []string) bool {
+func hasSuffixMatch(suffix string, values []string) bool {
 	for _, value := range values {
-		if strings.HasPrefix(value, prefix) {
+		if strings.HasSuffix(value, suffix) {
 			return true
 		}
 	}
@@ -157,19 +157,37 @@ func quoteReverseFuzzyAsset(ctx cosmos.Context, mgr *Mgrs, asset common.Asset) (
 		return asset, fmt.Errorf("failed to get pools: %w", err)
 	}
 
-	// get all other assets
-	assets := []string{}
+	// return the asset if no symbol to shorten
+	aSplit := strings.Split(asset.Symbol.String(), "-")
+	if len(aSplit) == 1 {
+		return asset, nil
+	}
+
+	// find all other assets that match the chain and ticker
+	addressMatches := []string{}
 	for _, p := range pools {
-		if p.IsAvailable() && !p.IsEmpty() && !p.Asset.Equals(asset) {
-			assets = append(assets, p.Asset.String())
+		if p.IsAvailable() && !p.IsEmpty() && !p.Asset.Equals(asset) &&
+			p.Asset.Chain.Equals(asset.Chain) && p.Asset.Ticker.Equals(asset.Ticker) {
+			pSplit := strings.Split(p.Asset.Symbol.String(), "-")
+			if len(pSplit) != 2 {
+				return asset, fmt.Errorf("ambiguous match: %s", p.Asset.Symbol)
+			}
+			addressMatches = append(addressMatches, pSplit[1])
 		}
 	}
 
-	// find the shortest unique prefix of the memo asset
-	as := asset.String()
-	for i := 1; i < len(as); i++ {
-		if !hasPrefixMatch(as[:i], assets) {
-			return common.NewAsset(as[:i])
+	if len(addressMatches) == 0 { // if only one match, drop the address
+		asset.Symbol = common.Symbol(asset.Ticker)
+	} else { // find the shortest unique suffix of the asset symbol
+		address := aSplit[1]
+
+		for i := len(address) - 1; i > 0; i-- {
+			if !hasSuffixMatch(address[i:], addressMatches) {
+				asset.Symbol = common.Symbol(
+					fmt.Sprintf("%s-%s", asset.Ticker, address[i:]),
+				)
+				break
+			}
 		}
 	}
 
@@ -563,10 +581,21 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 	}
 
 	// if from asset chain has memo length restrictions use a prefix
-	if fromAsset.Chain.MaxMemoLength() > 0 && len(memo.String()) > fromAsset.Chain.MaxMemoLength() {
-		memo.Asset, err = quoteReverseFuzzyAsset(ctx, mgr, toAsset)
-		if err != nil {
-			return quoteErrorResponse(fmt.Errorf("failed to reverse fuzzy asset: %w", err))
+	memoString := memo.String()
+	if fromAsset.Chain.MaxMemoLength() > 0 && len(memoString) > fromAsset.Chain.MaxMemoLength() {
+		if len(memo.ShortString()) < len(memoString) { // use short codes if available
+			memoString = memo.ShortString()
+		} else { // otherwise attempt to shorten
+			fuzzyAsset, err := quoteReverseFuzzyAsset(ctx, mgr, toAsset)
+			if err == nil {
+				memo.Asset = fuzzyAsset
+				memoString = memo.String()
+			}
+		}
+
+		// this is the shortest we can make it
+		if len(memoString) > fromAsset.Chain.MaxMemoLength() {
+			return quoteErrorResponse(fmt.Errorf("generated memo too long for source chain"))
 		}
 	}
 
@@ -587,7 +616,7 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 				Asset:  common.RuneAsset(),
 				Amount: sdk.NewUint(1),
 			}},
-			Memo: memo.String(),
+			Memo: memoString,
 		},
 		TargetAsset:          toAsset,
 		TradeTarget:          limit,
@@ -672,7 +701,7 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 
 	// send memo if the destination was provided
 	if sendMemo {
-		res.Memo = wrapString(memo.String())
+		res.Memo = wrapString(memoString)
 	}
 
 	// set info fields
@@ -1287,7 +1316,27 @@ func queryQuoteLoanOpen(ctx cosmos.Context, path []string, req abci.RequestQuery
 			AffiliateBasisPoints: affiliateBps,
 			DexTargetLimit:       sdk.ZeroUint(),
 		}
-		res.Memo = wrapString(memo.String())
+
+		// if from asset chain has memo length restrictions use a prefix
+		memoString := memo.String()
+		if asset.Chain.MaxMemoLength() > 0 && len(memoString) > asset.Chain.MaxMemoLength() {
+			if len(memo.ShortString()) < len(memoString) { // use short codes if available
+				memoString = memo.ShortString()
+			} else { // otherwise attempt to shorten
+				fuzzyAsset, err := quoteReverseFuzzyAsset(ctx, mgr, targetAsset)
+				if err == nil {
+					memo.TargetAsset = fuzzyAsset
+					memoString = memo.String()
+				}
+			}
+
+			// this is the shortest we can make it
+			if len(memoString) > asset.Chain.MaxMemoLength() {
+				return quoteErrorResponse(fmt.Errorf("generated memo too long for source chain"))
+			}
+		}
+
+		res.Memo = wrapString(memoString)
 	}
 
 	minLoanOpenAmount, err := calculateMinSwapAmount(ctx, mgr, asset, targetAsset)
