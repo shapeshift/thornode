@@ -167,23 +167,24 @@ value: 1
 signer: {{ addr_thor_dog }}
 ---
 type: create-blocks
-count: 3
+count: 4
 ---
 type: check
-description: check streaming swap is populating the failed swaps, and reasons
-endpoint: http://localhost:1317/thorchain/swap/streaming/{{ observe_txid 2 }}
+description: check streaming swap is still in list
+endpoint: http://localhost:1317/thorchain/swaps/streaming
 asserts:
-  - .deposit == "6000000"
-  - .in == "3600000"
-  - .count == 9
-  - .failed_swaps|length == 3
-  - .failed_swap_reasons|length == 3
+  - .|length == 1
+---
+type: tx-mimir
+key: HaltETHTrading
+value: 0
+signer: {{ addr_thor_dog }}
 ---
 type: create-blocks
-count: 1
+count: 4
 ---
 type: check
-description: check streaming swap is NOT in list
+description: check streaming swap NOT in list
 endpoint: http://localhost:1317/thorchain/swaps/streaming
 asserts:
   - .|length == 0
@@ -192,12 +193,10 @@ type: check
 description: outbound should be scheduled
 endpoint: http://localhost:1317/thorchain/queue/outbound
 asserts:
-  - .|length == 2
+  - .|length == 1
   - .[0]|.in_hash == "{{ observe_txid 2 }}"
   - .[0]|.coin.asset == "ETH.ETH"
-  - .[0]|.coin.amount == "26402226"
-  - .[1]|.coin.asset == "BTC.BTC"
-  - .[1]|.coin.amount == "2386001"
+  - .[0]|.coin.amount == "43058890"
 ---
 type: tx-observed-out
 signer: {{ addr_thor_dog }}
@@ -208,7 +207,7 @@ txs:
     from_address: {{ addr_eth_dog }}
     to_address: {{ addr_eth_fox }}
     coins:
-      - amount: "26402226"
+      - amount: "43058890"
         asset: "ETH.ETH"
         decimals: 8
     gas:
@@ -217,22 +216,6 @@ txs:
     memo: "OUT:{{ observe_txid 2 }}"
   block_height: 5
   finalise_height: 5
-  observed_pub_key: {{ pubkey_dog }}
-- tx:
-    id: '{{ observe_txid 4 }}'
-    chain: BTC
-    from_address: {{ addr_btc_dog }}
-    to_address: {{ addr_btc_fox }}
-    coins:
-      - amount: "2386001"
-        asset: "BTC.BTC"
-        decimals: 8
-    gas:
-      - amount: "10500"
-        asset: "BTC.BTC"
-    memo: "OUT:{{ observe_txid 2 }}"
-  block_height: 6
-  finalise_height: 6
   observed_pub_key: {{ pubkey_dog }}
 ---
 type: create-blocks
@@ -247,11 +230,6 @@ asserts:
 ########################################################################################
 # streaming swap to ETH.ETH (2/5 conversion)
 ########################################################################################
-type: tx-mimir
-key: HaltETHTrading
-value: 0
-signer: {{ addr_thor_dog }}
----
 type: create-blocks
 count: 1
 ---
@@ -270,7 +248,7 @@ txs:
     gas:
       - amount: "10000"
         asset: "BTC.BTC"
-    memo: "=:ETH.ETH:{{ addr_eth_fox }}:41666695/1/5"
+    memo: "=:ETH.ETH:{{ addr_eth_fox }}:38666695/1/5"
   block_height: 6
   finalise_height: 6
   observed_pub_key: {{ pubkey_dog }}
@@ -291,7 +269,7 @@ asserts:
   - .|length == 2
   - .[0]|.in_hash == "{{ observe_txid 5 }}"
   - .[0]|.coin.asset == "ETH.ETH"
-  - .[0]|.coin.amount == "7134239"
+  - .[0]|.coin.amount == "6500711"
   - .[0]|.memo == "OUT:{{ observe_txid 5 }}"
   - .[1]|.in_hash == "{{ observe_txid 5 }}"
   - .[1]|.coin.asset == "BTC.BTC"
@@ -307,7 +285,7 @@ txs:
     from_address: {{ addr_eth_dog }}
     to_address: {{ addr_eth_fox }}
     coins:
-      - amount: "7134239"
+      - amount: "6500711"
         asset: "ETH.ETH"
         decimals: 8
     gas:
@@ -369,10 +347,10 @@ endpoint: http://localhost:1317/thorchain/swap/streaming/{{ observe_txid 8 }}
 asserts:
   - .count == 1
   - .interval == 1
-  - .quantity == 10
+  - .quantity == 9
 ---
 type: create-blocks
-count: 9
+count: 8
 ---
 type: check
 description: outbound should be scheduled
@@ -381,7 +359,7 @@ asserts:
   - .|length == 1
   - .[0]|.in_hash == "{{ observe_txid 8 }}"
   - .[0]|.coin.asset == "ETH.ETH"
-  - .[0]|.coin.amount == "36636525"
+  - .[0]|.coin.amount == "33882043"
   - .[0]|.memo == "OUT:{{ observe_txid 8 }}"
 ---
 type: create-blocks
@@ -396,7 +374,7 @@ txs:
     from_address: {{ addr_eth_dog }}
     to_address: {{ addr_eth_fox }}
     coins:
-      - amount: "36636525"
+      - amount: "33882043"
         asset: "ETH.ETH"
         decimals: 8
     gas:
@@ -455,7 +433,7 @@ asserts:
   - .|length == 1
   - .[0]|.in_hash == "{{ observe_txid 10 }}"
   - .[0]|.coin.asset == "ETH.ETH"
-  - .[0]|.coin.amount == "445762"
+  - .[0]|.coin.amount == "327668"
   - .[0]|.memo == "OUT:{{ observe_txid 10 }}"
 ---
 type: create-blocks
@@ -470,7 +448,7 @@ txs:
     from_address: {{ addr_eth_dog }}
     to_address: {{ addr_eth_fox }}
     coins:
-      - amount: "445762"
+      - amount: "327668"
         asset: "ETH.ETH"
         decimals: 8
     gas:
