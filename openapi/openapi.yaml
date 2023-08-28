@@ -265,6 +265,40 @@ paths:
               schema:
                 $ref: "#/components/schemas/TxDetailsResponse"
 
+  /thorchain/tx/stages/{hash}:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - $ref: "#/components/parameters/hash"
+    get:
+      description: Returns the processing stages of a provided inbound hash.
+      operationId: txStages
+      tags:
+        - Transactions
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TxStagesResponse"
+
+  /thorchain/tx/status/{hash}:
+    parameters:
+      - $ref: "#/components/parameters/queryHeight"
+      - $ref: "#/components/parameters/hash"
+    get:
+      description: Returns the status of a provided inbound hash.
+      operationId: txStatus
+      tags:
+        - Transactions
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TxStatusResponse"
+
   # ------------------------------ nodes ------------------------------
 
   /thorchain/node/{address}:
