@@ -265,6 +265,7 @@ func NewQueryObservedTx(obTx ObservedTx) QueryObservedTx {
 // QueryPool holds all the information related to a pool
 type QueryPool struct {
 	Asset                string `json:"asset"`
+	ShortCode            string `json:"short_code,omitempty"`
 	Status               string `json:"status"`
 	Decimals             int64  `json:"decimals,omitempty"`
 	PendingInboundAsset  string `json:"pending_inbound_asset"`
@@ -288,6 +289,7 @@ type QueryPool struct {
 func NewQueryPool(pool Pool) QueryPool {
 	return QueryPool{
 		Asset:               pool.Asset.String(),
+		ShortCode:           pool.Asset.ShortCode(),
 		Status:              pool.Status.String(),
 		Decimals:            pool.Decimals,
 		PendingInboundAsset: pool.PendingInboundAsset.String(),

@@ -1222,6 +1222,9 @@ components:
         asset:
           type: string
           example: "BTC.BTC"
+        short_code:
+          type: string
+          example: "b"
         status:
           type: string
           example: "Available"
