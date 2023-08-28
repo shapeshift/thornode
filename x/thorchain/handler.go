@@ -265,6 +265,8 @@ func getMsgManageTHORNameFromMemo(memo ManageTHORNameMemo, tx ObservedTx, signer
 
 func processOneTxIn(ctx cosmos.Context, version semver.Version, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	switch {
+	case version.GTE(semver.MustParse("1.120.0")):
+		return processOneTxInV120(ctx, keeper, tx, signer)
 	case version.GTE(semver.MustParse("1.117.0")):
 		return processOneTxInV117(ctx, keeper, tx, signer)
 	case version.GTE(semver.MustParse("1.107.0")):
@@ -275,7 +277,7 @@ func processOneTxIn(ctx cosmos.Context, version semver.Version, keeper keeper.Ke
 	return nil, errBadVersion
 }
 
-func processOneTxInV117(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
+func processOneTxInV120(ctx cosmos.Context, keeper keeper.Keeper, tx ObservedTx, signer cosmos.AccAddress) (cosmos.Msg, error) {
 	memo, err := ParseMemoWithTHORNames(ctx, keeper, tx.Tx.Memo)
 	if err != nil {
 		ctx.Logger().Error("fail to parse memo", "error", err)
