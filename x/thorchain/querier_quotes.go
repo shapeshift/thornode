@@ -166,7 +166,8 @@ func quoteReverseFuzzyAsset(ctx cosmos.Context, mgr *Mgrs, asset common.Asset) (
 	// find all other assets that match the chain and ticker
 	addressMatches := []string{}
 	for _, p := range pools {
-		if p.IsAvailable() && !p.IsEmpty() && !p.Asset.Equals(asset) &&
+		if p.IsAvailable() && !p.IsEmpty() && !p.Asset.IsVaultAsset() &&
+			!p.Asset.Equals(asset) &&
 			p.Asset.Chain.Equals(asset.Chain) && p.Asset.Ticker.Equals(asset.Ticker) {
 			pSplit := strings.Split(p.Asset.Symbol.String(), "-")
 			if len(pSplit) != 2 {
@@ -662,6 +663,11 @@ func queryQuoteSwap(ctx cosmos.Context, path []string, req abci.RequestQuery, mg
 
 	// the amount out will deduct the outbound fee
 	res.ExpectedAmountOut = emitAmount.Sub(outboundFeeAmount).String()
+
+	// TODO: temporary for transition to only use expected amount out.
+	if streamingInterval > 0 && streamingQuantity > 0 {
+		res.ExpectedAmountOutStreaming = res.ExpectedAmountOut
+	}
 
 	maxQ := int64(maxSwapQuantity)
 	res.MaxStreamingQuantity = &maxQ
