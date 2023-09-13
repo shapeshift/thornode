@@ -454,7 +454,17 @@ func (e *EVMScanner) reportNetworkFee(height int64) {
 	feeDelta := new(big.Int).Sub(gasPrice, big.NewInt(int64(e.lastReportedGasPrice)))
 	feeDelta.Abs(feeDelta)
 	if e.lastReportedGasPrice != 0 && feeDelta.Cmp(big.NewInt(e.cfg.GasPriceResolution)) != 1 {
-		return
+		skip := true
+
+		// every 100 blocks send the fee if none is set
+		if height%100 == 0 {
+			hasNetworkFee, err := e.bridge.HasNetworkFee(e.cfg.ChainID)
+			skip = err != nil || hasNetworkFee
+		}
+
+		if skip {
+			return
+		}
 	}
 
 	// gas price to 1e8

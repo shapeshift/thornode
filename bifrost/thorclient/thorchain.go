@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,6 +33,7 @@ import (
 	"gitlab.com/thorchain/thornode/common/cosmos"
 	"gitlab.com/thorchain/thornode/config"
 	"gitlab.com/thorchain/thornode/constants"
+	openapi "gitlab.com/thorchain/thornode/openapi/gen"
 	stypes "gitlab.com/thorchain/thornode/x/thorchain/types"
 )
 
@@ -98,6 +100,7 @@ type ThorchainBridge interface {
 	GetTHORName(name string) (stypes.THORName, error)
 	GetThorchainVersion() (semver.Version, error)
 	IsCatchingUp() (bool, error)
+	HasNetworkFee(chain common.Chain) (bool, error)
 	PostKeysignFailure(blame stypes.Blame, height int64, memo string, coins common.Coins, pubkey common.PubKey) (common.TxID, error)
 	PostNetworkFee(height int64, chain common.Chain, transactionSize, transactionRate uint64) (common.TxID, error)
 	RagnarokInProgress() (bool, error)
@@ -413,6 +416,35 @@ func (b *thorchainBridge) IsCatchingUp() (bool, error) {
 		return false, fmt.Errorf("failed to unmarshal tendermint status: %w", err)
 	}
 	return resp.Result.SyncInfo.CatchingUp, nil
+}
+
+// HasNetworkFee checks whether the given chain has set a network fee - determined by
+// whether the `outbound_tx_size` for the inbound address response is non-zero.
+func (b *thorchainBridge) HasNetworkFee(chain common.Chain) (bool, error) {
+	buf, s, err := b.getWithPath(InboundAddressesEndpoint)
+	if err != nil {
+		return false, fmt.Errorf("fail to get inbound addresses: %w", err)
+	}
+	if s != http.StatusOK {
+		return false, fmt.Errorf("unexpected status code: %d", s)
+	}
+
+	var resp []openapi.InboundAddress
+	if err := json.Unmarshal(buf, &resp); err != nil {
+		return false, fmt.Errorf("fail to unmarshal inbound addresses: %w", err)
+	}
+
+	for _, addr := range resp {
+		if addr.Chain != nil && *addr.Chain == chain.String() && addr.OutboundTxSize != nil {
+			size, err := strconv.ParseInt(*addr.OutboundTxSize, 10, 64)
+			if err != nil {
+				return false, fmt.Errorf("fail to parse outbound_tx_size: %w", err)
+			}
+			return size > 0, nil
+		}
+	}
+
+	return false, fmt.Errorf("no inbound address found for chain: %s", chain)
 }
 
 // WaitToCatchUp wait for thorchain to catch up
